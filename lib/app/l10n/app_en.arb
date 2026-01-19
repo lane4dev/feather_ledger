@@ -1,6 +1,215 @@
 {
+  "@@locale": "en",
   "appTitle": "Feather Ledger",
   "@appTitle": {
     "description": "The title of the application"
+  },
+  
+  "ledgerTitle": "Ledger",
+  "@ledgerTitle": {
+    "description": "Title for ledger screen"
+  },
+  "income": "Income",
+  "@income": {
+    "description": "Income label"
+  },
+  "expense": "Expense",
+  "@expense": {
+    "description": "Expense label"
+  },
+  "balance": "Balance",
+  "@balance": {
+    "description": "Balance label"
+  },
+  "noTransactionsThisMonth": "No transactions this month",
+  "@noTransactionsThisMonth": {
+    "description": "Message when no transactions exist"
+  },
+  
+  "addTransaction": "Add Transaction",
+  "@addTransaction": {
+    "description": "Title for add transaction screen"
+  },
+  "amount": "Amount",
+  "@amount": {
+    "description": "Amount field label"
+  },
+  "date": "Date",
+  "@date": {
+    "description": "Date field label"
+  },
+  "category": "Category",
+  "@category": {
+    "description": "Category field label"
+  },
+  "account": "Account",
+  "@account": {
+    "description": "Account field label"
+  },
+  "note": "Note",
+  "@note": {
+    "description": "Note field label"
+  },
+  "saveTransaction": "Save Transaction",
+  "@saveTransaction": {
+    "description": "Save transaction button"
+  },
+  "required": "Required",
+  "@required": {
+    "description": "Required field validation message"
+  },
+  "invalidAmount": "Invalid amount",
+  "@invalidAmount": {
+    "description": "Invalid amount validation message"
+  },
+  "noCategoriesFound": "No categories found. Please add some first.",
+  "@noCategoriesFound": {
+    "description": "Message when no categories exist"
+  },
+  "noAccountsFound": "No accounts found.",
+  "@noAccountsFound": {
+    "description": "Message when no accounts exist"
+  },
+  "errorPrefix": "Error: {error}",
+  "@errorPrefix": {
+    "description": "Error message prefix",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "theme": "Theme",
+  "@theme": {
+    "description": "Theme setting label"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language setting label"
+  },
+  "currencySymbol": "Currency Symbol",
+  "@currencySymbol": {
+    "description": "Currency symbol setting label"
+  },
+  "system": "System",
+  "@system": {
+    "description": "System theme option"
+  },
+  "light": "Light",
+  "@light": {
+    "description": "Light theme option"
+  },
+  "dark": "Dark",
+  "@dark": {
+    "description": "Dark theme option"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  "chinese": "Chinese",
+  "@chinese": {
+    "description": "Chinese language option"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading indicator text"
+  },
+
+  "reports": "Reports",
+  "@reports": {
+    "description": "Reports screen title"
+  },
+  "activityHeatmap": "Activity Heatmap",
+  "@activityHeatmap": {
+    "description": "Activity heatmap section title"
+  },
+  "incomeBreakdown": "Income Breakdown",
+  "@incomeBreakdown": {
+    "description": "Income breakdown chart title"
+  },
+  "expenseBreakdown": "Expense Breakdown",
+  "@expenseBreakdown": {
+    "description": "Expense breakdown chart title"
+  },
+  "noData": "No data",
+  "@noData": {
+    "description": "Message when no data is available"
+  },
+  
+  "more": "More",
+  "@more": {
+    "description": "More screen title"
+  },
+  "accounts": "Accounts",
+  "@accounts": {
+    "description": "Accounts menu item"
+  },
+  "budgets": "Budgets",
+  "@budgets": {
+    "description": "Budgets menu item"
+  },
+  
+  "dollarCurrency": "$ (Dollar)",
+  "@dollarCurrency": {
+    "description": "Dollar currency option"
+  },
+  "yuanYenCurrency": "¥ (Yuan/Yen)",
+  "@yuanYenCurrency": {
+    "description": "Yuan/Yen currency option"
+  },
+  "euroCurrency": "€ (Euro)",
+  "@euroCurrency": {
+    "description": "Euro currency option"
+  },
+  "poundCurrency": "£ (Pound)",
+  "@poundCurrency": {
+    "description": "Pound currency option"
+  },
+  
+  "accountsTitle": "Accounts",
+  "@accountsTitle": {
+    "description": "Title for accounts screen"
+  },
+  "addAccount": "Add Account",
+  "@addAccount": {
+    "description": "Title for add account screen"
+  },
+  "editAccount": "Edit Account",
+  "@editAccount": {
+    "description": "Title for edit account screen"
+  },
+  "accountName": "Account Name",
+  "@accountName": {
+    "description": "Account name field label"
+  },
+  "accountType": "Account Type",
+  "@accountType": {
+    "description": "Account type field label"
+  },
+  "initialBalance": "Initial Balance",
+  "@initialBalance": {
+    "description": "Initial balance field label"
+  },
+  "accountSaved": "Account saved",
+  "@accountSaved": {
+    "description": "Message when account is saved"
+  },
+  "deleteAccountConfirmation": "Are you sure you want to delete this account?",
+  "@deleteAccountConfirmation": {
+    "description": "Confirmation message for deleting an account"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button text"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
   }
 }

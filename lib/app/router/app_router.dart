@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../l10n/app_localizations.dart';
 import '../../features/ledger/presentation/screens/ledger_screen.dart';
 import '../../features/ledger/presentation/screens/transaction_form_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/account_management_screen.dart';
 
 part 'app_router.g.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter goRouter(Ref ref) {
@@ -33,7 +34,8 @@ GoRouter goRouter(Ref ref) {
                 routes: [
                   GoRoute(
                     path: 'add',
-                    parentNavigatorKey: _rootNavigatorKey, // Open over the shell
+                    parentNavigatorKey:
+                        _rootNavigatorKey, // Open over the shell
                     builder: (context, state) => const TransactionFormScreen(),
                   ),
                 ],
@@ -51,15 +53,18 @@ GoRouter goRouter(Ref ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/more',
-                builder: (context, state) => const MoreScreen(),
-                routes: [
-                   GoRoute(
-                    path: 'settings',
-                    builder: (context, state) => const SettingsScreen(),
-                  ),
-                ]
-              ),
+                  path: '/more',
+                  builder: (context, state) => const MoreScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'settings',
+                      builder: (context, state) => const SettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'accounts',
+                      builder: (context, state) => const AccountManagementScreen(),
+                    ),
+                  ]),
             ],
           ),
         ],
@@ -78,6 +83,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
@@ -88,18 +95,18 @@ class ScaffoldWithNavBar extends StatelessWidget {
             initialLocation: index == navigationShell.currentIndex,
           );
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.book),
-            label: 'Ledger',
+            icon: const Icon(Icons.book),
+            label: l10n.ledgerTitle,
           ),
           NavigationDestination(
-            icon: Icon(Icons.pie_chart),
-            label: 'Reports',
+            icon: const Icon(Icons.pie_chart),
+            label: l10n.reports,
           ),
           NavigationDestination(
-            icon: Icon(Icons.more_horiz),
-            label: 'More',
+            icon: const Icon(Icons.more_horiz),
+            label: l10n.more,
           ),
         ],
       ),

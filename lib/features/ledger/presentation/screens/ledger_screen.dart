@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/database/tables.dart';
 import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
 
@@ -17,12 +18,13 @@ class LedgerScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(ledgerSummaryProvider);
     final transactionsAsync = ref.watch(ledgerTransactionsProvider);
     final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       extendBody: true,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Ledger'),
+        title: Text(l10n.ledgerTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -83,24 +85,24 @@ class LedgerScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _SummaryItem(
-                            label: 'Income',
+                            label: l10n.income,
                             value: summary.totalIncome,
                             color: Colors.green,
                             currency: currency),
                         _SummaryItem(
-                            label: 'Expense',
+                            label: l10n.expense,
                             value: summary.totalExpense,
                             color: Colors.red,
                             currency: currency),
                         _SummaryItem(
-                            label: 'Balance',
+                            label: l10n.balance,
                             value: summary.runningBalance,
                             color: Colors.blue,
                             currency: currency),
                       ],
                     ),
                     loading: () => const LinearProgressIndicator(),
-                    error: (e, s) => Text('Error: $e'),
+                    error: (e, s) => Text(l10n.errorPrefix(e.toString())),
                   ),
                 ],
               ),
@@ -112,8 +114,7 @@ class LedgerScreen extends ConsumerWidget {
             child: transactionsAsync.when(
               data: (transactions) {
                 if (transactions.isEmpty) {
-                  return const Center(
-                      child: Text('No transactions this month'));
+                  return Center(child: Text(l10n.noTransactionsThisMonth));
                 }
 
                 // Group by date
@@ -172,7 +173,8 @@ class LedgerScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(child: Text('Error: $e')),
+              error: (e, s) =>
+                  Center(child: Text(l10n.errorPrefix(e.toString()))),
             ),
           ),
         ],

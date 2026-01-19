@@ -4,6 +4,7 @@ import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/features/ledger/presentation/providers/ledger_providers.dart';
 import '../providers/reports_providers.dart';
 import '../../domain/reports_entities.dart';
@@ -17,10 +18,11 @@ class ReportsScreen extends ConsumerWidget {
     final heatmapAsync = ref.watch(heatmapDataProvider);
     final incomeAsync = ref.watch(incomeChartDataProvider);
     final expenseAsync = ref.watch(expenseChartDataProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports'),
+        title: Text(l10n.reports),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -50,8 +52,9 @@ class ReportsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // 1. Heatmap
-            const Text('Activity Heatmap',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(l10n.activityHeatmap,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             heatmapAsync.when(
               data: (data) {
@@ -72,31 +75,35 @@ class ReportsScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Text('Error: $e'),
+              error: (e, s) => Text(l10n.errorPrefix(e.toString())),
             ),
             const SizedBox(height: 24),
 
             // 2. Charts
-            const Text('Income Breakdown',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(l10n.incomeBreakdown,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 200,
               child: incomeAsync.when(
-                data: (data) => _buildDonutChart(data),
+                data: (data) => _buildDonutChart(data, l10n),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, s) => Center(child: Text('Error: $e')),
+                error: (e, s) =>
+                    Center(child: Text(l10n.errorPrefix(e.toString()))),
               ),
             ),
             const SizedBox(height: 24),
 
-            const Text('Expense Breakdown',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(l10n.expenseBreakdown,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(
               height: 200,
               child: expenseAsync.when(
-                data: (data) => _buildDonutChart(data),
+                data: (data) => _buildDonutChart(data, l10n),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, s) => Center(child: Text('Error: $e')),
+                error: (e, s) =>
+                    Center(child: Text(l10n.errorPrefix(e.toString()))),
               ),
             ),
           ],
@@ -105,8 +112,9 @@ class ReportsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDonutChart(List<ReportCategoryTotal> data) {
-    if (data.isEmpty) return const Center(child: Text('No data'));
+  Widget _buildDonutChart(
+      List<ReportCategoryTotal> data, AppLocalizations l10n) {
+    if (data.isEmpty) return Center(child: Text(l10n.noData));
 
     return PieChart(
       PieChartData(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../app/l10n/app_localizations.dart';
 import '../providers/settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -10,17 +12,17 @@ class SettingsScreen extends ConsumerWidget {
     final themeAsync = ref.watch(themeModeControllerProvider);
     final localeAsync = ref.watch(localeControllerProvider);
     final currencyAsync = ref.watch(currencyControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         children: [
           // Theme
           ListTile(
             leading: const Icon(Icons.brightness_6),
-            title: const Text('Theme'),
-            subtitle: Text(themeAsync.valueOrNull?.toString().split('.').last ??
-                'Loading...'),
+            title: Text(l10n.theme),
+            subtitle: Text(_getThemeLabel(themeAsync.valueOrNull, l10n)),
             trailing: DropdownButton<ThemeMode>(
               value: themeAsync.valueOrNull,
               onChanged: (ThemeMode? newValue) {
@@ -30,11 +32,12 @@ class SettingsScreen extends ConsumerWidget {
                       .setTheme(newValue);
                 }
               },
-              items: const [
+              items: [
                 DropdownMenuItem(
-                    value: ThemeMode.system, child: Text('System')),
-                DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
-                DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
+                    value: ThemeMode.system, child: Text(l10n.system)),
+                DropdownMenuItem(
+                    value: ThemeMode.light, child: Text(l10n.light)),
+                DropdownMenuItem(value: ThemeMode.dark, child: Text(l10n.dark)),
               ],
             ),
           ),
@@ -43,10 +46,10 @@ class SettingsScreen extends ConsumerWidget {
           // Language
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Language'),
+            title: Text(l10n.language),
             subtitle: Text(localeAsync.valueOrNull?.languageCode == 'zh'
-                ? 'Chinese'
-                : 'English'),
+                ? l10n.chinese
+                : l10n.english),
             trailing: DropdownButton<Locale>(
               value: localeAsync.valueOrNull,
               onChanged: (Locale? newValue) {
@@ -56,9 +59,11 @@ class SettingsScreen extends ConsumerWidget {
                       .setLocale(newValue);
                 }
               },
-              items: const [
-                DropdownMenuItem(value: Locale('en'), child: Text('English')),
-                DropdownMenuItem(value: Locale('zh'), child: Text('Chinese')),
+              items: [
+                DropdownMenuItem(
+                    value: const Locale('en'), child: Text(l10n.english)),
+                DropdownMenuItem(
+                    value: const Locale('zh'), child: Text(l10n.chinese)),
               ],
             ),
           ),
@@ -67,8 +72,8 @@ class SettingsScreen extends ConsumerWidget {
           // Currency
           ListTile(
             leading: const Icon(Icons.attach_money),
-            title: const Text('Currency Symbol'),
-            subtitle: Text(currencyAsync.valueOrNull ?? 'Loading...'),
+            title: Text(l10n.currencySymbol),
+            subtitle: Text(currencyAsync.valueOrNull ?? l10n.loading),
             trailing: DropdownButton<String>(
               value: currencyAsync.valueOrNull,
               onChanged: (String? newValue) {
@@ -78,16 +83,28 @@ class SettingsScreen extends ConsumerWidget {
                       .setCurrency(newValue);
                 }
               },
-              items: const [
-                DropdownMenuItem(value: '\$', child: Text('\$ (Dollar)')),
-                DropdownMenuItem(value: '¥', child: Text('¥ (Yuan/Yen)')),
-                DropdownMenuItem(value: '€', child: Text('€ (Euro)')),
-                DropdownMenuItem(value: '£', child: Text('£ (Pound)')),
+              items: [
+                DropdownMenuItem(value: '\$', child: Text(l10n.dollarCurrency)),
+                DropdownMenuItem(value: '¥', child: Text(l10n.yuanYenCurrency)),
+                DropdownMenuItem(value: '€', child: Text(l10n.euroCurrency)),
+                DropdownMenuItem(value: '£', child: Text(l10n.poundCurrency)),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _getThemeLabel(ThemeMode? mode, AppLocalizations l10n) {
+    if (mode == null) return l10n.loading;
+    switch (mode) {
+      case ThemeMode.system:
+        return l10n.system;
+      case ThemeMode.light:
+        return l10n.light;
+      case ThemeMode.dark:
+        return l10n.dark;
+    }
   }
 }

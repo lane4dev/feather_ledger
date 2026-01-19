@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../app/l10n/app_localizations.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/services/ledger_service.dart';
 import '../providers/ledger_providers.dart';
@@ -30,10 +31,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(allCategoriesProvider);
     final accountsAsync = ref.watch(allAccountsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Transaction'),
+        title: Text(l10n.addTransaction),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -44,17 +46,17 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             children: [
               // 1. Amount
               TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
+                decoration: InputDecoration(
+                  labelText: l10n.amount,
                   prefixText: '\$ ',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
+                  if (value == null || value.isEmpty) return l10n.required;
                   final p = double.tryParse(value);
-                  if (p == null || p <= 0) return 'Invalid amount';
+                  if (p == null || p <= 0) return l10n.invalidAmount;
                   return null;
                 },
                 onSaved: (value) => _amount = double.parse(value!),
@@ -63,15 +65,15 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 2. Type
               SegmentedButton<TransactionType>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                       value: TransactionType.expense,
-                      label: Text('Expense'),
-                      icon: Icon(Icons.remove_circle_outline)),
+                      label: Text(l10n.expense),
+                      icon: const Icon(Icons.remove_circle_outline)),
                   ButtonSegment(
                       value: TransactionType.income,
-                      label: Text('Income'),
-                      icon: Icon(Icons.add_circle_outline)),
+                      label: Text(l10n.income),
+                      icon: const Icon(Icons.add_circle_outline)),
                 ],
                 selected: {_type},
                 onSelectionChanged: (Set<TransactionType> newSelection) {
@@ -86,7 +88,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 3. Date
               ListTile(
-                title: const Text('Date'),
+                title: Text(l10n.date),
                 subtitle: Text(DateFormat.yMMMd().format(_date)),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
@@ -110,11 +112,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   final filtered =
                       categories.where((c) => c.type == _type).toList();
                   if (filtered.isEmpty) {
-                    return const Text(
-                        'No categories found. Please add some first.');
+                    return Text(l10n.noCategoriesFound);
                   }
                   return DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Category'),
+                    decoration: InputDecoration(labelText: l10n.category),
                     value: _categoryId,
                     items: filtered
                         .map((c) => DropdownMenuItem(
@@ -132,20 +133,20 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                             ))
                         .toList(),
                     onChanged: (val) => setState(() => _categoryId = val),
-                    validator: (val) => val == null ? 'Required' : null,
+                    validator: (val) => val == null ? l10n.required : null,
                   );
                 },
                 loading: () => const LinearProgressIndicator(),
-                error: (e, s) => Text('Error: $e'),
+                error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
               const SizedBox(height: 16),
 
               // 5. Account
               accountsAsync.when(
                 data: (accounts) {
-                  if (accounts.isEmpty) return const Text('No accounts found.');
+                  if (accounts.isEmpty) return Text(l10n.noAccountsFound);
                   return DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Account'),
+                    decoration: InputDecoration(labelText: l10n.account),
                     value: _accountId,
                     items: accounts
                         .map((a) => DropdownMenuItem(
@@ -154,17 +155,17 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                             ))
                         .toList(),
                     onChanged: (val) => setState(() => _accountId = val),
-                    validator: (val) => val == null ? 'Required' : null,
+                    validator: (val) => val == null ? l10n.required : null,
                   );
                 },
                 loading: () => const LinearProgressIndicator(),
-                error: (e, s) => Text('Error: $e'),
+                error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
               const SizedBox(height: 16),
 
               // 6. Note
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Note'),
+                decoration: InputDecoration(labelText: l10n.note),
                 onSaved: (value) => _note = value,
               ),
               const SizedBox(height: 32),
@@ -172,7 +173,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               // Save Button
               FilledButton(
                 onPressed: _submit,
-                child: const Text('Save Transaction'),
+                child: Text(l10n.saveTransaction),
               ),
             ],
           ),
@@ -197,8 +198,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         if (mounted) context.pop();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Error: $e')));
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
         }
       }
     }

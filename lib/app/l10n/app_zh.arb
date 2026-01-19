@@ -1,0 +1,215 @@
+{
+  "@@locale": "zh",
+  "appTitle": "羽毛账本",
+  "@appTitle": {
+    "description": "应用程序标题"
+  },
+  
+  "ledgerTitle": "账本",
+  "@ledgerTitle": {
+    "description": "账本页面标题"
+  },
+  "income": "收入",
+  "@income": {
+    "description": "收入标签"
+  },
+  "expense": "支出",
+  "@expense": {
+    "description": "支出标签"
+  },
+  "balance": "余额",
+  "@balance": {
+    "description": "余额标签"
+  },
+  "noTransactionsThisMonth": "本月无交易记录",
+  "@noTransactionsThisMonth": {
+    "description": "无交易记录时的提示"
+  },
+  
+  "addTransaction": "添加交易",
+  "@addTransaction": {
+    "description": "添加交易页面标题"
+  },
+  "amount": "金额",
+  "@amount": {
+    "description": "金额字段标签"
+  },
+  "date": "日期",
+  "@date": {
+    "description": "日期字段标签"
+  },
+  "category": "分类",
+  "@category": {
+    "description": "分类字段标签"
+  },
+  "account": "账户",
+  "@account": {
+    "description": "账户字段标签"
+  },
+  "note": "备注",
+  "@note": {
+    "description": "备注字段标签"
+  },
+  "saveTransaction": "保存交易",
+  "@saveTransaction": {
+    "description": "保存交易按钮"
+  },
+  "required": "必填",
+  "@required": {
+    "description": "必填字段验证提示"
+  },
+  "invalidAmount": "金额无效",
+  "@invalidAmount": {
+    "description": "无效金额验证提示"
+  },
+  "noCategoriesFound": "未找到分类，请先添加分类。",
+  "@noCategoriesFound": {
+    "description": "无分类时的提示"
+  },
+  "noAccountsFound": "未找到账户。",
+  "@noAccountsFound": {
+    "description": "无账户时的提示"
+  },
+  "errorPrefix": "错误：{error}",
+  "@errorPrefix": {
+    "description": "错误消息前缀",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "settings": "设置",
+  "@settings": {
+    "description": "设置页面标题"
+  },
+  "theme": "主题",
+  "@theme": {
+    "description": "主题设置标签"
+  },
+  "language": "语言",
+  "@language": {
+    "description": "语言设置标签"
+  },
+  "currencySymbol": "货币符号",
+  "@currencySymbol": {
+    "description": "货币符号设置标签"
+  },
+  "system": "跟随系统",
+  "@system": {
+    "description": "系统主题选项"
+  },
+  "light": "浅色",
+  "@light": {
+    "description": "浅色主题选项"
+  },
+  "dark": "深色",
+  "@dark": {
+    "description": "深色主题选项"
+  },
+  "english": "英语",
+  "@english": {
+    "description": "英语语言选项"
+  },
+  "chinese": "中文",
+  "@chinese": {
+    "description": "中文语言选项"
+  },
+  "loading": "加载中...",
+  "@loading": {
+    "description": "加载指示器文本"
+  },
+  
+  "reports": "报表",
+  "@reports": {
+    "description": "报表页面标题"
+  },
+  "activityHeatmap": "活动热力图",
+  "@activityHeatmap": {
+    "description": "活动热力图板块标题"
+  },
+  "incomeBreakdown": "收入明细",
+  "@incomeBreakdown": {
+    "description": "收入明细图表标题"
+  },
+  "expenseBreakdown": "支出明细",
+  "@expenseBreakdown": {
+    "description": "支出明细图表标题"
+  },
+  "noData": "暂无数据",
+  "@noData": {
+    "description": "无数据时的提示"
+  },
+  
+  "more": "更多",
+  "@more": {
+    "description": "更多页面标题"
+  },
+  "accounts": "账户",
+  "@accounts": {
+    "description": "账户菜单项"
+  },
+  "budgets": "预算",
+  "@budgets": {
+    "description": "预算菜单项"
+  },
+  
+  "dollarCurrency": "$ (美元)",
+  "@dollarCurrency": {
+    "description": "美元货币选项"
+  },
+  "yuanYenCurrency": "¥ (人民币/日元)",
+  "@yuanYenCurrency": {
+    "description": "人民币/日元货币选项"
+  },
+  "euroCurrency": "€ (欧元)",
+  "@euroCurrency": {
+    "description": "欧元货币选项"
+  },
+  "poundCurrency": "£ (英镑)",
+  "@poundCurrency": {
+    "description": "英镑货币选项"
+  },
+  
+  "accountsTitle": "账户",
+  "@accountsTitle": {
+    "description": "账户页面标题"
+  },
+  "addAccount": "添加账户",
+  "@addAccount": {
+    "description": "添加账户页面标题"
+  },
+  "editAccount": "编辑账户",
+  "@editAccount": {
+    "description": "编辑账户页面标题"
+  },
+  "accountName": "账户名称",
+  "@accountName": {
+    "description": "账户名称字段标签"
+  },
+  "accountType": "账户类型",
+  "@accountType": {
+    "description": "账户类型字段标签"
+  },
+  "initialBalance": "初始余额",
+  "@initialBalance": {
+    "description": "初始余额字段标签"
+  },
+  "accountSaved": "账户已保存",
+  "@accountSaved": {
+    "description": "账户保存成功提示"
+  },
+  "deleteAccountConfirmation": "确定要删除此账户吗？",
+  "@deleteAccountConfirmation": {
+    "description": "删除账户确认消息"
+  },
+  "delete": "删除",
+  "@delete": {
+    "description": "删除按钮文本"
+  },
+  "cancel": "取消",
+  "@cancel": {
+    "description": "取消按钮文本"
+  }
+}
