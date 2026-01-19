@@ -39,7 +39,7 @@ void main() {
 
       test('should transform Account to AccountEntity', () async {
         // Arrange
-        final accounts = [
+        const accounts = [
           Account(
             id: 1,
             name: 'Cash',
@@ -93,9 +93,9 @@ void main() {
     group('addAccount', () {
       test('should call dao.addAccount with correct parameters', () async {
         // Arrange
-        final name = 'Savings';
-        final type = AccountType.bank;
-        final initialBalance = 2000.0;
+        const name = 'Savings';
+        const type = AccountType.bank;
+        const initialBalance = 2000.0;
 
         // Act
         await repository.addAccount(
@@ -114,9 +114,9 @@ void main() {
 
       test('should handle cash account type', () async {
         // Arrange
-        final name = 'Petty Cash';
-        final type = AccountType.cash;
-        final initialBalance = 100.0;
+        const name = 'Petty Cash';
+        const type = AccountType.cash;
+        const initialBalance = 100.0;
 
         // Act
         await repository.addAccount(
@@ -131,9 +131,9 @@ void main() {
 
       test('should handle credit account type', () async {
         // Arrange
-        final name = 'Credit Card';
-        final type = AccountType.credit;
-        final initialBalance = 0.0;
+        const name = 'Credit Card';
+        const type = AccountType.credit;
+        const initialBalance = 0.0;
 
         // Act
         await repository.addAccount(
@@ -148,9 +148,9 @@ void main() {
 
       test('should handle zero initial balance', () async {
         // Arrange
-        final name = 'New Account';
-        final type = AccountType.bank;
-        final initialBalance = 0.0;
+        const name = 'New Account';
+        const type = AccountType.bank;
+        const initialBalance = 0.0;
 
         // Act
         await repository.addAccount(
@@ -165,9 +165,9 @@ void main() {
 
       test('should handle negative initial balance', () async {
         // Arrange
-        final name = 'Overdraft Account';
-        final type = AccountType.bank;
-        final initialBalance = -500.0;
+        const name = 'Overdraft Account';
+        const type = AccountType.bank;
+        const initialBalance = -500.0;
 
         // Act
         await repository.addAccount(
@@ -184,10 +184,10 @@ void main() {
     group('updateAccount', () {
       test('should call dao.updateAccount with correct parameters', () async {
         // Arrange
-        final id = 1;
-        final name = 'Updated Account';
-        final type = AccountType.bank;
-        final initialBalance = 3000.0;
+        const id = 1;
+        const name = 'Updated Account';
+        const type = AccountType.bank;
+        const initialBalance = 3000.0;
 
         // Act
         await repository.updateAccount(
@@ -209,10 +209,10 @@ void main() {
 
       test('should update account type', () async {
         // Arrange
-        final id = 1;
-        final name = 'Account';
-        final type = AccountType.credit;
-        final initialBalance = 1000.0;
+        const id = 1;
+        const name = 'Account';
+        const type = AccountType.credit;
+        const initialBalance = 1000.0;
 
         // Act
         await repository.updateAccount(
@@ -228,10 +228,10 @@ void main() {
 
       test('should update initial balance', () async {
         // Arrange
-        final id = 1;
-        final name = 'Account';
-        final type = AccountType.bank;
-        final initialBalance = 9999.99;
+        const id = 1;
+        const name = 'Account';
+        const type = AccountType.bank;
+        const initialBalance = 9999.99;
 
         // Act
         await repository.updateAccount(
@@ -249,7 +249,7 @@ void main() {
     group('deleteAccount', () {
       test('should call dao.deleteAccount with correct id', () async {
         // Arrange
-        final accountId = 42;
+        const accountId = 42;
 
         // Act
         await repository.deleteAccount(accountId);

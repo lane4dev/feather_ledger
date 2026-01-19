@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/database/tables.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 
 import '../../../../../support/mocks/mock_ledger_repository.dart';
@@ -30,12 +29,13 @@ void main() {
       test('should return stream from repository', () {
         // Arrange
         final month = DateTime(2024, 1);
+        final expectedStream = mockRepository.watchTransactions(month);
 
         // Act
         final stream = service.watchTransactions(month);
 
         // Assert
-        expect(stream, isA<Stream<List<TransactionEntity>>>());
+        expect(stream, equals(expectedStream));
       });
     });
 
@@ -43,12 +43,13 @@ void main() {
       test('should return stream from repository', () {
         // Arrange
         final month = DateTime(2024, 1);
+        final expectedStream = mockRepository.watchMonthlySummary(month);
 
         // Act
         final stream = service.watchMonthlySummary(month);
 
         // Assert
-        expect(stream, isA<Stream<MonthlySummary>>());
+        expect(stream, equals(expectedStream));
       });
     });
 
@@ -56,12 +57,13 @@ void main() {
       test('should call repository.addTransaction with correct parameters',
           () async {
         // Arrange
-        final amount = 100.0;
-        final type = TransactionType.expense;
+        const amount = 100.0;
+        const type = TransactionType.expense;
+        const categoryId = 5;
+        const accountId = 3;
+        const note = 'Test note';
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
-        final note = 'Test note';
 
         // Act
         await service.addTransaction(
@@ -75,15 +77,22 @@ void main() {
 
         // Assert
         expect(mockRepository.addTransactionCallCount, 1);
+        expect(mockRepository.lastAmount, amount);
+        expect(mockRepository.lastType, type);
+        expect(mockRepository.lastDate, date);
+        expect(mockRepository.lastCategoryId, categoryId);
+        expect(mockRepository.lastAccountId, accountId);
+        expect(mockRepository.lastNote, note);
       });
 
       test('should call repository without note when not provided', () async {
         // Arrange
-        final amount = 100.0;
-        final type = TransactionType.expense;
+        const amount = 100.0;
+        const type = TransactionType.expense;
+        const categoryId = 1;
+        const accountId = 1;
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
 
         // Act
         await service.addTransaction(
@@ -96,15 +105,17 @@ void main() {
 
         // Assert
         expect(mockRepository.addTransactionCallCount, 1);
+        expect(mockRepository.lastNote, isNull);
       });
 
       test('should throw exception when amount is zero', () async {
         // Arrange
-        final amount = 0.0;
-        final type = TransactionType.expense;
+        const amount = 0.0;
+        const type = TransactionType.expense;
+        const categoryId = 1;
+        const accountId = 1;
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
 
         // Act & Assert
         expect(
@@ -121,11 +132,12 @@ void main() {
 
       test('should throw exception when amount is negative', () async {
         // Arrange
-        final amount = -50.0;
-        final type = TransactionType.expense;
+        const amount = -50.0;
+        const type = TransactionType.expense;
+        const categoryId = 1;
+        const accountId = 1;
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
 
         // Act & Assert
         expect(
@@ -142,11 +154,12 @@ void main() {
 
       test('should not call repository when validation fails', () async {
         // Arrange
-        final amount = -50.0;
-        final type = TransactionType.expense;
+        const amount = -50.0;
+        const type = TransactionType.expense;
+        const categoryId = 1;
+        const accountId = 1;
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
 
         // Act & Assert
         try {
@@ -166,11 +179,12 @@ void main() {
 
       test('should accept income transactions', () async {
         // Arrange
-        final amount = 1000.0;
-        final type = TransactionType.income;
+        const amount = 1000.0;
+        const type = TransactionType.income;
+        const categoryId = 1;
+        const accountId = 1;
+
         final date = DateTime(2024, 1, 15);
-        final categoryId = 1;
-        final accountId = 1;
 
         // Act
         await service.addTransaction(
@@ -190,7 +204,7 @@ void main() {
       test('should call repository.deleteTransaction with correct id',
           () async {
         // Arrange
-        final transactionId = 42;
+        const transactionId = 42;
 
         // Act
         await service.deleteTransaction(transactionId);

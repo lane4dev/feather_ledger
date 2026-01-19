@@ -251,7 +251,8 @@ void main() {
 
       // Verify data integrity
       expect(categories.every((c) => c.name.isNotEmpty), isTrue);
-      expect(categories.every((c) => c.iconKey.isNotEmpty), isTrue);
+      expect(categories.every((c) => int.tryParse(c.iconKey) != null), isTrue,
+          reason: 'iconKey should be a numeric codePoint string');
       expect(accounts.every((a) => a.name.isNotEmpty), isTrue);
     });
   });

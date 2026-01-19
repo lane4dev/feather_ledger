@@ -41,13 +41,37 @@ void main() {
         // Assert
         expect(stream, isA<Stream<Map<DateTime, int>>>());
       });
+
+      test('should emit heatmap data from dao', () async {
+        // Arrange
+        final month = DateTime(2024, 1);
+        final date1 = DateTime(2024, 1, 15);
+        final date2 = DateTime(2024, 1, 20);
+        final heatmapData = {
+          date1: 5,
+          date2: 3,
+        };
+
+        // Act
+        final streamFuture = repository.watchHeatmapData(month).first;
+        await Future.delayed(Duration.zero);
+        mockDao.emitHeatmapData(heatmapData);
+
+        final result = await streamFuture;
+
+        // Assert
+        expect(result, equals(heatmapData));
+        expect(result[date1], equals(5));
+        expect(result[date2], equals(3));
+      });
     });
 
     group('watchCategoryBreakdown', () {
       test('should return stream of ReportCategoryTotal', () {
         // Arrange
         final month = DateTime(2024, 1);
-        final type = TransactionType.expense;
+
+        const type = TransactionType.expense;
 
         // Act
         final stream = repository.watchCategoryBreakdown(month, type);
@@ -59,9 +83,10 @@ void main() {
       test('should transform CategoryTotal to ReportCategoryTotal', () async {
         // Arrange
         final month = DateTime(2024, 1);
-        final type = TransactionType.expense;
 
-        final category = Category(
+        const type = TransactionType.expense;
+
+        const category = Category(
           id: 1,
           name: 'Food',
           iconKey: 'restaurant',
@@ -97,9 +122,10 @@ void main() {
       test('should handle multiple categories', () async {
         // Arrange
         final month = DateTime(2024, 1);
-        final type = TransactionType.expense;
 
-        final foodCategory = Category(
+        const type = TransactionType.expense;
+
+        const foodCategory = Category(
           id: 1,
           name: 'Food',
           iconKey: 'restaurant',
@@ -108,7 +134,7 @@ void main() {
           isDefault: false,
         );
 
-        final transportCategory = Category(
+        const transportCategory = Category(
           id: 2,
           name: 'Transport',
           iconKey: 'directions_car',

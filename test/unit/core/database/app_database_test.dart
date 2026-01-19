@@ -73,6 +73,56 @@ void main() {
 
         expect(retrieved.initialBalance, equals(0.0));
       });
+
+      test('should support all account types', () async {
+        for (final type in AccountType.values) {
+          final account = AccountsCompanion.insert(
+            name: 'Account $type',
+            type: type,
+          );
+          final id = await database.into(database.accounts).insert(account);
+          final retrieved = await (database.select(database.accounts)
+                ..where((t) => t.id.equals(id)))
+              .getSingle();
+          expect(retrieved.type, equals(type));
+        }
+      });
+
+      test('should update account', () async {
+        final id = await database.into(database.accounts).insert(
+              AccountsCompanion.insert(
+                name: 'Original Name',
+                type: AccountType.cash,
+              ),
+            );
+
+        await (database.update(database.accounts)..where((t) => t.id.equals(id)))
+            .write(const AccountsCompanion(name: Value('Updated Name')));
+
+        final retrieved = await (database.select(database.accounts)
+              ..where((t) => t.id.equals(id)))
+            .getSingle();
+        expect(retrieved.name, equals('Updated Name'));
+      });
+
+      test('should delete account', () async {
+        final id = await database.into(database.accounts).insert(
+              AccountsCompanion.insert(
+                name: 'To Delete',
+                type: AccountType.cash,
+              ),
+            );
+
+        final deletedCount = await (database.delete(database.accounts)
+              ..where((t) => t.id.equals(id)))
+            .go();
+        expect(deletedCount, equals(1));
+
+        final results = await (database.select(database.accounts)
+              ..where((t) => t.id.equals(id)))
+            .get();
+        expect(results, isEmpty);
+      });
     });
 
     group('Categories Table', () {
@@ -113,6 +163,26 @@ void main() {
             .getSingle();
 
         expect(retrieved.isDefault, isTrue);
+      });
+
+      test('should update category', () async {
+        final id = await database.into(database.categories).insert(
+              CategoriesCompanion.insert(
+                name: 'Old Category',
+                iconKey: 'old',
+                colorInt: 0x000000,
+                type: TransactionType.expense,
+              ),
+            );
+
+        await (database.update(database.categories)
+              ..where((t) => t.id.equals(id)))
+            .write(const CategoriesCompanion(name: Value('New Category')));
+
+        final retrieved = await (database.select(database.categories)
+              ..where((t) => t.id.equals(id)))
+            .getSingle();
+        expect(retrieved.name, equals('New Category'));
       });
     });
 
@@ -163,6 +233,79 @@ void main() {
         expect(retrieved.note, equals('Test transaction'));
         expect(retrieved.categoryId, equals(categoryId));
         expect(retrieved.accountId, equals(accountId));
+      });
+
+      test('should enforce foreign key for non-existent category', () async {
+        final transaction = TransactionsCompanion.insert(
+          amount: 10.0,
+          type: TransactionType.expense,
+          date: DateTime.now(),
+          categoryId: 999, // Non-existent
+          accountId: accountId,
+        );
+
+        expect(
+          () => database.into(database.transactions).insert(transaction),
+          throwsException,
+        );
+      });
+
+      test('should enforce foreign key for non-existent account', () async {
+        final transaction = TransactionsCompanion.insert(
+          amount: 10.0,
+          type: TransactionType.expense,
+          date: DateTime.now(),
+          categoryId: categoryId,
+          accountId: 999, // Non-existent
+        );
+
+        expect(
+          () => database.into(database.transactions).insert(transaction),
+          throwsException,
+        );
+      });
+
+      test('should update transaction', () async {
+        final id = await database.into(database.transactions).insert(
+              TransactionsCompanion.insert(
+                amount: 10.0,
+                type: TransactionType.expense,
+                date: DateTime.now(),
+                categoryId: categoryId,
+                accountId: accountId,
+              ),
+            );
+
+        await (database.update(database.transactions)
+              ..where((t) => t.id.equals(id)))
+            .write(const TransactionsCompanion(amount: Value(25.0)));
+
+        final retrieved = await (database.select(database.transactions)
+              ..where((t) => t.id.equals(id)))
+            .getSingle();
+        expect(retrieved.amount, equals(25.0));
+      });
+
+      test('should delete transaction', () async {
+        final id = await database.into(database.transactions).insert(
+              TransactionsCompanion.insert(
+                amount: 10.0,
+                type: TransactionType.expense,
+                date: DateTime.now(),
+                categoryId: categoryId,
+                accountId: accountId,
+              ),
+            );
+
+        final deletedCount = await (database.delete(database.transactions)
+              ..where((t) => t.id.equals(id)))
+            .go();
+        expect(deletedCount, equals(1));
+
+        final results = await (database.select(database.transactions)
+              ..where((t) => t.id.equals(id)))
+            .get();
+        expect(results, isEmpty);
       });
 
       test('should support null note', () async {

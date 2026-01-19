@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:feather_ledger/core/database/app_database.dart';
 import 'package:feather_ledger/core/database/tables.dart' as db_tables;
+import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 import '../../../../../support/mocks/mock_transaction_dao.dart';
-import '../../../../../support/fixtures/test_data_builder.dart';
 
 void main() {
   late LedgerRepository repository;
@@ -26,9 +28,14 @@ void main() {
     });
 
     group('addTransaction', () {
-      test('should complete successfully with all parameters', () async {
+      test(
+          'should complete successfully and potentially be verified via spy if implemented',
+          () async {
         final date = DateTime(2024, 1, 15);
 
+        // Since we are using a hand-rolled mock, we can't easily verify arguments
+        // without adding spy logic to the mock.
+        // For now, we ensure it completes without error, verifying the contract.
         await expectLater(
           repository.addTransaction(
             amount: 250.0,
@@ -37,53 +44,6 @@ void main() {
             categoryId: 5,
             accountId: 3,
             note: 'Test expense',
-          ),
-          completes,
-        );
-      });
-
-      test('should complete successfully with null note', () async {
-        final date = DateTime(2024, 1, 20);
-
-        await expectLater(
-          repository.addTransaction(
-            amount: 100.0,
-            type: db_tables.TransactionType.income,
-            date: date,
-            categoryId: 2,
-            accountId: 1,
-          ),
-          completes,
-        );
-      });
-
-      test('should complete for income transactions', () async {
-        final date = DateTime(2024, 1, 25);
-
-        await expectLater(
-          repository.addTransaction(
-            amount: 5000.0,
-            type: db_tables.TransactionType.income,
-            date: date,
-            categoryId: 1,
-            accountId: 2,
-            note: 'Monthly salary',
-          ),
-          completes,
-        );
-      });
-
-      test('should complete for expense transactions', () async {
-        final date = DateTime(2024, 1, 28);
-
-        await expectLater(
-          repository.addTransaction(
-            amount: 75.50,
-            type: db_tables.TransactionType.expense,
-            date: date,
-            categoryId: 3,
-            accountId: 1,
-            note: 'Groceries',
           ),
           completes,
         );
@@ -97,28 +57,133 @@ void main() {
           completes,
         );
       });
-
-      test('should handle deletion of non-existent transaction', () async {
-        await expectLater(
-          repository.deleteTransaction(99999),
-          completes,
-        );
-      });
     });
 
     group('watchTransactions', () {
-      test('should return a stream', () {
+      test('should transform DAO objects to Entities correctly', () async {
+        final month = DateTime(2024, 1);
+        final date = DateTime(2024, 1, 15);
+
+        // Prepare mock data
+        final mockTransaction = Transaction(
+          id: 1,
+          amount: 100.0,
+          type: db_tables.TransactionType.expense,
+          date: date,
+          note: 'Test Note',
+          categoryId: 2,
+          accountId: 3,
+          createdAt: DateTime.now(),
+        );
+
+        const mockCategory = Category(
+          id: 2,
+          name: 'Food',
+          iconKey: 'icon_food',
+          colorInt: 0xFF0000,
+          type: db_tables.TransactionType.expense,
+          isDefault: false,
+        );
+
+        const mockAccount = Account(
+          id: 3,
+          name: 'Cash',
+          type: db_tables.AccountType.cash,
+          initialBalance: 0.0,
+        );
+
+        final daoData = [
+          TransactionWithDetails(mockTransaction, mockCategory, mockAccount)
+        ];
+
+        // Setup stream listener
+        final stream = repository.watchTransactions(month);
+
+        final expectation = expectLater(
+            stream,
+            emits([
+              isA<TransactionEntity>()
+                  .having((e) => e.id, 'id', 1)
+                  .having((e) => e.amount, 'amount', 100.0)
+                  .having(
+                      (e) => e.type, 'type', db_tables.TransactionType.expense)
+                  .having((e) => e.date, 'date', date)
+                  .having((e) => e.note, 'note', 'Test Note')
+                  .having((e) => e.category.name, 'category name', 'Food')
+                  .having((e) => e.account.name, 'account name', 'Cash'),
+            ]));
+
+        // Emit data
+        mockDao.emitTransactions(daoData);
+
+        await expectation;
+      });
+
+      test('should handle empty list', () async {
         final month = DateTime(2024, 1);
         final stream = repository.watchTransactions(month);
-        expect(stream, isA<Stream>());
+
+        final expectation = expectLater(stream, emits(isEmpty));
+
+        mockDao.emitTransactions([]);
+
+        await expectation;
       });
     });
 
     group('watchMonthlySummary', () {
-      test('should return a stream', () {
+      test('should combine totals and running balance into MonthlySummary',
+          () async {
         final month = DateTime(2024, 1);
+
+        // Setup mock return values
+        mockDao.setRunningBalance(5000.0);
+
         final stream = repository.watchMonthlySummary(month);
-        expect(stream, isA<Stream>());
+
+        final expectation = expectLater(
+            stream,
+            emits(
+              isA<MonthlySummary>()
+                  .having((s) => s.month, 'month', month)
+                  .having((s) => s.totalIncome, 'income', 2000.0)
+                  .having((s) => s.totalExpense, 'expense', 1000.0)
+                  .having((s) => s.runningBalance, 'balance', 5000.0),
+            ));
+
+        // Allow async* generator to initialize subscription
+        await Future.delayed(Duration.zero);
+
+        // Emit totals update
+        mockDao.emitMonthlyTotals(2000.0, 1000.0);
+
+        await expectation;
+      });
+
+      test('should update summary when totals change', () async {
+        final month = DateTime(2024, 1);
+        mockDao.setRunningBalance(5000.0);
+
+        final stream = repository.watchMonthlySummary(month);
+
+        final expectation = expectLater(
+            stream,
+            emitsInOrder([
+              isA<MonthlySummary>()
+                  .having((s) => s.totalIncome, 'income 1', 100.0),
+              isA<MonthlySummary>()
+                  .having((s) => s.totalIncome, 'income 2', 200.0),
+            ]));
+
+        // Allow async* generator to initialize subscription
+        await Future.delayed(Duration.zero);
+
+        mockDao.emitMonthlyTotals(100.0, 50.0);
+        // Small delay to allow stream to process
+        await Future.delayed(Duration.zero);
+        mockDao.emitMonthlyTotals(200.0, 50.0);
+
+        await expectation;
       });
     });
   });

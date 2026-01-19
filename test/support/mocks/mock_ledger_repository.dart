@@ -12,6 +12,13 @@ class MockLedgerRepository implements LedgerRepository {
       StreamController<MonthlySummary>.broadcast(sync: true);
 
   int addTransactionCallCount = 0;
+  double? lastAmount;
+  TransactionType? lastType;
+  DateTime? lastDate;
+  int? lastCategoryId;
+  int? lastAccountId;
+  String? lastNote;
+
   int deleteTransactionCallCount = 0;
   int? lastDeletedId;
 
@@ -35,6 +42,12 @@ class MockLedgerRepository implements LedgerRepository {
     String? note,
   }) async {
     addTransactionCallCount++;
+    lastAmount = amount;
+    lastType = type;
+    lastDate = date;
+    lastCategoryId = categoryId;
+    lastAccountId = accountId;
+    lastNote = note;
     // Simulate async operation
     await Future.delayed(Duration.zero);
   }
@@ -63,6 +76,12 @@ class MockLedgerRepository implements LedgerRepository {
 
   void reset() {
     addTransactionCallCount = 0;
+    lastAmount = null;
+    lastType = null;
+    lastDate = null;
+    lastCategoryId = null;
+    lastAccountId = null;
+    lastNote = null;
     deleteTransactionCallCount = 0;
     lastDeletedId = null;
   }
