@@ -104,9 +104,9 @@ description: "Task list for Feather Ledger Core MVP"
 
 ### Implementation for User Story 4
 
-- [ ] T025 [P] [US4] Create `AccountDao` in `lib/core/database/daos/account_dao.dart`
-- [ ] T026 [US4] Create `AccountRepository` in `lib/features/settings/data/repositories/account_repository.dart`
-- [ ] T027 [US4] Implement `AccountListScreen` and `AccountFormScreen` in `lib/features/settings/presentation/screens/account_management_screen.dart`
+- [x] T025 [P] [US4] Create `AccountDao` in `lib/core/database/daos/account_dao.dart`
+- [x] T026 [US4] Create `AccountRepository` in `lib/features/settings/data/repositories/account_repository.dart`
+- [x] T027 [US4] Implement `AccountListScreen` and `AccountFormScreen` in `lib/features/settings/presentation/screens/account_management_screen.dart`
 
 ---
 
@@ -116,7 +116,7 @@ description: "Task list for Feather Ledger Core MVP"
 
 - [x] T028 Verify Offline Persistence (Restart app and check data)
 - [x] T029 Run `flutter analyze` and fix linting issues
-- [ ] T030 Run `flutter test` (if unit tests added)
+- [x] T030 Run `flutter test` (if unit tests added)
 
 ---
 
