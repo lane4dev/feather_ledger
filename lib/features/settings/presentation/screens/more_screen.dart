@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class MoreScreen extends StatelessWidget {
+import '../../../../app/l10n/app_localizations.dart';
+
+class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
+      appBar: AppBar(title: Text(l10n.more)),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
+            title: Text(l10n.settings),
             onTap: () {
               context.go('/more/settings');
             },
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet),
-            title: const Text('Accounts'),
+            title: Text(l10n.accounts),
             onTap: () {
-              // TODO: Accounts screen
+              context.go('/more/accounts');
             },
           ),
           ListTile(
             leading: const Icon(Icons.pie_chart),
-            title: const Text('Budgets'),
+            title: Text(l10n.budgets),
             onTap: () {
               // TODO: Budgets screen
             },
