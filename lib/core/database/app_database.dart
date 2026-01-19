@@ -9,12 +9,19 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'tables.dart';
 import 'daos/transaction_dao.dart';
+import 'daos/account_dao.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Accounts, Categories, Transactions], daos: [TransactionDao])
+@DriftDatabase(
+    tables: [Accounts, Categories, Transactions],
+    daos: [TransactionDao, AccountDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+
+  // Internal constructor for testing purposes only.
+  // Used by test fakes to inject in-memory database.
+  AppDatabase.internal(super.executor);
 
   @override
   int get schemaVersion => 1;
