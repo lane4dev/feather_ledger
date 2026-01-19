@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/database/tables.dart' as db_tables;
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/settings/data/repositories/account_repository.dart';
@@ -35,7 +36,8 @@ class AccountManagementScreen extends ConsumerWidget {
                 ),
                 title: Text(account.name),
                 subtitle: Text(account.type.name.toUpperCase()),
-                trailing: Text('$currency${account.initialBalance.toStringAsFixed(2)}'),
+                trailing: Text(
+                    '$currency${account.initialBalance.toStringAsFixed(2)}'),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -112,6 +114,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.account != null;
+    final spacing = context.spacing;
 
     return Scaffold(
       appBar: AppBar(
@@ -152,7 +155,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(spacing.md),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -170,7 +173,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
               DropdownButtonFormField<db_tables.AccountType>(
                 value: _selectedType,
                 decoration: InputDecoration(
@@ -191,15 +194,17 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
               TextFormField(
                 controller: _balanceController,
                 decoration: InputDecoration(
                   labelText: l10n.initialBalance,
                   border: const OutlineInputBorder(),
-                  prefixText: ref.watch(currencyControllerProvider).valueOrNull ?? '\$',
+                  prefixText:
+                      ref.watch(currencyControllerProvider).valueOrNull ?? '\$',
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return l10n.required;
@@ -210,10 +215,11 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: spacing.lg),
               FilledButton(
                 onPressed: _save,
-                child: Text(l10n.saveTransaction), // Reuse 'Save Transaction' or add 'Save'
+                child: Text(l10n
+                    .saveTransaction), // Reuse 'Save Transaction' or add 'Save'
               ),
             ],
           ),

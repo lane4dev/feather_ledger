@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../providers/settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -13,10 +14,12 @@ class SettingsScreen extends ConsumerWidget {
     final localeAsync = ref.watch(localeControllerProvider);
     final currencyAsync = ref.watch(currencyControllerProvider);
     final l10n = AppLocalizations.of(context)!;
+    final spacing = context.spacing;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
+        padding: EdgeInsets.symmetric(vertical: spacing.sm),
         children: [
           // Theme
           ListTile(

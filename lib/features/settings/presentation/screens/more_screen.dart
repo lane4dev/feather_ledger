@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
+import '../../../../app/theme/app_theme.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -10,10 +11,12 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final spacing = context.spacing;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.more)),
       body: ListView(
+        padding: EdgeInsets.symmetric(vertical: spacing.sm),
         children: [
           ListTile(
             leading: const Icon(Icons.settings),

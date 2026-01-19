@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/database/tables.dart';
 import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
 
@@ -19,6 +20,7 @@ class LedgerScreen extends ConsumerWidget {
     final transactionsAsync = ref.watch(ledgerTransactionsProvider);
     final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
     final l10n = AppLocalizations.of(context)!;
+    final spacing = context.spacing;
 
     return Scaffold(
       extendBody: true,
@@ -47,9 +49,9 @@ class LedgerScreen extends ConsumerWidget {
         children: [
           // 1. Month Navigation & Summary
           Card(
-            margin: const EdgeInsets.all(8.0),
+            margin: EdgeInsets.all(spacing.sm),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(spacing.md),
               child: Column(
                 children: [
                   Row(
@@ -132,8 +134,10 @@ class LedgerScreen extends ConsumerWidget {
                       children: [
                         if (showHeader)
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: spacing.md,
+                              vertical: spacing.sm,
+                            ),
                             color: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest,

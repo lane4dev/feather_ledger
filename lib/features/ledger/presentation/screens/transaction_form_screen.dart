@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/services/ledger_service.dart';
 import '../providers/ledger_providers.dart';
@@ -32,13 +33,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final categoriesAsync = ref.watch(allCategoriesProvider);
     final accountsAsync = ref.watch(allAccountsProvider);
     final l10n = AppLocalizations.of(context)!;
+    final spacing = context.spacing;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.addTransaction),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(spacing.md),
         child: Form(
           key: _formKey,
           child: Column(
@@ -49,7 +51,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 decoration: InputDecoration(
                   labelText: l10n.amount,
                   prefixText: '\$ ',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -61,7 +63,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 },
                 onSaved: (value) => _amount = double.parse(value!),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
 
               // 2. Type
               SegmentedButton<TransactionType>(
@@ -84,7 +86,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   });
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
 
               // 3. Date
               ListTile(
@@ -126,7 +128,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                       int.tryParse(c.iconKey) ?? 0xe574,
                                       fontFamily:
                                           'MaterialIcons')), // Fallback icon
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: spacing.sm),
                                   Text(c.name),
                                 ],
                               ),
@@ -139,7 +141,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
 
               // 5. Account
               accountsAsync.when(
@@ -161,14 +163,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: spacing.md),
 
               // 6. Note
               TextFormField(
                 decoration: InputDecoration(labelText: l10n.note),
                 onSaved: (value) => _note = value,
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: spacing.xl),
 
               // Save Button
               FilledButton(
