@@ -1,0 +1,488 @@
+# Feature Specification: Optimize Ledger UI
+
+**Feature Branch**: `002-optimize-ledger-ui`  
+**Created**: 2026-01-19
+**Status**: Draft  
+**Input**: User description: """在 001-core-mvp 已实现的基础上，对 **账本** 页面做深度 UI/视觉优化（功能不变、数据不变）： 
+
+目标： 
+- 视觉风格更接近 Google Tasks：专业、高级、更轻、更干净、更一致的排版与层级 
+- 信息结构更清晰：月份/余额/明细的层级、留白、字号、对齐一致 
+- 列表可读性更好：金额/分类/备注/时间的视觉优先级明确 
+- 空态/加载态/错误态统一（文案与组件一致） 
+
+范围（In scope）： 
+- 账本页（包含：月份切换区域、余额摘要区域、流水列表、FAB 新建入口、筛选/搜索入口如已存在） 
+- 账本页相关的通用 UI 组件（如 TransactionTile、SummaryCard、SectionHeader 等） 
+- 主题与样式（仅限与账本页相关的 tokens：颜色、字号、间距、圆角、阴影/高度等） 
+
+非目标（Out of scope / 禁止改动）： 
+- 不改动 Domain 业务规则、余额算法、数据筛选规则 
+- 不改动 Data 层 schema / repository 行为（除非纯 UI 需要新增字段展示，但必须保持向后兼容） 
+- 不新增“新功能”（比如预算提醒/统计口径变化）——本次只做 UI/UX 优化 
+
+验收标准： 
+- 交互流程与 001 保持一致（新增、编辑、删除、切换月份等行为不变） 
+- 在同样数据下，页面信息层级更清晰，且 i18n（英文/中文）布局不崩 
+- 关键状态具备 golden 截图基准：空态/有数据/长列表/超长备注/大金额/中文 
+- 通过基本无障碍检查：文字对比度、点击区域、字体缩放不炸"""
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Clear Ledger Overview (Priority: P1)
+
+As a user, I want to view my monthly ledger with a clean, minimal, premium and hierarchical layout resembling Google Tasks, so that I can immediately grasp the current month, balance, and list structure without visual clutter.
+
+**Why this priority**: This is the foundation of the redesign. The page structure (headers, summary, list container) sets the stage for all other elements.
+
+**Independent Test**: Can be tested by viewing the Ledger page and verifying the layout structure, spacing, and header styles match the new design tokens.
+
+**Acceptance Scenarios**:
+
+1. **Given** the Ledger page is open, **When** I look at the top section, **Then** I see the Month Switcher and Balance Summary clearly separated but visually cohesive with appropriate whitespace.
+2. **Given** I switch months, **When** the new data loads, **Then** the layout remains stable and the transition is smooth.
+3. **Given** the page is displayed in Chinese or English, **Then** the alignment and spacing remain consistent (no overlapping or truncation).
+4. **Given** I scroll the transaction list, **When** the header collapses, **Then** the pinned Time Anchor remains below the header and does not overlap.
+5. **Given** I change month, **When** loading completes, **Then** the list returns to top and anchor resets to the first group in the new month.
+
+---
+
+### User Story 2 - Scannable Transaction List (Priority: P2)
+
+As a user, I want individual transactions to be displayed with distinct visual priorities (Amount > Category > Note > Time), so that I can scan my spending history efficiently.
+
+**Why this priority**: The core value of a ledger is reading the transactions. Improving readability directly impacts user utility.
+
+**Independent Test**: Can be tested by rendering a list of transactions with various data lengths (short/long notes, large amounts) and verifying visual hierarchy.
+
+**Acceptance Scenarios**:
+
+1. **Given** a transaction with a long note, **When** displayed in the list, **Then** the note truncates gracefully or wraps without breaking the row layout, and the Amount remains the most prominent element.
+2. **Given** a transaction list, **When** scrolling, **Then** the Section Headers (dates) remain clear and distinct from transaction items.
+3. **Given** a transaction, **When** viewed, **Then** the visual weight of the Category icon, Title, and Amount guides the eye naturally.
+4. **Given** the transaction list is grouped by time anchors, **When** I scroll within a group, **Then** the left-side Time Anchor remains pinned at the top-left and continues to represent the current group.
+5. **Given** I scroll into the next time group, **When** the first visible transaction item belongs to a different group, **Then** the pinned Time Anchor updates to the new group without flicker or jitter.
+6. **Given** the app is displayed in Chinese or English, **When** the Time Anchor is pinned, **Then** the time format and layout remain stable and do not overlap with the transaction content.
+
+
+**Visual Reference**
+
+The Transaction List styling and scroll behavior SHOULD reference the provided screenshot.
+
+- Asset path: `specs/002-optimize-ledger-ui/assets/ledger_list_reference.png`
+- Key characteristics:
+  - low-contrast separators (avoid heavy dividers).
+  - Clear typography hierarchy with generous spacing (Google Tasks-like minimalism).
+  - Multi-line meta information using small text + icons + subtle colored dots/tags.
+  - A light-weight trailing icon slot (right side) that does not overpower the main content.
+
+---
+
+### User Story 3 - Consistent Page States (Priority: P3)
+
+As a user, I want to see consistent and professional Empty, Loading, and Error states, so that the application feels reliable and polished even when there is no data or an issue occurs.
+
+**Why this priority**: Handles edge cases and improves the overall "feel" of quality, though the core utility works without it.
+
+**Independent Test**: Can be tested by forcing empty data, slow network (loading), or error conditions.
+
+**Acceptance Scenarios**:
+
+1. **Given** a month with no transactions, **When** viewed, **Then** a dedicated Empty State component (icon + text) is displayed, centered and styled consistently with the theme.
+2. **Given** data is being fetched, **When** the page loads, **Then** a skeleton loader or spinner consistent with the new design system is shown.
+3. **Given** a data load error, **When** it occurs, **Then** a user-friendly error message with a retry action is displayed.
+
+---
+
+### User Story 4 - Add Transaction (Priority: P1)
+
+As a user, I want to add a new transaction with a clean, minimal, and premium form that matches the Ledger page style, so that I can record money flows quickly with low cognitive load.
+
+**Why this priority**: The Ledger redesign highlights scanning and structure. The "Add transaction" flow must visually and interaction-wise match the Ledger style, otherwise the overall experience feels inconsistent.
+
+**Independent Test**: Can be tested by opening the Add Transaction page from the Ledger FAB and verifying the layout hierarchy, validation rules, and selection flows (type/date/account/category/note).
+
+**Acceptance Scenarios**:
+
+1. **Given** I tap the Ledger FAB, **When** the Add Transaction page opens, **Then** I see a clean hierarchy: Transaction Type selector → Amount (primary) → Details (secondary) → Save (primary action).
+2. **Given** I switch the transaction type (Expense/Income/Transfer), **When** the form updates, **Then** only relevant fields are shown (Transfer shows From/To accounts) and previously entered values are preserved where applicable.
+3. **Given** I input an amount, **When** I save, **Then** the amount is normalized to exactly 2 decimal places and validation errors are shown inline if invalid.
+4. **Given** I select date/account/category via pickers, **When** I return to the form, **Then** the selected values are reflected immediately and remain stable under Chinese/English locale.
+5. **Given** I cancel with unsaved changes, **When** I attempt to leave, **Then** I am prompted to discard or keep editing (no accidental data loss).
+
+---
+
+### User Story 5 - Edit & Delete Transaction (Priority: P1)
+
+As a user, I want to edit or delete an existing transaction with a clean, minimal interaction that matches the redesigned Ledger style, so that I can correct mistakes quickly without breaking my mental model of the ledger list.
+
+**Why this priority**: In a ledger app, Add/Edit/Delete are the core CRUD loop. UI redesign must not regress these flows; instead it should make them feel coherent and reliable.
+
+**Independent Test**: Can be tested by opening an existing transaction, editing fields (amount/date/category/note), saving, and deleting with undo/confirmation while verifying list regrouping and pinned Time Anchor stability.
+
+**Acceptance Scenarios**:
+
+1. **Given** I see a transaction in the Ledger list, **When** I open it for editing, **Then** the form is prefilled with the original values and follows the same visual hierarchy as the Add Transaction page.
+2. **Given** I edit a transaction and change its occurredAt (date), **When** I save, **Then** the transaction is regrouped correctly in the list and the pinned Time Anchor remains stable (no jitter).
+3. **Given** I edit a transaction but make no changes, **When** I attempt to save, **Then** the UI avoids unnecessary writes and returns gracefully (behavior consistent with 001).
+4. **Given** I delete a transaction, **When** deletion completes, **Then** I see a lightweight acknowledgement with an Undo action, and the list updates without breaking the anchor behavior.
+5. **Given** the deleted transaction was the last item in its group, **When** the group disappears, **Then** the pinned Time Anchor updates to the next valid group smoothly (no flicker).
+6. **Given** the app is displayed in Chinese or English, **When** I edit or delete, **Then** all labels, dialogs, and snackbars are localized and do not overflow under text scaling.
+
+### Edge Cases
+
+- **Long Text Content**: Transaction notes or categories with very long text must not break the layout (use ellipsis or wrapping).
+- **Large Amounts**: Extremely large numbers (e.g., billions) must fit within the UI without overlapping other elements.
+- **Dynamic Type**: When system font size is increased (Accessibility), the layout should adapt without becoming unusable.
+
+## Ledger Page Layout & Header Interaction *(mandatory)*
+
+This section defines the overall Ledger page layout and the interaction contract for:
+- Month Switcher region
+- Balance Summary region
+- Their scroll behavior and coexistence rules with the pinned Time Anchor list.
+
+### Page Regions
+
+- **PL-001**: The Ledger page MUST be composed of:
+  1) Top app bar (title + optional actions such as search/filter if they already exist in 001),
+  2) A **Header Region** (Month Switcher + Balance Summary),
+  3) The Transaction List Region (with pinned Time Anchor behavior),
+  4) FAB entry (Add transaction), preserving 001 behavior.
+- **PL-002**: The Header Region MUST be visually distinct but lightweight (no heavy card stacking). Visual separation SHOULD rely on spacing, typography hierarchy, and subtle surfaces rather than strong dividers.
+
+### Left Column Alignment (Coexistence with Time Anchor)
+
+To ensure the Header Region does not conflict with the pinned left-side Time Anchor:
+
+- **LA-001**: The Header Region MUST reserve the same left-column width used by the Transaction List’s Time Anchor column, so that the main content column (titles/meta) aligns vertically across header and list.
+- **LA-002**: The pinned Time Anchor (AB-001) MUST be pinned **below** the Header Region (i.e., the Time Anchor must not overlap Month Switcher / Balance Summary).
+- **LA-003**: When the Header collapses/expands (see HB-*), the pinned Time Anchor’s top offset MUST update accordingly, without jitter.
+
+### Month Switcher Interaction Model
+
+- **MS-001**: The Month Switcher MUST provide an intuitive month navigation model:
+  - Previous month action
+  - Current month label (clickable)
+  - Next month action
+- **MS-002**: Tapping the month label MUST open a month selection UI (picker) to jump to any month/year, minimizing repeated tapping for large jumps.
+- **MS-003**: Month switching MUST preserve 001’s business behavior (no change to sorting, filtering, balance calculation, or underlying query semantics).
+- **MS-004**: On month change completion:
+  - The Transaction List MUST scroll to the top of the list region.
+  - The pinned Time Anchor MUST reset to the first visible group in the newly loaded month (consistent with AS-001/AS-002).
+- **MS-005**: Month formatting MUST respect locale:
+  - English: e.g., "May 2026"
+  - Chinese: e.g., "2026年5月"
+  and MUST not overflow or overlap under text scaling.
+
+### Balance Summary Information Hierarchy
+
+Balance Summary aims for “high-end minimalism”: clear hierarchy without clutter.
+
+- **BS-001**: Balance Summary MUST show the **primary value** (monthly balance) as the strongest visual element (largest typography / highest contrast).
+- **BS-002**: Balance Summary SHOULD show secondary breakdown (Income / Expense) as tertiary elements (smaller typography, reduced emphasis).
+- **BS-003**: Balance Summary MUST NOT introduce new business meaning:
+  - Values MUST match existing 001 calculation rules and data sources.
+- **BS-004**: Extremely large values MUST be handled gracefully (no overlap, allow compact formatting or wrapping rules).
+
+### Header Scroll Behavior (Pinned + Collapsible)
+
+To balance “context” (month & balance) and “content” (transactions), the header should support a collapse interaction pattern consistent with modern Material guidance. *(Implementation details are deferred to plan.md.)*
+
+- **HB-001**: The Header Region MUST remain available while scrolling (pinned behavior), but MAY collapse into a compact form to give more vertical space to the list.
+- **HB-002**: Header MUST have two visual states:
+  - **Expanded**: shows Month Switcher and full Balance Summary hierarchy.
+  - **Collapsed**: shows a compact summary (Month + Balance) while keeping month switching accessible.
+- **HB-003**: Transition between Expanded and Collapsed MUST be smooth and MUST NOT cause content “jumping” or Time Anchor jitter (AB-004 / LA-003).
+- **HB-004**: If the user scrolls back to the top of the list region, the Header SHOULD expand back (restoring full context).
+
+### Loading / Empty / Error Interaction with Header
+
+- **SE-001**: Header Region MUST remain stable across Empty/Loading/Error states; Month Switcher must remain usable.
+- **SE-002**: In Empty month:
+  - Balance Summary MUST still render (showing zero or computed values per 001 rules),
+  - List region MUST show the unified Empty State (FR-006).
+- **SE-003**: In Loading:
+  - Header MAY show subtle loading placeholders for values,
+  - List region MUST show unified Loading State (FR-007).
+- **SE-004**: In Error:
+  - Header remains visible,
+  - Error State MUST provide retry (FR-008).
+
+### Header Acceptance Scenarios *(additive)*
+
+1. **Given** the Ledger page is open, **When** I scroll down the transaction list, **Then** the Header collapses to a compact form and the Time Anchor remains pinned below it without overlap.
+2. **Given** I switch the month using previous/next or the month picker, **When** the new month is loaded, **Then** the list scrolls to the top and the pinned Time Anchor resets to the first group of that month.
+3. **Given** the app is displayed in Chinese or English with large font scaling, **Then** the month label and balance values remain readable without truncation breaking layout or overlapping the Time Anchor column.
+
+## Transaction List Layout & Scroll Interaction *(mandatory)*
+
+### Grouping Model
+
+- **GL-001**: Transactions MUST be grouped by a **Time Anchor Key** derived from `occurredAt`.
+- **GL-002**: The **Time Anchor Key granularity** MUST be consistent across the list.
+  - Default granularity for 002: **By Day** (e.g., `2026-01-19`).
+  - The chosen granularity MUST be documented in `plan.md` and MUST NOT change existing sorting rules.
+- **GL-003**: Items within a group MUST preserve the same ordering as 001 (no behavior change).
+
+### Anchor (Sticky Time) Behavior
+
+The left-side time is a **scroll anchor**:
+
+- **AB-001**: While scrolling, the **current Time Anchor** MUST remain visible and **pinned at the top-left** of the list viewport.
+- **AB-002**: The pinned anchor MUST represent the **group key of the currently active group**.
+- **AB-003**: The pinned anchor MUST update **only when** the scroll position enters the next time group (see switch rule below).
+- **AB-004**: The pinned anchor MUST NOT flicker or rapidly switch during slow scroll (no jitter).
+- **AB-005**: The pinned anchor MUST be accessible:
+  - Screen readers can announce the current anchor (e.g., “May 7, 2:00 PM” / “5月7日 下午2:00”).
+  - Text scaling should not cause overlap with the main list content.
+
+#### Anchor Switching Rule *(mandatory)*
+
+- **AS-001**: The active Time Anchor MUST be defined as the group key of the **first visible transaction item** in the viewport.
+- **AS-002**: The anchor MUST switch when the first visible item changes to a different group key.
+- **AS-003**: If a group header is visible, the anchor MUST match that header’s group key.
+
+### Item Information Hierarchy (Per Row)
+
+Each transaction row MUST follow this visual priority:
+
+- **IH-001**: Amount is the strongest visual element (primary).
+- **IH-002**: Title / Merchant / Note headline is secondary.
+- **IH-003**: Category + Account + Tags (meta) are tertiary (small text + icons + colored dots/tags).
+- **IH-004**: A trailing icon slot exists on the right (e.g., “star/pin/reconciled”), used only as a lightweight status indicator.
+  - If the feature does not exist in 001, the icon slot MAY be present visually but MUST NOT introduce new behavior.
+
+## Add Transaction Page Layout & Interaction *(mandatory)*
+
+This section defines the overall layout and interaction contract for the "Add Transaction" page, ensuring it matches the Ledger UI redesign (Google Tasks-like minimalism) and does not introduce new business behavior.
+
+### Page Regions & Visual Hierarchy
+
+- **AT-PL-001**: The Add Transaction page MUST be a full-screen form opened from the Ledger FAB (preserving 001 navigation semantics).
+- **AT-PL-002**: The page MUST have a clear visual hierarchy in this order:
+  1) Transaction Type selector (mode),
+  2) Amount input (primary focus),
+  3) Details fields (date, accounts, category, note),
+  4) Primary save action (bottom area).
+- **AT-PL-003**: The page MUST be visually lightweight (no heavy card stacking). Visual separation SHOULD rely on spacing, typography hierarchy, and subtle surfaces.
+- **AT-PL-004**: The page typography, spacing, radii, and iconography MUST reuse the same local tokens / theme decisions introduced for the Ledger redesign.
+
+### Transaction Type (Expense / Income / Transfer)
+
+- **AT-TT-001**: The page MUST provide a 3-way transaction type selector:
+  - Expense
+  - Income
+  - Transfer
+- **AT-TT-002**: Default selected type MUST match 001 behavior (typically Expense, unless 001 already remembers last selection).
+- **AT-TT-003**: Switching the transaction type MUST NOT clear unrelated user input by default (e.g., amount and note remain).
+- **AT-TT-004**: Field visibility MUST depend on the selected type:
+  - Expense/Income: show a single Account field.
+  - Transfer: show From Account and To Account fields.
+- **AT-TT-005**: Transfer MUST enforce From != To at validation time (inline error; no silent correction).
+
+### Amount Input (Primary)
+
+- **AT-AM-001**: Amount MUST be the most visually prominent element on the page.
+- **AT-AM-002**: Amount MUST support decimal input and MUST be normalized to **exactly 2 decimal places** on save (e.g., 12 → 12.00; 12.3 → 12.30).
+- **AT-AM-003**: Amount validation MUST be inline and immediate enough to prevent frustration:
+  - Reject invalid characters,
+  - Prevent more than 2 decimal digits,
+  - Provide a clear error message when invalid.
+- **AT-AM-004**: Extremely large values MUST be handled gracefully without overflow (compact formatting or layout rules MUST be defined in plan.md).
+- **AT-AM-005**: Amount presentation MUST respect locale formatting rules where applicable (while still storing a precise numeric value).
+
+### Date Field
+
+- **AT-DT-001**: The form MUST include a transaction date field.
+- **AT-DT-002**: Default date MUST follow 001 behavior (typically "Today").
+- **AT-DT-003**: Tapping the date field MUST open a date selection UI (picker).
+- **AT-DT-004**: Date formatting MUST respect locale (English/Chinese) and remain stable under text scaling (no overlap).
+
+### Account Selection
+
+- **AT-AC-001**: The form MUST include account selection.
+- **AT-AC-002**: For Expense/Income, the form MUST provide exactly one account field.
+- **AT-AC-003**: For Transfer, the form MUST provide From Account and To Account fields with clear labels.
+- **AT-AC-004**: Tapping an account field MUST open an account selection UI (sheet/picker) that returns a selected account.
+- **AT-AC-005**: Account selection UI MUST remain consistent with the Ledger redesign (typography hierarchy, subtle separators, lightweight trailing indicators).
+
+### Category (Type) Selection + Management
+
+This requirement covers the "Category" concept used by the Ledger (e.g., Food, Transport, Salary).
+
+- **AT-CT-001**: The form MUST include a category selection field.
+- **AT-CT-002**: Tapping the category field MUST open a category selection UI (sheet/picker).
+- **AT-CT-003**: The category selection UI SHOULD support:
+  - Clear visual grouping (e.g., recent categories / all categories),
+  - Lightweight icon + label rows consistent with Ledger list meta style.
+- **AT-CT-004**: Category management MUST be accessible from the selection UI:
+  - Add category
+  - Edit category
+  - Delete category
+- **AT-CT-005**: Category management actions MUST NOT introduce new domain behavior in 002:
+  - If category CRUD already exists in 001, this feature MUST only restyle/restructure UI.
+  - If category CRUD does not exist in 001, 002 MAY provide navigation entry points but MUST defer actual behavior to a future feature spec (explicitly tracked).
+
+### Note Field
+
+- **AT-NT-001**: The form MUST include an optional note field.
+- **AT-NT-002**: The note field MUST support multi-line input and must not break layout under large font scaling.
+- **AT-NT-003**: Long notes MUST be handled gracefully (wrap or ellipsis rules documented in plan.md).
+
+### Actions (Save / Cancel) & Navigation Safety
+
+- **AT-ACT-001**: The page MUST provide a clear primary action to Save.
+- **AT-ACT-002**: The Save action MUST be disabled or blocked when required fields are invalid/missing, with inline guidance.
+- **AT-ACT-003**: The page MUST provide a cancel/back action.
+- **AT-ACT-004**: If there are unsaved changes, attempting to leave MUST prompt the user to discard or continue editing.
+- **AT-ACT-005**: On successful save:
+  - Navigation returns to the Ledger page,
+  - Ledger behavior remains unchanged (001 semantics),
+  - The new transaction MUST appear in the correct group based on occurredAt (anchoring model remains valid).
+
+### Add Transaction Page States (Loading / Error)
+
+- **AT-ST-001**: If Save triggers a loading state, the UI MUST show a subtle, non-jarring loading indicator and prevent duplicate submissions.
+- **AT-ST-002**: If Save fails, the UI MUST show an error message with a retry affordance and MUST keep user-entered data intact.
+
+### Add Transaction Edge Cases
+
+- **AT-EC-001**: Locale & i18n: English/Chinese must not overflow or overlap for labels, values, and pickers.
+- **AT-EC-002**: Keyboard: The primary Save action MUST remain reachable when the keyboard is visible.
+- **AT-EC-003**: Accessibility: touch targets and label semantics must be sufficient for screen readers and large text settings.
+
+### Add Transaction Visual Consistency Hooks *(optional but recommended)*
+
+- **AT-VS-001**: The page SHOULD optionally show a lightweight “preview tile” (read-only) that matches the Ledger TransactionTile style, so the user understands how the entry will look in the Ledger list.
+- **AT-VS-002**: Category meta styling (icon + subtle colored dot/tag) SHOULD match the Ledger list meta conventions (IH-003).
+
+## Transaction Edit & Delete Interaction *(mandatory)*
+
+This section defines the interaction contract for editing and deleting an existing transaction.
+It MUST preserve 001 business behavior and only optimize UI/UX consistency.
+
+### Entry Points (List → Edit/Delete)
+
+- **ED-EP-001**: Users MUST be able to access Edit for an existing transaction from the Ledger list using the same primary interaction pattern as 001.
+  - Default expectation: tapping a transaction row opens the Edit Transaction page (or detail page leading to edit) without introducing new navigation complexity.
+- **ED-EP-002**: Users MUST be able to access Delete for an existing transaction via at least one of:
+  - an overflow/action menu (e.g., bottom sheet),
+  - a contextual action on the Edit page,
+  - an existing gesture pattern already present in 001 (e.g., swipe).
+- **ED-EP-003**: Any new gesture or menu added in 002 MUST NOT conflict with the left Time Anchor column or the list scroll behavior.
+
+### Edit Transaction Page *(mandatory)*
+
+- **ED-ET-001**: The Edit Transaction UI MUST reuse the same layout and visual hierarchy defined in **Add Transaction Page Layout & Interaction** (AT-*), to ensure consistency.
+- **ED-ET-002**: When opening Edit:
+  - all editable fields MUST be prefilled with the transaction’s current values,
+  - the primary action label MUST indicate editing intent (e.g., “Save changes” / “保存修改”).
+- **ED-ET-003**: Edit MUST NOT introduce new fields or business logic in 002:
+  - validation rules MUST match AT-* and 001 behavior,
+  - normalization rules (e.g., 2 decimals) MUST remain consistent.
+- **ED-ET-004**: Unsaved changes protection MUST apply:
+  - leaving the page with unsaved changes MUST prompt the user to discard or continue editing (consistent with AT-ACT-*).
+- **ED-ET-005**: On successful save:
+  - navigation returns to Ledger,
+  - the edited transaction MUST appear in the correct group based on occurredAt (GL-* / AS-* remain valid).
+- **ED-ET-006**: If the edited occurredAt moves the transaction outside the currently selected month:
+  - the transaction MAY disappear from the current list after save (consistent with month filtering),
+  - the UI SHOULD provide a lightweight acknowledgement explaining why it’s no longer visible (localized).
+
+### Delete Transaction *(mandatory)*
+
+Deletion is a destructive action and must be safe, minimal, and reversible when feasible.
+
+- **ED-DL-001**: Delete MUST require an explicit user intent:
+  - Either via a destructive action in a menu/sheet, or via a gesture that provides clear affordance and confirmation.
+- **ED-DL-002**: If deletion is triggered by swipe-to-delete:
+  - the UI MUST provide a confirmation step (e.g., confirmDismiss) OR an immediate Undo opportunity after deletion.
+- **ED-DL-003**: After a delete completes, the UI MUST show a snackbar-style acknowledgement with a single **Undo** action (localized).
+- **ED-DL-004**: If the user taps Undo within the allowed window:
+  - the transaction MUST be restored to its original position/group,
+  - the pinned Time Anchor MUST remain stable (no flicker).
+- **ED-DL-005**: If deletion fails:
+  - the UI MUST show an error message with retry,
+  - the list MUST remain consistent (no phantom removal).
+- **ED-DL-006**: Delete confirmation dialogs/sheets MUST follow a minimal pattern:
+  - one clear destructive action (Delete) and one dismissive action (Cancel),
+  - text must be localized and accessible.
+
+### Interaction with Grouping & Time Anchor
+
+- **ED-AN-001**: Editing or deleting a transaction MUST NOT violate the grouping model (GL-*).
+- **ED-AN-002**: If the first visible item changes groups due to an edit/save or delete:
+  - the pinned Time Anchor MUST update according to AS-001/AS-002 and MUST NOT jitter.
+- **ED-AN-003**: If a group becomes empty after delete:
+  - that group MUST be removed from the list,
+  - the pinned Time Anchor MUST move to the next valid group smoothly.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: System MUST display the Month Switcher with updated typography and spacing (Google Tasks style).
+- **FR-002**: System MUST display the Balance Summary with clear hierarchy (distinct label vs value).
+- **FR-003**: System MUST render the Transaction List using updated `TransactionTile` components.
+- **FR-004**: The `TransactionTile` MUST visually prioritize Amount (primary), Category (secondary), and Note/Time (tertiary).
+- **FR-005**: System MUST use consistent padding, margins, and corner radii defined in a local token set (or updated theme).
+- **FR-006**: System MUST display a unified Empty State when no transactions exist for the selected month.
+- **FR-007**: System MUST display a unified Loading State (e.g., Skeleton or specific Spinner) during data fetch.
+- **FR-008**: System MUST display a unified Error State with retry capability on failure.
+- **FR-009**: The FAB (Floating Action Button) MUST be positioned and styled to blend with the new "clean" aesthetic (e.g., appropriate shadow and color).
+- **FR-010**: The Transaction List MUST support grouping by a Time Anchor Key derived from `occurredAt` (granularity documented in `plan.md`).
+- **FR-011**: The UI MUST render a pinned **Time Anchor** in the left column that stays fixed at the top-left while scrolling.
+- **FR-012**: The Time Anchor MUST update according to the Anchor Switching Rule (first visible item’s group key).
+- **FR-013**: The TransactionTile MUST support a three-level hierarchy: Amount (primary) → Title (secondary) → Meta (tertiary).
+- **FR-014**: The TransactionTile MUST provide a trailing icon slot for lightweight status indication WITHOUT introducing new business behavior.
+- **FR-015**: The Transaction List MUST handle extreme layout cases (long text, large amounts, Chinese/English) without overflow or overlap.
+- **FR-016**: System MUST provide the Add Transaction page with transaction type selector, date, account(s), amount, category, and note.
+- **FR-017**: Transaction type MUST be one of Expense/Income/Transfer and must control visible fields (AT-TT-*).
+- **FR-018**: Amount MUST accept decimal input and normalize to 2 decimal places on save (AT-AM-*).
+- **FR-019**: Date MUST be selectable via picker and formatted per locale (AT-DT-*).
+- **FR-020**: Accounts MUST be selectable via picker; Transfer MUST have From/To and enforce From != To (AT-AC-*, AT-TT-005).
+- **FR-021**: Category MUST be selectable; management entry for add/edit/delete MUST be available (AT-CT-*), without introducing new domain behavior.
+- **FR-022**: Note MUST support multi-line input and handle long text (AT-NT-*).
+- **FR-023**: Save/Cancel MUST be safe and consistent: unsaved changes prompt, failure keeps input, success returns to Ledger (AT-ACT-*, AT-ST-*).
+- **FR-024**: System MUST provide an Edit entry point for an existing transaction from the Ledger list, preserving 001 navigation semantics (ED-EP-*).
+- **FR-025**: System MUST render an Edit Transaction page that reuses Add Transaction layout hierarchy and pre-fills existing values (ED-ET-*).
+- **FR-026**: Edit MUST preserve 001 business behavior and validation rules, including amount normalization and required fields (ED-ET-003, AT-*).
+- **FR-027**: System MUST support safe Delete with explicit user intent and localized destructive messaging (ED-DL-001, ED-DL-006).
+- **FR-028**: After a successful delete, the UI MUST show an acknowledgement with a single Undo action (ED-DL-003).
+- **FR-029**: Undo MUST restore the transaction to its original group and position, keeping anchor behavior stable (ED-DL-004, ED-AN-*).
+- **FR-030**: Edit/Delete MUST not break grouping or pinned Time Anchor stability; group removal and anchor updates must be smooth (ED-AN-002/003, AS-*).
+
+### Key Entities
+
+- **TransactionTile**: UI Component representing a single transaction row.
+- **SummaryCard**: UI Component representing the monthly balance/stats.
+- **SectionHeader**: UI Component for date grouping in the list.
+- **TimeAnchorHeader**: UI component representing the pinned time anchor (sticky, left column).
+- **TransactionGroup**: A conceptual grouping of transactions that share the same Time Anchor Key.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Visual Regression Tests (Golden Tests) pass for 100% of defined scenarios: Empty, Data (Short/Long lists), Large Text, Large Amounts, Chinese/English locales.
+- **SC-002**: Accessibility check passes for Contrast Ratios (text vs background > 4.5:1 for normal text) and Touch Targets (> 48x48dp where applicable).
+- **SC-003**: No functional regression: Users can still Add, Edit, Delete, and Switch Months successfully (verified by existing or updated E2E tests).
+- **SC-004**: Anchor behavior is verified in tests:
+  - Widget test validates that the pinned Time Anchor changes only when the first visible group changes.
+  - Golden tests include at least one scenario showing the pinned anchor at mid-scroll.
+- **SC-005**: Widget tests cover validation rules (amount 2 decimals, transfer From!=To, required fields).
+- **SC-006**: Golden tests cover: default expense, income, transfer (with two accounts), long note, large amount, Chinese/English locales.
+- **SC-007**: No functional regression: Add flow remains consistent with 001 (save returns to Ledger and entry appears in correct anchor group).
+- **SC-008**: No functional regression: Users can Edit and Delete transactions successfully, matching 001 semantics (verified via widget/e2e tests).
+- **SC-009**: Widget tests verify Edit prefill and save behavior:
+  - opening edit shows correct initial values,
+  - saving updates list and regrouping is correct when occurredAt changes.
+- **SC-010**: Delete behavior verified:
+  - delete shows snackbar acknowledgement with Undo,
+  - undo restores the item correctly,
+  - delete of last item in a group removes the group and anchor updates smoothly.
+- **SC-011**: Golden tests cover Edit/Delete UI states:
+  - Edit page (EN/ZH, long note, large amount),
+  - Delete confirmation/sheet (EN/ZH),
+  - Snackbar acknowledgement visible state (where feasible).
