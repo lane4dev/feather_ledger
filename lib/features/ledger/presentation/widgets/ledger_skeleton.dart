@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../app/theme/app_theme.dart';
 import '../theme/ledger_theme.dart';
 
 class LedgerSkeleton extends StatefulWidget {
@@ -35,7 +37,7 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
     return FadeTransition(
       opacity: _animation,
       child: Padding(
-        padding: const EdgeInsets.only(top: LedgerTheme.gapMd),
+        padding: EdgeInsets.only(top: context.spacing.md),
         child: Column(
           children: List.generate(3, (index) => _buildSkeletonGroup(context)),
         ),
@@ -48,7 +50,7 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
       children: [
         // Group Header (simulating Anchor)
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: LedgerTheme.gapSm),
+          padding: EdgeInsets.symmetric(vertical: context.spacing.sm),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -66,7 +68,8 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
               // List Items (Reduced to 2)
               Expanded(
                 child: Column(
-                  children: List.generate(2, (i) => _buildSkeletonItem(context)),
+                  children:
+                      List.generate(2, (i) => _buildSkeletonItem(context)),
                 ),
               ),
             ],
@@ -78,9 +81,9 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
 
   Widget _buildSkeletonItem(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: LedgerTheme.gapMd,
-        vertical: LedgerTheme.gapSm,
+      padding: EdgeInsets.symmetric(
+        horizontal: context.spacing.md,
+        vertical: context.spacing.sm,
       ),
       child: Row(
         children: [
@@ -94,7 +97,7 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
               ],
             ),
           ),
-          const SizedBox(width: LedgerTheme.gapMd),
+          SizedBox(width: context.spacing.md),
           _box(width: 60, height: 16), // Amount
         ],
       ),

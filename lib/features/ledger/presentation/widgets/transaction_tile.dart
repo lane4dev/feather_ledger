@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/entities/ledger_entities.dart';
 import '../theme/ledger_theme.dart';
@@ -21,9 +22,9 @@ class TransactionTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: LedgerTheme.gapMd,
-          vertical: LedgerTheme.gapSm,
+        padding: EdgeInsets.symmetric(
+          horizontal: context.spacing.md,
+          vertical: context.spacing.sm,
         ),
         child: Row(
           children: [
@@ -153,15 +154,15 @@ class TransactionTile extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: LedgerTheme.gapMd),
+            SizedBox(width: context.spacing.md),
 
             // Amount
             Text(
               '${transaction.type == TransactionType.expense ? '-' : '+'} $currencySymbol${transaction.amount.toStringAsFixed(2)}',
               style: LedgerTheme.transactionAmount(context).copyWith(
                 color: transaction.type == TransactionType.expense
-                    ? LedgerTheme.expenseColor(context)
-                    : LedgerTheme.incomeColor(context),
+                    ? context.colors.expense
+                    : context.colors.income,
               ),
             ),
           ],

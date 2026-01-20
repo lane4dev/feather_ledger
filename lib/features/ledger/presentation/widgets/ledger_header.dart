@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../domain/entities/ledger_entities.dart';
 import '../theme/ledger_theme.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../domain/entities/ledger_entities.dart';
 
 class LedgerHeader extends StatelessWidget {
   final DateTime selectedDate;
@@ -24,7 +25,8 @@ class LedgerHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     // Expanded State
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, LedgerTheme.gapMd, LedgerTheme.gapMd),
+      padding:
+          EdgeInsets.fromLTRB(0, 0, context.spacing.md, context.spacing.md),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +45,7 @@ class LedgerHeader extends StatelessWidget {
                       onChanged: onMonthChanged,
                       onTap: onMonthTap,
                     ),
-                    const SizedBox(height: LedgerTheme.gapMd),
+                    SizedBox(height: context.spacing.md),
                     // Balance Summary
                     if (summary != null)
                       _BalanceSummary(
@@ -84,18 +86,18 @@ class LedgerHeaderCompact extends StatelessWidget {
         // Let's assume standard AppBar behavior. We don't force 72dp spacer here because AppBar handles leading.
         // But visual alignment with the list (which has 72dp spacer) is nice.
         // Let's just show the content.
-        
+
         Text(
           DateFormat.yMMM().format(selectedDate),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         if (summary != null) ...[
-          const SizedBox(width: LedgerTheme.gapMd),
+          SizedBox(width: context.spacing.md),
           Text(
             '$currencySymbol${summary!.runningBalance.toStringAsFixed(2)}',
-             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-               fontWeight: FontWeight.bold,
-             ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ],
       ],
@@ -122,7 +124,8 @@ class _MonthSwitcher extends StatelessWidget {
           icon: const Icon(Icons.chevron_left),
           onPressed: onChanged == null
               ? null
-              : () => onChanged!(DateTime(selectedDate.year, selectedDate.month - 1)),
+              : () => onChanged!(
+                  DateTime(selectedDate.year, selectedDate.month - 1)),
         ),
         InkWell(
           onTap: onTap,
@@ -139,7 +142,8 @@ class _MonthSwitcher extends StatelessWidget {
           icon: const Icon(Icons.chevron_right),
           onPressed: onChanged == null
               ? null
-              : () => onChanged!(DateTime(selectedDate.year, selectedDate.month + 1)),
+              : () => onChanged!(
+                  DateTime(selectedDate.year, selectedDate.month + 1)),
         ),
       ],
     );
@@ -168,20 +172,20 @@ class _BalanceSummary extends StatelessWidget {
           '$currency${summary.runningBalance.toStringAsFixed(2)}',
           style: LedgerTheme.balanceText(context),
         ),
-        const SizedBox(height: LedgerTheme.gapSm),
+        SizedBox(height: context.spacing.sm),
         Row(
           children: [
             _IncomeExpenseItem(
               label: 'Income',
               amount: summary.totalIncome,
-              color: LedgerTheme.incomeColor(context),
+              color: context.colors.income,
               currency: currency,
             ),
-            const SizedBox(width: LedgerTheme.gapLg),
+            SizedBox(width: context.spacing.lg),
             _IncomeExpenseItem(
               label: 'Expense',
               amount: summary.totalExpense,
-              color: LedgerTheme.expenseColor(context),
+              color: context.colors.expense,
               currency: currency,
             ),
           ],

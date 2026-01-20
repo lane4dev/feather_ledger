@@ -51,6 +51,39 @@ class AppSpacing extends ThemeExtension<AppSpacing> {
   }
 }
 
+@immutable
+class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
+  const AppSemanticColors({
+    required this.income,
+    required this.expense,
+  });
+
+  final Color income;
+  final Color expense;
+
+  @override
+  AppSemanticColors copyWith({
+    Color? income,
+    Color? expense,
+  }) {
+    return AppSemanticColors(
+      income: income ?? this.income,
+      expense: expense ?? this.expense,
+    );
+  }
+
+  @override
+  AppSemanticColors lerp(ThemeExtension<AppSemanticColors>? other, double t) {
+    if (other is! AppSemanticColors) {
+      return this;
+    }
+    return AppSemanticColors(
+      income: Color.lerp(income, other.income, t) ?? income,
+      expense: Color.lerp(expense, other.expense, t) ?? expense,
+    );
+  }
+}
+
 class AppTheme {
   static const spacing = AppSpacing(
     xs: 4,
@@ -58,6 +91,16 @@ class AppTheme {
     md: 16,
     lg: 24,
     xl: 32,
+  );
+
+  static const _semanticsLight = AppSemanticColors(
+    income: Colors.green,
+    expense: Color(0xFFBA1A1A), // M3 Error default
+  );
+
+  static const _semanticsDark = AppSemanticColors(
+    income: Color(0xFF81C995), // M3 Green equivalent for dark
+    expense: Color(0xFFFFB4AB), // M3 Error Container / Error default for dark
   );
 
   static const textTheme = TextTheme(
@@ -96,6 +139,7 @@ class AppTheme {
     textTheme: textTheme,
     extensions: const <ThemeExtension<dynamic>>[
       spacing,
+      _semanticsLight,
     ],
   );
 
@@ -108,10 +152,15 @@ class AppTheme {
     textTheme: textTheme,
     extensions: const <ThemeExtension<dynamic>>[
       spacing,
+      _semanticsDark,
     ],
   );
 }
 
 extension SpacingX on BuildContext {
   AppSpacing get spacing => Theme.of(this).extension<AppSpacing>()!;
+}
+
+extension SemanticColorsX on BuildContext {
+  AppSemanticColors get colors => Theme.of(this).extension<AppSemanticColors>()!;
 }

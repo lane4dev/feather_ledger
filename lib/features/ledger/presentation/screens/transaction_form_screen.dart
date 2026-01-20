@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/services/ledger_service.dart';
 import '../providers/ledger_providers.dart';
@@ -35,14 +36,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final l10n = AppLocalizations.of(context)!;
     
     // Use LedgerTheme gaps
-    const gapMd = SizedBox(height: LedgerTheme.gapMd);
+    final gapMd = SizedBox(height: context.spacing.md);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.addTransaction),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(LedgerTheme.gapMd),
+        padding: EdgeInsets.all(context.spacing.md),
         child: Form(
           key: _formKey,
           child: Column(
@@ -142,7 +143,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                       int.tryParse(c.iconKey) ?? 0xe574,
                                       fontFamily:
                                           'MaterialIcons')), 
-                                  const SizedBox(width: LedgerTheme.gapSm),
+                                  SizedBox(width: context.spacing.sm),
                                   Text(c.name),
                                 ],
                               ),
@@ -191,7 +192,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 maxLines: 3,
                 onSaved: (value) => _note = value,
               ),
-              const SizedBox(height: LedgerTheme.gapLg),
+              SizedBox(height: context.spacing.lg),
 
               // Save Button
               FilledButton(

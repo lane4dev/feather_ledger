@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/entities/ledger_entities.dart';
-import '../theme/ledger_theme.dart';
 
 class TransactionDetailSheet extends StatelessWidget {
   final TransactionEntity transaction;
@@ -19,11 +19,11 @@ class TransactionDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     // Premium Detail View
     final color = transaction.type == TransactionType.expense
-        ? LedgerTheme.expenseColor(context)
-        : LedgerTheme.incomeColor(context);
+        ? context.colors.expense
+        : context.colors.income;
 
     return Container(
-      padding: const EdgeInsets.all(LedgerTheme.gapLg),
+      padding: EdgeInsets.all(context.spacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -39,7 +39,7 @@ class TransactionDetailSheet extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: LedgerTheme.gapLg),
+          SizedBox(height: context.spacing.lg),
 
           // Amount (Hero)
           Text(
@@ -50,7 +50,7 @@ class TransactionDetailSheet extends StatelessWidget {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: LedgerTheme.gapMd),
+          SizedBox(height: context.spacing.md),
 
           // Title / Category
           Row(
@@ -61,29 +61,29 @@ class TransactionDetailSheet extends StatelessWidget {
                     fontFamily: 'MaterialIcons'),
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: LedgerTheme.gapSm),
+              SizedBox(width: context.spacing.sm),
               Text(
                 transaction.category.name,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
           ),
-          const SizedBox(height: LedgerTheme.gapLg),
+          SizedBox(height: context.spacing.lg),
           const Divider(),
-          const SizedBox(height: LedgerTheme.gapMd),
+          SizedBox(height: context.spacing.md),
 
           // Details Grid/List
           _DetailRow(
             label: 'Date',
             value: DateFormat.yMMMMEEEEd().format(transaction.date),
           ),
-          const SizedBox(height: LedgerTheme.gapMd),
+          SizedBox(height: context.spacing.md),
           _DetailRow(
             label: 'Account',
             value: transaction.account.name,
           ),
           if (transaction.note != null && transaction.note!.isNotEmpty) ...[
-            const SizedBox(height: LedgerTheme.gapMd),
+            SizedBox(height: context.spacing.md),
             _DetailRow(
               label: 'Note',
               value: transaction.note!,
@@ -91,7 +91,7 @@ class TransactionDetailSheet extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: LedgerTheme.gapLg),
+          SizedBox(height: context.spacing.lg),
           // Close Button (Optional, standard sheet swipe is fine)
         ],
       ),

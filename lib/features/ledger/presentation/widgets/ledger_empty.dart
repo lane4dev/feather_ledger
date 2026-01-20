@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/ledger_theme.dart';
+
+import '../../../../app/theme/app_theme.dart';
 
 class LedgerEmpty extends StatelessWidget {
   const LedgerEmpty({super.key});
@@ -15,14 +16,14 @@ class LedgerEmpty extends StatelessWidget {
             size: 64,
             color: Theme.of(context).colorScheme.outline,
           ),
-          const SizedBox(height: LedgerTheme.gapMd),
+          SizedBox(height: context.spacing.md),
           Text(
             'No transactions',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
-          const SizedBox(height: LedgerTheme.gapSm),
+          SizedBox(height: context.spacing.sm),
           Text(
             'Tap + to add a new one',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
