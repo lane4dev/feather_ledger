@@ -78,6 +78,25 @@ final allAccountsProvider = AutoDisposeFutureProvider<List<Account>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllAccountsRef = AutoDisposeFutureProviderRef<List<Account>>;
+String _$dailyTransactionsHash() => r'fbede27cda443e3a6cb18f7eb6b22c901e06c98f';
+
+/// See also [dailyTransactions].
+@ProviderFor(dailyTransactions)
+final dailyTransactionsProvider =
+    AutoDisposeFutureProvider<Map<DateTime, List<TransactionEntity>>>.internal(
+  dailyTransactions,
+  name: r'dailyTransactionsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$dailyTransactionsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DailyTransactionsRef
+    = AutoDisposeFutureProviderRef<Map<DateTime, List<TransactionEntity>>>;
 String _$selectedDateHash() => r'cc9b319722e2f967ffe36ff1184e0e14a6d96cf6';
 
 /// See also [SelectedDate].

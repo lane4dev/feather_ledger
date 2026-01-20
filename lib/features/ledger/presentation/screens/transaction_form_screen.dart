@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/services/ledger_service.dart';
 import '../providers/ledger_providers.dart';
+import '../theme/ledger_theme.dart';
 
 class TransactionFormScreen extends ConsumerStatefulWidget {
   const TransactionFormScreen({super.key});
@@ -33,14 +33,16 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final categoriesAsync = ref.watch(allCategoriesProvider);
     final accountsAsync = ref.watch(allAccountsProvider);
     final l10n = AppLocalizations.of(context)!;
-    final spacing = context.spacing;
+    
+    // Use LedgerTheme gaps
+    const gapMd = SizedBox(height: LedgerTheme.gapMd);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.addTransaction),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(spacing.md),
+        padding: const EdgeInsets.all(LedgerTheme.gapMd),
         child: Form(
           key: _formKey,
           child: Column(
@@ -52,9 +54,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   labelText: l10n.amount,
                   prefixText: '\$ ',
                   border: const OutlineInputBorder(),
+                  // Premium feel: clean border
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.next,
                 validator: (value) {
                   if (value == null || value.isEmpty) return l10n.required;
                   final p = double.tryParse(value);
@@ -63,7 +67,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 },
                 onSaved: (value) => _amount = double.parse(value!),
               ),
-              SizedBox(height: spacing.md),
+              gapMd,
 
               // 2. Type
               SegmentedButton<TransactionType>(
@@ -81,18 +85,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 onSelectionChanged: (Set<TransactionType> newSelection) {
                   setState(() {
                     _type = newSelection.first;
-                    // Reset category if type changes? For MVP, maybe not strictly enforced by UI but good UX.
                     _categoryId = null;
                   });
                 },
               ),
-              SizedBox(height: spacing.md),
+              gapMd,
 
               // 3. Date
-              ListTile(
-                title: Text(l10n.date),
-                subtitle: Text(DateFormat.yMMMd().format(_date)),
-                trailing: const Icon(Icons.calendar_today),
+              InkWell(
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -104,21 +104,35 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     setState(() => _date = picked);
                   }
                 },
+                borderRadius: BorderRadius.circular(LedgerTheme.cardRadius),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: l10n.date,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.calendar_today),
+                  ),
+                  child: Text(DateFormat.yMMMd().format(_date)),
+                ),
               ),
-              const Divider(),
+              gapMd,
 
               // 4. Category
               categoriesAsync.when(
                 data: (categories) {
-                  // Filter categories by type
                   final filtered =
                       categories.where((c) => c.type == _type).toList();
                   if (filtered.isEmpty) {
-                    return Text(l10n.noCategoriesFound);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(l10n.noCategoriesFound),
+                    );
                   }
                   return DropdownButtonFormField<int>(
-                    decoration: InputDecoration(labelText: l10n.category),
-                    value: _categoryId,
+                    decoration: InputDecoration(
+                      labelText: l10n.category,
+                      border: const OutlineInputBorder(),
+                    ),
+                    initialValue: _categoryId,
                     items: filtered
                         .map((c) => DropdownMenuItem(
                               value: c.id,
@@ -127,8 +141,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                   Icon(IconData(
                                       int.tryParse(c.iconKey) ?? 0xe574,
                                       fontFamily:
-                                          'MaterialIcons')), // Fallback icon
-                                  SizedBox(width: spacing.sm),
+                                          'MaterialIcons')), 
+                                  const SizedBox(width: LedgerTheme.gapSm),
                                   Text(c.name),
                                 ],
                               ),
@@ -141,15 +155,18 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
-              SizedBox(height: spacing.md),
+              gapMd,
 
               // 5. Account
               accountsAsync.when(
                 data: (accounts) {
                   if (accounts.isEmpty) return Text(l10n.noAccountsFound);
                   return DropdownButtonFormField<int>(
-                    decoration: InputDecoration(labelText: l10n.account),
-                    value: _accountId,
+                    decoration: InputDecoration(
+                      labelText: l10n.account,
+                      border: const OutlineInputBorder(),
+                    ),
+                    initialValue: _accountId,
                     items: accounts
                         .map((a) => DropdownMenuItem(
                               value: a.id,
@@ -163,18 +180,25 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, s) => Text(l10n.errorPrefix(e.toString())),
               ),
-              SizedBox(height: spacing.md),
+              gapMd,
 
               // 6. Note
               TextFormField(
-                decoration: InputDecoration(labelText: l10n.note),
+                decoration: InputDecoration(
+                  labelText: l10n.note,
+                  border: const OutlineInputBorder(),
+                ),
+                maxLines: 3,
                 onSaved: (value) => _note = value,
               ),
-              SizedBox(height: spacing.xl),
+              const SizedBox(height: LedgerTheme.gapLg),
 
               // Save Button
               FilledButton(
                 onPressed: _submit,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: Text(l10n.saveTransaction),
               ),
             ],
