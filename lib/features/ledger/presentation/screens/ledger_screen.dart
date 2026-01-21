@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
 
 import '../providers/ledger_providers.dart';
@@ -78,6 +80,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final transactionsAsync =
         ref.watch(dailyTransactionsProvider); // Phase 4 wiring
     final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: CustomScrollView(
@@ -141,10 +144,53 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true, // Allow full height if needed
+                    useRootNavigator: true,
                     useSafeArea: true,
                     builder: (context) => TransactionDetailSheet(
                       transaction: tx,
                       currencySymbol: currency,
+                      onEdit: () {
+                        Navigator.of(context).pop();
+                        context.push('/ledger/edit', extra: tx);
+                      },
+                      onDelete: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('${l10n.delete}?'),
+                            content: Text(l10n.deleteTransactionConfirmation),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(l10n.cancel),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: TextButton.styleFrom(
+                                  foregroundColor:
+                                      Theme.of(context).colorScheme.error,
+                                ),
+                                child: Text(l10n.delete),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true && context.mounted) {
+                          Navigator.of(context).pop(); // Close sheet
+                          try {
+                            await ref
+                                .read(ledgerServiceProvider)
+                                .deleteTransaction(tx.id);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
                     ),
                   );
                 },

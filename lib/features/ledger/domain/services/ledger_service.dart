@@ -41,6 +41,29 @@ class LedgerService {
     );
   }
 
+  Future<void> updateTransaction({
+    required int id,
+    required double amount,
+    required TransactionType type,
+    required DateTime date,
+    required int categoryId,
+    required int accountId,
+    String? note,
+  }) {
+    if (amount <= 0) {
+      throw Exception('Amount must be positive');
+    }
+    return _repository.updateTransaction(
+      id: id,
+      amount: amount,
+      type: type,
+      date: date,
+      categoryId: categoryId,
+      accountId: accountId,
+      note: note,
+    );
+  }
+
   Future<void> deleteTransaction(int id) {
     return _repository.deleteTransaction(id);
   }

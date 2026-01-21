@@ -30,6 +30,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTransaction => 'Add Transaction';
 
   @override
+  String get editTransaction => 'Edit Transaction';
+
+  @override
+  String get deleteTransactionConfirmation =>
+      'Are you sure you want to delete this transaction? This action cannot be undone.';
+
+  @override
   String get amount => 'Amount';
 
   @override

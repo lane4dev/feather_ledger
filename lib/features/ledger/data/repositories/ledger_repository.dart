@@ -20,6 +20,15 @@ abstract class LedgerRepository {
     required int accountId,
     String? note,
   });
+  Future<void> updateTransaction({
+    required int id,
+    required double amount,
+    required db_tables.TransactionType type,
+    required DateTime date,
+    required int categoryId,
+    required int accountId,
+    String? note,
+  });
   Future<void> deleteTransaction(int id);
 }
 
@@ -85,6 +94,27 @@ class LedgerRepositoryImpl implements LedgerRepository {
     String? note,
   }) {
     return _dao.addTransaction(TransactionsCompanion(
+      amount: Value(amount),
+      type: Value(type),
+      date: Value(date),
+      categoryId: Value(categoryId),
+      accountId: Value(accountId),
+      note: Value(note),
+    ));
+  }
+
+  @override
+  Future<void> updateTransaction({
+    required int id,
+    required double amount,
+    required db_tables.TransactionType type,
+    required DateTime date,
+    required int categoryId,
+    required int accountId,
+    String? note,
+  }) {
+    return _dao.updateTransaction(TransactionsCompanion(
+      id: Value(id),
       amount: Value(amount),
       type: Value(type),
       date: Value(date),

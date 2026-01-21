@@ -25,38 +25,34 @@ class LedgerHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     // Expanded State
     return Padding(
-      padding:
-          EdgeInsets.fromLTRB(0, 0, context.spacing.md, context.spacing.md),
+      padding: EdgeInsets.fromLTRB(
+          context.spacing.md, 0, context.spacing.md, context.spacing.md),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row to align with list content (Left spacer)
+          // Month Switcher - Still aligned with list content
           Row(
             children: [
-              const SizedBox(width: LedgerTheme.colAnchorWidth),
+              const SizedBox(width: LedgerTheme.colAnchorWidth - 16), // Adjusted for outer padding
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Month Switcher
-                    _MonthSwitcher(
-                      selectedDate: selectedDate,
-                      onChanged: onMonthChanged,
-                      onTap: onMonthTap,
-                    ),
-                    SizedBox(height: context.spacing.md),
-                    // Balance Summary
-                    if (summary != null)
-                      _BalanceSummary(
-                        summary: summary!,
-                        currency: currencySymbol,
-                      ),
-                  ],
+                child: _MonthSwitcher(
+                  selectedDate: selectedDate,
+                  onChanged: onMonthChanged,
+                  onTap: onMonthTap,
                 ),
               ),
             ],
           ),
+          // Balance Summary - Full Width
+          if (summary != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: _BalanceSummary(
+                summary: summary!,
+                currency: currencySymbol,
+              ),
+            ),
         ],
       ),
     );
@@ -161,76 +157,118 @@ class _BalanceSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Balance',
-          style: LedgerTheme.balanceLabel(context),
-        ),
-        Text(
-          '$currency${summary.runningBalance.toStringAsFixed(2)}',
-          style: LedgerTheme.balanceText(context),
-        ),
-        SizedBox(height: context.spacing.sm),
-        Row(
-          children: [
-            _IncomeExpenseItem(
-              label: 'Income',
-              amount: summary.totalIncome,
-              color: context.colors.income,
-              currency: currency,
-            ),
-            SizedBox(width: context.spacing.lg),
-            _IncomeExpenseItem(
-              label: 'Expense',
-              amount: summary.totalExpense,
-              color: context.colors.expense,
-              currency: currency,
-            ),
-          ],
-        ),
-      ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(LedgerTheme.cardRadius),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Main Balance
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Total Balance',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$currency${summary.runningBalance.toStringAsFixed(2)}',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          // Income & Expense Stats
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _IncomeExpenseCompact(
+                label: 'Income',
+                amount: summary.totalIncome,
+                color: context.colors.income,
+                currency: currency,
+                icon: Icons.arrow_downward_rounded,
+              ),
+              const SizedBox(height: 8),
+              _IncomeExpenseCompact(
+                label: 'Expense',
+                amount: summary.totalExpense,
+                color: context.colors.expense,
+                currency: currency,
+                icon: Icons.arrow_upward_rounded,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _IncomeExpenseItem extends StatelessWidget {
+class _IncomeExpenseCompact extends StatelessWidget {
   final String label;
   final double amount;
   final Color color;
   final String currency;
+  final IconData icon;
 
-  const _IncomeExpenseItem({
+  const _IncomeExpenseCompact({
     required this.label,
     required this.amount,
     required this.color,
     required this.currency,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 4,
-          height: 16,
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 12,
             color: color,
-            borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(label, style: Theme.of(context).textTheme.labelSmall),
             Text(
               '$currency${amount.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 10,
+              ),
             ),
           ],
         ),

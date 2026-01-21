@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/l10n/app_localizations.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/feather_divider.dart';
 import '../providers/settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -44,7 +45,9 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const Divider(),
+          const FeatherDivider(),
+
+          // Language
 
           // Language
           ListTile(
@@ -70,7 +73,9 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const Divider(),
+          const FeatherDivider(),
+
+          // Language
 
           // Currency
           ListTile(

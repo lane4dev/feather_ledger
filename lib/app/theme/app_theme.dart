@@ -94,8 +94,8 @@ class AppTheme {
   );
 
   static const _semanticsLight = AppSemanticColors(
-    income: Colors.green,
-    expense: Color(0xFFBA1A1A), // M3 Error default
+    income: Color(0xFF0F766E),
+    expense: Color(0xFFC2410C), // M3 Error default
   );
 
   static const _semanticsDark = AppSemanticColors(
@@ -162,5 +162,6 @@ extension SpacingX on BuildContext {
 }
 
 extension SemanticColorsX on BuildContext {
-  AppSemanticColors get colors => Theme.of(this).extension<AppSemanticColors>()!;
+  AppSemanticColors get colors =>
+      Theme.of(this).extension<AppSemanticColors>()!;
 }

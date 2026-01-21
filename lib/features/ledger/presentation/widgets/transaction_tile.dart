@@ -129,27 +129,49 @@ class TransactionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  if (transaction.category.name.isNotEmpty)
-                    Text(
-                      transaction.category.name,
-                      style: LedgerTheme.transactionTitle(context),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  // Title: Note if exists, else Account
+                  Text(
+                    (transaction.note != null && transaction.note!.isNotEmpty)
+                        ? transaction.note!
+                        : transaction.account.name,
+                    style: LedgerTheme.transactionTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
 
-                  // Meta (Note + Date/Time if needed, maybe tags?)
-                  // Spec says: Amount > Title > Meta
+                  // Subtitle: Account (only if note was the title)
                   if (transaction.note != null && transaction.note!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2.0),
                       child: Text(
-                        transaction.note!,
+                        transaction.account.name,
                         style: LedgerTheme.transactionMeta(context),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+
+                  // Category Tag
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(4.0),
+                      ),
+                      child: Text(
+                        transaction.category.name,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                              fontSize: 10,
+                            ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

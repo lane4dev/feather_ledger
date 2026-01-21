@@ -30,6 +30,14 @@
   "@addTransaction": {
     "description": "Title for add transaction screen"
   },
+  "editTransaction": "Edit Transaction",
+  "@editTransaction": {
+    "description": "Title for edit transaction screen"
+  },
+  "deleteTransactionConfirmation": "Are you sure you want to delete this transaction? This action cannot be undone.",
+  "@deleteTransactionConfirmation": {
+    "description": "Confirmation message for deleting a transaction"
+  },
   "amount": "Amount",
   "@amount": {
     "description": "Amount field label"

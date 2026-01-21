@@ -22,7 +22,7 @@ class SettingsRepository {
   }
 
   Future<void> setThemeMode(ThemeMode mode) {
-    String val = 'system';
+    var val = 'system';
     if (mode == ThemeMode.light) val = 'light';
     if (mode == ThemeMode.dark) val = 'dark';
     return _prefs.setString(_keyTheme, val);

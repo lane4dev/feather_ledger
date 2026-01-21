@@ -30,6 +30,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addTransaction => '添加交易';
 
   @override
+  String get editTransaction => '编辑交易';
+
+  @override
+  String get deleteTransactionConfirmation => '确定要删除此交易吗？此操作无法撤销。';
+
+  @override
   String get amount => '金额';
 
   @override

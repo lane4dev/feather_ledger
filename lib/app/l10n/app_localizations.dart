@@ -140,6 +140,18 @@ abstract class AppLocalizations {
   /// **'Add Transaction'**
   String get addTransaction;
 
+  /// Title for edit transaction screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Transaction'**
+  String get editTransaction;
+
+  /// Confirmation message for deleting a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this transaction? This action cannot be undone.'**
+  String get deleteTransactionConfirmation;
+
   /// Amount field label
   ///
   /// In en, this message translates to:

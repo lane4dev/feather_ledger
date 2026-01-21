@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../l10n/app_localizations.dart';
+import '../../features/ledger/domain/entities/ledger_entities.dart';
 import '../../features/ledger/presentation/screens/ledger_screen.dart';
 import '../../features/ledger/presentation/screens/transaction_form_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
@@ -37,6 +38,14 @@ GoRouter goRouter(Ref ref) {
                     parentNavigatorKey:
                         _rootNavigatorKey, // Open over the shell
                     builder: (context, state) => const TransactionFormScreen(),
+                  ),
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) {
+                      final transaction = state.extra as TransactionEntity?;
+                      return TransactionFormScreen(transaction: transaction);
+                    },
                   ),
                 ],
               ),

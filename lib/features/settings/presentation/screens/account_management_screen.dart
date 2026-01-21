@@ -175,7 +175,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
               ),
               SizedBox(height: spacing.md),
               DropdownButtonFormField<db_tables.AccountType>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: InputDecoration(
                   labelText: l10n.accountType,
                   border: const OutlineInputBorder(),

@@ -30,6 +30,14 @@
   "@addTransaction": {
     "description": "添加交易页面标题"
   },
+  "editTransaction": "编辑交易",
+  "@editTransaction": {
+    "description": "编辑交易页面标题"
+  },
+  "deleteTransactionConfirmation": "确定要删除此交易吗？此操作无法撤销。",
+  "@deleteTransactionConfirmation": {
+    "description": "删除交易确认消息"
+  },
   "amount": "金额",
   "@amount": {
     "description": "金额字段标签"

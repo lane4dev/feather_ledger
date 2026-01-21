@@ -130,9 +130,7 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
       for (var row in rows) {
         final amount = row.read(income) ?? 0;
         final t = row.read(type);
-        // t might be int? or TransactionType?
-        // Safe check:
-        if (t == TransactionType.income || t == TransactionType.income.index) {
+        if (t == TransactionType.income.index) {
           totalIncome += amount;
         } else {
           totalExpense += amount;
@@ -164,7 +162,7 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
     for (var row in txRows) {
         final val = row.read(transactions.amount.sum()) ?? 0;
         final t = row.read(transactions.type);
-        if (t == TransactionType.income || t == TransactionType.income.index) {
+        if (t == TransactionType.income.index) {
              income += val;
         } else {
              expense += val;
