@@ -1,7 +1,7 @@
 /// Support utilities for testing
 ///
 /// This library exports test fakes, mocks, and fixtures for use in tests.
-library test_support;
+library;
 
 export 'fakes/fake_app_database.dart';
 export 'fixtures/test_data_builder.dart';

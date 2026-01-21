@@ -22,6 +22,9 @@ class MockLedgerRepository implements LedgerRepository {
   int deleteTransactionCallCount = 0;
   int? lastDeletedId;
 
+  int updateTransactionCallCount = 0;
+  int? lastUpdatedId;
+
   @override
   Stream<List<TransactionEntity>> watchTransactions(DateTime month) {
     return _transactionsController.stream;
@@ -53,6 +56,27 @@ class MockLedgerRepository implements LedgerRepository {
   }
 
   @override
+  Future<void> updateTransaction({
+    required int id,
+    required double amount,
+    required TransactionType type,
+    required DateTime date,
+    required int categoryId,
+    required int accountId,
+    String? note,
+  }) async {
+    updateTransactionCallCount++;
+    lastUpdatedId = id;
+    lastAmount = amount;
+    lastType = type;
+    lastDate = date;
+    lastCategoryId = categoryId;
+    lastAccountId = accountId;
+    lastNote = note;
+    await Future.delayed(Duration.zero);
+  }
+
+  @override
   Future<void> deleteTransaction(int id) async {
     deleteTransactionCallCount++;
     lastDeletedId = id;
@@ -76,6 +100,8 @@ class MockLedgerRepository implements LedgerRepository {
 
   void reset() {
     addTransactionCallCount = 0;
+    updateTransactionCallCount = 0;
+    lastUpdatedId = null;
     lastAmount = null;
     lastType = null;
     lastDate = null;

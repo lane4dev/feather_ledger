@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:feather_ledger/core/database/app_database.dart';
 
@@ -13,6 +12,5 @@ class FakeAppDatabase extends AppDatabase {
 
   /// Creates a fake database with a custom executor.
   /// Useful for more advanced testing scenarios.
-  FakeAppDatabase.withExecutor(QueryExecutor executor)
-      : super.internal(executor);
+  FakeAppDatabase.withExecutor(super.executor) : super.internal();
 }
