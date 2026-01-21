@@ -7,11 +7,27 @@ import 'package:feather_ledger/features/reports/domain/reports_entities.dart';
 
 part 'reports_providers.g.dart';
 
+enum HeatmapMode { frequency, amount }
+
+@riverpod
+class HeatmapModeState extends _$HeatmapModeState {
+  @override
+  HeatmapMode build() => HeatmapMode.frequency;
+
+  void setMode(HeatmapMode mode) {
+    state = mode;
+  }
+}
+
 @riverpod
 Stream<Map<DateTime, int>> heatmapData(Ref ref) {
   final repo = ref.watch(reportsRepositoryProvider);
   final date = ref.watch(selectedDateProvider);
-  return repo.watchHeatmapData(date);
+  final mode = ref.watch(heatmapModeStateProvider);
+  
+  return mode == HeatmapMode.frequency 
+      ? repo.watchHeatmapData(date)
+      : repo.watchHeatmapAmountData(date);
 }
 
 @riverpod

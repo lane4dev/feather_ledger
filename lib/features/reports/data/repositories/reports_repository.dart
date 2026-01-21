@@ -11,6 +11,7 @@ part 'reports_repository.g.dart';
 
 abstract class ReportsRepository {
   Stream<Map<DateTime, int>> watchHeatmapData(DateTime month);
+  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month);
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
       DateTime month, db_tables.TransactionType type);
 }
@@ -23,6 +24,11 @@ class ReportsRepositoryImpl implements ReportsRepository {
   @override
   Stream<Map<DateTime, int>> watchHeatmapData(DateTime month) {
     return _dao.watchDailyTransactionCounts(month);
+  }
+
+  @override
+  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month) {
+    return _dao.watchDailyTransactionAmounts(month);
   }
 
   @override

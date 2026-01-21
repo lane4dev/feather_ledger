@@ -61,8 +61,8 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
   Future<List<Account>> getAllAccounts() => select(accounts).get();
 
   Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month) {
-    final start = DateTime(month.year, 1, 1);
-    final end = DateTime(month.year + 1, 1, 1).subtract(const Duration(seconds: 1));
+    final start = DateTime(month.year, month.month - 2, 1);
+    final end = DateTime(month.year, month.month + 1, 1).subtract(const Duration(seconds: 1));
     
     return (select(transactions)..where((t) => t.date.isBetweenValues(start, end)))
       .watch()
@@ -71,6 +71,23 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
         for (var row in rows) {
           final day = DateTime(row.date.year, row.date.month, row.date.day);
           map[day] = (map[day] ?? 0) + 1;
+        }
+        return map;
+      });
+  }
+
+  Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime month) {
+    final start = DateTime(month.year, month.month - 2, 1);
+    final end = DateTime(month.year, month.month + 1, 1).subtract(const Duration(seconds: 1));
+    
+    return (select(transactions)..where((t) => t.date.isBetweenValues(start, end)))
+      .watch()
+      .map((rows) {
+        final map = <DateTime, int>{};
+        for (var row in rows) {
+          final day = DateTime(row.date.year, row.date.month, row.date.day);
+          // Accumulate amount, rounded to nearest integer for heatmap intensity
+          map[day] = (map[day] ?? 0) + row.amount.round();
         }
         return map;
       });

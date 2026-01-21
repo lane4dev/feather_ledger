@@ -6,7 +6,7 @@ part of 'reports_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$heatmapDataHash() => r'3dccd03f45588c9abaf57fc802f780e8a62022d4';
+String _$heatmapDataHash() => r'dd2560d27c908ed6e37aab4b69c15933b832d394';
 
 /// See also [heatmapData].
 @ProviderFor(heatmapData)
@@ -61,5 +61,21 @@ final expenseChartDataProvider =
 // ignore: unused_element
 typedef ExpenseChartDataRef
     = AutoDisposeStreamProviderRef<List<ReportCategoryTotal>>;
+String _$heatmapModeStateHash() => r'febb32e728028c50cc8afc264eb02b0b4150984f';
+
+/// See also [HeatmapModeState].
+@ProviderFor(HeatmapModeState)
+final heatmapModeStateProvider =
+    AutoDisposeNotifierProvider<HeatmapModeState, HeatmapMode>.internal(
+  HeatmapModeState.new,
+  name: r'heatmapModeStateProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$heatmapModeStateHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$HeatmapModeState = AutoDisposeNotifier<HeatmapMode>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
