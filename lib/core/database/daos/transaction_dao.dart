@@ -60,6 +60,23 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
   Future<List<Category>> getAllCategories() => select(categories).get();
   Future<List<Account>> getAllAccounts() => select(accounts).get();
 
+  // Category CRUD
+  Future<int> addCategory(CategoriesCompanion entry) {
+    return into(categories).insert(entry);
+  }
+
+  Future<bool> updateCategory(CategoriesCompanion entry) {
+    return update(categories).replace(entry);
+  }
+
+  Future<int> deleteCategory(int id) {
+    return (delete(categories)..where((c) => c.id.equals(id))).go();
+  }
+
+  Stream<List<Category>> watchCategoriesByType(TransactionType type) {
+    return (select(categories)..where((c) => c.type.equals(type.index))).watch();
+  }
+
   Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month) {
     final start = DateTime(month.year, month.month - 2, 1);
     final end = DateTime(month.year, month.month + 1, 1).subtract(const Duration(seconds: 1));

@@ -320,11 +320,11 @@ abstract class AppLocalizations {
   /// **'Accounts'**
   String get accounts;
 
-  /// Budgets menu item
+  /// Categories menu item
   ///
   /// In en, this message translates to:
-  /// **'Budgets'**
-  String get budgets;
+  /// **'Categories'**
+  String get categories;
 
   /// Dollar currency option
   ///

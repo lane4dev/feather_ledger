@@ -123,7 +123,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accounts => 'Accounts';
 
   @override
-  String get budgets => 'Budgets';
+  String get categories => 'Categories';
 
   @override
   String get dollarCurrency => '\$ (Dollar)';

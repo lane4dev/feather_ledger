@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+
+import '../../app/theme/category_tokens.dart';
 
 import 'app_database.dart';
 import 'tables.dart';
@@ -10,32 +11,35 @@ Future<void> seedDatabase(AppDatabase db) async {
   final categories = await db.transactionDao.getAllCategories();
   if (categories.isEmpty) {
     debugPrint('Seeding Categories...');
+    const defaultColors = CategoryTokens.defaultColors;
+    final defaultIcons = CategoryTokens.defaultIcons;
+
     await db.batch((batch) {
       batch.insertAll(db.categories, [
         CategoriesCompanion.insert(
             name: 'Food',
-            iconKey: '${Icons.restaurant.codePoint}',
-            colorInt: Colors.orange.toARGB32(),
+            iconKey: '${defaultIcons[0]}',
+            colorInt: defaultColors[0].toARGB32(),
             type: TransactionType.expense),
         CategoriesCompanion.insert(
             name: 'Transport',
-            iconKey: '${Icons.directions_bus.codePoint}',
-            colorInt: Colors.blue.toARGB32(),
+            iconKey: '${defaultIcons[2]}',
+            colorInt: defaultColors[2].toARGB32(),
             type: TransactionType.expense),
         CategoriesCompanion.insert(
             name: 'Shopping',
-            iconKey: '${Icons.shopping_bag.codePoint}',
-            colorInt: Colors.pink.toARGB32(),
+            iconKey: '${defaultIcons[1]}',
+            colorInt: defaultColors[1].toARGB32(),
             type: TransactionType.expense),
         CategoriesCompanion.insert(
             name: 'Salary',
-            iconKey: '${Icons.attach_money.codePoint}',
-            colorInt: Colors.green.toARGB32(),
+            iconKey: '${defaultIcons[7]}',
+            colorInt: defaultColors[8].toARGB32(),
             type: TransactionType.income),
         CategoriesCompanion.insert(
             name: 'Bonus',
-            iconKey: '${Icons.card_giftcard.codePoint}',
-            colorInt: Colors.purple.toARGB32(),
+            iconKey: '${defaultIcons[28]}',
+            colorInt: defaultColors[2].toARGB32(),
             type: TransactionType.income),
       ]);
     });

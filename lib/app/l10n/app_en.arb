@@ -158,9 +158,9 @@
   "@accounts": {
     "description": "Accounts menu item"
   },
-  "budgets": "Budgets",
-  "@budgets": {
-    "description": "Budgets menu item"
+  "categories": "Categories",
+  "@categories": {
+    "description": "Categories menu item"
   },
   
   "dollarCurrency": "$ (Dollar)",

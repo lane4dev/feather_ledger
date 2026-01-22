@@ -11,6 +11,7 @@ import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/account_management_screen.dart';
+import '../../features/settings/presentation/screens/category_management_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -72,6 +73,10 @@ GoRouter goRouter(Ref ref) {
                     GoRoute(
                       path: 'accounts',
                       builder: (context, state) => const AccountManagementScreen(),
+                    ),
+                    GoRoute(
+                      path: 'categories',
+                      builder: (context, state) => const CategoryManagementScreen(),
                     ),
                   ]),
             ],

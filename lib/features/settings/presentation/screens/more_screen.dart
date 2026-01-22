@@ -33,10 +33,10 @@ class MoreScreen extends ConsumerWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.pie_chart),
-            title: Text(l10n.budgets),
+            leading: const Icon(Icons.category),
+            title: Text(l10n.categories),
             onTap: () {
-              // TODO: Budgets screen
+              context.go('/more/categories');
             },
           ),
         ],

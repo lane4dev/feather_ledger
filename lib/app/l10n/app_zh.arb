@@ -158,9 +158,9 @@
   "@accounts": {
     "description": "账户菜单项"
   },
-  "budgets": "预算",
-  "@budgets": {
-    "description": "预算菜单项"
+  "categories": "分类",
+  "@categories": {
+    "description": "分类菜单项"
   },
   
   "dollarCurrency": "$ (美元)",

@@ -122,7 +122,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accounts => '账户';
 
   @override
-  String get budgets => '预算';
+  String get categories => '分类';
 
   @override
   String get dollarCurrency => '\$ (美元)';
