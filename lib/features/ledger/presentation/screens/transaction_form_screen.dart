@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/database/tables.dart';
-import '../../../../shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+
 import '../../domain/entities/ledger_entities.dart';
 import '../../domain/services/ledger_service.dart';
 import '../providers/ledger_providers.dart';
+
+import '../widgets/ledger_amount_input.dart';
+import '../widgets/ledger_form_row.dart';
+import '../widgets/ledger_selection_sheet.dart';
+import '../widgets/ledger_selector_field.dart';
+import '../widgets/ledger_type_selector.dart';
 
 class TransactionFormScreen extends ConsumerStatefulWidget {
   final TransactionEntity? transaction;
@@ -52,9 +58,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final typeColor = _type == TransactionType.income
-        ? context.colors.income
-        : context.colors.expense;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -77,84 +80,24 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             children: [
               // 1. Transaction Type Toggle
               // Centered segmented button, clean look
-              Center(
-                child: SegmentedButton<TransactionType>(
-                  segments: [
-                    ButtonSegment(
-                      value: TransactionType.expense,
-                      label: Text(l10n.expense),
-                      // icon: const Icon(Icons.remove_circle_outline), // Icon can be noisy
-                    ),
-                    ButtonSegment(
-                      value: TransactionType.income,
-                      label: Text(l10n.income),
-                      // icon: const Icon(Icons.add_circle_outline),
-                    ),
-                  ],
-                  selected: {_type},
-                  onSelectionChanged: (Set<TransactionType> newSelection) {
-                    setState(() {
-                      _type = newSelection.first;
-                      _categoryId = null; // Reset category on type change
-                    });
-                  },
-                  showSelectedIcon: false,
-                  style: ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    side: WidgetStateProperty.all(BorderSide(
-                      color: colorScheme.outlineVariant,
-                    )),
-                  ),
-                ),
+              LedgerTypeSelector(
+                selectedType: _type,
+                onSelectionChanged: (type) {
+                  setState(() {
+                    _type = type;
+                    _categoryId = null; // Reset category on type change
+                  });
+                },
               ),
               const SizedBox(height: 32),
 
               // 2. Amount Input
               // Big, bold, colored
-              IntrinsicWidth(
-                child: TextFormField(
-                  autofocus: widget.transaction == null,
-                  initialValue: _amount?.toStringAsFixed(2),
-                  decoration: InputDecoration(
-                    prefixText: '\$ ',
-                    prefixStyle: theme.textTheme.displayMedium?.copyWith(
-                      color: typeColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    hintText: '0.00',
-                    hintStyle: theme.textTheme.displayMedium?.copyWith(
-                      color:
-                          colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    color: typeColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    TextInputFormatter.withFunction((oldValue, newValue) {
-                      final text = newValue.text;
-                      return (text.isEmpty ||
-                              RegExp(r'^\d*\.?\d{0,2}$').hasMatch(text))
-                          ? newValue
-                          : oldValue;
-                    }),
-                  ],
-                  textInputAction: TextInputAction.next,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return l10n.required;
-                    final p = double.tryParse(value);
-                    if (p == null || p <= 0) return l10n.invalidAmount;
-                    return null;
-                  },
-                  onSaved: (value) => _amount = double.parse(value!),
-                ),
+              LedgerAmountInput(
+                initialValue: _amount,
+                type: _type,
+                autofocus: widget.transaction == null,
+                onSaved: (value) => _amount = double.parse(value!),
               ),
               const SizedBox(height: 32),
 
@@ -162,7 +105,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 16),
 
               // 3. Date & Time
-              _FormRow(
+              LedgerFormRow(
                 icon: Icons.access_time,
                 child: InkWell(
                   onTap: _pickDateTime,
@@ -190,7 +133,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 8),
 
               // 4. Category
-              _FormRow(
+              LedgerFormRow(
                 icon: Icons.grid_view_outlined, // or local_offer_outlined
                 child: categoriesAsync.when(
                   data: (categories) {
@@ -204,13 +147,26 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         final selected = filtered
                             .where((c) => c.id == state.value)
                             .firstOrNull;
-                        return InkWell(
+                        return LedgerSelectorField(
+                          text: selected?.name ?? l10n.category,
+                          textStyle: selected == null
+                              ? theme.textTheme.bodyLarge
+                                  ?.copyWith(color: theme.hintColor)
+                              : null,
+                          leadingIcon: selected != null
+                              ? IconData(
+                                  int.tryParse(selected.iconKey) ?? 0xe574,
+                                  fontFamily: 'MaterialIcons',
+                                )
+                              : null,
+                          errorText: state.hasError ? state.errorText : null,
                           onTap: () async {
                             final result = await showModalBottomSheet<int>(
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
-                              builder: (context) => _SelectionSheet<dynamic>(
+                              builder: (context) =>
+                                  LedgerSelectionSheet<dynamic>(
                                 title: l10n.category,
                                 options: filtered,
                                 getLabel: (c) => c.name,
@@ -227,49 +183,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               setState(() => _categoryId = result);
                             }
                           },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                child: Row(
-                                  children: [
-                                    if (selected != null) ...[
-                                      Icon(
-                                        IconData(
-                                          int.tryParse(selected.iconKey) ??
-                                              0xe574,
-                                          fontFamily: 'MaterialIcons',
-                                        ),
-                                        size: 20,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: 12),
-                                    ],
-                                    Text(
-                                      selected?.name ?? l10n.category,
-                                      style: selected == null
-                                          ? theme.textTheme.bodyLarge
-                                              ?.copyWith(color: theme.hintColor)
-                                          : theme.textTheme.bodyLarge,
-                                    ),
-                                    const Spacer(),
-                                    Icon(Icons.chevron_right,
-                                        color: theme.hintColor),
-                                  ],
-                                ),
-                              ),
-                              if (state.hasError)
-                                Text(
-                                  state.errorText!,
-                                  style: TextStyle(
-                                    color: colorScheme.error,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ],
-                          ),
                         );
                       },
                     );
@@ -282,7 +195,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 8),
 
               // 5. Account
-              _FormRow(
+              LedgerFormRow(
                 icon: Icons.account_balance_wallet_outlined,
                 child: accountsAsync.when(
                   data: (accounts) {
@@ -293,13 +206,20 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         final selected = accounts
                             .where((a) => a.id == state.value)
                             .firstOrNull;
-                        return InkWell(
+                        return LedgerSelectorField(
+                          text: selected?.name ?? l10n.account,
+                          textStyle: selected == null
+                              ? theme.textTheme.bodyLarge
+                                  ?.copyWith(color: theme.hintColor)
+                              : null,
+                          errorText: state.hasError ? state.errorText : null,
                           onTap: () async {
                             final result = await showModalBottomSheet<int>(
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
-                              builder: (context) => _SelectionSheet<dynamic>(
+                              builder: (context) =>
+                                  LedgerSelectionSheet<dynamic>(
                                 title: l10n.account,
                                 options: accounts,
                                 getLabel: (a) => a.name,
@@ -312,37 +232,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               setState(() => _accountId = result);
                             }
                           },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      selected?.name ?? l10n.account,
-                                      style: selected == null
-                                          ? theme.textTheme.bodyLarge
-                                              ?.copyWith(color: theme.hintColor)
-                                          : theme.textTheme.bodyLarge,
-                                    ),
-                                    const Spacer(),
-                                    Icon(Icons.chevron_right,
-                                        color: theme.hintColor),
-                                  ],
-                                ),
-                              ),
-                              if (state.hasError)
-                                Text(
-                                  state.errorText!,
-                                  style: TextStyle(
-                                    color: colorScheme.error,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ],
-                          ),
                         );
                       },
                     );
@@ -355,7 +244,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 8),
 
               // 6. Note
-              _FormRow(
+              LedgerFormRow(
                 icon: Icons.notes,
                 child: TextFormField(
                   initialValue: _note,
@@ -474,117 +363,5 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         }
       }
     }
-  }
-}
-
-class _FormRow extends StatelessWidget {
-  final IconData icon;
-  final Widget child;
-
-  const _FormRow({required this.icon, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12.0, right: 24.0),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            size: 24,
-          ),
-        ),
-        Expanded(child: child),
-      ],
-    );
-  }
-}
-
-class _SelectionSheet<T> extends StatelessWidget {
-  final String title;
-  final List<T> options;
-  final String Function(T) getLabel;
-  final IconData? Function(T)? getIcon;
-  final bool Function(T) isSelected;
-  final ValueChanged<T> onSelected;
-
-  const _SelectionSheet({
-    required this.title,
-    required this.options,
-    required this.getLabel,
-    required this.isSelected,
-    required this.onSelected,
-    this.getIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.5,
-      minChildSize: 0.3,
-      maxChildSize: 0.9,
-      builder: (context, scrollController) {
-        return Column(
-          children: [
-            // Handle
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Container(
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollController,
-                itemCount: options.length,
-                itemBuilder: (context, index) {
-                  final option = options[index];
-                  final selected = isSelected(option);
-                  final icon = getIcon?.call(option);
-
-                  return ListTile(
-                    leading: icon != null
-                        ? Icon(
-                            icon,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          )
-                        : null,
-                    title: Text(
-                      getLabel(option),
-                      style: TextStyle(
-                        fontWeight:
-                            selected ? FontWeight.bold : FontWeight.normal,
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                    ),
-                    trailing: selected
-                        ? Icon(Icons.check,
-                            color: Theme.of(context).colorScheme.primary)
-                        : null,
-                    onTap: () => onSelected(option),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

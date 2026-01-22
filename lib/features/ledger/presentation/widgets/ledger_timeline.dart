@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/database/tables.dart';
-import '../../../../shared/presentation/widgets/feather_divider.dart';
+
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+
 import '../../domain/entities/ledger_entities.dart';
 import '../theme/ledger_theme.dart';
 import 'time_anchor.dart';
@@ -99,14 +101,15 @@ class _DayGroup extends StatelessWidget {
 
 class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
   final DateTime date;
-  
+
   // Height of the anchor area. Should match the visual height we want to reserve/display.
   static const double _anchorHeight = 56.0;
 
   _TimeAnchorDelegate({required this.date});
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Align(
       alignment: Alignment.topLeft,
       child: OverflowBox(
@@ -120,8 +123,8 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
           // Background color ensures the anchor is readable if content slides under (though here content is indented)
           // Using scaffold background to match.
           child: Container(
-             color: Theme.of(context).scaffoldBackgroundColor,
-             child: TimeAnchor(date: date),
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: TimeAnchor(date: date),
           ),
         ),
       ),
@@ -159,9 +162,11 @@ class _DailySummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        left: LedgerTheme.colAnchorWidth + context.spacing.md, // Match TransactionTile content start
+        left: LedgerTheme.colAnchorWidth +
+            context.spacing.md, // Match TransactionTile content start
         right: context.spacing.md,
-        bottom: context.spacing.lg, // Increased bottom spacing for better group separation
+        bottom: context
+            .spacing.lg, // Increased bottom spacing for better group separation
         top: context.spacing.sm, // Increased top spacing
       ),
       child: Column(

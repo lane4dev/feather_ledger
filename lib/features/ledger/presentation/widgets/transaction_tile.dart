@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/database/tables.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/database/tables.dart';
+
 import '../../domain/entities/ledger_entities.dart';
 import '../theme/ledger_theme.dart';
 
@@ -35,7 +36,7 @@ class TransactionTile extends StatelessWidget {
             // "Left: Time Anchor Placeholder (invisible/spacer to align content)"
             // "Center: Title (Text), Meta (Category icon + name)"
             // "Right: Amount (Colored + Sign)"
-            
+
             // Checking the visual reference and plan again.
             // The TimeAnchor is in a separate column in the SliverPersistentHeader (or pinned side).
             // However, to keep the content aligned if the anchor is sticky *next* to it?
@@ -52,7 +53,7 @@ class TransactionTile extends StatelessWidget {
             // BUT, strictly sticky left column is hard with native Slivers unless it's a Table or we use a clever layout.
             // Plan says: "TimeAnchor: The left column widget... TransactionTile: Left: Time Anchor Placeholder (invisible/spacer to align content)."
             // This implies the TransactionTile needs to reserve space for the anchor IF the anchor is overlaying or if the anchor is visually in the same row.
-            
+
             // Wait, Option B says: "SliverPersistentHeader (Pinned): Displays the TimeAnchor. SliverList: Displays the transactions".
             // If the header is pinned, it stays at the top. The list scrolls under it.
             // If the design is a "Left Rail" time anchor, then standard SliverPersistentHeader (which is full width top-to-bottom) might not be exactly right unless the header CONTENT is just the left part and allows touch-through (unlikely).
@@ -60,7 +61,7 @@ class TransactionTile extends StatelessWidget {
             // Let's assume the "Time Anchor" is a Section Header that visually looks like a side rail?
             // Re-reading spec: "Introduce a left-side Time Anchor that stays visible during scroll... default grouping By Day".
             // "Anchor Switching Rule: active Time Anchor defined by first visible item".
-            
+
             // If I use SliverPersistentHeader, it occupies vertical space.
             // If I want it to look like it's on the left, I need the content to be indented.
             // So:
@@ -69,7 +70,7 @@ class TransactionTile extends StatelessWidget {
             // This way, the pinned header sits "over" the spacers of the scrolling list items?
             // Or the Header is just a row with the date, and items are below?
             // "A left-side Time Anchor that stays visible during scroll" strongly implies a side-rail design (like Google Tasks or a timeline).
-            
+
             // Implementation Strategy:
             // The `SliverPersistentHeader` will contain the `TimeAnchor` widget aligned to the left.
             // It will have a transparent background so list items *could* be seen behind it if they weren't offset.
@@ -77,7 +78,7 @@ class TransactionTile extends StatelessWidget {
             // UNLESS we use `SliverOverlapInjector`? No, that's for app bars.
             // Actually, if it pushes content down, then it's a standard section header (like "Monday, Jan 20" above the items).
             // But the user wants a "Left-side Time Anchor".
-            
+
             // If the plan is "Option B: Native Slivers with Pinned Headers", and the goal is a left-side anchor:
             // We usually treat the "Day" as a section. The header is the Day.
             // To make it look "Left Side", the header might just be the "20 Mon" text, and the items are indented.
@@ -85,11 +86,11 @@ class TransactionTile extends StatelessWidget {
             // If the design requires the anchor to be *beside* the first item and then stick?
             // Or just stick at the top of the group?
             // "Pinned left-side Time Anchor... always know which time group I'm looking at".
-            
+
             // Let's stick to the Plan's "TransactionTile" definition:
             // "Left: Time Anchor Placeholder (invisible/spacer to align content)."
             // This confirms we need indentation in the tile.
-            
+
             // And the Header?
             // If it's a `SliverPersistentHeader`, it will sit *above* the list of tiles.
             // This means visual gap between groups?
@@ -97,7 +98,7 @@ class TransactionTile extends StatelessWidget {
             // Standard Flutter `SliverPersistentHeader` takes layout space. It doesn't overlay.
             // If we want a true "Left Rail" sticky anchor, we might need a stack or a specialized package.
             // But "No new deps".
-            
+
             // Workaround for "Left Side" look using standard Headers:
             // The Header is the "Day 20" row.
             // The List Items are indented.
@@ -108,20 +109,20 @@ class TransactionTile extends StatelessWidget {
             // [Item 1       ]
             // [Item 2       ]
             // This is standard.
-            
-            // Let's assume the "Google Tasks" reference implies the standard Section Header approach, 
-            // OR the "Timeline" approach where the header is transparent and allows items to slide under, 
+
+            // Let's assume the "Google Tasks" reference implies the standard Section Header approach,
+            // OR the "Timeline" approach where the header is transparent and allows items to slide under,
             // but that's hard with standard slivers.
-            
+
             // Let's follow the Plan: "TransactionTile: Left: Time Anchor Placeholder".
             // And "TimeAnchor: The left column widget".
             // If the Header is pinned, it will stay at the top.
             // If the tile has a placeholder, it reserves space.
             // This implies the Header *also* has the anchor on the left, and is transparent/empty on the right?
             // But it still pushes items down.
-            
+
             // Let's implement the tile with the indentation first.
-            
+
             const SizedBox(width: LedgerTheme.colAnchorWidth),
 
             // Main Content
@@ -155,7 +156,8 @@ class TransactionTile extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6.0, vertical: 2.0),
                       decoration: BoxDecoration(
                         color: Theme.of(context)
                             .colorScheme
@@ -166,7 +168,9 @@ class TransactionTile extends StatelessWidget {
                       child: Text(
                         transaction.category.name,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
                               fontSize: 10,
                             ),
                       ),

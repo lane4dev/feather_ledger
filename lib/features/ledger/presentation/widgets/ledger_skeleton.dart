@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_theme.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
+
 import '../theme/ledger_theme.dart';
 
 class LedgerSkeleton extends StatefulWidget {

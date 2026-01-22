@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/database/tables.dart';
-import '../../../../shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+
 import '../../domain/entities/ledger_entities.dart';
+import '../widgets/ledger_detail_row.dart';
+import '../widgets/ledger_sheet_handle.dart';
 
 class TransactionDetailSheet extends StatelessWidget {
   final TransactionEntity transaction;
@@ -32,7 +35,7 @@ class TransactionDetailSheet extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         context.spacing.lg,
-        context.spacing.sm,
+        0,
         context.spacing.lg,
         context.spacing.lg,
       ),
@@ -40,18 +43,7 @@ class TransactionDetailSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle Bar
-          Center(
-            child: Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
+          const LedgerSheetHandle(),
           // Action Bar
           Row(
             children: [
@@ -101,7 +93,10 @@ class TransactionDetailSheet extends StatelessWidget {
 
           // Amount (Hero)
           Text(
-            '${transaction.type == TransactionType.expense ? '-' : '+'} $currencySymbol${transaction.amount.toStringAsFixed(2)}',
+            [
+              transaction.type == TransactionType.expense ? '-' : '+',
+              '$currencySymbol${transaction.amount.toStringAsFixed(2)}',
+            ].join(' '),
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
@@ -131,21 +126,20 @@ class TransactionDetailSheet extends StatelessWidget {
           SizedBox(height: context.spacing.md),
 
           // Details Grid/List
-          _DetailRow(
+          LedgerDetailRow(
             label: 'Date',
             value: DateFormat.yMMMMEEEEd().format(transaction.date),
           ),
           SizedBox(height: context.spacing.md),
-          _DetailRow(
+          LedgerDetailRow(
             label: 'Account',
             value: transaction.account.name,
           ),
           if (transaction.note != null && transaction.note!.isNotEmpty) ...[
             SizedBox(height: context.spacing.md),
-            _DetailRow(
+            LedgerDetailRow(
               label: 'Note',
               value: transaction.note!,
-              isLongText: true,
             ),
           ],
 
@@ -153,44 +147,6 @@ class TransactionDetailSheet extends StatelessWidget {
           // Close Button (Optional, standard sheet swipe is fine)
         ],
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isLongText;
-
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.isLongText = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-        ),
-      ],
     );
   }
 }

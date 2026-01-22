@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../theme/ledger_theme.dart';
 
 class TimeAnchor extends StatelessWidget {
@@ -15,7 +16,8 @@ class TimeAnchor extends StatelessWidget {
     // Format: "20" (Day) and "Mon" (Weekday)
     // We can use DateFormat from intl package
     final dayStr = DateFormat('d').format(date);
-    final wdayStr = DateFormat('E').format(date); // 'E' is short weekday (Mon, Tue)
+    final wdayStr =
+        DateFormat('E').format(date); // 'E' is short weekday (Mon, Tue)
 
     return SizedBox(
       width: LedgerTheme.colAnchorWidth,
