@@ -1,30 +1,30 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'settings_repository.dart';
+part of 'preferences_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$settingsRepositoryHash() =>
-    r'46068756af0478cd8c4aba6982031fa847113ac0';
+String _$preferencesRepositoryHash() =>
+    r'557e0cf7a90cd377d5f3069e05c1c803cc350693';
 
-/// See also [settingsRepository].
-@ProviderFor(settingsRepository)
-final settingsRepositoryProvider =
-    AutoDisposeFutureProvider<SettingsRepository>.internal(
-  settingsRepository,
-  name: r'settingsRepositoryProvider',
+/// See also [preferencesRepository].
+@ProviderFor(preferencesRepository)
+final preferencesRepositoryProvider =
+    AutoDisposeFutureProvider<PreferencesRepository>.internal(
+  preferencesRepository,
+  name: r'preferencesRepositoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$settingsRepositoryHash,
+      : _$preferencesRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef SettingsRepositoryRef
-    = AutoDisposeFutureProviderRef<SettingsRepository>;
+typedef PreferencesRepositoryRef
+    = AutoDisposeFutureProviderRef<PreferencesRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -6,7 +6,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 
-import '../screens/transaction_detail_sheet.dart';
+import 'transaction_detail_sheet.dart';
 
 import 'ledger_empty.dart';
 import 'ledger_skeleton.dart';

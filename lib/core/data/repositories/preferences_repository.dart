@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../domain/repositories/settings_repository.dart';
+import '../../domain/repositories/preferences_repository.dart';
 
-export '../../domain/repositories/settings_repository.dart';
+export '../../domain/repositories/preferences_repository.dart';
 
-part 'settings_repository.g.dart';
+part 'preferences_repository.g.dart';
 
-class SettingsRepositoryImpl implements SettingsRepository {
+class PreferencesRepositoryImpl implements PreferencesRepository {
   final SharedPreferences _prefs;
 
-  SettingsRepositoryImpl(this._prefs);
+  PreferencesRepositoryImpl(this._prefs);
 
   static const _keyTheme = 'app_theme_mode';
   static const _keyLocale = 'app_locale';
@@ -62,7 +62,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
 }
 
 @riverpod
-Future<SettingsRepository> settingsRepository(Ref ref) async {
+Future<PreferencesRepository> preferencesRepository(Ref ref) async {
   final prefs = await SharedPreferences.getInstance();
-  return SettingsRepositoryImpl(prefs);
+  return PreferencesRepositoryImpl(prefs);
 }

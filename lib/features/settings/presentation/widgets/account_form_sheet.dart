@@ -9,10 +9,9 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart'; // Point to shared extension
-
-import '../providers/settings_providers.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final AccountEntity? account;
@@ -43,7 +42,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final isEditing = widget.account != null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currencyKey =
+        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Container(

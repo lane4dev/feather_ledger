@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../../domain/services/ledger_service.dart';
@@ -55,6 +57,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(allCategoriesProvider);
     final accountsAsync = ref.watch(allAccountsProvider);
+    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
+        AppCurrencies.dollar;
+    final currencySymbol = AppCurrencies.getSymbol(currencyKey);
+
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -96,6 +102,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               LedgerAmountInput(
                 initialValue: _amount,
                 type: _type,
+                currencySymbol: currencySymbol,
                 autofocus: widget.transaction == null,
                 onSaved: (value) => _amount = double.parse(value!),
               ),

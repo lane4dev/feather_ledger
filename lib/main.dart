@@ -9,7 +9,8 @@ import 'app/theme/app_theme.dart';
 import 'app/config/app_languages.dart';
 import 'core/data/database/app_database.dart';
 import 'core/data/database/seeder.dart';
-import 'features/settings/presentation/providers/settings_providers.dart';
+import 'core/presentation/providers/theme_provider.dart';
+import 'core/presentation/providers/locale_provider.dart';
 
 void setupEdgeToEdge() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

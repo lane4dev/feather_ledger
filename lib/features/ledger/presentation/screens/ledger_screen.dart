@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 import '../providers/ledger_providers.dart';
 import '../widgets/ledger_header.dart';

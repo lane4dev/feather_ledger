@@ -1,32 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 import '../../domain/entities/ledger_entities.dart';
-import '../widgets/ledger_detail_row.dart';
-import '../widgets/ledger_sheet_handle.dart';
 
-class TransactionDetailSheet extends StatelessWidget {
+import 'ledger_detail_row.dart';
+import 'ledger_sheet_handle.dart';
+
+class TransactionDetailSheet extends ConsumerWidget {
   final TransactionEntity transaction;
-  final String currencySymbol;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final String? currencySymbol;
 
   const TransactionDetailSheet({
     super.key,
     required this.transaction,
-    this.currencySymbol = '\$',
     this.onEdit,
     this.onDelete,
+    this.currencySymbol,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+
+    final currencyKey =
+        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currency = AppCurrencies.getSymbol(currencyKey);
+
     // Premium Detail View
     final color = transaction.type == TransactionType.expense
         ? context.colors.expense
@@ -95,7 +104,7 @@ class TransactionDetailSheet extends StatelessWidget {
           Text(
             [
               transaction.type == TransactionType.expense ? '-' : '+',
-              '$currencySymbol${transaction.amount.toStringAsFixed(2)}',
+              '$currency${transaction.amount.toStringAsFixed(2)}',
             ].join(' '),
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: color,

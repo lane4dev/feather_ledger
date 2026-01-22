@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/features/settings/data/repositories/settings_repository.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 
-import '../../../../../support/mocks/mock_shared_preferences.dart';
+import '../../../../support/mocks/mock_shared_preferences.dart';
 
 void main() {
   late MockSharedPreferences mockPrefs;
-  late SettingsRepository repository;
+  late PreferencesRepository repository;
 
   setUp(() {
     mockPrefs = MockSharedPreferences();
-    repository = SettingsRepositoryImpl(mockPrefs);
+    repository = PreferencesRepositoryImpl(mockPrefs);
   });
 
   tearDown(() {
     mockPrefs.reset();
   });
 
-  group('SettingsRepository', () {
+  group('PreferencesRepository', () {
     group('instantiation', () {
       test('should create instance with shared preferences', () {
         expect(repository, isNotNull);
-        expect(repository, isA<SettingsRepository>());
+        expect(repository, isA<PreferencesRepository>());
       });
     });
 
@@ -157,12 +157,6 @@ void main() {
       test(
           'should return null for unknown language codes (if implementation logic changed to validate)',
           () {
-        // Note: The current implementation just returns null if not 'zh' or 'en' in the switch statement
-        // or actually looking at the code:
-        // if (val == 'zh') return const Locale('zh');
-        // if (val == 'en') return const Locale('en');
-        // return null;
-
         // Arrange
         mockPrefs.setMockString('app_locale', 'fr');
 

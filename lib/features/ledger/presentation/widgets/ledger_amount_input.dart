@@ -10,6 +10,7 @@ class LedgerAmountInput extends StatelessWidget {
   final TransactionType type;
   final bool autofocus;
   final FormFieldSetter<String> onSaved;
+  final String currencySymbol;
 
   const LedgerAmountInput({
     super.key,
@@ -17,6 +18,7 @@ class LedgerAmountInput extends StatelessWidget {
     required this.type,
     this.autofocus = false,
     required this.onSaved,
+    this.currencySymbol = '\$',
   });
 
   @override
@@ -34,7 +36,7 @@ class LedgerAmountInput extends StatelessWidget {
         autofocus: autofocus,
         initialValue: initialValue?.toStringAsFixed(2),
         decoration: InputDecoration(
-          prefixText: '\$ ',
+          prefixText: '$currencySymbol ',
           prefixStyle: theme.textTheme.displayMedium?.copyWith(
             color: typeColor,
             fontWeight: FontWeight.bold,

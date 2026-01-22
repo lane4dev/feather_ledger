@@ -7,7 +7,9 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
-import '../providers/settings_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
+import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
