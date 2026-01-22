@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+
 import '../theme/report_theme.dart';
+
 import 'heatmap_mode_dropdown.dart';
 
 class ReportHeatmapView extends ConsumerWidget {
