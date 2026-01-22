@@ -75,7 +75,10 @@ class _DayGroup extends StatelessWidget {
         // This allows the list to overlap visually with the anchor area.
         SliverPersistentHeader(
           pinned: true,
-          delegate: _TimeAnchorDelegate(date: date),
+          delegate: _TimeAnchorDelegate(
+            date: date,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          ),
         ),
         SliverList.builder(
           // +1 for the summary row
@@ -103,11 +106,15 @@ class _DayGroup extends StatelessWidget {
 
 class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
   final DateTime date;
+  final Color backgroundColor;
 
   // Height of the anchor area. Should match the visual height we want to reserve/display.
   static const double _anchorHeight = 56.0;
 
-  _TimeAnchorDelegate({required this.date});
+  _TimeAnchorDelegate({
+    required this.date,
+    required this.backgroundColor,
+  });
 
   @override
   Widget build(
@@ -123,9 +130,8 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
         child: SizedBox(
           height: _anchorHeight,
           // Background color ensures the anchor is readable if content slides under (though here content is indented)
-          // Using scaffold background to match.
           child: Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: backgroundColor,
             child: TimeAnchor(date: date),
           ),
         ),
@@ -145,7 +151,8 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _TimeAnchorDelegate oldDelegate) {
-    return oldDelegate.date != date;
+    return oldDelegate.date != date ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }
 
