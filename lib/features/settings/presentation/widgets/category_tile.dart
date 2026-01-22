@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
 
 class CategoryTile extends StatelessWidget {
   final CategoryEntity category;

@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
+
+import '../../domain/entities/ledger_entities.dart';
 
 part 'ledger_repository.g.dart';
 
@@ -14,7 +17,7 @@ abstract class LedgerRepository {
   Stream<MonthlySummary> watchMonthlySummary(DateTime month);
   Future<void> addTransaction({
     required double amount,
-    required db_tables.TransactionType type,
+    required TransactionType type, // Removed db_tables. prefix
     required DateTime date,
     required int categoryId,
     required int accountId,
@@ -23,7 +26,7 @@ abstract class LedgerRepository {
   Future<void> updateTransaction({
     required int id,
     required double amount,
-    required db_tables.TransactionType type,
+    required TransactionType type, // Removed db_tables. prefix
     required DateTime date,
     required int categoryId,
     required int accountId,
@@ -87,7 +90,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
   @override
   Future<void> addTransaction({
     required double amount,
-    required db_tables.TransactionType type,
+    required TransactionType type, // Removed db_tables. prefix
     required DateTime date,
     required int categoryId,
     required int accountId,
@@ -107,7 +110,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
   Future<void> updateTransaction({
     required int id,
     required double amount,
-    required db_tables.TransactionType type,
+    required TransactionType type, // Removed db_tables. prefix
     required DateTime date,
     required int categoryId,
     required int accountId,

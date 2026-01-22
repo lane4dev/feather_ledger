@@ -1,6 +1,6 @@
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 /// Test helpers for creating database entities
 class TestDataBuilder {

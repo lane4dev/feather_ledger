@@ -5,15 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
+import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
-
-import '../../data/repositories/category_repository.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final CategoryEntity? category;
-  final db_tables.TransactionType type;
+  final TransactionType type; // Removed prefix
 
   const CategoryFormSheet({super.key, this.category, required this.type});
 

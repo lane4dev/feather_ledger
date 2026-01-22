@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/seeder.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/seeder.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../../support/fakes/fake_app_database.dart';
 

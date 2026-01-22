@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// A consistent, subtle divider used throughout the application.
-/// 
+///
 /// Uses [Theme.of(context).dividerColor] with 10% opacity for a minimalist look.
 class FeatherDivider extends StatelessWidget {
   final double height;

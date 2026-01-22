@@ -1,5 +1,5 @@
 import 'package:drift/native.dart';
-import 'package:feather_ledger/core/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
 
 /// A fake AppDatabase for testing purposes that uses an in-memory database.
 /// This allows tests to run without affecting the real database and without

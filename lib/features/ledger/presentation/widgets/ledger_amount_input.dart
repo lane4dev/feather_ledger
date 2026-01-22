@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/database/tables.dart';
+
+import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 
 class LedgerAmountInput extends StatelessWidget {
   final double? initialValue;

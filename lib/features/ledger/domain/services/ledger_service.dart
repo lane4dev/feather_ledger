@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart'; // Changed import
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 

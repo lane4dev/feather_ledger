@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 class LedgerTypeSelector extends StatelessWidget {
   final TransactionType selectedType;

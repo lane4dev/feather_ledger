@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
+import 'package:feather_ledger/core/domain/entities/category.dart';
 
 import '../providers/category_providers.dart';
 import '../widgets/category_form_sheet.dart';
@@ -52,15 +52,15 @@ class _CategoryManagementScreenState
       body: TabBarView(
         controller: _tabController,
         children: const [
-          CategoryList(type: db_tables.TransactionType.expense),
-          CategoryList(type: db_tables.TransactionType.income),
+          CategoryList(type: TransactionType.expense), // Removed prefix
+          CategoryList(type: TransactionType.income), // Removed prefix
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final type = _tabController.index == 0
-              ? db_tables.TransactionType.expense
-              : db_tables.TransactionType.income;
+              ? TransactionType.expense // Removed prefix
+              : TransactionType.income; // Removed prefix
           _showCategorySheet(context, null, type);
         },
         child: const Icon(Icons.add),
@@ -68,8 +68,9 @@ class _CategoryManagementScreenState
     );
   }
 
-  void _showCategorySheet(BuildContext context, CategoryEntity? category,
-      db_tables.TransactionType type) {
+  void _showCategorySheet(
+      BuildContext context, CategoryEntity? category, TransactionType type) {
+    // Removed prefix
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -81,7 +82,7 @@ class _CategoryManagementScreenState
 }
 
 class CategoryList extends ConsumerWidget {
-  final db_tables.TransactionType type;
+  final TransactionType type; // Removed prefix
 
   const CategoryList({super.key, required this.type});
 
@@ -111,8 +112,9 @@ class CategoryList extends ConsumerWidget {
     );
   }
 
-  void _showCategorySheet(BuildContext context, CategoryEntity? category,
-      db_tables.TransactionType type) {
+  void _showCategorySheet(
+      BuildContext context, CategoryEntity? category, TransactionType type) {
+    // Removed prefix
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

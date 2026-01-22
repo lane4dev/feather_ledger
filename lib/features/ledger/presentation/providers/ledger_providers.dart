@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 
@@ -46,11 +46,12 @@ Future<List<Account>> allAccounts(Ref ref) {
 }
 
 @riverpod
-Future<Map<DateTime, List<TransactionEntity>>> dailyTransactions(Ref ref) async {
+Future<Map<DateTime, List<TransactionEntity>>> dailyTransactions(
+    Ref ref) async {
   final transactions = await ref.watch(ledgerTransactionsProvider.future);
-  
+
   final grouped = <DateTime, List<TransactionEntity>>{};
-  
+
   for (final tx in transactions) {
     // Strip time to get date only
     final dateKey = DateTime(tx.date.year, tx.date.month, tx.date.day);
@@ -59,10 +60,10 @@ Future<Map<DateTime, List<TransactionEntity>>> dailyTransactions(Ref ref) async 
     }
     grouped[dateKey]!.add(tx);
   }
-  
+
   // No need to sort if the repository already returns sorted transactions.
   // Assuming repo sorts DESC. If not, we might need to sort keys.
   // But Maps iterate in insertion order in Dart (mostly), so if input is sorted, output keys are sorted.
-  
+
   return grouped;
 }

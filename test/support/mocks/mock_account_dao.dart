@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/account_dao.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
 
 /// Mock AccountDao for testing purposes
 class MockAccountDao implements AccountDao {

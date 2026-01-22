@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
 
 import '../providers/account_providers.dart';
 import '../providers/settings_providers.dart';

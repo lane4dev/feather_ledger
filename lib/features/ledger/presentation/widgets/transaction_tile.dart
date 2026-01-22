@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../theme/ledger_theme.dart';

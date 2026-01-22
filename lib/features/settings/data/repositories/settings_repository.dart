@@ -28,13 +28,17 @@ class SettingsRepository {
     return _prefs.setString(_keyTheme, val);
   }
 
-  Locale getLocale() {
+  Locale? getLocale() {
     final val = _prefs.getString(_keyLocale);
     if (val == 'zh') return const Locale('zh');
-    return const Locale('en');
+    if (val == 'en') return const Locale('en');
+    return null;
   }
 
-  Future<void> setLocale(Locale locale) {
+  Future<void> setLocale(Locale? locale) {
+    if (locale == null) {
+      return _prefs.remove(_keyLocale);
+    }
     return _prefs.setString(_keyLocale, locale.languageCode);
   }
 

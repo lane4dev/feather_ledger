@@ -129,7 +129,7 @@ void main() {
 
         // Assert
         expect(result, const Locale('zh'));
-        expect(result.languageCode, 'zh');
+        expect(result?.languageCode, 'zh');
       });
 
       test('should return Locale("en") when stored value is "en"', () {
@@ -141,21 +141,26 @@ void main() {
 
         // Assert
         expect(result, const Locale('en'));
-        expect(result.languageCode, 'en');
+        expect(result?.languageCode, 'en');
       });
 
-      test('should return Locale("en") when no value is stored', () {
+      test('should return null when no value is stored', () {
         // Arrange - no value set
 
         // Act
         final result = repository.getLocale();
 
         // Assert
-        expect(result, const Locale('en'));
-        expect(result.languageCode, 'en');
+        expect(result, null);
       });
 
-      test('should return Locale("en") for other language codes', () {
+      test('should return null for unknown language codes (if implementation logic changed to validate)', () {
+        // Note: The current implementation just returns null if not 'zh' or 'en' in the switch statement
+        // or actually looking at the code:
+        // if (val == 'zh') return const Locale('zh');
+        // if (val == 'en') return const Locale('en');
+        // return null;
+        
         // Arrange
         mockPrefs.setMockString('app_locale', 'fr');
 
@@ -163,7 +168,7 @@ void main() {
         final result = repository.getLocale();
 
         // Assert
-        expect(result, const Locale('en'));
+        expect(result, null);
       });
     });
 
@@ -190,15 +195,15 @@ void main() {
         expect(mockPrefs.getString('app_locale'), 'en');
       });
 
-      test('should store language code for any locale', () async {
+      test('should remove key when locale is null', () async {
         // Arrange
-        const locale = Locale('fr');
+        mockPrefs.setMockString('app_locale', 'zh');
 
         // Act
-        await repository.setLocale(locale);
+        await repository.setLocale(null);
 
         // Assert
-        expect(mockPrefs.getString('app_locale'), 'fr');
+        expect(mockPrefs.getString('app_locale'), null);
       });
 
       test('should overwrite previous locale', () async {

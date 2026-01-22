@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
@@ -39,7 +39,7 @@ void main() {
         await expectLater(
           repository.addTransaction(
             amount: 250.0,
-            type: db_tables.TransactionType.expense,
+            type: TransactionType.expense,
             date: date,
             categoryId: 5,
             accountId: 3,
@@ -68,7 +68,7 @@ void main() {
         final mockTransaction = Transaction(
           id: 1,
           amount: 100.0,
-          type: db_tables.TransactionType.expense,
+          type: TransactionType.expense,
           date: date,
           note: 'Test Note',
           categoryId: 2,
@@ -81,14 +81,14 @@ void main() {
           name: 'Food',
           iconKey: 'icon_food',
           colorInt: 0xFF0000,
-          type: db_tables.TransactionType.expense,
+          type: TransactionType.expense,
           isDefault: false,
         );
 
         const mockAccount = Account(
           id: 3,
           name: 'Cash',
-          type: db_tables.AccountType.cash,
+          type: AccountType.cash,
           initialBalance: 0.0,
         );
 
@@ -105,8 +105,7 @@ void main() {
               isA<TransactionEntity>()
                   .having((e) => e.id, 'id', 1)
                   .having((e) => e.amount, 'amount', 100.0)
-                  .having(
-                      (e) => e.type, 'type', db_tables.TransactionType.expense)
+                  .having((e) => e.type, 'type', TransactionType.expense)
                   .having((e) => e.date, 'date', date)
                   .having((e) => e.note, 'note', 'Test Note')
                   .having((e) => e.category.name, 'category name', 'Food')

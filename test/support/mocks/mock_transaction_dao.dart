@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 /// Mock TransactionDao for testing purposes
 class MockTransactionDao implements TransactionDao {
@@ -51,7 +51,7 @@ class MockTransactionDao implements TransactionDao {
 
   @override
   Stream<List<CategoryTotal>> watchCategoryTotals(
-      DateTime month, db_tables.TransactionType type) {
+      DateTime month, TransactionType type) {
     return _categoryTotalsController.stream;
   }
 

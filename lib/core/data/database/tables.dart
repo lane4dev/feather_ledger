@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
-enum TransactionType { income, expense }
-enum AccountType { cash, bank, credit, other }
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();

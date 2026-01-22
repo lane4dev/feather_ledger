@@ -2,30 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/domain/repositories/category_repository.dart';
+
+export 'package:feather_ledger/core/domain/repositories/category_repository.dart';
 
 part 'category_repository.g.dart';
-
-abstract class CategoryRepository {
-  Stream<List<CategoryEntity>> watchCategories(db_tables.TransactionType type);
-  Future<void> addCategory({
-    required String name,
-    required String iconKey,
-    required int colorInt,
-    required db_tables.TransactionType type,
-  });
-  Future<void> updateCategory({
-    required int id,
-    required String name,
-    required String iconKey,
-    required int colorInt,
-    required db_tables.TransactionType type,
-  });
-  Future<void> deleteCategory(int id);
-}
 
 class CategoryRepositoryImpl implements CategoryRepository {
   final TransactionDao _dao;
@@ -33,7 +18,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   CategoryRepositoryImpl(this._dao);
 
   @override
-  Stream<List<CategoryEntity>> watchCategories(db_tables.TransactionType type) {
+  Stream<List<CategoryEntity>> watchCategories(TransactionType type) {
     return _dao.watchCategoriesByType(type).map((rows) {
       return rows.map((row) {
         return CategoryEntity(
@@ -53,7 +38,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
     required String name,
     required String iconKey,
     required int colorInt,
-    required db_tables.TransactionType type,
+    required TransactionType type,
   }) {
     return _dao.addCategory(CategoriesCompanion(
       name: Value(name),
@@ -70,7 +55,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
     required String name,
     required String iconKey,
     required int colorInt,
-    required db_tables.TransactionType type,
+    required TransactionType type,
   }) {
     return _dao.updateCategory(CategoriesCompanion(
       id: Value(id),

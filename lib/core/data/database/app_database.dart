@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../domain/entities/enums.dart'; // Added import
+
 import 'tables.dart';
 import 'daos/transaction_dao.dart';
 import 'daos/account_dao.dart';
@@ -29,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
+    final dbFolder = await getApplicationSupportDirectory();
     final file = File(p.join(dbFolder.path, 'db.sqlite'));
     return NativeDatabase.createInBackground(file);
   });

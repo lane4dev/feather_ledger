@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 
 import '../../../../../support/mocks/mock_ledger_repository.dart';

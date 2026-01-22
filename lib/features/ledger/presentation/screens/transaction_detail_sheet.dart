@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 import '../../domain/entities/ledger_entities.dart';

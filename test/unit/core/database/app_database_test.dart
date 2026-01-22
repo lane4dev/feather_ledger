@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../../support/fakes/fake_app_database.dart';
 
@@ -96,7 +96,8 @@ void main() {
               ),
             );
 
-        await (database.update(database.accounts)..where((t) => t.id.equals(id)))
+        await (database.update(database.accounts)
+              ..where((t) => t.id.equals(id)))
             .write(const AccountsCompanion(name: Value('Updated Name')));
 
         final retrieved = await (database.select(database.accounts)

@@ -2,28 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart';
 
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/daos/account_dao.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/repositories/account_repository.dart';
+
+export 'package:feather_ledger/core/domain/repositories/account_repository.dart';
 
 part 'account_repository.g.dart';
-
-abstract class AccountRepository {
-  Stream<List<AccountEntity>> watchAccounts();
-  Future<void> addAccount({
-    required String name,
-    required db_tables.AccountType type,
-    required double initialBalance,
-  });
-  Future<void> updateAccount({
-    required int id,
-    required String name,
-    required db_tables.AccountType type,
-    required double initialBalance,
-  });
-  Future<void> deleteAccount(int id);
-}
 
 class AccountRepositoryImpl implements AccountRepository {
   final AccountDao _dao;
@@ -47,7 +34,7 @@ class AccountRepositoryImpl implements AccountRepository {
   @override
   Future<void> addAccount({
     required String name,
-    required db_tables.AccountType type,
+    required AccountType type,
     required double initialBalance,
   }) {
     return _dao.addAccount(AccountsCompanion(
@@ -61,7 +48,7 @@ class AccountRepositoryImpl implements AccountRepository {
   Future<void> updateAccount({
     required int id,
     required String name,
-    required db_tables.AccountType type,
+    required AccountType type,
     required double initialBalance,
   }) {
     return _dao.updateAccount(AccountsCompanion(

@@ -5,13 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/database/tables.dart' as db_tables;
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart'; // Point to shared extension
 
-import '../../data/repositories/account_repository.dart';
 import '../providers/settings_providers.dart';
-import '../utils/account_type_extension.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final AccountEntity? account;
@@ -26,14 +26,14 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
   late double _balance;
-  late db_tables.AccountType _selectedType;
+  late AccountType _selectedType; // Removed prefix
 
   @override
   void initState() {
     super.initState();
     _name = widget.account?.name ?? '';
     _balance = widget.account?.initialBalance ?? 0.0;
-    _selectedType = widget.account?.type ?? db_tables.AccountType.cash;
+    _selectedType = widget.account?.type ?? AccountType.cash; // Removed prefix
   }
 
   @override
@@ -147,7 +147,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     SizedBox(height: context.spacing.lg),
 
                     // Account Type (SegmentedButton)
-                    SegmentedButton<db_tables.AccountType>(
+                    SegmentedButton<AccountType>(
+                      // Removed prefix
                       style: SegmentedButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -156,8 +157,10 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                         ),
                         textStyle: theme.textTheme.labelMedium,
                       ),
-                      segments: db_tables.AccountType.values.map((type) {
-                        return ButtonSegment<db_tables.AccountType>(
+                      segments: AccountType.values.map((type) {
+                        // Removed prefix
+                        return ButtonSegment<AccountType>(
+                          // Removed prefix
                           value: type,
                           icon: Icon(
                             type.icon,

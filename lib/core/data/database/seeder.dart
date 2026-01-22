@@ -1,10 +1,11 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../app/theme/category_tokens.dart';
+import '../../../app/theme/category_tokens.dart';
+import '../../domain/entities/enums.dart';
 
 import 'app_database.dart';
-import 'tables.dart';
+// import 'tables.dart';
 
 Future<void> seedDatabase(AppDatabase db) async {
   // Check if categories exist

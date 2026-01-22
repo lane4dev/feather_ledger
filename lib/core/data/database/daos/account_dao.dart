@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
-import 'package:feather_ledger/core/database/app_database.dart';
-import 'package:feather_ledger/core/database/tables.dart';
+
+import '../app_database.dart';
+import '../tables.dart';
 
 part 'account_dao.g.dart';
 
@@ -9,7 +10,7 @@ class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
   AccountDao(super.db);
 
   Future<List<Account>> getAllAccounts() => select(accounts).get();
-  
+
   Stream<List<Account>> watchAllAccounts() => select(accounts).watch();
 
   Future<Account?> getAccountById(int id) {
