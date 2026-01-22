@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
-import '../../domain/reports_entities.dart';
+import '../../domain/entities/reports_entities.dart';
 
 class ReportBreakdownView extends StatefulWidget {
   final AsyncValue<List<ReportCategoryTotal>> dataAsync;

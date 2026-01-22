@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../data/repositories/settings_repository.dart';
 
 part 'settings_providers.g.dart';

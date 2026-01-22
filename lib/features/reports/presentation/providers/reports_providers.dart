@@ -5,7 +5,7 @@ import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/features/ledger/presentation/providers/ledger_providers.dart';
 
 import '../../data/repositories/reports_repository.dart';
-import '../../domain/reports_entities.dart';
+import '../../domain/entities/reports_entities.dart';
 
 part 'reports_providers.g.dart';
 

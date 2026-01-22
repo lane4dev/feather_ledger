@@ -6,16 +6,12 @@ import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
-import '../../domain/reports_entities.dart';
+import '../../domain/entities/reports_entities.dart';
+import '../../domain/repositories/reports_repository.dart';
+
+export '../../domain/repositories/reports_repository.dart';
 
 part 'reports_repository.g.dart';
-
-abstract class ReportsRepository {
-  Stream<Map<DateTime, int>> watchHeatmapData(DateTime month);
-  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month);
-  Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
-      DateTime month, TransactionType type); // Removed prefix
-}
 
 class ReportsRepositoryImpl implements ReportsRepository {
   final TransactionDao _dao;

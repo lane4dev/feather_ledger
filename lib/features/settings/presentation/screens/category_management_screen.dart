@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 
-import '../providers/category_providers.dart';
 import '../widgets/category_form_sheet.dart';
 import '../widgets/category_tile.dart';
 

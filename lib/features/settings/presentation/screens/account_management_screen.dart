@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 
-import '../providers/account_providers.dart';
 import '../providers/settings_providers.dart';
 import '../widgets/account_form_sheet.dart';
 import '../widgets/account_tile.dart';

@@ -5,7 +5,7 @@ import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import 'package:feather_ledger/features/reports/data/repositories/reports_repository.dart';
-import 'package:feather_ledger/features/reports/domain/reports_entities.dart';
+import 'package:feather_ledger/features/reports/domain/entities/reports_entities.dart';
 
 import '../../../../../support/mocks/mock_transaction_dao.dart';
 

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
-import '../../domain/reports_entities.dart';
+import '../../domain/entities/reports_entities.dart';
 
 import 'report_breakdown_view.dart';
 

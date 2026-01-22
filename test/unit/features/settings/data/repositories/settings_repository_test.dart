@@ -11,7 +11,7 @@ void main() {
 
   setUp(() {
     mockPrefs = MockSharedPreferences();
-    repository = SettingsRepository(mockPrefs);
+    repository = SettingsRepositoryImpl(mockPrefs);
   });
 
   tearDown(() {
@@ -154,13 +154,15 @@ void main() {
         expect(result, null);
       });
 
-      test('should return null for unknown language codes (if implementation logic changed to validate)', () {
+      test(
+          'should return null for unknown language codes (if implementation logic changed to validate)',
+          () {
         // Note: The current implementation just returns null if not 'zh' or 'en' in the switch statement
         // or actually looking at the code:
         // if (val == 'zh') return const Locale('zh');
         // if (val == 'en') return const Locale('en');
         // return null;
-        
+
         // Arrange
         mockPrefs.setMockString('app_locale', 'fr');
 

@@ -9,31 +9,11 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/repositories/ledger_repository.dart';
+
+export '../../domain/repositories/ledger_repository.dart';
 
 part 'ledger_repository.g.dart';
-
-abstract class LedgerRepository {
-  Stream<List<TransactionEntity>> watchTransactions(DateTime month);
-  Stream<MonthlySummary> watchMonthlySummary(DateTime month);
-  Future<void> addTransaction({
-    required double amount,
-    required TransactionType type, // Removed db_tables. prefix
-    required DateTime date,
-    required int categoryId,
-    required int accountId,
-    String? note,
-  });
-  Future<void> updateTransaction({
-    required int id,
-    required double amount,
-    required TransactionType type, // Removed db_tables. prefix
-    required DateTime date,
-    required int categoryId,
-    required int accountId,
-    String? note,
-  });
-  Future<void> deleteTransaction(int id);
-}
 
 class LedgerRepositoryImpl implements LedgerRepository {
   final TransactionDao _dao;
