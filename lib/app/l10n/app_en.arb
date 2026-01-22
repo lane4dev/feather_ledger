@@ -201,9 +201,13 @@
   "@dollarCurrency": {
     "description": "Dollar currency option"
   },
-  "yuanYenCurrency": "¥ (Yuan/Yen)",
-  "@yuanYenCurrency": {
-    "description": "Yuan/Yen currency option"
+  "yuanCurrency": "¥ (Yuan)",
+  "@yuanCurrency": {
+    "description": "Yuan currency option"
+  },
+  "yenCurrency": "¥ (Yen)",
+  "@yenCurrency": {
+    "description": "Yen currency option"
   },
   "euroCurrency": "€ (Euro)",
   "@euroCurrency": {
@@ -261,5 +265,25 @@
   "cancel": "Cancel",
   "@cancel": {
     "description": "Cancel button text"
+  },
+  "feedback": "Feedback",
+  "@feedback": {
+    "description": "Feedback menu item"
+  },
+  "about": "About",
+  "@about": {
+    "description": "About menu item"
+  },
+  "openSourceLicenses": "Open Source Licenses",
+  "@openSourceLicenses": {
+    "description": "Open Source Licenses menu item"
+  },
+  "version": "Version",
+  "@version": {
+    "description": "Version label"
+  },
+  "featureNotAvailable": "Feature not available",
+  "@featureNotAvailable": {
+    "description": "Message for unimplemented features"
   }
 }

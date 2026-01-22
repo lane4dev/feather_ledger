@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/config/app_languages.dart';
-import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
-import '../../../../shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/app/config/app_languages.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+
 import '../providers/settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -39,8 +41,8 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.language),
             title: Text(l10n.language),
             // Show the actual language name. If null (system), resolve the current active locale.
-            subtitle: Text(_getLocaleLabel(
-                context, localeAsync.valueOrNull, l10n)),
+            subtitle:
+                Text(_getLocaleLabel(context, localeAsync.valueOrNull, l10n)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showLanguageDialog(
                 context, ref, localeAsync.valueOrNull, l10n),
@@ -51,7 +53,11 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.attach_money),
             title: Text(l10n.currencySymbol),
-            subtitle: Text(currencyAsync.valueOrNull ?? l10n.loading),
+            subtitle: Text(currencyAsync.when(
+              data: (key) => AppCurrencies.getName(key, l10n),
+              loading: () => l10n.loading,
+              error: (_, __) => '',
+            )),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showCurrencyDialog(
                 context, ref, currencyAsync.valueOrNull, l10n),
@@ -143,44 +149,17 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(l10n.currencySymbol),
-        children: [
-          _DialogOption(
-            label: l10n.dollarCurrency,
-            value: '\$',
+        children: AppCurrencies.supportedCurrencies.map((currency) {
+          return _DialogOption(
+            label: AppCurrencies.getName(currency, l10n),
+            value: currency,
             groupValue: currentCurrency,
             onChanged: (value) {
               ref.read(currencyControllerProvider.notifier).setCurrency(value);
               Navigator.pop(context);
             },
-          ),
-          _DialogOption(
-            label: l10n.yuanYenCurrency,
-            value: '¥',
-            groupValue: currentCurrency,
-            onChanged: (value) {
-              ref.read(currencyControllerProvider.notifier).setCurrency(value);
-              Navigator.pop(context);
-            },
-          ),
-          _DialogOption(
-            label: l10n.euroCurrency,
-            value: '€',
-            groupValue: currentCurrency,
-            onChanged: (value) {
-              ref.read(currencyControllerProvider.notifier).setCurrency(value);
-              Navigator.pop(context);
-            },
-          ),
-          _DialogOption(
-            label: l10n.poundCurrency,
-            value: '£',
-            groupValue: currentCurrency,
-            onChanged: (value) {
-              ref.read(currencyControllerProvider.notifier).setCurrency(value);
-              Navigator.pop(context);
-            },
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -225,8 +204,8 @@ class _DialogOption<T> extends StatelessWidget {
     // usually. However, Localizations.localeOf(context) might return a country-specific one.
     var isSelected = false;
     if (value is Locale && groupValue is Locale) {
-      isSelected = (value as Locale).languageCode ==
-          (groupValue as Locale).languageCode;
+      isSelected =
+          (value as Locale).languageCode == (groupValue as Locale).languageCode;
     } else {
       isSelected = value == groupValue;
     }

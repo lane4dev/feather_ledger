@@ -159,7 +159,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dollarCurrency => '\$ (Dollar)';
 
   @override
-  String get yuanYenCurrency => '¥ (Yuan/Yen)';
+  String get yuanCurrency => '¥ (Yuan)';
+
+  @override
+  String get yenCurrency => '¥ (Yen)';
 
   @override
   String get euroCurrency => '€ (Euro)';
@@ -204,4 +207,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get feedback => 'Feedback';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String get openSourceLicenses => 'Open Source Licenses';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get featureNotAvailable => 'Feature not available';
 }

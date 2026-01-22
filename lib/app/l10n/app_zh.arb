@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "羽毛账本",
+  "appTitle": "轻羽账本",
   "@appTitle": {
     "description": "应用程序标题"
   },
@@ -201,9 +201,13 @@
   "@dollarCurrency": {
     "description": "美元货币选项"
   },
-  "yuanYenCurrency": "¥ (人民币/日元)",
-  "@yuanYenCurrency": {
-    "description": "人民币/日元货币选项"
+  "yuanCurrency": "¥ (人民币)",
+  "@yuanCurrency": {
+    "description": "人民币货币选项"
+  },
+  "yenCurrency": "¥ (日元)",
+  "@yenCurrency": {
+    "description": "日元货币选项"
   },
   "euroCurrency": "€ (欧元)",
   "@euroCurrency": {
@@ -261,5 +265,25 @@
   "cancel": "取消",
   "@cancel": {
     "description": "取消按钮文本"
+  },
+  "feedback": "反馈",
+  "@feedback": {
+    "description": "反馈菜单项"
+  },
+  "about": "关于",
+  "@about": {
+    "description": "关于菜单项"
+  },
+  "openSourceLicenses": "开源许可",
+  "@openSourceLicenses": {
+    "description": "开源许可菜单项"
+  },
+  "version": "版本",
+  "@version": {
+    "description": "版本标签"
+  },
+  "featureNotAvailable": "功能暂不可用",
+  "@featureNotAvailable": {
+    "description": "未实现功能的提示"
   }
 }

@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => '羽毛账本';
+  String get appTitle => '轻羽账本';
 
   @override
   String get ledgerTitle => '账本';
@@ -158,7 +158,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dollarCurrency => '\$ (美元)';
 
   @override
-  String get yuanYenCurrency => '¥ (人民币/日元)';
+  String get yuanCurrency => '¥ (人民币)';
+
+  @override
+  String get yenCurrency => '¥ (日元)';
 
   @override
   String get euroCurrency => '€ (欧元)';
@@ -201,4 +204,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get feedback => '反馈';
+
+  @override
+  String get about => '关于';
+
+  @override
+  String get openSourceLicenses => '开源许可';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get featureNotAvailable => '功能暂不可用';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
@@ -16,7 +17,8 @@ class AccountManagementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final accountsAsync = ref.watch(accountListProvider);
-    final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Scaffold(
       appBar: AppBar(

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
@@ -42,7 +43,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final isEditing = widget.account != null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Container(
       padding: EdgeInsets.fromLTRB(

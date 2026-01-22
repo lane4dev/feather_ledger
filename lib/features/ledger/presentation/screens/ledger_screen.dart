@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
 
@@ -87,7 +88,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final selectedDate = ref.watch(selectedDateProvider);
     final summaryAsync = ref.watch(ledgerSummaryProvider);
     final transactionsAsync = ref.watch(dailyTransactionsProvider);
-    final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currency = AppCurrencies.getSymbol(currencyKey);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(

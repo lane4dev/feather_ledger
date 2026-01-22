@@ -392,11 +392,17 @@ abstract class AppLocalizations {
   /// **'\$ (Dollar)'**
   String get dollarCurrency;
 
-  /// Yuan/Yen currency option
+  /// Yuan currency option
   ///
   /// In en, this message translates to:
-  /// **'¥ (Yuan/Yen)'**
-  String get yuanYenCurrency;
+  /// **'¥ (Yuan)'**
+  String get yuanCurrency;
+
+  /// Yen currency option
+  ///
+  /// In en, this message translates to:
+  /// **'¥ (Yen)'**
+  String get yenCurrency;
 
   /// Euro currency option
   ///
@@ -481,6 +487,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
+
+  /// Feedback menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedback;
+
+  /// About menu item
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
+  /// Open Source Licenses menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Open Source Licenses'**
+  String get openSourceLicenses;
+
+  /// Version label
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get version;
+
+  /// Message for unimplemented features
+  ///
+  /// In en, this message translates to:
+  /// **'Feature not available'**
+  String get featureNotAvailable;
 }
 
 class _AppLocalizationsDelegate
