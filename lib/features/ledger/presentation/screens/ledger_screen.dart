@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/settings/presentation/providers/settings_providers.dart';
 
@@ -23,6 +24,7 @@ class LedgerScreen extends ConsumerStatefulWidget {
 
 class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   final ScrollController _scrollController = ScrollController();
+  bool _isNext = true;
   bool _isCollapsed = false;
   static const double _kExpandedHeight = 180.0;
 
@@ -40,9 +42,9 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   }
 
   void _onScroll() {
-    // Simple logic: if scrolled past a threshold, show title.
     // Threshold: expanded height - toolbar height
     const threshold = _kExpandedHeight - kToolbarHeight;
+    // With NestedScrollView, the outer controller monitors the header expansion.
     final isCollapsed =
         _scrollController.hasClients && _scrollController.offset > threshold;
 
@@ -53,23 +55,36 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     }
   }
 
+  Future<void> _goToMonth(DateTime date) async {
+    final current = ref.read(selectedDateProvider);
+    if (current == date) return;
+
+    // Determine direction
+    _isNext = date.isAfter(current);
+    
+    // Update state
+    ref.read(selectedDateProvider.notifier).setMonth(date);
+    
+    // Scroll to top to expand header
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   void _onMonthTap(DateTime current) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: current,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: Localizations.localeOf(context),
     );
     if (picked != null) {
-      ref.read(selectedDateProvider.notifier).setMonth(picked);
-      // Reset scroll
-      if (_scrollController.hasClients) {
-        await _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+      await _goToMonth(picked);
     }
   }
 
@@ -77,61 +92,135 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final summaryAsync = ref.watch(ledgerSummaryProvider);
-    final transactionsAsync =
-        ref.watch(dailyTransactionsProvider); // Phase 4 wiring
+    final transactionsAsync = ref.watch(dailyTransactionsProvider);
     final currency = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: _kExpandedHeight,
-            // Collapsed Content (Title)
-            title: AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: _isCollapsed ? 1.0 : 0.0,
-              child: summaryAsync.when(
-                data: (summary) => LedgerHeaderCompact(
-                  selectedDate: selectedDate,
-                  summary: summary,
-                  currencySymbol: currency,
-                ),
-                loading: () => const SizedBox(),
-                error: (_, __) => const SizedBox(),
-              ),
-            ),
-            // Expanded Content (FlexibleSpace)
-            flexibleSpace: FlexibleSpaceBar(
-              background: SafeArea(
-                child: summaryAsync.when(
-                  data: (summary) => LedgerHeader(
-                    selectedDate: selectedDate,
-                    summary: summary,
-                    currencySymbol: currency,
-                    onMonthChanged: (date) async {
-                      ref.read(selectedDateProvider.notifier).setMonth(date);
-                      await _scrollController.animateTo(0,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut);
-                    },
-                    onMonthTap: () => _onMonthTap(selectedDate),
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          const sensitivity = 300.0;
+          if (details.primaryVelocity! < -sensitivity) {
+            // Swipe Left -> Next Month
+            final current = ref.read(selectedDateProvider);
+            final next = DateTime(current.year, current.month + 1);
+            _goToMonth(next);
+          } else if (details.primaryVelocity! > sensitivity) {
+            // Swipe Right -> Previous Month
+            final current = ref.read(selectedDateProvider);
+            final prev = DateTime(current.year, current.month - 1);
+            _goToMonth(prev);
+          }
+        },
+        child: NestedScrollView(
+          controller: _scrollController,
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverOverlapAbsorber(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                sliver: SliverAppBar(
+                  pinned: true,
+                  expandedHeight: _kExpandedHeight,
+                  forceElevated: innerBoxIsScrolled,
+                  // Collapsed Content (Title)
+                  title: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _isCollapsed ? 1.0 : 0.0,
+                    child: summaryAsync.when(
+                      data: (summary) => LedgerHeaderCompact(
+                        selectedDate: selectedDate,
+                        summary: summary,
+                        currencySymbol: currency,
+                      ),
+                      loading: () => const SizedBox(),
+                      error: (_, __) => const SizedBox(),
+                    ),
                   ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
+                  // Expanded Content (FlexibleSpace)
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: SafeArea(
+                      child: summaryAsync.when(
+                        data: (summary) => LedgerHeader(
+                          selectedDate: selectedDate,
+                          summary: summary,
+                          currencySymbol: currency,
+                          onMonthChanged: _goToMonth,
+                          onMonthTap: () => _onMonthTap(selectedDate),
+                        ),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(child: Text('Error: $e')),
+                      ),
+                    ),
+                  ),
                 ),
               ),
+            ];
+          },
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) {
+              final isCurrent = child.key == ValueKey(selectedDate);
+              final offset = _isNext
+                  ? (isCurrent ? const Offset(1, 0) : const Offset(-1, 0))
+                  : (isCurrent ? const Offset(-1, 0) : const Offset(1, 0));
+              
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: offset,
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+            child: _LedgerTransactionList(
+              key: ValueKey(selectedDate),
+              transactionsAsync: transactionsAsync,
+              currency: currency,
+              l10n: l10n,
             ),
           ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.push('/ledger/add');
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
 
-          // Phase 4: LedgerTimeline
+class _LedgerTransactionList extends ConsumerWidget {
+  final AsyncValue<Map<DateTime, List<TransactionEntity>>> transactionsAsync;
+  final String currency;
+  final AppLocalizations l10n;
+
+  const _LedgerTransactionList({
+    super.key,
+    required this.transactionsAsync,
+    required this.currency,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Wrap in a container with background color to prevent transparency issues during slide
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: CustomScrollView(
+        // NestedScrollView injects the PrimaryScrollController
+        slivers: [
+          SliverOverlapInjector(
+             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          ),
           transactionsAsync.when(
             data: (grouped) {
               if (grouped.isEmpty) {
-                // Phase 5: Empty state
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: LedgerEmpty(),
@@ -143,7 +232,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 onTransactionTap: (tx) {
                   showModalBottomSheet(
                     context: context,
-                    isScrollControlled: true, // Allow full height if needed
+                    isScrollControlled: true,
                     useRootNavigator: true,
                     useSafeArea: true,
                     builder: (context) => TransactionDetailSheet(
@@ -204,12 +293,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.push('/ledger/add');
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
