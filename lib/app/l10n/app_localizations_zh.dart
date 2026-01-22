@@ -24,10 +24,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get balance => '余额';
 
   @override
+  String get total_balance => '全部余额';
+
+  @override
   String get noTransactionsThisMonth => '本月无交易记录';
 
   @override
+  String get noTransactionsTitle => '暂无交易';
+
+  @override
+  String get noTransactionsHint => '点击 + 添加一笔交易';
+
+  @override
   String get addTransaction => '添加交易';
+
+  @override
+  String get edit => '编辑';
 
   @override
   String get editTransaction => '编辑交易';
@@ -39,10 +51,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get amount => '金额';
 
   @override
+  String get frequency => '频率';
+
+  @override
   String get date => '日期';
 
   @override
   String get category => '分类';
+
+  @override
+  String get categoryNameHint => '分类名称';
+
+  @override
+  String get name => '名称';
+
+  @override
+  String get color => '颜色';
+
+  @override
+  String get icon => '图标';
 
   @override
   String get account => '账户';
@@ -113,6 +140,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get expenseBreakdown => '支出明细';
 
   @override
+  String get others => '其余项';
+
+  @override
   String get noData => '暂无数据';
 
   @override
@@ -159,6 +189,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmation => '确定要删除此账户吗？';
+
+  @override
+  String get deleteCategoryConfirmationTitle => '确定要删除该分类吗？';
+
+  @override
+  String get deleteCategoryConfirmationMessage => '不会删除已有的交易记录。';
 
   @override
   String get delete => '删除';

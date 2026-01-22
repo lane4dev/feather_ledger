@@ -24,10 +24,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get balance => 'Balance';
 
   @override
+  String get total_balance => 'Total Balance';
+
+  @override
   String get noTransactionsThisMonth => 'No transactions this month';
 
   @override
+  String get noTransactionsTitle => 'No transactions';
+
+  @override
+  String get noTransactionsHint => 'Tap + to add a new one';
+
+  @override
   String get addTransaction => 'Add Transaction';
+
+  @override
+  String get edit => 'Edit';
 
   @override
   String get editTransaction => 'Edit Transaction';
@@ -40,10 +52,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amount => 'Amount';
 
   @override
+  String get frequency => 'Frequency';
+
+  @override
   String get date => 'Date';
 
   @override
   String get category => 'Category';
+
+  @override
+  String get categoryNameHint => 'Category Name';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get color => 'Color';
+
+  @override
+  String get icon => 'Icon';
 
   @override
   String get account => 'Account';
@@ -114,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expenseBreakdown => 'Expense Breakdown';
 
   @override
+  String get others => 'Others';
+
+  @override
   String get noData => 'No data';
 
   @override
@@ -161,6 +191,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountConfirmation =>
       'Are you sure you want to delete this account?';
+
+  @override
+  String get deleteCategoryConfirmationTitle => 'Delete category?';
+
+  @override
+  String get deleteCategoryConfirmationMessage =>
+      'This will not delete existing transactions.';
 
   @override
   String get delete => 'Delete';

@@ -112,11 +112,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     TextFormField(
                       initialValue: _name,
                       textAlign: TextAlign.start,
-                      decoration: const InputDecoration(
-                        hintText: 'Category Name', // TODO: l10n
+                      decoration: InputDecoration(
+                        hintText: l10n.categoryNameHint,
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
-                        labelText: 'Name', // TODO: l10n
+                        labelText: l10n.name,
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         alignLabelWithHint: true,
                       ),
@@ -135,7 +135,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     SizedBox(height: context.spacing.md),
 
                     // Color Picker
-                    Text('Color', style: theme.textTheme.titleMedium),
+                    Text(l10n.color, style: theme.textTheme.titleMedium),
                     SizedBox(height: context.spacing.sm),
                     Wrap(
                       spacing: 8,
@@ -162,7 +162,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     SizedBox(height: context.spacing.lg),
 
                     // Icon Picker
-                    Text('Icon', style: theme.textTheme.titleMedium),
+                    Text(l10n.icon, style: theme.textTheme.titleMedium),
                     SizedBox(height: context.spacing.sm),
                     Wrap(
                       spacing: 8,
@@ -217,9 +217,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Category?'), // TODO: l10n
-        content: const Text(
-            'This will not delete existing transactions.'), // TODO: l10n
+        title: Text(l10n.deleteCategoryConfirmationTitle),
+        content: Text(l10n.deleteCategoryConfirmationMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

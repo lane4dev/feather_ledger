@@ -21,15 +21,25 @@
   "@balance": {
     "description": "余额标签"
   },
+  "total_balance": "全部余额",
   "noTransactionsThisMonth": "本月无交易记录",
   "@noTransactionsThisMonth": {
     "description": "无交易记录时的提示"
+  },
+  "noTransactionsTitle": "暂无交易",
+  "@noTransactionsTitle": {
+    "description": "无交易时的空状态标题"
+  },
+  "noTransactionsHint": "点击 + 添加一笔交易",
+  "@noTransactionsHint": {
+    "description": "无交易时的空状态提示"
   },
   
   "addTransaction": "添加交易",
   "@addTransaction": {
     "description": "添加交易页面标题"
   },
+  "edit": "编辑",
   "editTransaction": "编辑交易",
   "@editTransaction": {
     "description": "编辑交易页面标题"
@@ -42,6 +52,10 @@
   "@amount": {
     "description": "金额字段标签"
   },
+  "frequency": "频率",
+  "@frequency": {
+    "description": "热力图模式-频率"
+  },
   "date": "日期",
   "@date": {
     "description": "日期字段标签"
@@ -49,6 +63,22 @@
   "category": "分类",
   "@category": {
     "description": "分类字段标签"
+  },
+  "categoryNameHint": "分类名称",
+  "@categoryNameHint": {
+    "description": "分类名称输入提示"
+  },
+  "name": "名称",
+  "@name": {
+    "description": "通用名称标签"
+  },
+  "color": "颜色",
+  "@color": {
+    "description": "分类颜色板块标签"
+  },
+  "icon": "图标",
+  "@icon": {
+    "description": "分类图标板块标签"
   },
   "account": "账户",
   "@account": {
@@ -145,6 +175,10 @@
   "@expenseBreakdown": {
     "description": "支出明细图表标题"
   },
+  "others": "其余项",
+  "@others": {
+    "description": "报表中合并分类的标签"
+  },
   "noData": "暂无数据",
   "@noData": {
     "description": "无数据时的提示"
@@ -211,6 +245,14 @@
   "deleteAccountConfirmation": "确定要删除此账户吗？",
   "@deleteAccountConfirmation": {
     "description": "删除账户确认消息"
+  },
+  "deleteCategoryConfirmationTitle": "确定要删除该分类吗？",
+  "@deleteCategoryConfirmationTitle": {
+    "description": "删除分类确认标题"
+  },
+  "deleteCategoryConfirmationMessage": "不会删除已有的交易记录。",
+  "@deleteCategoryConfirmationMessage": {
+    "description": "删除分类确认提示"
   },
   "delete": "删除",
   "@delete": {

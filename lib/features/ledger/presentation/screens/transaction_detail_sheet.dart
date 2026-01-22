@@ -56,7 +56,7 @@ class TransactionDetailSheet extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: onEdit,
-                tooltip: 'Edit',
+                tooltip: l10n.edit,
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
@@ -127,18 +127,18 @@ class TransactionDetailSheet extends StatelessWidget {
 
           // Details Grid/List
           LedgerDetailRow(
-            label: 'Date',
+            label: l10n.date,
             value: DateFormat.yMMMMEEEEd().format(transaction.date),
           ),
           SizedBox(height: context.spacing.md),
           LedgerDetailRow(
-            label: 'Account',
+            label: l10n.account,
             value: transaction.account.name,
           ),
           if (transaction.note != null && transaction.note!.isNotEmpty) ...[
             SizedBox(height: context.spacing.md),
             LedgerDetailRow(
-              label: 'Note',
+              label: l10n.note,
               value: transaction.note!,
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
 import '../../domain/entities/reports_entities.dart';
@@ -33,6 +34,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return widget.dataAsync.when(
       data: (data) {
         if (data.isEmpty) {
@@ -52,7 +54,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
           processedData.add(ReportCategoryTotal(
             category: CategoryEntity(
               id: -1,
-              name: 'Others',
+              name: l10n.others,
               iconKey: '57564',
               colorInt: Colors.grey.toARGB32(),
               type: sorted.first.category.type,
@@ -201,7 +203,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text('Error: $e')),
+      error: (e, s) => Center(child: Text(l10n.errorPrefix(e.toString()))),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
@@ -161,6 +162,7 @@ class _DailySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(
         left: LedgerTheme.colAnchorWidth +
@@ -182,7 +184,7 @@ class _DailySummary extends StatelessWidget {
                 // Income
                 if (income > 0) ...[
                   Text(
-                    'Income: ',
+                    '${l10n.income}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
@@ -197,7 +199,7 @@ class _DailySummary extends StatelessWidget {
                 // Expense
                 if (expense > 0) ...[
                   Text(
-                    'Expense: ',
+                    '${l10n.expense}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(

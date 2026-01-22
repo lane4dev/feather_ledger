@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../theme/ledger_theme.dart';
+import '../../../../app/l10n/app_localizations.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../domain/entities/ledger_entities.dart';
 
@@ -34,7 +35,9 @@ class LedgerHeader extends StatelessWidget {
           // Month Switcher - Still aligned with list content
           Row(
             children: [
-              const SizedBox(width: LedgerTheme.colAnchorWidth - 16), // Adjusted for outer padding
+              const SizedBox(
+                  width: LedgerTheme.colAnchorWidth -
+                      16), // Adjusted for outer padding
               Expanded(
                 child: _MonthSwitcher(
                   selectedDate: selectedDate,
@@ -157,6 +160,7 @@ class _BalanceSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -176,7 +180,7 @@ class _BalanceSummary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Total Balance',
+                l10n.total_balance,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -197,7 +201,7 @@ class _BalanceSummary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _IncomeExpenseCompact(
-                label: 'Income',
+                label: l10n.income,
                 amount: summary.totalIncome,
                 color: context.colors.income,
                 currency: currency,
@@ -205,7 +209,7 @@ class _BalanceSummary extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _IncomeExpenseCompact(
-                label: 'Expense',
+                label: l10n.expense,
                 amount: summary.totalExpense,
                 color: context.colors.expense,
                 currency: currency,

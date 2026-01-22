@@ -128,17 +128,41 @@ abstract class AppLocalizations {
   /// **'Balance'**
   String get balance;
 
+  /// No description provided for @total_balance.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Balance'**
+  String get total_balance;
+
   /// Message when no transactions exist
   ///
   /// In en, this message translates to:
   /// **'No transactions this month'**
   String get noTransactionsThisMonth;
 
+  /// Empty state title when no transactions exist
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions'**
+  String get noTransactionsTitle;
+
+  /// Empty state hint to add a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add a new one'**
+  String get noTransactionsHint;
+
   /// Title for add transaction screen
   ///
   /// In en, this message translates to:
   /// **'Add Transaction'**
   String get addTransaction;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
 
   /// Title for edit transaction screen
   ///
@@ -158,6 +182,12 @@ abstract class AppLocalizations {
   /// **'Amount'**
   String get amount;
 
+  /// Heatmap mode option for frequency
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency'**
+  String get frequency;
+
   /// Date field label
   ///
   /// In en, this message translates to:
@@ -169,6 +199,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Category'**
   String get category;
+
+  /// Hint text for category name input
+  ///
+  /// In en, this message translates to:
+  /// **'Category Name'**
+  String get categoryNameHint;
+
+  /// Generic name label
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// Category color section label
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get color;
+
+  /// Category icon section label
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get icon;
 
   /// Account field label
   ///
@@ -302,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Expense Breakdown'**
   String get expenseBreakdown;
 
+  /// Label for aggregated categories in reports
+  ///
+  /// In en, this message translates to:
+  /// **'Others'**
+  String get others;
+
   /// Message when no data is available
   ///
   /// In en, this message translates to:
@@ -397,6 +457,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete this account?'**
   String get deleteAccountConfirmation;
+
+  /// Confirmation title for deleting a category
+  ///
+  /// In en, this message translates to:
+  /// **'Delete category?'**
+  String get deleteCategoryConfirmationTitle;
+
+  /// Confirmation message for deleting a category
+  ///
+  /// In en, this message translates to:
+  /// **'This will not delete existing transactions.'**
+  String get deleteCategoryConfirmationMessage;
 
   /// Delete button text
   ///

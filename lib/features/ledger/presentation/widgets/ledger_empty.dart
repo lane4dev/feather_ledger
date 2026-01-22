@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/l10n/app_localizations.dart';
 import '../../../../app/theme/app_theme.dart';
 
 class LedgerEmpty extends StatelessWidget {
@@ -7,6 +8,7 @@ class LedgerEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -18,14 +20,14 @@ class LedgerEmpty extends StatelessWidget {
           ),
           SizedBox(height: context.spacing.md),
           Text(
-            'No transactions',
+            l10n.noTransactionsTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           SizedBox(height: context.spacing.sm),
           Text(
-            'Tap + to add a new one',
+            l10n.noTransactionsHint,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

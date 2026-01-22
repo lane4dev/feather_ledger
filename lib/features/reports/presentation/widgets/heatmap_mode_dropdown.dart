@@ -28,7 +28,7 @@ class HeatmapModeDropdown extends ConsumerWidget {
       items: [
         DropdownMenuItem(
           value: HeatmapMode.frequency,
-          child: Text(l10n.reports == 'Reports' ? 'Frequency' : '频率'),
+          child: Text(l10n.frequency),
         ),
         DropdownMenuItem(
           value: HeatmapMode.amount,
