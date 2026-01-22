@@ -22,12 +22,12 @@ class ThemeModeController extends _$ThemeModeController {
 @riverpod
 class LocaleController extends _$LocaleController {
   @override
-  Future<Locale> build() async {
+  Future<Locale?> build() async {
     final repo = await ref.watch(settingsRepositoryProvider.future);
     return repo.getLocale();
   }
 
-  Future<void> setLocale(Locale locale) async {
+  Future<void> setLocale(Locale? locale) async {
     final repo = await ref.read(settingsRepositoryProvider.future);
     await repo.setLocale(locale);
     state = AsyncData(locale);

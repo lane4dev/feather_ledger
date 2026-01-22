@@ -6,8 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/l10n/app_localizations.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
-import 'core/database/app_database.dart';
-import 'core/database/seeder.dart';
+import 'app/config/app_languages.dart';
+import 'core/data/database/app_database.dart';
+import 'core/data/database/seeder.dart';
 import 'features/settings/presentation/providers/settings_providers.dart';
 
 void setupEdgeToEdge() async {
@@ -54,16 +55,30 @@ class FeatherLedgerApp extends ConsumerWidget {
       themeMode: themeAsync.valueOrNull ?? ThemeMode.system,
       routerConfig: router,
       locale: localeAsync.valueOrNull,
+      localeResolutionCallback: (deviceLocale, supportedLocales) {
+        if (localeAsync.valueOrNull != null) {
+          return localeAsync.valueOrNull;
+        }
+
+        if (deviceLocale == null) {
+          return const Locale('en');
+        }
+
+        for (final locale in supportedLocales) {
+          if (locale.languageCode == deviceLocale.languageCode) {
+            return locale;
+          }
+        }
+
+        return const Locale('en');
+      },
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('zh'),
-      ],
+      supportedLocales: AppLanguages.supportedLocales,
     );
   }
 }

@@ -23,12 +23,12 @@ final themeModeControllerProvider =
 );
 
 typedef _$ThemeModeController = AutoDisposeAsyncNotifier<ThemeMode>;
-String _$localeControllerHash() => r'e1afbc64ae4dcd0176dd8eb1ec329870158be6b9';
+String _$localeControllerHash() => r'9c44e0cb80f0d4ae51fad15d6b3cedba3d3702d3';
 
 /// See also [LocaleController].
 @ProviderFor(LocaleController)
 final localeControllerProvider =
-    AutoDisposeAsyncNotifierProvider<LocaleController, Locale>.internal(
+    AutoDisposeAsyncNotifierProvider<LocaleController, Locale?>.internal(
   LocaleController.new,
   name: r'localeControllerProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -38,7 +38,7 @@ final localeControllerProvider =
   allTransitiveDependencies: null,
 );
 
-typedef _$LocaleController = AutoDisposeAsyncNotifier<Locale>;
+typedef _$LocaleController = AutoDisposeAsyncNotifier<Locale?>;
 String _$currencyControllerHash() =>
     r'7b96826036c9945897824dd73e788d3322d5a35c';
 

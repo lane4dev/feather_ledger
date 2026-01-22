@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/config/app_languages.dart';
 import '../../../../app/l10n/app_localizations.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/feather_divider.dart';
@@ -28,7 +29,8 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.theme),
             subtitle: Text(_getThemeLabel(themeAsync.valueOrNull, l10n)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showThemeDialog(context, ref, themeAsync.valueOrNull, l10n),
+            onTap: () =>
+                _showThemeDialog(context, ref, themeAsync.valueOrNull, l10n),
           ),
           const FeatherDivider(),
 
@@ -36,11 +38,12 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.language),
             title: Text(l10n.language),
-            subtitle: Text(localeAsync.valueOrNull?.languageCode == 'zh'
-                ? l10n.chinese
-                : l10n.english),
+            // Show the actual language name. If null (system), resolve the current active locale.
+            subtitle: Text(_getLocaleLabel(
+                context, localeAsync.valueOrNull, l10n)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showLanguageDialog(context, ref, localeAsync.valueOrNull, l10n),
+            onTap: () => _showLanguageDialog(
+                context, ref, localeAsync.valueOrNull, l10n),
           ),
           const FeatherDivider(),
 
@@ -50,7 +53,8 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.currencySymbol),
             subtitle: Text(currencyAsync.valueOrNull ?? l10n.loading),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showCurrencyDialog(context, ref, currencyAsync.valueOrNull, l10n),
+            onTap: () => _showCurrencyDialog(
+                context, ref, currencyAsync.valueOrNull, l10n),
           ),
         ],
       ),
@@ -106,30 +110,25 @@ class SettingsScreen extends ConsumerWidget {
     Locale? currentLocale,
     AppLocalizations l10n,
   ) {
+    // If currentLocale is null (System), we want to check which one is active to show the checkmark.
+    final effectiveLocale = currentLocale ?? Localizations.localeOf(context);
+
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(l10n.language),
-        children: [
-          _DialogOption(
-            label: l10n.english,
-            value: const Locale('en'),
-            groupValue: currentLocale,
+        children: AppLanguages.supportedLocales.map((locale) {
+          return _DialogOption(
+            label: AppLanguages.getName(locale, l10n),
+            value: locale,
+            // Compare by languageCode to be safe against 'en' vs 'en_US'
+            groupValue: effectiveLocale,
             onChanged: (value) {
               ref.read(localeControllerProvider.notifier).setLocale(value);
               Navigator.pop(context);
             },
-          ),
-          _DialogOption(
-            label: l10n.chinese,
-            value: const Locale('zh'),
-            groupValue: currentLocale,
-            onChanged: (value) {
-              ref.read(localeControllerProvider.notifier).setLocale(value);
-              Navigator.pop(context);
-            },
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -197,6 +196,12 @@ class SettingsScreen extends ConsumerWidget {
         return l10n.dark;
     }
   }
+
+  String _getLocaleLabel(
+      BuildContext context, Locale? locale, AppLocalizations l10n) {
+    final effectiveLocale = locale ?? Localizations.localeOf(context);
+    return AppLanguages.getName(effectiveLocale, l10n);
+  }
 }
 
 class _DialogOption<T> extends StatelessWidget {
@@ -206,6 +211,7 @@ class _DialogOption<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
 
   const _DialogOption({
+    super.key,
     required this.label,
     required this.value,
     required this.groupValue,
@@ -214,7 +220,17 @@ class _DialogOption<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = value == groupValue;
+    // Custom equality check for Locale to handle 'en' vs 'en_US' if necessary
+    // But since we use AppLanguages.supportedLocales, we expect exact matches
+    // usually. However, Localizations.localeOf(context) might return a country-specific one.
+    var isSelected = false;
+    if (value is Locale && groupValue is Locale) {
+      isSelected = (value as Locale).languageCode ==
+          (groupValue as Locale).languageCode;
+    } else {
+      isSelected = value == groupValue;
+    }
+
     return SimpleDialogOption(
       onPressed: () => onChanged(value),
       child: Padding(
