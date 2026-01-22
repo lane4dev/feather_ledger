@@ -10,6 +10,7 @@ import '../../features/ledger/presentation/screens/transaction_form_screen.dart'
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/about_screen.dart';
 import '../../features/settings/presentation/screens/account_management_screen.dart';
 import '../../features/settings/presentation/screens/category_management_screen.dart';
 
@@ -69,6 +70,10 @@ GoRouter goRouter(Ref ref) {
                     GoRoute(
                       path: 'settings',
                       builder: (context, state) => const SettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'about',
+                      builder: (context, state) => const AboutScreen(),
                     ),
                     GoRoute(
                       path: 'accounts',
