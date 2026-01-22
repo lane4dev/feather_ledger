@@ -27,27 +27,10 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.brightness_6),
             title: Text(l10n.theme),
             subtitle: Text(_getThemeLabel(themeAsync.valueOrNull, l10n)),
-            trailing: DropdownButton<ThemeMode>(
-              value: themeAsync.valueOrNull,
-              onChanged: (ThemeMode? newValue) {
-                if (newValue != null) {
-                  ref
-                      .read(themeModeControllerProvider.notifier)
-                      .setTheme(newValue);
-                }
-              },
-              items: [
-                DropdownMenuItem(
-                    value: ThemeMode.system, child: Text(l10n.system)),
-                DropdownMenuItem(
-                    value: ThemeMode.light, child: Text(l10n.light)),
-                DropdownMenuItem(value: ThemeMode.dark, child: Text(l10n.dark)),
-              ],
-            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showThemeDialog(context, ref, themeAsync.valueOrNull, l10n),
           ),
           const FeatherDivider(),
-
-          // Language
 
           // Language
           ListTile(
@@ -56,48 +39,147 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(localeAsync.valueOrNull?.languageCode == 'zh'
                 ? l10n.chinese
                 : l10n.english),
-            trailing: DropdownButton<Locale>(
-              value: localeAsync.valueOrNull,
-              onChanged: (Locale? newValue) {
-                if (newValue != null) {
-                  ref
-                      .read(localeControllerProvider.notifier)
-                      .setLocale(newValue);
-                }
-              },
-              items: [
-                DropdownMenuItem(
-                    value: const Locale('en'), child: Text(l10n.english)),
-                DropdownMenuItem(
-                    value: const Locale('zh'), child: Text(l10n.chinese)),
-              ],
-            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showLanguageDialog(context, ref, localeAsync.valueOrNull, l10n),
           ),
           const FeatherDivider(),
-
-          // Language
 
           // Currency
           ListTile(
             leading: const Icon(Icons.attach_money),
             title: Text(l10n.currencySymbol),
             subtitle: Text(currencyAsync.valueOrNull ?? l10n.loading),
-            trailing: DropdownButton<String>(
-              value: currencyAsync.valueOrNull,
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  ref
-                      .read(currencyControllerProvider.notifier)
-                      .setCurrency(newValue);
-                }
-              },
-              items: [
-                DropdownMenuItem(value: '\$', child: Text(l10n.dollarCurrency)),
-                DropdownMenuItem(value: '¥', child: Text(l10n.yuanYenCurrency)),
-                DropdownMenuItem(value: '€', child: Text(l10n.euroCurrency)),
-                DropdownMenuItem(value: '£', child: Text(l10n.poundCurrency)),
-              ],
-            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showCurrencyDialog(context, ref, currencyAsync.valueOrNull, l10n),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThemeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode? currentMode,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.theme),
+        children: [
+          _DialogOption(
+            label: l10n.system,
+            value: ThemeMode.system,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeControllerProvider.notifier).setTheme(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.light,
+            value: ThemeMode.light,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeControllerProvider.notifier).setTheme(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.dark,
+            value: ThemeMode.dark,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeControllerProvider.notifier).setTheme(value);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLanguageDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Locale? currentLocale,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.language),
+        children: [
+          _DialogOption(
+            label: l10n.english,
+            value: const Locale('en'),
+            groupValue: currentLocale,
+            onChanged: (value) {
+              ref.read(localeControllerProvider.notifier).setLocale(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.chinese,
+            value: const Locale('zh'),
+            groupValue: currentLocale,
+            onChanged: (value) {
+              ref.read(localeControllerProvider.notifier).setLocale(value);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCurrencyDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String? currentCurrency,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.currencySymbol),
+        children: [
+          _DialogOption(
+            label: l10n.dollarCurrency,
+            value: '\$',
+            groupValue: currentCurrency,
+            onChanged: (value) {
+              ref.read(currencyControllerProvider.notifier).setCurrency(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.yuanYenCurrency,
+            value: '¥',
+            groupValue: currentCurrency,
+            onChanged: (value) {
+              ref.read(currencyControllerProvider.notifier).setCurrency(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.euroCurrency,
+            value: '€',
+            groupValue: currentCurrency,
+            onChanged: (value) {
+              ref.read(currencyControllerProvider.notifier).setCurrency(value);
+              Navigator.pop(context);
+            },
+          ),
+          _DialogOption(
+            label: l10n.poundCurrency,
+            value: '£',
+            groupValue: currentCurrency,
+            onChanged: (value) {
+              ref.read(currencyControllerProvider.notifier).setCurrency(value);
+              Navigator.pop(context);
+            },
           ),
         ],
       ),
@@ -114,5 +196,50 @@ class SettingsScreen extends ConsumerWidget {
       case ThemeMode.dark:
         return l10n.dark;
     }
+  }
+}
+
+class _DialogOption<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final T? groupValue;
+  final ValueChanged<T> onChanged;
+
+  const _DialogOption({
+    required this.label,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = value == groupValue;
+    return SimpleDialogOption(
+      onPressed: () => onChanged(value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color:
+                      isSelected ? Theme.of(context).colorScheme.primary : null,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
