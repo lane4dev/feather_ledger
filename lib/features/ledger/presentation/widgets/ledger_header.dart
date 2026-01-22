@@ -76,6 +76,7 @@ class LedgerHeaderCompact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
     return Row(
       children: [
         // We might NOT want the spacer in the AppBar title if the Back button or leading icon is there?
@@ -87,7 +88,7 @@ class LedgerHeaderCompact extends StatelessWidget {
         // Let's just show the content.
 
         Text(
-          DateFormat.yMMM().format(selectedDate),
+          DateFormat.yMMM(locale).format(selectedDate),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         if (summary != null) ...[
@@ -117,6 +118,7 @@ class _MonthSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
     return Row(
       children: [
         IconButton(
@@ -132,7 +134,7 @@ class _MonthSwitcher extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Text(
-              DateFormat.yMMMM().format(selectedDate),
+              DateFormat.yMMMM(locale).format(selectedDate),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
           ),

@@ -15,9 +15,10 @@ class TimeAnchor extends StatelessWidget {
   Widget build(BuildContext context) {
     // Format: "20" (Day) and "Mon" (Weekday)
     // We can use DateFormat from intl package
-    final dayStr = DateFormat('d').format(date);
+    final locale = Localizations.localeOf(context).toString();
+    final dayStr = DateFormat('d', locale).format(date);
     final wdayStr =
-        DateFormat('E').format(date); // 'E' is short weekday (Mon, Tue)
+        DateFormat('E', locale).format(date); // 'E' is short weekday (Mon, Tue)
 
     return SizedBox(
       width: LedgerTheme.colAnchorWidth,
