@@ -46,8 +46,6 @@ lib/
 - `flutter test`: Run unit and widget tests
 - `flutter analyze`: Check for linting errors. 
 
-**Mandatory: This must be run after every code adjustment to ensure no syntax or linting errors are introduced.**
-
 ## Code Style & Constitution
 
 All development MUST adhere to the **Feather Ledger Constitution** defined in @.specify/memory/constitution.md.
@@ -73,3 +71,5 @@ All development MUST adhere to the **Feather Ledger Constitution** defined in @.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+**Mandatory: `flutter analyze` must be run after every code adjustment to ensure no syntax or linting errors are introduced.**
