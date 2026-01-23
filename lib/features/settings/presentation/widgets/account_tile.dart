@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/core/domain/entities/account.dart';
-import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart'; // Updated import
+import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 
 class AccountTile extends StatelessWidget {
   final AccountEntity account;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/l10n/app_localizations.dart';
-import '../../../../app/theme/app_theme.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 
 class LedgerEmpty extends StatelessWidget {
   const LedgerEmpty({super.key});

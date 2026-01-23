@@ -6,12 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart'; // Added import
+import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
-import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart'; // Point to shared extension
+import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final AccountEntity? account;
