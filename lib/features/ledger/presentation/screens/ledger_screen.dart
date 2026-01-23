@@ -23,6 +23,11 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   bool _isCollapsed = false;
   static const double _kExpandedHeight = 180.0;
 
+  // Width of the screen edge where swipe gestures are ignored to
+  // prevent conflicts with system gestures.
+  static const double _edgeSwipeWidth = 24.0;
+  bool _ignoreSwipe = false;
+
   @override
   void initState() {
     super.initState();
@@ -56,10 +61,10 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
 
     // Determine direction
     _isNext = date.isAfter(current);
-    
+
     // Update state
     ref.read(selectedDateProvider.notifier).setMonth(date);
-    
+
     // Scroll to top to expand header
     if (_scrollController.hasClients) {
       await _scrollController.animateTo(
@@ -88,13 +93,24 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final selectedDate = ref.watch(selectedDateProvider);
     final summaryAsync = ref.watch(ledgerSummaryProvider);
     final transactionsAsync = ref.watch(dailyTransactionsProvider);
-    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
-    final currency = AppCurrencies.getSymbol(currencyKey);
+
     final l10n = AppLocalizations.of(context)!;
+
+    final currencyKey =
+        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currency = AppCurrencies.getSymbol(currencyKey);
+
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: GestureDetector(
+        onHorizontalDragStart: (details) {
+          final dx = details.globalPosition.dx;
+          _ignoreSwipe =
+              dx <= _edgeSwipeWidth || dx >= screenWidth - _edgeSwipeWidth;
+        },
         onHorizontalDragEnd: (details) {
+          if (_ignoreSwipe) return;
           if (details.primaryVelocity == null) return;
           const sensitivity = 300.0;
           if (details.primaryVelocity! < -sensitivity) {
@@ -114,7 +130,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverOverlapAbsorber(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                handle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 sliver: SliverAppBar(
                   pinned: true,
                   expandedHeight: _kExpandedHeight,
@@ -163,7 +180,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
               final offset = _isNext
                   ? (isCurrent ? const Offset(1, 0) : const Offset(-1, 0))
                   : (isCurrent ? const Offset(-1, 0) : const Offset(1, 0));
-              
+
               return SlideTransition(
                 position: Tween<Offset>(
                   begin: offset,
@@ -190,4 +207,3 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     );
   }
 }
-
