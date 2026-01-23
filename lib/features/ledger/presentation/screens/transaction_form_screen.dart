@@ -63,6 +63,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
@@ -122,13 +123,13 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     child: Row(
                       children: [
                         Text(
-                          DateFormat.yMMMEd()
+                          DateFormat.yMMMEd(locale)
                               .format(_date), // e.g., Sat, Jan 20
                           style: theme.textTheme.bodyLarge,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat.jm().format(_date), // e.g., 5:08 PM
+                          DateFormat.jm(locale).format(_date), // e.g., 5:08 PM
                           style: theme.textTheme.bodyLarge,
                         ),
                       ],

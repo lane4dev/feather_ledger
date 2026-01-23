@@ -20,7 +20,10 @@ class ReportsScreen extends ConsumerWidget {
     final heatmapAsync = ref.watch(heatmapDataProvider);
     final incomeAsync = ref.watch(incomeChartDataProvider);
     final expenseAsync = ref.watch(expenseChartDataProvider);
+
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+
     final spacing = context.spacing;
 
     return Scaffold(
@@ -51,7 +54,7 @@ class ReportsScreen extends ConsumerWidget {
             // Month Header
             Center(
               child: Text(
-                DateFormat.yMMMM().format(selectedDate),
+                DateFormat.yMMMM(locale).format(selectedDate),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
