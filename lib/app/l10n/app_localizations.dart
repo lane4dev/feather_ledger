@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get note;
 
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// Save transaction button
   ///
   /// In en, this message translates to:
@@ -523,6 +529,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Press back again to exit'**
   String get pressBackAgainToExit;
+
+  /// No description provided for @manageCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Categories'**
+  String get manageCategories;
+
+  /// No description provided for @manageAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Accounts'**
+  String get manageAccounts;
 }
 
 class _AppLocalizationsDelegate

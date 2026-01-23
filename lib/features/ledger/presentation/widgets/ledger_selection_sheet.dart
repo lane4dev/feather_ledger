@@ -6,8 +6,12 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
   final List<T> options;
   final String Function(T) getLabel;
   final IconData? Function(T)? getIcon;
+  final Color? Function(T)? getColor;
+  final Widget Function(BuildContext context, T option)? getLeading;
   final bool Function(T) isSelected;
   final ValueChanged<T> onSelected;
+  final VoidCallback? onManageTap;
+  final String? manageButtonText;
 
   const LedgerSelectionSheet({
     super.key,
@@ -17,6 +21,10 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
     required this.isSelected,
     required this.onSelected,
     this.getIcon,
+    this.getColor,
+    this.getLeading,
+    this.onManageTap,
+    this.manageButtonText,
   });
 
   @override
@@ -42,16 +50,27 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final option = options[index];
                   final selected = isSelected(option);
+                  final leading = getLeading?.call(context, option);
                   final icon = getIcon?.call(option);
+                  final color = getColor?.call(option);
 
                   return ListTile(
-                    leading: icon != null
-                        ? Icon(
-                            icon,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          )
-                        : null,
+                    leading: leading ??
+                        (icon != null
+                            ? (color != null
+                                ? CircleAvatar(
+                                    backgroundColor:
+                                        color.withAlpha(50), // Using withAlpha for consistency
+                                    foregroundColor: color,
+                                    child: Icon(icon, size: 20),
+                                  )
+                                : Icon(
+                                    icon,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ))
+                            : null),
                     title: Text(
                       getLabel(option),
                       style: TextStyle(
@@ -71,6 +90,23 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                 },
               ),
             ),
+            if (onManageTap != null && manageButtonText != null) ...[
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the current sheet
+                      onManageTap!(); // Execute the manage action
+                    },
+                    icon: const Icon(Icons.settings),
+                    label: Text(manageButtonText!),
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },

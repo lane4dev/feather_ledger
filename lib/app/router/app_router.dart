@@ -4,16 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../l10n/app_localizations.dart';
-import '../../features/ledger/domain/entities/ledger_entities.dart';
-import '../../features/ledger/presentation/screens/ledger_screen.dart';
-import '../../features/ledger/presentation/screens/transaction_form_screen.dart';
-import '../../features/reports/presentation/screens/reports_screen.dart';
-import '../../features/settings/presentation/screens/more_screen.dart';
-import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/settings/presentation/screens/about_screen.dart';
-import '../../features/settings/presentation/screens/account_management_screen.dart';
-import '../../features/settings/presentation/screens/category_management_screen.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
+import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
+import 'package:feather_ledger/features/settings/presentation/screens/more_screen.dart';
+import 'package:feather_ledger/features/settings/presentation/screens/settings_screen.dart';
+import 'package:feather_ledger/features/settings/presentation/screens/about_screen.dart';
+import 'package:feather_ledger/features/settings/presentation/screens/account_management_screen.dart';
+import 'package:feather_ledger/features/settings/presentation/screens/category_management_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -76,6 +76,7 @@ GoRouter goRouter(Ref ref) {
                       path: 'about',
                       builder: (context, state) => const AboutScreen(),
                     ),
+                    // Keep these for potential direct navigation within the more tab
                     GoRoute(
                       path: 'accounts',
                       builder: (context, state) =>
@@ -90,6 +91,17 @@ GoRouter goRouter(Ref ref) {
             ],
           ),
         ],
+      ),
+      // New top-level routes for opening management screens over the whole app
+      GoRoute(
+        path: '/accounts_management',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AccountManagementScreen(),
+      ),
+      GoRoute(
+        path: '/categories_management',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CategoryManagementScreen(),
       ),
     ],
   );

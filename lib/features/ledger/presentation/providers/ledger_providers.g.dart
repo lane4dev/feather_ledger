@@ -44,40 +44,6 @@ final ledgerSummaryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LedgerSummaryRef = AutoDisposeStreamProviderRef<MonthlySummary>;
-String _$allCategoriesHash() => r'd2bb13862d1cb85e3599958e233cef9c40fc12a4';
-
-/// See also [allCategories].
-@ProviderFor(allCategories)
-final allCategoriesProvider =
-    AutoDisposeFutureProvider<List<Category>>.internal(
-  allCategories,
-  name: r'allCategoriesProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$allCategoriesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AllCategoriesRef = AutoDisposeFutureProviderRef<List<Category>>;
-String _$allAccountsHash() => r'52bbed21021ea35caf32189daac69a1dff7cc843';
-
-/// See also [allAccounts].
-@ProviderFor(allAccounts)
-final allAccountsProvider = AutoDisposeFutureProvider<List<Account>>.internal(
-  allAccounts,
-  name: r'allAccountsProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$allAccountsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AllAccountsRef = AutoDisposeFutureProviderRef<List<Account>>;
 String _$dailyTransactionsHash() => r'fbede27cda443e3a6cb18f7eb6b22c901e06c98f';
 
 /// See also [dailyTransactions].

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class LedgerSelectorField extends StatelessWidget {
   final String text;
   final TextStyle? textStyle;
-  final IconData? leadingIcon;
   final VoidCallback onTap;
   final String? errorText;
 
@@ -11,7 +10,6 @@ class LedgerSelectorField extends StatelessWidget {
     super.key,
     required this.text,
     this.textStyle,
-    this.leadingIcon,
     required this.onTap,
     this.errorText,
   });
@@ -30,14 +28,6 @@ class LedgerSelectorField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               children: [
-                if (leadingIcon != null) ...[
-                  Icon(
-                    leadingIcon,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 12),
-                ],
                 Text(
                   text,
                   style: textStyle ?? theme.textTheme.bodyLarge,

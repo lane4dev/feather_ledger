@@ -88,6 +88,7 @@
   "@note": {
     "description": "Note field label"
   },
+  "save": "Save",
   "saveTransaction": "Save Transaction",
   "@saveTransaction": {
     "description": "Save transaction button"
@@ -287,6 +288,8 @@
     "description": "Message for unimplemented features"
   },
   "pressBackAgainToExit": "Press back again to exit",
+  "manageCategories": "Manage Categories",
+  "manageAccounts": "Manage Accounts",
   "@pressBackAgainToExit": {
     "description": "Prompt shown when user needs to press back again to exit"
   }

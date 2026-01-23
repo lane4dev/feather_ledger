@@ -78,6 +78,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get note => '备注';
 
   @override
+  String get save => '保存';
+
+  @override
   String get saveTransaction => '保存交易';
 
   @override
@@ -222,4 +225,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pressBackAgainToExit => '再按一次退出';
+
+  @override
+  String get manageCategories => '管理分类';
+
+  @override
+  String get manageAccounts => '管理账户';
 }

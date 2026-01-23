@@ -36,6 +36,8 @@ class TransactionDetailSheet extends ConsumerWidget {
         ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
+    final locale = Localizations.localeOf(context).toString();
+
     // Premium Detail View
     final color = transaction.type == TransactionType.expense
         ? context.colors.expense
@@ -118,10 +120,17 @@ class TransactionDetailSheet extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                IconData(int.tryParse(transaction.category.iconKey) ?? 0xe574,
-                    fontFamily: 'MaterialIcons'),
-                color: Theme.of(context).colorScheme.primary,
+              CircleAvatar(
+                backgroundColor:
+                    Color(transaction.category.colorInt).withValues(alpha: 0.2),
+                foregroundColor: Color(transaction.category.colorInt),
+                child: Icon(
+                  IconData(
+                    int.tryParse(transaction.category.iconKey) ?? 0xe574,
+                    fontFamily: 'MaterialIcons',
+                  ),
+                  size: 20,
+                ),
               ),
               SizedBox(width: context.spacing.sm),
               Text(
@@ -137,7 +146,7 @@ class TransactionDetailSheet extends ConsumerWidget {
           // Details Grid/List
           LedgerDetailRow(
             label: l10n.date,
-            value: DateFormat.yMMMMEEEEd().format(transaction.date),
+            value: DateFormat.yMMMMEEEEd(locale).format(transaction.date),
           ),
           SizedBox(height: context.spacing.md),
           LedgerDetailRow(

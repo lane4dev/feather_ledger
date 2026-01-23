@@ -1,24 +1,31 @@
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart'; // Added import
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../../domain/services/ledger_service.dart';
-import '../providers/ledger_providers.dart';
+// import '../providers/ledger_providers.dart';
 
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
 import '../widgets/ledger_type_selector.dart';
+
+
 
 class TransactionFormScreen extends ConsumerStatefulWidget {
   final TransactionEntity? transaction;
@@ -55,8 +62,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(allCategoriesProvider);
-    final accountsAsync = ref.watch(allAccountsProvider);
+    final categoriesAsync = ref.watch(categoryListProvider(_type));
+    final accountsAsync = ref.watch(accountListProvider);
     final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
         AppCurrencies.dollar;
     final currencySymbol = AppCurrencies.getSymbol(currencyKey);
@@ -161,12 +168,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               ? theme.textTheme.bodyLarge
                                   ?.copyWith(color: theme.hintColor)
                               : null,
-                          leadingIcon: selected != null
-                              ? IconData(
-                                  int.tryParse(selected.iconKey) ?? 0xe574,
-                                  fontFamily: 'MaterialIcons',
-                                )
-                              : null,
                           errorText: state.hasError ? state.errorText : null,
                           onTap: () async {
                             final result = await showModalBottomSheet<int>(
@@ -174,7 +175,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               isScrollControlled: true,
                               useSafeArea: true,
                               builder: (context) =>
-                                  LedgerSelectionSheet<dynamic>(
+                                  LedgerSelectionSheet<CategoryEntity>(
                                 title: l10n.category,
                                 options: filtered,
                                 getLabel: (c) => c.name,
@@ -182,8 +183,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                   int.tryParse(c.iconKey) ?? 0xe574,
                                   fontFamily: 'MaterialIcons',
                                 ),
+                                getColor: (c) => Color(c.colorInt),
                                 isSelected: (c) => c.id == state.value,
                                 onSelected: (c) => Navigator.pop(context, c.id),
+                                onManageTap: () =>
+                                    context.push('/categories_management'),
+                                manageButtonText: l10n.manageCategories,
                               ),
                             );
                             if (result != null) {
@@ -227,12 +232,24 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               isScrollControlled: true,
                               useSafeArea: true,
                               builder: (context) =>
-                                  LedgerSelectionSheet<dynamic>(
+                                  LedgerSelectionSheet<AccountEntity>(
                                 title: l10n.account,
                                 options: accounts,
                                 getLabel: (a) => a.name,
+                                getLeading: (context, a) => CircleAvatar(
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .secondaryContainer,
+                                  foregroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer,
+                                  child: Icon(a.type.icon),
+                                ),
                                 isSelected: (a) => a.id == state.value,
                                 onSelected: (a) => Navigator.pop(context, a.id),
+                                onManageTap: () =>
+                                    context.push('/accounts_management'),
+                                manageButtonText: l10n.manageAccounts,
                               ),
                             );
                             if (result != null) {

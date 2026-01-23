@@ -88,6 +88,7 @@
   "@note": {
     "description": "备注字段标签"
   },
+  "save": "保存",
   "saveTransaction": "保存交易",
   "@saveTransaction": {
     "description": "保存交易按钮"
@@ -287,6 +288,8 @@
     "description": "未实现功能的提示"
   },
   "pressBackAgainToExit": "再按一次退出",
+  "manageCategories": "管理分类",
+  "manageAccounts": "管理账户",
   "@pressBackAgainToExit": {
     "description": "提示用户再按一次返回键退出"
   }

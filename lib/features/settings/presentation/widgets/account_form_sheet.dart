@@ -215,7 +215,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: _save,
-                        child: Text(l10n.saveTransaction),
+                        child: Text(l10n.save),
                       ),
                     ),
                   ],

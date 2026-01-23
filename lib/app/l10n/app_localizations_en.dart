@@ -79,6 +79,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get note => 'Note';
 
   @override
+  String get save => 'Save';
+
+  @override
   String get saveTransaction => 'Save Transaction';
 
   @override
@@ -225,4 +228,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pressBackAgainToExit => 'Press back again to exit';
+
+  @override
+  String get manageCategories => 'Manage Categories';
+
+  @override
+  String get manageAccounts => 'Manage Accounts';
 }
