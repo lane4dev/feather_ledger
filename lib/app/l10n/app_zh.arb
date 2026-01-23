@@ -285,5 +285,9 @@
   "featureNotAvailable": "功能暂不可用",
   "@featureNotAvailable": {
     "description": "未实现功能的提示"
+  },
+  "pressBackAgainToExit": "再按一次退出",
+  "@pressBackAgainToExit": {
+    "description": "提示用户再按一次返回键退出"
   }
 }

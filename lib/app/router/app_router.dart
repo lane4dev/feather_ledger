@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -77,11 +78,13 @@ GoRouter goRouter(Ref ref) {
                     ),
                     GoRoute(
                       path: 'accounts',
-                      builder: (context, state) => const AccountManagementScreen(),
+                      builder: (context, state) =>
+                          const AccountManagementScreen(),
                     ),
                     GoRoute(
                       path: 'categories',
-                      builder: (context, state) => const CategoryManagementScreen(),
+                      builder: (context, state) =>
+                          const CategoryManagementScreen(),
                     ),
                   ]),
             ],
@@ -92,7 +95,7 @@ GoRouter goRouter(Ref ref) {
   );
 }
 
-class ScaffoldWithNavBar extends StatelessWidget {
+class ScaffoldWithNavBar extends StatefulWidget {
   const ScaffoldWithNavBar({
     required this.navigationShell,
     super.key,
@@ -101,33 +104,67 @@ class ScaffoldWithNavBar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  State<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
+}
+
+class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
+  static const Duration _exitInterval = Duration(seconds: 2);
+  DateTime? _lastBackPressedAt;
+
+  void _handlePopInvokedWithResult(bool didPop, Object? result) {
+    if (didPop) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final last = _lastBackPressedAt;
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.book),
-            label: l10n.ledgerTitle,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.pie_chart),
-            label: l10n.reports,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.more_horiz),
-            label: l10n.more,
-          ),
-        ],
+    if (last == null || now.difference(last) > _exitInterval) {
+      _lastBackPressedAt = now;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.pressBackAgainToExit)),
+      );
+      return;
+    }
+
+    SystemNavigator.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final canPop = GoRouter.of(context).canPop();
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: _handlePopInvokedWithResult,
+      child: Scaffold(
+        body: widget.navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: (index) {
+            widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            );
+          },
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.book),
+              label: l10n.ledgerTitle,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.pie_chart),
+              label: l10n.reports,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.more_horiz),
+              label: l10n.more,
+            ),
+          ],
+        ),
       ),
     );
   }

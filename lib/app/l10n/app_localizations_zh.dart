@@ -219,4 +219,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get featureNotAvailable => '功能暂不可用';
+
+  @override
+  String get pressBackAgainToExit => '再按一次退出';
 }
