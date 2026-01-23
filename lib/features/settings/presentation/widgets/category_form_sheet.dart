@@ -114,6 +114,10 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       textAlign: TextAlign.start,
                       decoration: InputDecoration(
                         hintText: l10n.categoryNameHint,
+                        hintStyle: theme.textTheme.displaySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.5),
+                        ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                         labelText: l10n.name,
@@ -199,7 +203,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: _save,
-                        child: Text(l10n.saveTransaction),
+                        child: Text(l10n.save),
                       ),
                     ),
                   ],
