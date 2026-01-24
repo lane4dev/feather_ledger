@@ -260,4 +260,34 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get accountBankCard => 'Bank Card';
+
+  @override
+  String get categoryAllowance => 'Allowance';
+
+  @override
+  String get categoryClothing => 'Clothing';
+
+  @override
+  String get categoryCommunications => 'Communications';
+
+  @override
+  String get categoryEducation => 'Education';
+
+  @override
+  String get categoryEntertainment => 'Entertainment';
+
+  @override
+  String get categoryGifts => 'Gifts';
+
+  @override
+  String get categoryHealth => 'Health';
+
+  @override
+  String get categoryHouseholdSupplies => 'Household Supplies';
+
+  @override
+  String get categoryInvestmentReturns => 'Investment Returns';
+
+  @override
+  String get categoryPartTimeJob => 'Part-Time Job';
 }
