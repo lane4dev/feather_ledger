@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -16,7 +17,7 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
 
   static const _keyTheme = 'app_theme_mode';
   static const _keyLocale = 'app_locale';
-  static const _keyCurrency = 'currency_symbol';
+  static const _keyCurrency = 'currency_code';
 
   @override
   ThemeMode getThemeMode() {
@@ -52,12 +53,12 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
 
   @override
   String getCurrency() {
-    return _prefs.getString(_keyCurrency) ?? '\$';
+    return _prefs.getString(_keyCurrency) ?? AppCurrencies.defaultCurrency.code;
   }
 
   @override
-  Future<void> setCurrency(String symbol) {
-    return _prefs.setString(_keyCurrency, symbol);
+  Future<void> setCurrency(String code) {
+    return _prefs.setString(_keyCurrency, code);
   }
 }
 
