@@ -151,10 +151,10 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(l10n.currencySymbol),
-        children: AppCurrencies.supportedCurrencies.map((currency) {
+        children: AppCurrencies.supportedCurrencyCodes.map((currencyCode) {
           return _DialogOption(
-            label: AppCurrencies.getName(currency, l10n),
-            value: currency,
+            label: AppCurrencies.getName(currencyCode, l10n),
+            value: currencyCode,
             groupValue: currentCurrency,
             onChanged: (value) {
               ref.read(currencyControllerProvider.notifier).setCurrency(value);
@@ -206,8 +206,7 @@ class _DialogOption<T> extends StatelessWidget {
     // usually. However, Localizations.localeOf(context) might return a country-specific one.
     var isSelected = false;
     if (value is Locale && groupValue is Locale) {
-      isSelected =
-          (value as Locale).languageCode == (groupValue as Locale).languageCode;
+      isSelected = (value == groupValue);
     } else {
       isSelected = value == groupValue;
     }

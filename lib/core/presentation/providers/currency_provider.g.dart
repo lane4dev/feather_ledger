@@ -7,7 +7,7 @@ part of 'currency_provider.dart';
 // **************************************************************************
 
 String _$currencyControllerHash() =>
-    r'7fb316a32e00f11c280c1b6aa64221caab302f34';
+    r'bcda376f5ee29bbe234afd00b731195930422729';
 
 /// See also [CurrencyController].
 @ProviderFor(CurrencyController)

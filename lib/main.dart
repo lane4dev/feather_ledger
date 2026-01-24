@@ -32,7 +32,22 @@ void main() async {
 
   final container = ProviderContainer();
   final db = container.read(appDatabaseProvider);
-  await seedDatabase(db);
+
+  final systemLocales = WidgetsBinding.instance.platformDispatcher.locales;
+
+  // Default to English
+  var seedLocale = const Locale('en');
+  // Find the best matching locale for seeding
+  for (final systemLocale in systemLocales) {
+    if (AppLanguages.supportedLocales.any(
+        (supported) => supported.languageCode == systemLocale.languageCode)) {
+      seedLocale = systemLocale;
+      break;
+    }
+  }
+
+  final l10n = await AppLocalizations.delegate.load(seedLocale);
+  await seedDatabase(db, l10n);
 
   setupEdgeToEdge();
 

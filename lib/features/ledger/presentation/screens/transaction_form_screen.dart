@@ -25,8 +25,6 @@ import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
 import '../widgets/ledger_type_selector.dart';
 
-
-
 class TransactionFormScreen extends ConsumerStatefulWidget {
   final TransactionEntity? transaction;
   const TransactionFormScreen({super.key, this.transaction});
@@ -65,7 +63,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final categoriesAsync = ref.watch(categoryListProvider(_type));
     final accountsAsync = ref.watch(accountListProvider);
     final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
-        AppCurrencies.dollar;
+        AppCurrencies.supportedCurrencyCodes.first;
     final currencySymbol = AppCurrencies.getSymbol(currencyKey);
 
     final l10n = AppLocalizations.of(context)!;
