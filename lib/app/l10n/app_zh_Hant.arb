@@ -303,9 +303,49 @@
   },
   "categoryFood": "餐飲",
   "categoryTransport": "交通",
+  "categoryEntertainment": "娛樂",
+  "@categoryEntertainment": {
+    "description": "預設分類名稱：娛樂"
+  },
   "categoryShopping": "購物",
+  "categoryClothing": "服裝",
+  "@categoryClothing": {
+    "description": "預設分類名稱：服裝"
+  },
+  "categoryHouseholdSupplies": "日用品",
+  "@categoryHouseholdSupplies": {
+    "description": "預設分類名稱：日用品"
+  },
+  "categoryCommunications": "通訊",
+  "@categoryCommunications": {
+    "description": "預設分類名稱：通訊"
+  },
+  "categoryHealth": "健康",
+  "@categoryHealth": {
+    "description": "預設分類名稱：健康"
+  },
+  "categoryEducation": "教育",
+  "@categoryEducation": {
+    "description": "預設分類名稱：教育"
+  },
+  "categoryGifts": "禮物",
+  "@categoryGifts": {
+    "description": "預設分類名稱：禮物"
+  },
   "categorySalary": "薪資",
   "categoryBonus": "獎金",
+  "categoryPartTimeJob": "兼職",
+  "@categoryPartTimeJob": {
+    "description": "預設分類名稱：兼職"
+  },
+  "categoryAllowance": "零用錢",
+  "@categoryAllowance": {
+    "description": "預設分類名稱：零用錢"
+  },
+  "categoryInvestmentReturns": "投資收益",
+  "@categoryInvestmentReturns": {
+    "description": "預設分類名稱：投資收益"
+  },
   "accountCash": "現金",
   "accountBankCard": "銀行卡"
 }

@@ -303,9 +303,49 @@
   },
   "categoryFood": "餐饮",
   "categoryTransport": "交通",
+  "categoryEntertainment": "娱乐",
+  "@categoryEntertainment": {
+    "description": "默认分类名称：娱乐"
+  },
   "categoryShopping": "购物",
+  "categoryClothing": "服装",
+  "@categoryClothing": {
+    "description": "默认分类名称：服装"
+  },
+  "categoryHouseholdSupplies": "日用品",
+  "@categoryHouseholdSupplies": {
+    "description": "默认分类名称：日用品"
+  },
+  "categoryCommunications": "通讯",
+  "@categoryCommunications": {
+    "description": "默认分类名称：通讯"
+  },
+  "categoryHealth": "健康",
+  "@categoryHealth": {
+    "description": "默认分类名称：健康"
+  },
+  "categoryEducation": "教育",
+  "@categoryEducation": {
+    "description": "默认分类名称：教育"
+  },
+  "categoryGifts": "礼物",
+  "@categoryGifts": {
+    "description": "默认分类名称：礼物"
+  },
   "categorySalary": "薪水",
   "categoryBonus": "奖金",
+  "categoryPartTimeJob": "兼职",
+  "@categoryPartTimeJob": {
+    "description": "默认分类名称：兼职"
+  },
+  "categoryAllowance": "零用钱",
+  "@categoryAllowance": {
+    "description": "默认分类名称：零用钱"
+  },
+  "categoryInvestmentReturns": "投资收益",
+  "@categoryInvestmentReturns": {
+    "description": "默认分类名称：投资收益"
+  },
   "accountCash": "现金",
   "accountBankCard": "银行卡"
 }

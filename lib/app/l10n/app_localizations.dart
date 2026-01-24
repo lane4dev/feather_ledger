@@ -568,11 +568,53 @@ abstract class AppLocalizations {
   /// **'Transport'**
   String get categoryTransport;
 
+  /// Default category name: Entertainment
+  ///
+  /// In en, this message translates to:
+  /// **'Entertainment'**
+  String get categoryEntertainment;
+
   /// No description provided for @categoryShopping.
   ///
   /// In en, this message translates to:
   /// **'Shopping'**
   String get categoryShopping;
+
+  /// Default category name: Clothing
+  ///
+  /// In en, this message translates to:
+  /// **'Clothing'**
+  String get categoryClothing;
+
+  /// Default category name: Household Supplies
+  ///
+  /// In en, this message translates to:
+  /// **'Household Supplies'**
+  String get categoryHouseholdSupplies;
+
+  /// Default category name: Communications
+  ///
+  /// In en, this message translates to:
+  /// **'Communications'**
+  String get categoryCommunications;
+
+  /// Default category name: Health
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get categoryHealth;
+
+  /// Default category name: Education
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get categoryEducation;
+
+  /// Default category name: Gifts
+  ///
+  /// In en, this message translates to:
+  /// **'Gifts'**
+  String get categoryGifts;
 
   /// No description provided for @categorySalary.
   ///
@@ -585,6 +627,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bonus'**
   String get categoryBonus;
+
+  /// Default category name: Part-time Job
+  ///
+  /// In en, this message translates to:
+  /// **'Part-time Job'**
+  String get categoryPartTimeJob;
+
+  /// Default category name: Allowance
+  ///
+  /// In en, this message translates to:
+  /// **'Allowance'**
+  String get categoryAllowance;
+
+  /// Default category name: Investment Returns
+  ///
+  /// In en, this message translates to:
+  /// **'Investment Returns'**
+  String get categoryInvestmentReturns;
 
   /// No description provided for @accountCash.
   ///

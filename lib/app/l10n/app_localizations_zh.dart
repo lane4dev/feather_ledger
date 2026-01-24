@@ -245,13 +245,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryTransport => '交通';
 
   @override
+  String get categoryEntertainment => '娱乐';
+
+  @override
   String get categoryShopping => '购物';
+
+  @override
+  String get categoryClothing => '服装';
+
+  @override
+  String get categoryHouseholdSupplies => '日用品';
+
+  @override
+  String get categoryCommunications => '通讯';
+
+  @override
+  String get categoryHealth => '健康';
+
+  @override
+  String get categoryEducation => '教育';
+
+  @override
+  String get categoryGifts => '礼物';
 
   @override
   String get categorySalary => '薪水';
 
   @override
   String get categoryBonus => '奖金';
+
+  @override
+  String get categoryPartTimeJob => '兼职';
+
+  @override
+  String get categoryAllowance => '零用钱';
+
+  @override
+  String get categoryInvestmentReturns => '投资收益';
 
   @override
   String get accountCash => '现金';
@@ -501,13 +531,43 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get categoryTransport => '交通';
 
   @override
+  String get categoryEntertainment => '娱乐';
+
+  @override
   String get categoryShopping => '购物';
+
+  @override
+  String get categoryClothing => '服装';
+
+  @override
+  String get categoryHouseholdSupplies => '日用品';
+
+  @override
+  String get categoryCommunications => '通讯';
+
+  @override
+  String get categoryHealth => '健康';
+
+  @override
+  String get categoryEducation => '教育';
+
+  @override
+  String get categoryGifts => '礼物';
 
   @override
   String get categorySalary => '薪水';
 
   @override
   String get categoryBonus => '奖金';
+
+  @override
+  String get categoryPartTimeJob => '兼职';
+
+  @override
+  String get categoryAllowance => '零用钱';
+
+  @override
+  String get categoryInvestmentReturns => '投资收益';
 
   @override
   String get accountCash => '现金';
@@ -563,7 +623,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get amount => '金額';
 
   @override
-  String get frequency => '频率';
+  String get frequency => '頻率';
 
   @override
   String get date => '日期';
@@ -575,7 +635,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get categoryNameHint => '分類名稱';
 
   @override
-  String get name => '名称';
+  String get name => '名稱';
 
   @override
   String get color => '顏色';
@@ -609,14 +669,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String errorPrefix(String error) {
-    return '错误：$error';
+    return '錯誤：$error';
   }
 
   @override
   String get settings => '設定';
 
   @override
-  String get theme => '主题';
+  String get theme => '主題';
 
   @override
   String get language => '語言';
@@ -751,22 +811,52 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get manageAccounts => '管理帳戶';
 
   @override
-  String get categoryFood => '餐饮';
+  String get categoryFood => '餐飲';
 
   @override
   String get categoryTransport => '交通';
 
   @override
-  String get categoryShopping => '购物';
+  String get categoryEntertainment => '娛樂';
 
   @override
-  String get categorySalary => '薪水';
+  String get categoryShopping => '購物';
+
+  @override
+  String get categoryClothing => '服裝';
+
+  @override
+  String get categoryHouseholdSupplies => '日用品';
+
+  @override
+  String get categoryCommunications => '通訊';
+
+  @override
+  String get categoryHealth => '健康';
+
+  @override
+  String get categoryEducation => '教育';
+
+  @override
+  String get categoryGifts => '禮物';
+
+  @override
+  String get categorySalary => '薪資';
 
   @override
   String get categoryBonus => '獎金';
 
   @override
-  String get accountCash => '现金';
+  String get categoryPartTimeJob => '兼職';
+
+  @override
+  String get categoryAllowance => '零用錢';
+
+  @override
+  String get categoryInvestmentReturns => '投資收益';
+
+  @override
+  String get accountCash => '現金';
 
   @override
   String get accountBankCard => '銀行卡';

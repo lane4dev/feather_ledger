@@ -303,9 +303,49 @@
   },
   "categoryFood": "Food",
   "categoryTransport": "Transport",
+  "categoryEntertainment": "Entertainment",
+  "@categoryEntertainment": {
+    "description": "Default category name: Entertainment"
+  },
   "categoryShopping": "Shopping",
+  "categoryClothing": "Clothing",
+  "@categoryClothing": {
+    "description": "Default category name: Clothing"
+  },
+  "categoryHouseholdSupplies": "Household Supplies",
+  "@categoryHouseholdSupplies": {
+    "description": "Default category name: Household Supplies"
+  },
+  "categoryCommunications": "Communications",
+  "@categoryCommunications": {
+    "description": "Default category name: Communications"
+  },
+  "categoryHealth": "Health",
+  "@categoryHealth": {
+    "description": "Default category name: Health"
+  },
+  "categoryEducation": "Education",
+  "@categoryEducation": {
+    "description": "Default category name: Education"
+  },
+  "categoryGifts": "Gifts",
+  "@categoryGifts": {
+    "description": "Default category name: Gifts"
+  },
   "categorySalary": "Salary",
   "categoryBonus": "Bonus",
+  "categoryPartTimeJob": "Part-time Job",
+  "@categoryPartTimeJob": {
+    "description": "Default category name: Part-time Job"
+  },
+  "categoryAllowance": "Allowance",
+  "@categoryAllowance": {
+    "description": "Default category name: Allowance"
+  },
+  "categoryInvestmentReturns": "Investment Returns",
+  "@categoryInvestmentReturns": {
+    "description": "Default category name: Investment Returns"
+  },
   "accountCash": "Cash",
   "accountBankCard": "Bank Card"
 }
