@@ -1,0 +1,311 @@
+{
+  "@@locale": "zh_Hant",
+  "appTitle": "輕羽帳本",
+  "@appTitle": {
+    "description": "應用程式標題"
+  },
+  
+  "ledgerTitle": "帳本",
+  "@ledgerTitle": {
+    "description": "帳本頁面標題"
+  },
+  "income": "收入",
+  "@income": {
+    "description": "收入標籤"
+  },
+  "expense": "支出",
+  "@expense": {
+    "description": "支出標籤"
+  },
+  "balance": "餘額",
+  "@balance": {
+    "description": "餘額標籤"
+  },
+  "totalBalance": "全部餘額",
+  "noTransactionsThisMonth": "本月無交易記錄",
+  "@noTransactionsThisMonth": {
+    "description": "無交易記錄時的提示"
+  },
+  "noTransactionsTitle": "暫無交易",
+  "@noTransactionsTitle": {
+    "description": "無交易時的空狀態標題"
+  },
+  "noTransactionsHint": "點擊 + 新增一筆交易",
+  "@noTransactionsHint": {
+    "description": "無交易時的空狀態提示"
+  },
+  
+  "addTransaction": "新增交易",
+  "@addTransaction": {
+    "description": "新增交易頁面標題"
+  },
+  "edit": "編輯",
+  "editTransaction": "編輯交易",
+  "@editTransaction": {
+    "description": "編輯交易頁面標題"
+  },
+  "deleteTransactionConfirmation": "確定要刪除此交易嗎？此操作無法復原。",
+  "@deleteTransactionConfirmation": {
+    "description": "刪除交易確認訊息"
+  },
+  "amount": "金額",
+  "@amount": {
+    "description": "金額欄位標籤"
+  },
+  "frequency": "頻率",
+  "@frequency": {
+    "description": "熱力圖模式-頻率"
+  },
+  "date": "日期",
+  "@date": {
+    "description": "日期欄位標籤"
+  },
+  "category": "分類",
+  "@category": {
+    "description": "分類欄位標籤"
+  },
+  "categoryNameHint": "分類名稱",
+  "@categoryNameHint": {
+    "description": "分類名稱輸入提示"
+  },
+  "name": "名稱",
+  "@name": {
+    "description": "通用名稱標籤"
+  },
+  "color": "顏色",
+  "@color": {
+    "description": "分類顏色區塊標籤"
+  },
+  "icon": "圖示",
+  "@icon": {
+    "description": "分類圖示區塊標籤"
+  },
+  "account": "帳戶",
+  "@account": {
+    "description": "帳戶欄位標籤"
+  },
+  "note": "備註",
+  "@note": {
+    "description": "備註欄位標籤"
+  },
+  "save": "保存",
+  "saveTransaction": "儲存交易",
+  "@saveTransaction": {
+    "description": "儲存交易按鈕"
+  },
+  "required": "必填",
+  "@required": {
+    "description": "必填欄位驗證提示"
+  },
+  "invalidAmount": "金額無效",
+  "@invalidAmount": {
+    "description": "無效金額驗證提示"
+  },
+  "noCategoriesFound": "未找到分類，請先新增分類。",
+  "@noCategoriesFound": {
+    "description": "無分類時的提示"
+  },
+  "noAccountsFound": "未找到帳戶。",
+  "@noAccountsFound": {
+    "description": "無帳戶時的提示"
+  },
+  "errorPrefix": "錯誤：{error}",
+  "@errorPrefix": {
+    "description": "錯誤訊息前綴",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "settings": "設定",
+  "@settings": {
+    "description": "設定頁面標題"
+  },
+  "theme": "主題",
+  "@theme": {
+    "description": "主題設定標籤"
+  },
+  "language": "語言",
+  "@language": {
+    "description": "語言設定標籤"
+  },
+  "currencySymbol": "貨幣符號",
+  "@currencySymbol": {
+    "description": "貨幣符號設定標籤"
+  },
+  "system": "跟隨系統",
+  "@system": {
+    "description": "系統主題選項"
+  },
+  "light": "淺色",
+  "@light": {
+    "description": "淺色主題選項"
+  },
+  "dark": "深色",
+  "@dark": {
+    "description": "深色主題選項"
+  },
+  "english": "英語",
+  "@english": {
+    "description": "英語語言選項"
+  },
+  "chinese": "中文",
+  "@chinese": {
+    "description": "中文語言選項"
+  },
+  "simplifiedChinese": "簡體中文",
+  "@simplifiedChinese": {
+    "description": "簡體中文語言選項"
+  },
+  "traditionalChinese": "繁體中文",
+  "@traditionalChinese": {
+    "description": "繁體中文語言選項"
+  },
+  "loading": "載入中...",
+  "@loading": {
+    "description": "載入指示器文字"
+  },
+  
+  "reports": "報表",
+  "@reports": {
+    "description": "報表頁面標題"
+  },
+  "activityHeatmap": "活動熱力圖",
+  "@activityHeatmap": {
+    "description": "活動熱力圖區塊標題"
+  },
+  "incomeBreakdown": "收入明細",
+  "@incomeBreakdown": {
+    "description": "收入明細圖表標題"
+  },
+  "expenseBreakdown": "支出明細",
+  "@expenseBreakdown": {
+    "description": "支出明細圖表標題"
+  },
+  "others": "其餘項",
+  "@others": {
+    "description": "報表中合併分類的標籤"
+  },
+  "noData": "暫無資料",
+  "@noData": {
+    "description": "無資料時的提示"
+  },
+  
+  "more": "更多",
+  "@more": {
+    "description": "更多頁面標題"
+  },
+  "accounts": "帳戶",
+  "@accounts": {
+    "description": "帳戶選單項"
+  },
+  "categories": "分類",
+  "@categories": {
+    "description": "分類選單項"
+  },
+  
+  "dollarCurrency": "$ (美元)",
+  "@dollarCurrency": {
+    "description": "美元貨幣選項"
+  },
+  "yuanCurrency": "¥ (人民幣)",
+  "@yuanCurrency": {
+    "description": "人民幣貨幣選項"
+  },
+  "yenCurrency": "¥ (日圓)",
+  "@yenCurrency": {
+    "description": "日圓貨幣選項"
+  },
+  "euroCurrency": "€ (歐元)",
+  "@euroCurrency": {
+    "description": "歐元貨幣選項"
+  },
+  "poundCurrency": "£ (英鎊)",
+  "@poundCurrency": {
+    "description": "英鎊貨幣選項"
+  },
+  
+  "accountsTitle": "帳戶",
+  "@accountsTitle": {
+    "description": "帳戶頁面標題"
+  },
+  "addAccount": "新增帳戶",
+  "@addAccount": {
+    "description": "新增帳戶頁面標題"
+  },
+  "editAccount": "編輯帳戶",
+  "@editAccount": {
+    "description": "編輯帳戶頁面標題"
+  },
+  "accountName": "帳戶名稱",
+  "@accountName": {
+    "description": "帳戶名稱欄位標籤"
+  },
+  "accountType": "帳戶類型",
+  "@accountType": {
+    "description": "帳戶類型欄位標籤"
+  },
+  "initialBalance": "初始餘額",
+  "@initialBalance": {
+    "description": "初始餘額欄位標籤"
+  },
+  "accountSaved": "帳戶已儲存",
+  "@accountSaved": {
+    "description": "帳戶儲存成功提示"
+  },
+  "deleteAccountConfirmation": "確定要刪除此帳戶嗎？",
+  "@deleteAccountConfirmation": {
+    "description": "刪除帳戶確認訊息"
+  },
+  "deleteCategoryConfirmationTitle": "確定要刪除該分類嗎？",
+  "@deleteCategoryConfirmationTitle": {
+    "description": "刪除分類確認標題"
+  },
+  "deleteCategoryConfirmationMessage": "不會刪除既有的交易記錄。",
+  "@deleteCategoryConfirmationMessage": {
+    "description": "刪除分類確認提示"
+  },
+  "delete": "刪除",
+  "@delete": {
+    "description": "刪除按鈕文字"
+  },
+  "cancel": "取消",
+  "@cancel": {
+    "description": "取消按鈕文字"
+  },
+  "feedback": "回饋",
+  "@feedback": {
+    "description": "回饋選單項"
+  },
+  "about": "關於",
+  "@about": {
+    "description": "關於選單項"
+  },
+  "openSourceLicenses": "開源許可",
+  "@openSourceLicenses": {
+    "description": "開源許可選單項"
+  },
+  "version": "版本",
+  "@version": {
+    "description": "版本標籤"
+  },
+  "featureNotAvailable": "功能暫不可用",
+  "@featureNotAvailable": {
+    "description": "未實作功能的提示"
+  },
+  "pressBackAgainToExit": "再按一次退出",
+  "manageCategories": "管理分類",
+  "manageAccounts": "管理帳戶",
+  "@pressBackAgainToExit": {
+    "description": "提示使用者再按一次返回鍵退出"
+  },
+  "categoryFood": "餐飲",
+  "categoryTransport": "交通",
+  "categoryShopping": "購物",
+  "categorySalary": "薪資",
+  "categoryBonus": "獎金",
+  "accountCash": "現金",
+  "accountBankCard": "銀行卡"
+}

@@ -1,12 +1,10 @@
-// ignore: unused_import
-import 'package:intl/intl.dart' as intl;
-import 'app_localizations.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
-// ignore_for_file: type=lint
-
-/// The translations for English (`en`).
-class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn([String locale = 'en']) : super(locale);
+// A fake AppLocalizations class that returns hardcoded English strings.
+// Used for testing purposes where a real BuildContext is not available.
+class FakeAppLocalizations implements AppLocalizations {
+  @override
+  String get localeName => 'en'; // Added missing concrete implementation
 
   @override
   String get appTitle => 'Feather Ledger';
@@ -23,6 +21,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get balance => 'Balance';
 
+  // ignore: non_constant_identifier_names
   @override
   String get totalBalance => 'Total Balance';
 

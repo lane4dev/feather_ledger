@@ -1,16 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/seeder.dart';
 import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../../support/fakes/fake_app_database.dart';
+import '../../../support/fakes/fake_app_localizations.dart'; // Import FakeAppLocalizations
 
 void main() {
   late AppDatabase database;
+  late FakeAppLocalizations l10n; // Declare l10n
 
   setUp(() {
     database = FakeAppDatabase();
+    l10n = FakeAppLocalizations(); // Initialize l10n
   });
 
   tearDown(() async {
@@ -24,7 +26,7 @@ void main() {
       expect(categories, isEmpty);
 
       // Run seeder
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       // Verify categories were inserted
       categories = await database.transactionDao.getAllCategories();
@@ -33,7 +35,7 @@ void main() {
       // Verify specific categories
       final categoryNames = categories.map((c) => c.name).toSet();
       expect(categoryNames,
-          containsAll(['Food', 'Transport', 'Shopping', 'Salary', 'Bonus']));
+          containsAll([l10n.categoryFood, l10n.categoryTransport, l10n.categoryShopping, l10n.categorySalary, l10n.categoryBonus]));
     });
 
     test('should seed accounts when database is empty', () async {
@@ -42,7 +44,7 @@ void main() {
       expect(accounts, isEmpty);
 
       // Run seeder
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       // Verify accounts were inserted
       accounts = await database.transactionDao.getAllAccounts();
@@ -50,11 +52,11 @@ void main() {
 
       // Verify specific accounts
       final accountNames = accounts.map((a) => a.name).toSet();
-      expect(accountNames, containsAll(['Cash', 'Bank Card']));
+      expect(accountNames, containsAll([l10n.accountCash, l10n.accountBankCard]));
     });
 
     test('should insert expense categories with correct properties', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final categories = await database.transactionDao.getAllCategories();
       final expenseCategories =
@@ -71,19 +73,19 @@ void main() {
       }
 
       // Verify specific expense categories
-      final food = categories.firstWhere((c) => c.name == 'Food');
+      final food = categories.firstWhere((c) => c.name == l10n.categoryFood);
       expect(food.type, equals(TransactionType.expense));
       expect(food.iconKey, isNotEmpty);
 
-      final transport = categories.firstWhere((c) => c.name == 'Transport');
+      final transport = categories.firstWhere((c) => c.name == l10n.categoryTransport);
       expect(transport.type, equals(TransactionType.expense));
 
-      final shopping = categories.firstWhere((c) => c.name == 'Shopping');
+      final shopping = categories.firstWhere((c) => c.name == l10n.categoryShopping);
       expect(shopping.type, equals(TransactionType.expense));
     });
 
     test('should insert income categories with correct properties', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final categories = await database.transactionDao.getAllCategories();
       final incomeCategories =
@@ -100,25 +102,25 @@ void main() {
       }
 
       // Verify specific income categories
-      final salary = categories.firstWhere((c) => c.name == 'Salary');
+      final salary = categories.firstWhere((c) => c.name == l10n.categorySalary);
       expect(salary.type, equals(TransactionType.income));
 
-      final bonus = categories.firstWhere((c) => c.name == 'Bonus');
+      final bonus = categories.firstWhere((c) => c.name == l10n.categoryBonus);
       expect(bonus.type, equals(TransactionType.income));
     });
 
     test('should insert accounts with correct properties', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final accounts = await database.transactionDao.getAllAccounts();
 
       // Verify Cash account
-      final cash = accounts.firstWhere((a) => a.name == 'Cash');
+      final cash = accounts.firstWhere((a) => a.name == l10n.accountCash);
       expect(cash.type, equals(AccountType.cash));
       expect(cash.initialBalance, equals(0.0));
 
       // Verify Bank Card account
-      final bankCard = accounts.firstWhere((a) => a.name == 'Bank Card');
+      final bankCard = accounts.firstWhere((a) => a.name == l10n.accountBankCard);
       expect(bankCard.type, equals(AccountType.bank));
       expect(bankCard.initialBalance, equals(1000.0));
     });
@@ -126,12 +128,12 @@ void main() {
     test('should not duplicate categories when called multiple times',
         () async {
       // Run seeder first time
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
       var categories = await database.transactionDao.getAllCategories();
       expect(categories, hasLength(5));
 
       // Run seeder again
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
       categories = await database.transactionDao.getAllCategories();
 
       // Should still have only 5 categories
@@ -140,12 +142,12 @@ void main() {
 
     test('should not duplicate accounts when called multiple times', () async {
       // Run seeder first time
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
       var accounts = await database.transactionDao.getAllAccounts();
       expect(accounts, hasLength(2));
 
       // Run seeder again
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
       accounts = await database.transactionDao.getAllAccounts();
 
       // Should still have only 2 accounts
@@ -164,7 +166,7 @@ void main() {
           );
 
       // Run seeder
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       // Categories should not be seeded (already exists)
       final categories = await database.transactionDao.getAllCategories();
@@ -186,7 +188,7 @@ void main() {
           );
 
       // Run seeder
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       // Accounts should not be seeded (already exists)
       final accounts = await database.transactionDao.getAllAccounts();
@@ -201,14 +203,14 @@ void main() {
     test('should complete successfully on empty database', () async {
       // This should not throw any exceptions
       await expectLater(
-        seedDatabase(database),
+        seedDatabase(database, l10n), // Pass l10n
         completes,
       );
     });
 
     test('should use batch insert for categories', () async {
       // Run seeder
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       // All categories should be inserted
       final categories = await database.transactionDao.getAllCategories();
@@ -220,7 +222,7 @@ void main() {
     });
 
     test('should assign unique IDs to categories', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final categories = await database.transactionDao.getAllCategories();
       final ids = categories.map((c) => c.id).toList();
@@ -230,7 +232,7 @@ void main() {
     });
 
     test('should assign unique IDs to accounts', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final accounts = await database.transactionDao.getAllAccounts();
       final ids = accounts.map((a) => a.id).toList();
@@ -240,7 +242,7 @@ void main() {
     });
 
     test('should insert all default data in a single seed operation', () async {
-      await seedDatabase(database);
+      await seedDatabase(database, l10n); // Pass l10n
 
       final categories = await database.transactionDao.getAllCategories();
       final accounts = await database.transactionDao.getAllAccounts();

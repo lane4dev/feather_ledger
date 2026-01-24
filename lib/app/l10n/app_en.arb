@@ -21,7 +21,7 @@
   "@balance": {
     "description": "Balance label"
   },
-  "total_balance": "Total Balance",
+  "totalBalance": "Total Balance",
   "noTransactionsThisMonth": "No transactions this month",
   "@noTransactionsThisMonth": {
     "description": "Message when no transactions exist"
@@ -154,6 +154,14 @@
   "chinese": "Chinese",
   "@chinese": {
     "description": "Chinese language option"
+  },
+  "simplifiedChinese": "Simplified Chinese",
+  "@simplifiedChinese": {
+    "description": "Simplified Chinese language option"
+  },
+  "traditionalChinese": "Traditional Chinese",
+  "@traditionalChinese": {
+    "description": "Traditional Chinese language option"
   },
   "loading": "Loading...",
   "@loading": {
@@ -292,5 +300,12 @@
   "manageAccounts": "Manage Accounts",
   "@pressBackAgainToExit": {
     "description": "Prompt shown when user needs to press back again to exit"
-  }
+  },
+  "categoryFood": "Food",
+  "categoryTransport": "Transport",
+  "categoryShopping": "Shopping",
+  "categorySalary": "Salary",
+  "categoryBonus": "Bonus",
+  "accountCash": "Cash",
+  "accountBankCard": "Bank Card"
 }
