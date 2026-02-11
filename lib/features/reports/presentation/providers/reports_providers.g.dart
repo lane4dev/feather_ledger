@@ -77,5 +77,20 @@ final heatmapModeStateProvider =
 );
 
 typedef _$HeatmapModeState = AutoDisposeNotifier<HeatmapMode>;
+String _$selectedDateHash() => r'cc9b319722e2f967ffe36ff1184e0e14a6d96cf6';
+
+/// See also [SelectedDate].
+@ProviderFor(SelectedDate)
+final selectedDateProvider =
+    AutoDisposeNotifierProvider<SelectedDate, DateTime>.internal(
+  SelectedDate.new,
+  name: r'selectedDateProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$selectedDateHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$SelectedDate = AutoDisposeNotifier<DateTime>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

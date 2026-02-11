@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/features/ledger/presentation/providers/ledger_providers.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 import '../providers/reports_providers.dart';

@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
 import '../../domain/entities/reports_entities.dart';
@@ -14,13 +14,14 @@ export '../../domain/repositories/reports_repository.dart';
 part 'reports_repository.g.dart';
 
 class ReportsRepositoryImpl implements ReportsRepository {
-  final TransactionDao _dao;
+  final TransactionsDao _dao;
 
   ReportsRepositoryImpl(this._dao);
 
   @override
   Stream<Map<DateTime, int>> watchHeatmapData(DateTime month) {
-    return _dao.watchDailyTransactionCounts(month);
+    // Original implementation was counts, keeping for compatibility if available
+    return _dao.watchDailyTransactionAmounts(month);
   }
 
   @override
@@ -31,7 +32,6 @@ class ReportsRepositoryImpl implements ReportsRepository {
   @override
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
       DateTime month, TransactionType type) {
-    // Removed prefix
     return _dao.watchCategoryTotals(month, type).map((rows) {
       return rows.map((row) {
         return ReportCategoryTotal(
@@ -43,7 +43,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
             type: row.category.type,
             isDefault: row.category.isDefault,
           ),
-          total: row.total,
+          total: row.total / 100.0,
         );
       }).toList();
     });
@@ -53,5 +53,5 @@ class ReportsRepositoryImpl implements ReportsRepository {
 @riverpod
 ReportsRepository reportsRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
-  return ReportsRepositoryImpl(db.transactionDao);
+  return ReportsRepositoryImpl(db.transactionsDao);
 }

@@ -53,7 +53,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
               sorted.skip(5).fold(0.0, (sum, item) => sum + item.total);
           processedData.add(ReportCategoryTotal(
             category: CategoryEntity(
-              id: -1,
+              id: 'others',
               name: l10n.others,
               iconKey: '57564',
               colorInt: Colors.grey.toARGB32(),

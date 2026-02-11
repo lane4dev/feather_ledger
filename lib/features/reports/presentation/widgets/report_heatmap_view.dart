@@ -45,7 +45,7 @@ class ReportHeatmapView extends ConsumerWidget {
               startDate: DateTime(selectedDate.year, selectedDate.month - 2, 1),
               endDate: DateTime(selectedDate.year, selectedDate.month + 1, 0),
               datasets: data,
-              colorMode: ColorMode.opacity,
+              colorMode: ColorMode.color,
               showText: true,
               scrollable: true,
               colorsets: ReportTheme.heatmapColors,

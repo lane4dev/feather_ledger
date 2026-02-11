@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/domain/entities/enums.dart';
-import 'package:feather_ledger/features/ledger/presentation/providers/ledger_providers.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../../data/repositories/reports_repository.dart';
 import '../../domain/entities/reports_entities.dart';
@@ -18,6 +17,18 @@ class HeatmapModeState extends _$HeatmapModeState {
 
   void setMode(HeatmapMode mode) {
     state = mode;
+  }
+}
+
+@riverpod
+class SelectedDate extends _$SelectedDate {
+  @override
+  DateTime build() {
+    return DateTime.now();
+  }
+
+  void setMonth(DateTime date) {
+    state = date;
   }
 }
 
