@@ -3,8 +3,9 @@
 part of 'transaction_dao.dart';
 
 // ignore_for_file: type=lint
-mixin _$TransactionDaoMixin on DatabaseAccessor<AppDatabase> {
+mixin _$TransactionsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $AccountsViewTable get accountsView => attachedDatabase.accountsView;
+  $TransactionsViewTable get transactionsView =>
+      attachedDatabase.transactionsView;
   $CategoriesTable get categories => attachedDatabase.categories;
-  $AccountsTable get accounts => attachedDatabase.accounts;
-  $TransactionsTable get transactions => attachedDatabase.transactions;
 }

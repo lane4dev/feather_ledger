@@ -1,139 +1,184 @@
 import 'package:drift/drift.dart';
 
-import '../../../domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
+
 import '../app_database.dart';
 import '../tables.dart';
 
 part 'transaction_dao.g.dart';
 
 class TransactionWithDetails {
-  final Transaction transaction;
-  final Category category;
-  final Account account;
+  final TransactionViewRow transaction;
+  final CategoryRow category;
+  final AccountViewRow account;
 
   TransactionWithDetails(this.transaction, this.category, this.account);
 }
 
 class CategoryTotal {
-  final Category category;
-  final double total;
+  final CategoryRow category;
+  final int total;
 
   CategoryTotal({required this.category, required this.total});
 }
 
-@DriftAccessor(tables: [Transactions, Categories, Accounts])
-class TransactionDao extends DatabaseAccessor<AppDatabase>
-    with _$TransactionDaoMixin {
-  TransactionDao(super.db);
+@DriftAccessor(tables: [TransactionsView, Categories, AccountsView])
+class TransactionsDao extends DatabaseAccessor<AppDatabase>
+    with _$TransactionsDaoMixin {
+  TransactionsDao(super.db);
 
   Stream<List<TransactionWithDetails>> watchTransactionsByMonth(
-      DateTime month) {
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
+      DateTime datetime) {
+    final start = DateTime(datetime.year, datetime.month, 1);
+    final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
 
-    final query = select(transactions).join([
-      innerJoin(categories, categories.id.equalsExp(transactions.categoryId)),
-      innerJoin(accounts, accounts.id.equalsExp(transactions.accountId)),
+    final query = select(transactionsView).join([
+      innerJoin(
+          categories, categories.id.equalsExp(transactionsView.categoryId)),
+      innerJoin(
+          accountsView, accountsView.id.equalsExp(transactionsView.accountId)),
     ])
-      ..where(transactions.date.isBetweenValues(start, end))
-      ..orderBy([OrderingTerm.desc(transactions.date)]);
+      ..where(transactionsView.date.isBetweenValues(start, end))
+      ..orderBy([OrderingTerm.desc(transactionsView.date)]);
 
     return query.watch().map((rows) {
       return rows.map((row) {
         return TransactionWithDetails(
-          row.readTable(transactions),
+          row.readTable(transactionsView),
           row.readTable(categories),
-          row.readTable(accounts),
+          row.readTable(accountsView),
         );
       }).toList();
     });
   }
 
-  Future<int> addTransaction(TransactionsCompanion entry) {
-    return into(transactions).insert(entry);
+  Future<TransactionWithDetails?> getTransaction(String id) async {
+    final query = select(transactionsView).join([
+      innerJoin(
+          categories, categories.id.equalsExp(transactionsView.categoryId)),
+      innerJoin(
+          accountsView, accountsView.id.equalsExp(transactionsView.accountId)),
+    ])
+      ..where(transactionsView.transactionId.equals(id));
+
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+
+    return TransactionWithDetails(
+      row.readTable(transactionsView),
+      row.readTable(categories),
+      row.readTable(accountsView),
+    );
   }
 
-  Future<bool> updateTransaction(TransactionsCompanion entry) {
-    return update(transactions).replace(entry);
+  Future<void> insertOrReplace(TransactionsViewCompanion transaction) {
+    return into(transactionsView).insertOnConflictUpdate(transaction);
   }
 
-  Future<int> deleteTransaction(int id) {
-    return (delete(transactions)..where((t) => t.id.equals(id))).go();
+  Future<int> deleteTransaction(String id) {
+    return (delete(transactionsView)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<List<Category>> getAllCategories() => select(categories).get();
-  Future<List<Account>> getAllAccounts() => select(accounts).get();
-
-  // Category CRUD
-  Future<int> addCategory(CategoriesCompanion entry) {
-    return into(categories).insert(entry);
+  Future<void> markTransactionAsReversed(String transactionId) async {
+    await (update(transactionsView)
+          ..where((t) => t.transactionId.equals(transactionId)))
+        .write(
+      const TransactionsViewCompanion(isReversed: Value(true)),
+    );
   }
 
-  Future<bool> updateCategory(CategoriesCompanion entry) {
-    return update(categories).replace(entry);
+  Future<List<CategoryRow>> getAllCategories() => select(categories).get();
+  Future<List<AccountViewRow>> getAllAccounts() => select(accountsView).get();
+
+  // Category Access
+  Future<CategoryRow?> getCategoryById(String id) {
+    return (select(categories)..where((c) => c.id.equals(id)))
+        .getSingleOrNull();
   }
 
-  Future<int> deleteCategory(int id) {
-    return (delete(categories)..where((c) => c.id.equals(id))).go();
+  Future<void> addCategory(CategoriesCompanion entry) async {
+    if (entry.isBuildIn.value == true) {
+      throw ArgumentError('Cannot add a built-in category via addCategory.');
+    }
+    await into(categories).insert(entry);
   }
 
-  Stream<List<Category>> watchCategoriesByType(TransactionType type) {
-    return (select(categories)..where((c) => c.type.equals(type.index)))
+  Future<void> updateCategory(CategoriesCompanion entry) async {
+    final existingCategory = await (select(categories)
+          ..where((c) => c.id.equals(entry.id.value)))
+        .getSingleOrNull();
+    if (existingCategory != null && existingCategory.isBuildIn) {
+      throw ArgumentError('Cannot update a built-in category.');
+    }
+    await (update(categories)..where((t) => t.id.equals(entry.id.value)))
+        .write(entry);
+  }
+
+  Future<void> archiveCategory(String id) async {
+    final existingCategory = await (select(categories)
+          ..where((c) => c.id.equals(id)))
+        .getSingleOrNull();
+    if (existingCategory != null && existingCategory.isBuildIn) {
+      throw ArgumentError('Cannot archive a built-in category.');
+    }
+    await (update(categories)..where((c) => c.id.equals(id))).write(
+      CategoriesCompanion(
+        isArchived: const Value(true),
+        archivedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Stream<List<CategoryRow>> watchCategoriesByType(TransactionType type) {
+    // Filter out archived and built-in categories
+    return (select(categories)
+          ..where((c) =>
+              c.type.equals(type.index) &
+              c.isArchived.equals(false) &
+              c.isBuildIn.equals(false)))
         .watch();
   }
 
-  Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month) {
-    final start = DateTime(month.year, month.month - 2, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
+  Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime datetime) {
+    final start = DateTime(datetime.year, datetime.month - 2, 1);
+    final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
 
-    return (select(transactions)
-          ..where((t) => t.date.isBetweenValues(start, end)))
+    return (select(transactionsView)
+          ..where((t) =>
+              t.date.isBetweenValues(start, end) & t.isReversed.equals(false)))
         .watch()
         .map((rows) {
       final map = <DateTime, int>{};
       for (var row in rows) {
         final day = DateTime(row.date.year, row.date.month, row.date.day);
-        map[day] = (map[day] ?? 0) + 1;
-      }
-      return map;
-    });
-  }
-
-  Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime month) {
-    final start = DateTime(month.year, month.month - 2, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
-        .subtract(const Duration(seconds: 1));
-
-    return (select(transactions)
-          ..where((t) => t.date.isBetweenValues(start, end)))
-        .watch()
-        .map((rows) {
-      final map = <DateTime, int>{};
-      for (var row in rows) {
-        final day = DateTime(row.date.year, row.date.month, row.date.day);
-        // Accumulate amount, rounded to nearest integer for heatmap intensity
-        map[day] = (map[day] ?? 0) + row.amount.round();
+        map[day] = (map[day] ?? 0) + row.amount;
       }
       return map;
     });
   }
 
   Stream<List<CategoryTotal>> watchCategoryTotals(
-      DateTime month, TransactionType type) {
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
+      DateTime datetime, TransactionType type) {
+    final start = DateTime(datetime.year, datetime.month, 1);
+    final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
 
-    final amountSum = transactions.amount.sum();
+    final amountSum = transactionsView.amount.sum();
 
-    final query = select(transactions).join([
-      innerJoin(categories, categories.id.equalsExp(transactions.categoryId))
+    // Determine implied type based on amount sign or explicitly join categories
+    // MVP: Positive = Income, Negative = Expense? Or use Category Type?
+    // Using Category Type filter as per original logic.
+
+    final query = select(transactionsView).join([
+      innerJoin(
+          categories, categories.id.equalsExp(transactionsView.categoryId))
     ])
       ..addColumns([amountSum])
-      ..where(transactions.date.isBetweenValues(start, end) &
-          transactions.type.equals(type.index))
+      ..where(transactionsView.date.isBetweenValues(start, end) &
+          categories.type.equals(type.index) &
+          transactionsView.isReversed.equals(false))
       ..groupBy([categories.id]);
 
     return query.watch().map((rows) {
@@ -146,17 +191,23 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  Stream<Map<String, double>> watchMonthlyTotals(DateTime month) {
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
+  Stream<Map<String, double>> watchMonthlyTotals(DateTime datetime) {
+    final start = DateTime(datetime.year, datetime.month, 1);
+    final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
 
-    final income = transactions.amount.sum();
-    final type = transactions.type;
+    final amountSum = transactionsView.amount.sum();
+    final type = categories.type;
 
-    final query = selectOnly(transactions)
-      ..addColumns([income, type])
-      ..where(transactions.date.isBetweenValues(start, end))
+    final query = select(transactionsView).join([
+      innerJoin(
+          categories, categories.id.equalsExp(transactionsView.categoryId)),
+      innerJoin(
+          accountsView, accountsView.id.equalsExp(transactionsView.accountId)),
+    ])
+      ..addColumns([amountSum, type])
+      ..where(transactionsView.date.isBetweenValues(start, end) &
+          transactionsView.isReversed.equals(false))
       ..groupBy([type]);
 
     return query.watch().map((rows) {
@@ -164,9 +215,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
       double totalExpense = 0;
 
       for (var row in rows) {
-        final amount = row.read(income) ?? 0;
-        final t = row.read(type);
-        if (t == TransactionType.income.index) {
+        final amount = row.read(amountSum) ?? 0;
+        final categoryRow = row.readTable(categories);
+        if (categoryRow.type == TransactionType.income) {
           totalIncome += amount;
         } else {
           totalExpense += amount;
@@ -174,39 +225,29 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
       }
 
       return {
-        'income': totalIncome,
-        'expense': totalExpense,
+        'income': totalIncome / 100.0,
+        'expense': totalExpense / 100.0,
       };
     });
   }
 
-  Future<double> getRunningBalance(DateTime monthEnd) async {
-    final accountSumQuery = selectOnly(accounts)
-      ..addColumns([accounts.initialBalance.sum()]);
+  Future<double> getRunningBalance(DateTime dateEnd) async {
+    // Base total from AccountsView (seed/initial balance in current MVP)
+    final accountSumQuery = selectOnly(accountsView)
+      ..addColumns([accountsView.postedBalance.sum()]);
     final accountSumRow = await accountSumQuery.getSingle();
-    final initialTotal =
-        accountSumRow.read(accounts.initialBalance.sum()) ?? 0.0;
+    final currentTotal =
+        accountSumRow.read(accountsView.postedBalance.sum()) ?? 0;
 
-    final txSumQuery = selectOnly(transactions)
-      ..addColumns([transactions.amount.sum(), transactions.type])
-      ..where(transactions.date.isSmallerOrEqualValue(monthEnd))
-      ..groupBy([transactions.type]);
+    // Apply all transactions up to and including dateEnd
+    // final txSumQuery = selectOnly(transactionsView)
+    //   ..addColumns([transactionsView.amount.sum()])
+    //   ..where(transactionsView.date.isSmallerOrEqualValue(dateEnd) &
+    //       transactionsView.isReversed.equals(false));
 
-    final txRows = await txSumQuery.get();
+    // final txRow = await txSumQuery.getSingle();
+    // final txSumToMonthEnd = txRow.read(transactionsView.amount.sum()) ?? 0;
 
-    double income = 0;
-    double expense = 0;
-
-    for (var row in txRows) {
-      final val = row.read(transactions.amount.sum()) ?? 0;
-      final t = row.read(transactions.type);
-      if (t == TransactionType.income.index) {
-        income += val;
-      } else {
-        expense += val;
-      }
-    }
-
-    return initialTotal + income - expense;
+    return (currentTotal).toDouble();
   }
 }

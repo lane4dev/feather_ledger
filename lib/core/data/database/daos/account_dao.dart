@@ -5,27 +5,26 @@ import '../tables.dart';
 
 part 'account_dao.g.dart';
 
-@DriftAccessor(tables: [Accounts])
+@DriftAccessor(tables: [AccountsView])
 class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
   AccountDao(super.db);
 
-  Future<List<Account>> getAllAccounts() => select(accounts).get();
+  Future<List<AccountViewRow>> getAllAccounts() => select(accountsView).get();
 
-  Stream<List<Account>> watchAllAccounts() => select(accounts).watch();
+  Stream<List<AccountViewRow>> watchAllAccounts() =>
+      select(accountsView).watch();
 
-  Future<Account?> getAccountById(int id) {
-    return (select(accounts)..where((t) => t.id.equals(id))).getSingleOrNull();
+  Future<AccountViewRow?> getAccountById(String id) {
+    return (select(accountsView)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
   }
 
-  Future<int> addAccount(AccountsCompanion entry) {
-    return into(accounts).insert(entry);
+  // Projection updates (called by Repository)
+  Future<void> insertOrReplace(AccountsViewCompanion entry) {
+    return into(accountsView).insertOnConflictUpdate(entry);
   }
 
-  Future<bool> updateAccount(AccountsCompanion entry) {
-    return update(accounts).replace(entry);
-  }
-
-  Future<int> deleteAccount(int id) {
-    return (delete(accounts)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteAccount(String id) {
+    return (delete(accountsView)..where((t) => t.id.equals(id))).go();
   }
 }

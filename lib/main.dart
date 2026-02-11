@@ -7,8 +7,8 @@ import 'app/l10n/app_localizations.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/config/app_languages.dart';
+import 'app/bootstrap/seeder.dart';
 import 'core/data/database/app_database.dart';
-import 'core/data/database/seeder.dart';
 import 'core/presentation/providers/theme_provider.dart';
 import 'core/presentation/providers/locale_provider.dart';
 

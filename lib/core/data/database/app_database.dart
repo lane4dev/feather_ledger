@@ -7,17 +7,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/entities/enums.dart'; // Added import
+import '../../domain/enums.dart';
 
 import 'tables.dart';
+
 import 'daos/transaction_dao.dart';
 import 'daos/account_dao.dart';
+import 'daos/events_dao.dart';
+import 'daos/recurring_dao.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(
-    tables: [Accounts, Categories, Transactions],
-    daos: [TransactionDao, AccountDao])
+@DriftDatabase(tables: [
+  LedgerEvents,
+  AccountsView,
+  TransactionsView,
+  Categories,
+  RecurringSeries,
+  ScheduledTransactionsView
+], daos: [
+  EventsDao,
+  TransactionsDao,
+  AccountDao,
+  RecurringDao
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -27,6 +40,19 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          // Placeholder for future migrations
+          // if (from < 2) {
+          //   await m.createTable(ledgerEvents);
+          // }
+        },
+      );
 }
 
 LazyDatabase _openConnection() {
