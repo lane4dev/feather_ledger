@@ -1,27 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'account_repository.dart';
+part of 'event_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$accountRepositoryHash() => r'db9537c833fe2a4fc9dd989b06472f2d6db8a9dd';
+String _$eventRepositoryHash() => r'bb9c3afc97e3c8888a2d86fcc3825d327567ee67';
 
-/// See also [accountRepository].
-@ProviderFor(accountRepository)
-final accountRepositoryProvider = Provider<AccountRepository>.internal(
-  accountRepository,
-  name: r'accountRepositoryProvider',
+/// See also [eventRepository].
+@ProviderFor(eventRepository)
+final eventRepositoryProvider = Provider<EventRepository>.internal(
+  eventRepository,
+  name: r'eventRepositoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$accountRepositoryHash,
+      : _$eventRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AccountRepositoryRef = ProviderRef<AccountRepository>;
+typedef EventRepositoryRef = ProviderRef<EventRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -18,6 +18,7 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   static const _keyTheme = 'app_theme_mode';
   static const _keyLocale = 'app_locale';
   static const _keyCurrency = 'currency_code';
+  static const _keyShowBalance = 'show_balance';
 
   @override
   ThemeMode getThemeMode() {
@@ -59,6 +60,16 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   @override
   Future<void> setCurrency(String code) {
     return _prefs.setString(_keyCurrency, code);
+  }
+
+  @override
+  bool getShowBalance() {
+    return _prefs.getBool(_keyShowBalance) ?? true;
+  }
+
+  @override
+  Future<void> setShowBalance(bool show) {
+    return _prefs.setBool(_keyShowBalance, show);
   }
 }
 
