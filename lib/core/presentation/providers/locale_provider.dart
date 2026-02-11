@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../data/repositories/preferences_repository.dart';
 
 part 'locale_provider.g.dart';

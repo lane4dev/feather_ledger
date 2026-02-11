@@ -1,27 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'currency_provider.dart';
+part of 'balance_visibility_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$currencyControllerHash() =>
-    r'aeda4d681144994436db730da771396e129be008';
+String _$balanceVisibilityControllerHash() =>
+    r'e1b9d30591d1370ec22ec793ed1905f3a361248d';
 
-/// See also [CurrencyController].
-@ProviderFor(CurrencyController)
-final currencyControllerProvider =
-    AutoDisposeAsyncNotifierProvider<CurrencyController, String>.internal(
-  CurrencyController.new,
-  name: r'currencyControllerProvider',
+/// See also [BalanceVisibilityController].
+@ProviderFor(BalanceVisibilityController)
+final balanceVisibilityControllerProvider = AutoDisposeAsyncNotifierProvider<
+    BalanceVisibilityController, bool>.internal(
+  BalanceVisibilityController.new,
+  name: r'balanceVisibilityControllerProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$currencyControllerHash,
+      : _$balanceVisibilityControllerHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-typedef _$CurrencyController = AutoDisposeAsyncNotifier<String>;
+typedef _$BalanceVisibilityController = AutoDisposeAsyncNotifier<bool>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
