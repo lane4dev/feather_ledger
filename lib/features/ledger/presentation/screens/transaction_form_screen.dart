@@ -1,24 +1,24 @@
-import 'package:feather_ledger/core/domain/entities/account.dart';
-import 'package:feather_ledger/core/domain/entities/category.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart'; // Added import
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
-import 'package:feather_ledger/app/config/app_currencies.dart';
 
-import '../../domain/entities/ledger_entities.dart';
-import '../../domain/services/ledger_service.dart';
-// import '../providers/ledger_providers.dart';
+// import '../../domain/entities/ledger_entities.dart';
+import '../models/transaction_tile_ui_model.dart';
 
+import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
@@ -26,7 +26,7 @@ import '../widgets/ledger_selector_field.dart';
 import '../widgets/ledger_type_selector.dart';
 
 class TransactionFormScreen extends ConsumerStatefulWidget {
-  final TransactionEntity? transaction;
+  final TransactionTileUiModel? transaction;
   const TransactionFormScreen({super.key, this.transaction});
 
   @override
@@ -42,14 +42,15 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   TransactionType _type = TransactionType.expense;
   DateTime _date = DateTime.now();
   String? _note;
-  int? _categoryId;
-  int? _accountId;
+  String? _categoryId;
+  String? _accountId;
 
   @override
   void initState() {
     super.initState();
+
     if (widget.transaction != null) {
-      _amount = widget.transaction!.amount;
+      _amount = widget.transaction!.amount / 100.0;
       _type = widget.transaction!.type;
       _date = widget.transaction!.date;
       _note = widget.transaction!.note;
@@ -91,7 +92,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Transaction Type Toggle
-              // Centered segmented button, clean look
               LedgerTypeSelector(
                 selectedType: _type,
                 onSelectionChanged: (type) {
@@ -104,7 +104,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 32),
 
               // 2. Amount Input
-              // Big, bold, colored
               LedgerAmountInput(
                 initialValue: _amount,
                 type: _type,
@@ -147,12 +146,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 4. Category
               LedgerFormRow(
-                icon: Icons.grid_view_outlined, // or local_offer_outlined
+                icon: Icons.grid_view_outlined,
                 child: categoriesAsync.when(
                   data: (categories) {
                     final filtered =
                         categories.where((c) => c.type == _type).toList();
-                    return FormField<int>(
+                    return FormField<String>(
                       key: ValueKey(_type),
                       initialValue: _categoryId,
                       validator: (val) => val == null ? l10n.required : null,
@@ -168,7 +167,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               : null,
                           errorText: state.hasError ? state.errorText : null,
                           onTap: () async {
-                            final result = await showModalBottomSheet<int>(
+                            final result = await showModalBottomSheet<String>(
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
@@ -210,7 +209,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 icon: Icons.account_balance_wallet_outlined,
                 child: accountsAsync.when(
                   data: (accounts) {
-                    return FormField<int>(
+                    return FormField<String>(
                       initialValue: _accountId,
                       validator: (val) => val == null ? l10n.required : null,
                       builder: (state) {
@@ -225,7 +224,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               : null,
                           errorText: state.hasError ? state.errorText : null,
                           onTap: () async {
-                            final result = await showModalBottomSheet<int>(
+                            final result = await showModalBottomSheet<String>(
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
@@ -234,6 +233,23 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                 title: l10n.account,
                                 options: accounts,
                                 getLabel: (a) => a.name,
+                                getTrailing: (context, a) => Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '$currencySymbol${(a.postedBalance / 100.0).toStringAsFixed(2)}',
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge,
+                                    ),
+                                    if (a.id == state.value) ...[
+                                      const SizedBox(width: 8),
+                                      Icon(Icons.check,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary),
+                                    ],
+                                  ],
+                                ),
                                 getLeading: (context, a) => CircleAvatar(
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
@@ -326,19 +342,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         );
       });
     } else {
-      // User cancelled time, still save date but keep old time?
-      // Or just default to 00:00?
-      // Usually better to keep current time or reset.
-      // Let's just update date and keep current time if user cancels time picker?
-      // No, standard flow is if you pick date, you expect that date.
-      // But we asked for time accuracy.
-      // Let's assume if they cancel time, they didn't mean to change the whole thing?
-      // Or we can just use the date with existing time.
-      // Let's simple combine date + picked time.
-
-      // If time is null (cancelled), we typically keep the previous time part
-      // but strictly we just picked a NEW date.
-      // Let's just update the date part and keep the time part of `_date`.
       setState(() {
         _date = DateTime(
           date.year,
@@ -355,10 +358,42 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      // Overdraft check
+      if (_type == TransactionType.expense && _accountId != null) {
+        final accounts = ref.read(accountListProvider).valueOrNull;
+        final account = accounts?.where((a) => a.id == _accountId).firstOrNull;
+
+        if (account != null && account.type != AccountType.credit) {
+          final currentBalance = account.postedBalance / 100.0;
+          if (currentBalance - _amount! < 0) {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('warning'),
+                content: const Text(
+                    'This transaction will cause an overdraft. Continue?'), // Ideally localized
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(AppLocalizations.of(context)!.cancel),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(AppLocalizations.of(context)!.save),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm != true) return;
+          }
+        }
+      }
+
       try {
-        final service = ref.read(ledgerServiceProvider);
+        final vm = ref.read(ledgerViewModelProvider.notifier);
         if (widget.transaction == null) {
-          await service.addTransaction(
+          await vm.addTransaction(
             amount: _amount!,
             type: _type,
             date: _date,
@@ -367,7 +402,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             note: _note,
           );
         } else {
-          await service.updateTransaction(
+          await vm.updateTransaction(
             id: widget.transaction!.id,
             amount: _amount!,
             type: _type,

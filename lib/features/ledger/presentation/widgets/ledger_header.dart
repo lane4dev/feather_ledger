@@ -1,10 +1,13 @@
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 
-import '../../domain/entities/ledger_entities.dart';
+import '../../domain/value_objects/monthly_summary.dart';
 import '../theme/ledger_theme.dart';
 
 class LedgerHeader extends StatelessWidget {
@@ -12,7 +15,7 @@ class LedgerHeader extends StatelessWidget {
   final MonthlySummary? summary;
   final ValueChanged<DateTime>? onMonthChanged;
   final VoidCallback? onMonthTap;
-  final String currencySymbol;
+  final String? currencySymbol;
 
   const LedgerHeader({
     super.key,
@@ -20,11 +23,14 @@ class LedgerHeader extends StatelessWidget {
     this.summary,
     this.onMonthChanged,
     this.onMonthTap,
-    this.currencySymbol = '\$',
+    this.currencySymbol,
   });
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbol =
+        this.currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
+
     // Expanded State
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -63,31 +69,29 @@ class LedgerHeader extends StatelessWidget {
   }
 }
 
-class LedgerHeaderCompact extends StatelessWidget {
+class LedgerHeaderCompact extends ConsumerWidget {
   final DateTime selectedDate;
   final MonthlySummary? summary;
-  final String currencySymbol;
+  final String? currencySymbol;
 
   const LedgerHeaderCompact({
     super.key,
     required this.selectedDate,
     this.summary,
-    this.currencySymbol = '\$',
+    this.currencySymbol,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final locale = Localizations.localeOf(context).toString();
+    final showBalance =
+        ref.watch(balanceVisibilityControllerProvider).valueOrNull ?? true;
+
+    final currencySymbol =
+        this.currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
+
     return Row(
       children: [
-        // We might NOT want the spacer in the AppBar title if the Back button or leading icon is there?
-        // But the design says "Month Switcher + Balance... coexist without overlap".
-        // If this is a SliverAppBar, the `leading` widget (back button) usually takes the left space.
-        // If we are at root, maybe no leading?
-        // Let's assume standard AppBar behavior. We don't force 72dp spacer here because AppBar handles leading.
-        // But visual alignment with the list (which has 72dp spacer) is nice.
-        // Let's just show the content.
-
         Text(
           DateFormat.yMMM(locale).format(selectedDate),
           style: Theme.of(context).textTheme.titleMedium,
@@ -95,7 +99,9 @@ class LedgerHeaderCompact extends StatelessWidget {
         if (summary != null) ...[
           SizedBox(width: context.spacing.md),
           Text(
-            '$currencySymbol${summary!.runningBalance.toStringAsFixed(2)}',
+            showBalance
+                ? '$currencySymbol${summary!.runningBalance.toStringAsFixed(2)}'
+                : '******',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -152,7 +158,7 @@ class _MonthSwitcher extends StatelessWidget {
   }
 }
 
-class _BalanceSummary extends StatelessWidget {
+class _BalanceSummary extends ConsumerWidget {
   final MonthlySummary summary;
   final String currency;
 
@@ -162,10 +168,12 @@ class _BalanceSummary extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final showBalance =
+        ref.watch(balanceVisibilityControllerProvider).valueOrNull ?? true;
 
     return Container(
       width: double.infinity,
@@ -182,15 +190,34 @@ class _BalanceSummary extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.totalBalance,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                children: [
+                  Text(
+                    l10n.totalBalance,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => ref
+                        .read(balanceVisibilityControllerProvider.notifier)
+                        .toggle(),
+                    child: Icon(
+                      showBalance
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
-                '$currency${summary.runningBalance.toStringAsFixed(2)}',
+                showBalance
+                    ? '$currency${summary.runningBalance.toStringAsFixed(2)}'
+                    : '******',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
@@ -205,18 +232,20 @@ class _BalanceSummary extends StatelessWidget {
             children: [
               _IncomeExpenseCompact(
                 label: l10n.income,
-                amount: summary.totalIncome,
+                amount: summary.totalIncome.abs(),
                 color: context.colors.income,
                 currency: currency,
                 icon: Icons.arrow_downward_rounded,
+                showBalance: showBalance,
               ),
               const SizedBox(height: 8),
               _IncomeExpenseCompact(
                 label: l10n.expense,
-                amount: summary.totalExpense,
+                amount: summary.totalExpense.abs(),
                 color: context.colors.expense,
                 currency: currency,
                 icon: Icons.arrow_upward_rounded,
+                showBalance: showBalance,
               ),
             ],
           ),
@@ -232,6 +261,7 @@ class _IncomeExpenseCompact extends StatelessWidget {
   final Color color;
   final String currency;
   final IconData icon;
+  final bool showBalance;
 
   const _IncomeExpenseCompact({
     required this.label,
@@ -239,6 +269,7 @@ class _IncomeExpenseCompact extends StatelessWidget {
     required this.color,
     required this.currency,
     required this.icon,
+    required this.showBalance,
   });
 
   @override
@@ -264,7 +295,7 @@ class _IncomeExpenseCompact extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '$currency${amount.toStringAsFixed(2)}',
+              showBalance ? '$currency${amount.toStringAsFixed(2)}' : '******',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,

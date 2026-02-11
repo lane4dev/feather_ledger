@@ -3,17 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 
+import '../models/transaction_tile_ui_model.dart';
 import 'transaction_detail_sheet.dart';
+import '../view_model/ledger_view_model.dart';
 
 import 'ledger_empty.dart';
 import 'ledger_skeleton.dart';
 import 'ledger_timeline.dart';
 
 class LedgerTransactionList extends ConsumerWidget {
-  final AsyncValue<Map<DateTime, List<TransactionEntity>>> transactionsAsync;
+  final AsyncValue<Map<DateTime, List<TransactionTileUiModel>>>
+      transactionsAsync;
   final String currency;
   final AppLocalizations l10n;
 
@@ -86,7 +87,7 @@ class LedgerTransactionList extends ConsumerWidget {
                           Navigator.of(context).pop(); // Close sheet
                           try {
                             await ref
-                                .read(ledgerServiceProvider)
+                                .read(ledgerViewModelProvider.notifier)
                                 .deleteTransaction(tx.id);
                           } catch (e) {
                             if (context.mounted) {

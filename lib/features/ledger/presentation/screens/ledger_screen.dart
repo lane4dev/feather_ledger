@@ -6,7 +6,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
-import '../providers/ledger_providers.dart';
+import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
 
@@ -56,14 +56,14 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   }
 
   Future<void> _goToMonth(DateTime date) async {
-    final current = ref.read(selectedDateProvider);
+    final current = ref.read(ledgerViewModelProvider).selectedDate;
     if (current == date) return;
 
     // Determine direction
     _isNext = date.isAfter(current);
 
     // Update state
-    ref.read(selectedDateProvider.notifier).setMonth(date);
+    ref.read(ledgerViewModelProvider.notifier).setMonth(date);
 
     // Scroll to top to expand header
     if (_scrollController.hasClients) {
@@ -90,9 +90,10 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedDate = ref.watch(selectedDateProvider);
-    final summaryAsync = ref.watch(ledgerSummaryProvider);
-    final transactionsAsync = ref.watch(dailyTransactionsProvider);
+    final ledgerState = ref.watch(ledgerViewModelProvider);
+    final selectedDate = ledgerState.selectedDate;
+    final summaryAsync = ledgerState.summary;
+    final transactionsAsync = ledgerState.dailyTransactions;
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -115,12 +116,12 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
           const sensitivity = 300.0;
           if (details.primaryVelocity! < -sensitivity) {
             // Swipe Left -> Next Month
-            final current = ref.read(selectedDateProvider);
+            final current = ref.read(ledgerViewModelProvider).selectedDate;
             final next = DateTime(current.year, current.month + 1);
             _goToMonth(next);
           } else if (details.primaryVelocity! > sensitivity) {
             // Swipe Right -> Previous Month
-            final current = ref.read(selectedDateProvider);
+            final current = ref.read(ledgerViewModelProvider).selectedDate;
             final prev = DateTime(current.year, current.month - 1);
             _goToMonth(prev);
           }

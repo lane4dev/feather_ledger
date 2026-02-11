@@ -5,17 +5,17 @@ import 'package:intl/intl.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
-import '../../domain/entities/ledger_entities.dart';
+import '../models/transaction_tile_ui_model.dart';
 
 import 'ledger_detail_row.dart';
 import 'ledger_sheet_handle.dart';
 
 class TransactionDetailSheet extends ConsumerWidget {
-  final TransactionEntity transaction;
+  final TransactionTileUiModel transaction;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final String? currencySymbol;
@@ -102,11 +102,32 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
           SizedBox(height: context.spacing.sm),
 
+          // REVERSED BANNER
+          // if (transaction.isReversed)
+          //   Container(
+          //     margin: EdgeInsets.only(bottom: context.spacing.md),
+          //     padding: EdgeInsets.symmetric(
+          //       horizontal: context.spacing.md,
+          //       vertical: context.spacing.xs,
+          //     ),
+          //     decoration: BoxDecoration(
+          //       color: Theme.of(context).colorScheme.errorContainer,
+          //       borderRadius: BorderRadius.circular(8),
+          //     ),
+          //     child: Text(
+          //       'REVERSED', // TODO: Localize
+          //       style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          //             color: Theme.of(context).colorScheme.onErrorContainer,
+          //           ),
+          //       textAlign: TextAlign.center,
+          //     ),
+          //   ),
+
           // Amount (Hero)
           Text(
             [
               transaction.type == TransactionType.expense ? '-' : '+',
-              '$currency${transaction.amount.toStringAsFixed(2)}',
+              '$currency${transaction.displayAmount}',
             ].join(' '),
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: color,

@@ -5,11 +5,12 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
   final String title;
   final List<T> options;
   final String Function(T) getLabel;
+  final bool Function(T) isSelected;
+  final ValueChanged<T> onSelected;
+  final Widget Function(BuildContext context, T option)? getTrailing;
   final IconData? Function(T)? getIcon;
   final Color? Function(T)? getColor;
   final Widget Function(BuildContext context, T option)? getLeading;
-  final bool Function(T) isSelected;
-  final ValueChanged<T> onSelected;
   final VoidCallback? onManageTap;
   final String? manageButtonText;
 
@@ -20,6 +21,7 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
     required this.getLabel,
     required this.isSelected,
     required this.onSelected,
+    this.getTrailing,
     this.getIcon,
     this.getColor,
     this.getLeading,
@@ -59,8 +61,8 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                         (icon != null
                             ? (color != null
                                 ? CircleAvatar(
-                                    backgroundColor:
-                                        color.withAlpha(50), // Using withAlpha for consistency
+                                    backgroundColor: color.withAlpha(
+                                        50), // Using withAlpha for consistency
                                     foregroundColor: color,
                                     child: Icon(icon, size: 20),
                                   )
@@ -81,10 +83,12 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                             : null,
                       ),
                     ),
-                    trailing: selected
-                        ? Icon(Icons.check,
-                            color: Theme.of(context).colorScheme.primary)
-                        : null,
+                    trailing: getTrailing != null
+                        ? getTrailing!(context, option)
+                        : (selected
+                            ? Icon(Icons.check,
+                                color: Theme.of(context).colorScheme.primary)
+                            : null),
                     onTap: () => onSelected(option),
                   );
                 },

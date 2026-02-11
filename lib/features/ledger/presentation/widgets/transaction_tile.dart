@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 
-import '../../domain/entities/ledger_entities.dart';
+import '../models/transaction_tile_ui_model.dart';
 import '../theme/ledger_theme.dart';
 
 class TransactionTile extends StatelessWidget {
-  final TransactionEntity transaction;
+  final TransactionTileUiModel transaction;
   final VoidCallback? onTap;
-  final String currencySymbol;
+  final String? currencySymbol;
 
   const TransactionTile({
     super.key,
     required this.transaction,
     this.onTap,
-    this.currencySymbol = '\$',
+    this.currencySymbol,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveCurrencySymbol =
+        currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
+
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -182,7 +186,7 @@ class TransactionTile extends StatelessWidget {
 
             // Amount
             Text(
-              '${transaction.type == TransactionType.expense ? '-' : '+'} $currencySymbol${transaction.amount.toStringAsFixed(2)}',
+              '${transaction.displaySign} $effectiveCurrencySymbol${transaction.displayAmount}',
               style: LedgerTheme.transactionAmount(context).copyWith(
                 color: transaction.type == TransactionType.expense
                     ? context.colors.expense
