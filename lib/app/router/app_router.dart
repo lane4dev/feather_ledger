@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/more_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/settings_screen.dart';
@@ -46,7 +46,8 @@ GoRouter goRouter(Ref ref) {
                     path: 'edit',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
-                      final transaction = state.extra as TransactionEntity?;
+                      final transaction =
+                          state.extra as TransactionTileUiModel?;
                       return TransactionFormScreen(transaction: transaction);
                     },
                   ),
