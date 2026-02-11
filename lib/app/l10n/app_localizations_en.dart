@@ -201,6 +201,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountSaved => 'Account saved';
 
   @override
+  String get balanceChangeDetectedTitle => 'Balance change detected';
+
+  @override
+  String get balanceChangeDetectedMessage =>
+      'Balance has changed. A correction transaction will be created. Continue?';
+
+  @override
+  String get accountBalanceAdjustmentDescription =>
+      'Account balance adjustment';
+
+  @override
+  String get accountBalanceAdjustmentNotes =>
+      'Automated adjustment for account balance change.';
+
+  @override
   String get deleteAccountConfirmation =>
       'Are you sure you want to delete this account?';
 
@@ -272,6 +287,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryGifts => 'Gifts';
 
   @override
+  String get categoryReversalExpense => 'Reversal';
+
+  @override
   String get categorySalary => 'Salary';
 
   @override
@@ -285,6 +303,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryInvestmentReturns => 'Investment Returns';
+
+  @override
+  String get categoryReversalIncome => 'Reversal';
 
   @override
   String get accountCash => 'Cash';

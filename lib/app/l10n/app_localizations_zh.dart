@@ -200,6 +200,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountSaved => '账户已保存';
 
   @override
+  String get balanceChangeDetectedTitle => '检测到余额变更';
+
+  @override
+  String get balanceChangeDetectedMessage => '余额已更改，将创建一笔更正交易。是否继续？';
+
+  @override
+  String get accountBalanceAdjustmentDescription => '账户余额调整';
+
+  @override
+  String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
+
+  @override
   String get deleteAccountConfirmation => '确定要删除此账户吗？';
 
   @override
@@ -269,6 +281,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryGifts => '礼物';
 
   @override
+  String get categoryReversalExpense => '冲正';
+
+  @override
   String get categorySalary => '薪水';
 
   @override
@@ -282,6 +297,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get categoryInvestmentReturns => '投资收益';
+
+  @override
+  String get categoryReversalIncome => '冲正';
 
   @override
   String get accountCash => '现金';
@@ -486,6 +504,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accountSaved => '账户已保存';
 
   @override
+  String get balanceChangeDetectedTitle => '检测到余额变更';
+
+  @override
+  String get balanceChangeDetectedMessage => '余额已更改，将创建一笔更正交易。是否继续？';
+
+  @override
+  String get accountBalanceAdjustmentDescription => '账户余额调整';
+
+  @override
+  String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
+
+  @override
   String get deleteAccountConfirmation => '确定要删除此账户吗？';
 
   @override
@@ -555,6 +585,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get categoryGifts => '礼物';
 
   @override
+  String get categoryReversalExpense => '冲正';
+
+  @override
   String get categorySalary => '薪水';
 
   @override
@@ -568,6 +601,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get categoryInvestmentReturns => '投资收益';
+
+  @override
+  String get categoryReversalIncome => '冲正';
 
   @override
   String get accountCash => '现金';
@@ -772,6 +808,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get accountSaved => '帳戶已儲存';
 
   @override
+  String get balanceChangeDetectedTitle => '偵測到餘額變更';
+
+  @override
+  String get balanceChangeDetectedMessage => '餘額已更改，將建立一筆更正交易。是否繼續？';
+
+  @override
+  String get accountBalanceAdjustmentDescription => '帳戶餘額調整';
+
+  @override
+  String get accountBalanceAdjustmentNotes => '因帳戶餘額變更自動調整。';
+
+  @override
   String get deleteAccountConfirmation => '確定要刪除此帳戶嗎？';
 
   @override
@@ -841,6 +889,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get categoryGifts => '禮物';
 
   @override
+  String get categoryReversalExpense => '沖正';
+
+  @override
   String get categorySalary => '薪資';
 
   @override
@@ -854,6 +905,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get categoryInvestmentReturns => '投資收益';
+
+  @override
+  String get categoryReversalIncome => '沖正';
 
   @override
   String get accountCash => '現金';

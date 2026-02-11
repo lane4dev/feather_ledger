@@ -255,6 +255,22 @@
   "@accountSaved": {
     "description": "账户保存成功提示"
   },
+  "balanceChangeDetectedTitle": "检测到余额变更",
+  "@balanceChangeDetectedTitle": {
+    "description": "余额变更确认弹窗标题"
+  },
+  "balanceChangeDetectedMessage": "余额已更改，将创建一笔更正交易。是否继续？",
+  "@balanceChangeDetectedMessage": {
+    "description": "余额变更确认弹窗内容"
+  },
+  "accountBalanceAdjustmentDescription": "账户余额调整",
+  "@accountBalanceAdjustmentDescription": {
+    "description": "账户余额自动调整交易的描述"
+  },
+  "accountBalanceAdjustmentNotes": "因账户余额变更自动调整。",
+  "@accountBalanceAdjustmentNotes": {
+    "description": "账户余额自动调整交易的备注"
+  },
   "deleteAccountConfirmation": "确定要删除此账户吗？",
   "@deleteAccountConfirmation": {
     "description": "删除账户确认消息"
@@ -332,6 +348,10 @@
   "@categoryGifts": {
     "description": "默认分类名称：礼物"
   },
+  "categoryReversalExpense": "冲正",
+  "@categoryReversalExpense": {
+    "description": "系统分类名称：冲正 (支出)"
+  },
   "categorySalary": "薪水",
   "categoryBonus": "奖金",
   "categoryPartTimeJob": "兼职",
@@ -345,6 +365,10 @@
   "categoryInvestmentReturns": "投资收益",
   "@categoryInvestmentReturns": {
     "description": "默认分类名称：投资收益"
+  },
+  "categoryReversalIncome": "冲正",
+  "@categoryReversalIncome": {
+    "description": "系统分类名称：冲正 (收入)"
   },
   "accountCash": "现金",
   "accountBankCard": "银行卡"

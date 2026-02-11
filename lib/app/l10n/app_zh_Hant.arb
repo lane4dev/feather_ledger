@@ -255,6 +255,22 @@
   "@accountSaved": {
     "description": "帳戶儲存成功提示"
   },
+  "balanceChangeDetectedTitle": "偵測到餘額變更",
+  "@balanceChangeDetectedTitle": {
+    "description": "餘額變更確認對話框標題"
+  },
+  "balanceChangeDetectedMessage": "餘額已更改，將建立一筆更正交易。是否繼續？",
+  "@balanceChangeDetectedMessage": {
+    "description": "餘額變更確認對話框內容"
+  },
+  "accountBalanceAdjustmentDescription": "帳戶餘額調整",
+  "@accountBalanceAdjustmentDescription": {
+    "description": "帳戶餘額自動調整交易的描述"
+  },
+  "accountBalanceAdjustmentNotes": "因帳戶餘額變更自動調整。",
+  "@accountBalanceAdjustmentNotes": {
+    "description": "帳戶餘額自動調整交易的備註"
+  },
   "deleteAccountConfirmation": "確定要刪除此帳戶嗎？",
   "@deleteAccountConfirmation": {
     "description": "刪除帳戶確認訊息"
@@ -332,6 +348,10 @@
   "@categoryGifts": {
     "description": "預設分類名稱：禮物"
   },
+  "categoryReversalExpense": "沖正",
+  "@categoryReversalExpense": {
+    "description": "系統分類名稱：沖正 (支出)"
+  },
   "categorySalary": "薪資",
   "categoryBonus": "獎金",
   "categoryPartTimeJob": "兼職",
@@ -345,6 +365,10 @@
   "categoryInvestmentReturns": "投資收益",
   "@categoryInvestmentReturns": {
     "description": "預設分類名稱：投資收益"
+  },
+  "categoryReversalIncome": "沖正",
+  "@categoryReversalIncome": {
+    "description": "系統分類名稱：沖正 (收入)"
   },
   "accountCash": "現金",
   "accountBankCard": "銀行卡"

@@ -255,6 +255,22 @@
   "@accountSaved": {
     "description": "Message when account is saved"
   },
+  "balanceChangeDetectedTitle": "Balance change detected",
+  "@balanceChangeDetectedTitle": {
+    "description": "Title for balance change confirmation dialog"
+  },
+  "balanceChangeDetectedMessage": "Balance has changed. A correction transaction will be created. Continue?",
+  "@balanceChangeDetectedMessage": {
+    "description": "Message for balance change confirmation dialog"
+  },
+  "accountBalanceAdjustmentDescription": "Account balance adjustment",
+  "@accountBalanceAdjustmentDescription": {
+    "description": "Description for automated account balance adjustment transaction"
+  },
+  "accountBalanceAdjustmentNotes": "Automated adjustment for account balance change.",
+  "@accountBalanceAdjustmentNotes": {
+    "description": "Notes for automated account balance adjustment transaction"
+  },
   "deleteAccountConfirmation": "Are you sure you want to delete this account?",
   "@deleteAccountConfirmation": {
     "description": "Confirmation message for deleting an account"
@@ -332,6 +348,10 @@
   "@categoryGifts": {
     "description": "Default category name: Gifts"
   },
+  "categoryReversalExpense": "Reversal",
+  "@categoryReversalExpense": {
+    "description": "System category name: Reversal (Expense)"
+  },
   "categorySalary": "Salary",
   "categoryBonus": "Bonus",
   "categoryPartTimeJob": "Part-time Job",
@@ -345,6 +365,10 @@
   "categoryInvestmentReturns": "Investment Returns",
   "@categoryInvestmentReturns": {
     "description": "Default category name: Investment Returns"
+  },
+  "categoryReversalIncome": "Reversal",
+  "@categoryReversalIncome": {
+    "description": "System category name: Reversal (Income)"
   },
   "accountCash": "Cash",
   "accountBankCard": "Bank Card"

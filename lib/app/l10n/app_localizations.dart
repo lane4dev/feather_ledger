@@ -478,6 +478,30 @@ abstract class AppLocalizations {
   /// **'Account saved'**
   String get accountSaved;
 
+  /// Title for balance change confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Balance change detected'**
+  String get balanceChangeDetectedTitle;
+
+  /// Message for balance change confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Balance has changed. A correction transaction will be created. Continue?'**
+  String get balanceChangeDetectedMessage;
+
+  /// Description for automated account balance adjustment transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Account balance adjustment'**
+  String get accountBalanceAdjustmentDescription;
+
+  /// Notes for automated account balance adjustment transaction
+  ///
+  /// In en, this message translates to:
+  /// **'Automated adjustment for account balance change.'**
+  String get accountBalanceAdjustmentNotes;
+
   /// Confirmation message for deleting an account
   ///
   /// In en, this message translates to:
@@ -616,6 +640,12 @@ abstract class AppLocalizations {
   /// **'Gifts'**
   String get categoryGifts;
 
+  /// System category name: Reversal (Expense)
+  ///
+  /// In en, this message translates to:
+  /// **'Reversal'**
+  String get categoryReversalExpense;
+
   /// No description provided for @categorySalary.
   ///
   /// In en, this message translates to:
@@ -645,6 +675,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Investment Returns'**
   String get categoryInvestmentReturns;
+
+  /// System category name: Reversal (Income)
+  ///
+  /// In en, this message translates to:
+  /// **'Reversal'**
+  String get categoryReversalIncome;
 
   /// No description provided for @accountCash.
   ///
