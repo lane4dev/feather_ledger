@@ -6,7 +6,7 @@ part of 'ledger_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$ledgerServiceHash() => r'338c6373a71446f7d875c3dccd1c12ca1084a516';
+String _$ledgerServiceHash() => r'63c8388814e03d92c66b29acc90af89d1e797745';
 
 /// See also [ledgerService].
 @ProviderFor(ledgerService)
