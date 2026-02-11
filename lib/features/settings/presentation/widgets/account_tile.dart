@@ -29,7 +29,7 @@ class AccountTile extends StatelessWidget {
         style: Theme.of(context).textTheme.bodySmall,
       ),
       trailing: Text(
-        '$currencySymbol${account.initialBalance.toStringAsFixed(2)}',
+        '$currencySymbol${(account.postedBalance / 100.0).toStringAsFixed(2)}',
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       onTap: onTap,

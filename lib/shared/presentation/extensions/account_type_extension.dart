@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
 extension AccountTypeUi on AccountType {
@@ -23,10 +24,10 @@ extension AccountTypeUi on AccountType {
     // based on user request context, I'll leave simple logic but ready for l10n
     final l10n = AppLocalizations.of(context);
     if (l10n != null) {
-       // TODO: Add proper keys to arb files: accountTypeCash, etc.
-       // returning capitalized name as placeholder matching previous logic
-       final name = this.name;
-       return name[0].toUpperCase() + name.substring(1);
+      // TODO: Add proper keys to arb files: accountTypeCash, etc.
+      // returning capitalized name as placeholder matching previous logic
+      final name = this.name;
+      return name[0].toUpperCase() + name.substring(1);
     }
     return name;
   }

@@ -6,10 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
-import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 
@@ -32,7 +33,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   void initState() {
     super.initState();
     _name = widget.account?.name ?? '';
-    _balance = widget.account?.initialBalance ?? 0.0;
+    _balance = widget.account?.postedBalance != null
+        ? widget.account!.postedBalance / 100.0
+        : 0.0;
     _selectedType = widget.account?.type ?? AccountType.cash; // Removed prefix
   }
 
@@ -42,8 +45,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final isEditing = widget.account != null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final currencyKey =
-        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
+        AppCurrencies.defaultCurrency.symbol;
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Container(
@@ -252,9 +255,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
     if (confirm == true) {
       if (!mounted) return;
-      await ref
-          .read(accountRepositoryProvider)
-          .deleteAccount(widget.account!.id);
+      await ref.read(accountServiceProvider).deleteAccount(widget.account!.id);
       if (mounted) context.pop();
     }
   }
@@ -262,18 +263,51 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final repository = ref.read(accountRepositoryProvider);
+      final service = ref.read(accountServiceProvider);
 
       try {
         if (widget.account != null) {
-          await repository.updateAccount(
-            id: widget.account!.id,
-            name: _name,
-            type: _selectedType,
-            initialBalance: _balance,
-          );
+          final currentBalance = widget.account!.postedBalance / 100.0;
+          if ((_balance - currentBalance).abs() > 0.001) {
+            final l10n = AppLocalizations.of(context)!;
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(l10n.balanceChangeDetectedTitle),
+                content: Text(l10n.balanceChangeDetectedMessage),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(l10n.save),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm != true) return;
+
+            await service.updateAccount(
+              id: widget.account!.id,
+              name: _name,
+              type: _selectedType,
+              newBalance: _balance,
+              balanceAdjustmentDescription:
+                  l10n.accountBalanceAdjustmentDescription,
+              balanceAdjustmentNotes: l10n.accountBalanceAdjustmentNotes,
+            );
+          } else {
+            await service.updateAccount(
+              id: widget.account!.id,
+              name: _name,
+              type: _selectedType,
+            );
+          }
         } else {
-          await repository.addAccount(
+          await service.createAccount(
             name: _name,
             type: _selectedType,
             initialBalance: _balance,

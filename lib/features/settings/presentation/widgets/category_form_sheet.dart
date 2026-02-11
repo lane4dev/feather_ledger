@@ -1,11 +1,12 @@
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
@@ -255,19 +256,26 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
 
       try {
         if (widget.category != null) {
-          await repository.updateCategory(
+          await repository.updateCategory(CategoryEntity(
             id: widget.category!.id,
             name: _name,
             iconKey: _iconKey,
             colorInt: _colorInt,
             type: widget.type,
-          );
+            isDefault: widget.category!.isDefault,
+          ));
         } else {
-          await repository.addCategory(
+          final newCategory = CategoryEntity(
+            id: const Uuid().v4(),
             name: _name,
             iconKey: _iconKey,
             colorInt: _colorInt,
             type: widget.type,
+            isDefault: false,
+          );
+
+          await repository.addCategory(
+            newCategory,
           );
         }
 
