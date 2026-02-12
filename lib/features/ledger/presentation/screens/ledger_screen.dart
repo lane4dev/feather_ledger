@@ -20,25 +20,45 @@ class LedgerScreen extends ConsumerStatefulWidget {
 
 class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   final ScrollController _scrollController = ScrollController();
-  bool _isNext = true;
+  final PageController _pageController = PageController(
+    initialPage: _getIndex(DateTime.now()),
+  );
+
   bool _isCollapsed = false;
   static const double _kExpandedHeight = 180.0;
 
-  // Width of the screen edge where swipe gestures are ignored to
-  // prevent conflicts with system gestures.
-  static const double _edgeSwipeWidth = 24.0;
-  bool _ignoreSwipe = false;
+  // Base date for PageView index mapping
+  static final DateTime _baseDate = DateTime(2000, 1);
+
+  static int _getIndex(DateTime date) {
+    return (date.year - _baseDate.year) * 12 + (date.month - _baseDate.month);
+  }
+
+  static DateTime _getDate(int index) {
+    return DateTime(_baseDate.year, _baseDate.month + index);
+  }
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    // Synchronize initial page with selected date if different
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedDate = ref.read(ledgerViewModelProvider).selectedDate;
+      final targetIndex = _getIndex(selectedDate);
+      if (_pageController.hasClients &&
+          _pageController.page?.round() != targetIndex) {
+        _pageController.jumpToPage(targetIndex);
+      }
+    });
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -58,13 +78,22 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
 
   Future<void> _goToMonth(DateTime date) async {
     final current = ref.read(ledgerViewModelProvider).selectedDate;
-    if (current == date) return;
-
-    // Determine direction
-    _isNext = date.isAfter(current);
+    if (current.year == date.year && current.month == date.month) return;
 
     // Update state
     ref.read(ledgerViewModelProvider.notifier).setMonth(date);
+
+    // Animate PageView
+    if (_pageController.hasClients) {
+      final targetPage = _getIndex(date);
+      if ((_pageController.page?.round() ?? 0) != targetPage) {
+        await _pageController.animateToPage(
+          targetPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
 
     // Scroll to top to expand header
     if (_scrollController.hasClients) {
@@ -93,7 +122,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final ledgerState = ref.watch(ledgerViewModelProvider);
     final selectedDate = ledgerState.selectedDate;
     final summaryAsync = ledgerState.summary;
-    final transactionsAsync = ledgerState.dailyTransactions;
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -101,102 +129,61 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
-      body: GestureDetector(
-        onHorizontalDragStart: (details) {
-          final dx = details.globalPosition.dx;
-          _ignoreSwipe =
-              dx <= _edgeSwipeWidth || dx >= screenWidth - _edgeSwipeWidth;
-        },
-        onHorizontalDragEnd: (details) {
-          if (_ignoreSwipe) return;
-          if (details.primaryVelocity == null) return;
-          const sensitivity = 300.0;
-          if (details.primaryVelocity! < -sensitivity) {
-            // Swipe Left -> Next Month
-            final current = ref.read(ledgerViewModelProvider).selectedDate;
-            final next = DateTime(current.year, current.month + 1);
-            _goToMonth(next);
-          } else if (details.primaryVelocity! > sensitivity) {
-            // Swipe Right -> Previous Month
-            final current = ref.read(ledgerViewModelProvider).selectedDate;
-            final prev = DateTime(current.year, current.month - 1);
-            _goToMonth(prev);
-          }
-        },
-        child: NestedScrollView(
-          controller: _scrollController,
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverOverlapAbsorber(
-                handle:
-                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                sliver: SliverAppBar(
-                  pinned: true,
-                  expandedHeight: _kExpandedHeight,
-                  forceElevated: innerBoxIsScrolled,
-                  // Collapsed Content (Title)
-                  title: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
-                    opacity: _isCollapsed ? 1.0 : 0.0,
-                    child: summaryAsync.when(
-                      data: (summary) => LedgerHeaderCompact(
-                        selectedDate: selectedDate,
-                        summary: summary,
-                        currencySymbol: currency,
-                      ),
-                      loading: () => const SizedBox(),
-                      error: (_, __) => const SizedBox(),
-                    ),
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverAppBar(
+                pinned: true,
+                expandedHeight: _kExpandedHeight,
+                forceElevated: innerBoxIsScrolled,
+                // Collapsed Content (Title)
+                title: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _isCollapsed ? 1.0 : 0.0,
+                  child: LedgerHeaderCompact(
+                    selectedDate: selectedDate,
+                    summaryAsync: summaryAsync,
+                    currencySymbol: currency,
                   ),
-                  // Expanded Content (FlexibleSpace)
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: SafeArea(
-                      child: summaryAsync.when(
-                        data: (summary) => LedgerHeader(
-                          selectedDate: selectedDate,
-                          summary: summary,
-                          currencySymbol: currency,
-                          onMonthChanged: _goToMonth,
-                          onMonthTap: () => _onMonthTap(selectedDate),
-                        ),
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Error: $e')),
-                      ),
+                ),
+                // Expanded Content (FlexibleSpace)
+                flexibleSpace: FlexibleSpaceBar(
+                  background: SafeArea(
+                    child: LedgerHeader(
+                      selectedDate: selectedDate,
+                      summaryAsync: summaryAsync,
+                      currencySymbol: currency,
+                      onMonthChanged: _goToMonth,
+                      onMonthTap: () => _onMonthTap(selectedDate),
                     ),
                   ),
                 ),
               ),
-            ];
+            ),
+          ];
+        },
+        body: PageView.builder(
+          controller: _pageController,
+          onPageChanged: (index) {
+            final date = _getDate(index);
+            final current = ref.read(ledgerViewModelProvider).selectedDate;
+            if (current.year != date.year || current.month != date.month) {
+              ref.read(ledgerViewModelProvider.notifier).setMonth(date);
+            }
           },
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, animation) {
-              final isCurrent = child.key == ValueKey(selectedDate);
-              final offset = _isNext
-                  ? (isCurrent ? const Offset(1, 0) : const Offset(-1, 0))
-                  : (isCurrent ? const Offset(-1, 0) : const Offset(1, 0));
-
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: offset,
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              );
-            },
-            child: LedgerTransactionList(
-              key: ValueKey(selectedDate),
-              transactionsAsync: transactionsAsync,
+          itemBuilder: (context, index) {
+            final month = _getDate(index);
+            return LedgerTransactionList(
+              key: ValueKey(month),
+              month: month,
               currency: currency,
               l10n: l10n,
-            ),
-          ),
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(

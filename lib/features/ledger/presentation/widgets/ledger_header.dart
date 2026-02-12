@@ -12,7 +12,7 @@ import '../theme/ledger_theme.dart';
 
 class LedgerHeader extends StatelessWidget {
   final DateTime selectedDate;
-  final MonthlySummary? summary;
+  final AsyncValue<MonthlySummary> summaryAsync;
   final ValueChanged<DateTime>? onMonthChanged;
   final VoidCallback? onMonthTap;
   final String? currencySymbol;
@@ -20,7 +20,7 @@ class LedgerHeader extends StatelessWidget {
   const LedgerHeader({
     super.key,
     required this.selectedDate,
-    this.summary,
+    required this.summaryAsync,
     this.onMonthChanged,
     this.onMonthTap,
     this.currencySymbol,
@@ -55,14 +55,13 @@ class LedgerHeader extends StatelessWidget {
             ],
           ),
           // Balance Summary - Full Width
-          if (summary != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: _BalanceSummary(
-                summary: summary!,
-                currency: currencySymbol,
-              ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: _BalanceSummary(
+              summaryAsync: summaryAsync,
+              currency: currencySymbol,
             ),
+          ),
         ],
       ),
     );
@@ -71,13 +70,13 @@ class LedgerHeader extends StatelessWidget {
 
 class LedgerHeaderCompact extends ConsumerWidget {
   final DateTime selectedDate;
-  final MonthlySummary? summary;
+  final AsyncValue<MonthlySummary> summaryAsync;
   final String? currencySymbol;
 
   const LedgerHeaderCompact({
     super.key,
     required this.selectedDate,
-    this.summary,
+    required this.summaryAsync,
     this.currencySymbol,
   });
 
@@ -96,17 +95,26 @@ class LedgerHeaderCompact extends ConsumerWidget {
           DateFormat.yMMM(locale).format(selectedDate),
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        if (summary != null) ...[
-          SizedBox(width: context.spacing.md),
-          Text(
+        SizedBox(width: context.spacing.md),
+        summaryAsync.when(
+          data: (summary) => Text(
             showBalance
-                ? '$currencySymbol${summary!.runningBalance.toStringAsFixed(2)}'
+                ? '$currencySymbol${summary.runningBalance.toStringAsFixed(2)}'
                 : '******',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
-        ],
+          loading: () => Container(
+            width: 60,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          error: (_, __) => const SizedBox(),
+        ),
       ],
     );
   }
@@ -159,11 +167,11 @@ class _MonthSwitcher extends StatelessWidget {
 }
 
 class _BalanceSummary extends ConsumerWidget {
-  final MonthlySummary summary;
+  final AsyncValue<MonthlySummary> summaryAsync;
   final String currency;
 
   const _BalanceSummary({
-    required this.summary,
+    required this.summaryAsync,
     required this.currency,
   });
 
@@ -182,74 +190,109 @@ class _BalanceSummary extends ConsumerWidget {
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(LedgerTheme.cardRadius),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Main Balance
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    l10n.totalBalance,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+      child: summaryAsync.when(
+        data: (summary) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Main Balance
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      l10n.totalBalance,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => ref
-                        .read(balanceVisibilityControllerProvider.notifier)
-                        .toggle(),
-                    child: Icon(
-                      showBalance
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      size: 14,
-                      color: colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(balanceVisibilityControllerProvider.notifier)
+                          .toggle(),
+                      child: Icon(
+                        showBalance
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                showBalance
-                    ? '$currency${summary.runningBalance.toStringAsFixed(2)}'
-                    : '******',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: colorScheme.onSurface,
+                  ],
                 ),
-              ),
-            ],
-          ),
-          // Income & Expense Stats
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _IncomeExpenseCompact(
-                label: l10n.income,
-                amount: summary.totalIncome.abs(),
-                color: context.colors.income,
-                currency: currency,
-                icon: Icons.arrow_downward_rounded,
-                showBalance: showBalance,
-              ),
-              const SizedBox(height: 8),
-              _IncomeExpenseCompact(
-                label: l10n.expense,
-                amount: summary.totalExpense.abs(),
-                color: context.colors.expense,
-                currency: currency,
-                icon: Icons.arrow_upward_rounded,
-                showBalance: showBalance,
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 4),
+                Text(
+                  showBalance
+                      ? '$currency${summary.runningBalance.toStringAsFixed(2)}'
+                      : '******',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            // Income & Expense Stats
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _IncomeExpenseCompact(
+                  label: l10n.income,
+                  amount: summary.totalIncome.abs(),
+                  color: context.colors.income,
+                  currency: currency,
+                  icon: Icons.arrow_downward_rounded,
+                  showBalance: showBalance,
+                ),
+                const SizedBox(height: 8),
+                _IncomeExpenseCompact(
+                  label: l10n.expense,
+                  amount: summary.totalExpense.abs(),
+                  color: context.colors.expense,
+                  currency: currency,
+                  icon: Icons.arrow_upward_rounded,
+                  showBalance: showBalance,
+                ),
+              ],
+            ),
+          ],
+        ),
+        loading: () => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _skeleton(width: 60, height: 12),
+                const SizedBox(height: 8),
+                _skeleton(width: 120, height: 28),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _skeleton(width: 80, height: 24),
+                const SizedBox(height: 8),
+                _skeleton(width: 80, height: 24),
+              ],
+            ),
+          ],
+        ),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      ),
+    );
+  }
+
+  Widget _skeleton({required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }

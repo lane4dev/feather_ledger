@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
-import '../models/transaction_tile_ui_model.dart';
 import 'transaction_detail_sheet.dart';
 import '../view_model/ledger_view_model.dart';
 
@@ -13,20 +12,21 @@ import 'ledger_skeleton.dart';
 import 'ledger_timeline.dart';
 
 class LedgerTransactionList extends ConsumerWidget {
-  final AsyncValue<Map<DateTime, List<TransactionTileUiModel>>>
-      transactionsAsync;
+  final DateTime month;
   final String currency;
   final AppLocalizations l10n;
 
   const LedgerTransactionList({
     super.key,
-    required this.transactionsAsync,
+    required this.month,
     required this.currency,
     required this.l10n,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(ledgerMonthlyTransactionsProvider(month));
+
     // Wrap in a container with background color to prevent transparency issues during slide
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,

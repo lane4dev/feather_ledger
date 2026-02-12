@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -14,9 +15,33 @@ import 'ledger_view_state.dart';
 
 part 'ledger_view_model.g.dart';
 
+@riverpod
+Stream<Map<DateTime, List<TransactionTileUiModel>>> ledgerMonthlyTransactions(
+  Ref ref,
+  DateTime month,
+) {
+  final service = ref.watch(ledgerServiceProvider);
+  const mapper = TransactionUiMapper();
+
+  return service.watchTransactions(month).map((items) {
+    final uiItems = items.map(mapper.toTile).toList();
+    return groupTransactionsByDay(uiItems);
+  });
+}
+
+Map<DateTime, List<TransactionTileUiModel>> groupTransactionsByDay(
+  List<TransactionTileUiModel> transactions,
+) {
+  final grouped = <DateTime, List<TransactionTileUiModel>>{};
+  for (final tx in transactions) {
+    final dateKey = DateTime(tx.date.year, tx.date.month, tx.date.day);
+    grouped.putIfAbsent(dateKey, () => []).add(tx);
+  }
+  return grouped;
+}
+
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
-  StreamSubscription<List<TransactionEntity>>? _transactionsSub;
   StreamSubscription<MonthlySummary>? _summarySub;
   StreamSubscription<List<ScheduledTransactionEntity>>? _scheduledSub;
 
@@ -25,12 +50,11 @@ class LedgerViewModel extends _$LedgerViewModel {
     final initial = LedgerViewState.initial();
 
     ref.onDispose(() {
-      _transactionsSub?.cancel();
       _summarySub?.cancel();
       _scheduledSub?.cancel();
     });
 
-    _subscribeForMonth(initial.selectedDate);
+    _subscribeSummary(initial.selectedDate);
     _subscribeScheduledTransactions();
     return initial;
   }
@@ -41,12 +65,9 @@ class LedgerViewModel extends _$LedgerViewModel {
 
     state = state.copyWith(
       selectedDate: normalized,
-      summary: const AsyncLoading(),
-      transactions: const AsyncLoading(),
-      dailyTransactions: const AsyncLoading(),
     );
 
-    _subscribeForMonth(normalized);
+    _subscribeSummary(normalized);
   }
 
   Future<void> ensureAccountBalanceLoaded(String accountId) async {
@@ -141,30 +162,11 @@ class LedgerViewModel extends _$LedgerViewModel {
     );
   }
 
-  void _subscribeForMonth(DateTime datetime) {
-    _transactionsSub?.cancel();
+  void _subscribeSummary(DateTime datetime) {
     _summarySub?.cancel();
 
-    final service = ref.read(ledgerServiceProvider);
-    const mapper = TransactionUiMapper();
-
-    _transactionsSub = service.watchTransactions(datetime).listen(
-      (items) {
-        final uiItems = items.map(mapper.toTile).toList();
-        state = state.copyWith(
-          transactions: AsyncData(uiItems),
-          dailyTransactions: AsyncData(_groupByDay(uiItems)),
-        );
-      },
-      onError: (Object error, StackTrace st) {
-        state = state.copyWith(
-          transactions: AsyncError(error, st),
-          dailyTransactions: AsyncError(error, st),
-        );
-      },
-    );
-
-    _summarySub = service.watchMonthlySummary(datetime).listen(
+    _summarySub =
+        ref.read(ledgerServiceProvider).watchMonthlySummary(datetime).listen(
       (summary) {
         state = state.copyWith(summary: AsyncData(summary));
       },
@@ -172,16 +174,5 @@ class LedgerViewModel extends _$LedgerViewModel {
         state = state.copyWith(summary: AsyncError(error, st));
       },
     );
-  }
-
-  Map<DateTime, List<TransactionTileUiModel>> _groupByDay(
-    List<TransactionTileUiModel> transactions,
-  ) {
-    final grouped = <DateTime, List<TransactionTileUiModel>>{};
-    for (final tx in transactions) {
-      final dateKey = DateTime(tx.date.year, tx.date.month, tx.date.day);
-      grouped.putIfAbsent(dateKey, () => []).add(tx);
-    }
-    return grouped;
   }
 }
