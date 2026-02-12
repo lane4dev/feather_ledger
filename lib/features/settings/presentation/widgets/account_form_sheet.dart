@@ -9,7 +9,6 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
-import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';

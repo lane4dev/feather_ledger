@@ -6,6 +6,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
+import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
@@ -75,17 +76,16 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     }
   }
 
-  void _onMonthTap(DateTime current) async {
-    final picked = await showDatePicker(
-      context: context,
+  void _onMonthTap(DateTime current) {
+    FeatherMonthPicker.show(
+      context,
       initialDate: current,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      locale: Localizations.localeOf(context),
+      onMonthSelected: (picked) {
+        _goToMonth(picked);
+      },
     );
-    if (picked != null) {
-      await _goToMonth(picked);
-    }
   }
 
   @override

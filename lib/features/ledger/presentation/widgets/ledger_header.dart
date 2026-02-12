@@ -1,10 +1,10 @@
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 
 import '../../domain/value_objects/monthly_summary.dart';
