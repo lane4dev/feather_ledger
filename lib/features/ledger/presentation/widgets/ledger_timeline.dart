@@ -1,10 +1,11 @@
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/widgets/sliver_clip_rect.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 import '../theme/ledger_theme.dart';
@@ -77,38 +78,42 @@ class _DayGroup extends StatelessWidget {
     totalIncome /= 100.0;
     totalExpense /= 100.0;
 
-    return SliverMainAxisGroup(
-      slivers: [
-        // The TimeAnchor is pinned.
-        // We set its extent to 0 so it doesn't push the list down.
-        // This allows the list to overlap visually with the anchor area.
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _TimeAnchorDelegate(
-            date: date,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return SliverClipRect(
+      sliver: SliverMainAxisGroup(
+        slivers: [
+          // The TimeAnchor is pinned.
+          // We set its extent to 0 so it doesn't push the list down.
+          // This allows the list to overlap visually with the anchor area.
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _TimeAnchorDelegate(
+              date: date,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            ),
           ),
-        ),
-        SliverList.builder(
-          // +1 for the summary row
-          itemCount: transactions.length + 1,
-          itemBuilder: (context, index) {
-            if (index == transactions.length) {
-              return _DailySummary(
-                income: totalIncome,
-                expense: totalExpense,
+          SliverList.builder(
+            // +1 for the summary row
+            itemCount: transactions.length + 1,
+            itemBuilder: (context, index) {
+              if (index == transactions.length) {
+                return _DailySummary(
+                  income: totalIncome,
+                  expense: totalExpense,
+                  currencySymbol: currencySymbol,
+                );
+              }
+
+              final tx = transactions[index];
+
+              return TransactionTile(
+                transaction: tx,
                 currencySymbol: currencySymbol,
+                onTap: () => onTransactionTap?.call(tx),
               );
-            }
-            final tx = transactions[index];
-            return TransactionTile(
-              transaction: tx,
-              currencySymbol: currencySymbol,
-              onTap: () => onTransactionTap?.call(tx),
-            );
-          },
-        ),
-      ],
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -119,6 +124,7 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
 
   // Height of the anchor area. Should match the visual height we want to reserve/display.
   static const double _anchorHeight = 56.0;
+  static const double _layoutExtent = 1.0;
 
   _TimeAnchorDelegate({
     required this.date,
@@ -148,15 +154,15 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  @override
   // We return a tiny extent (1.0) instead of 0.0 to ensure the RenderObject
   // considers itself visible and paints the child.
   // 0.0 might be optimized out or clipped.
   // The 1.0 pixel offset is visually negligible.
-  double get maxExtent => 1.0;
+  @override
+  double get maxExtent => _layoutExtent;
 
   @override
-  double get minExtent => 1.0;
+  double get minExtent => _layoutExtent;
 
   @override
   bool shouldRebuild(covariant _TimeAnchorDelegate oldDelegate) {
