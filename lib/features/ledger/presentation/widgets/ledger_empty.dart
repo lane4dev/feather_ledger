@@ -13,10 +13,13 @@ class LedgerEmpty extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
+          SizedBox(
+            width: double.infinity,
+            height: 320,
+            child: Image.asset(
+              'assets/images/empty_placeholder.png',
+              fit: BoxFit.contain,
+            ),
           ),
           SizedBox(height: context.spacing.md),
           Text(
