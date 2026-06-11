@@ -1,5 +1,12 @@
 # Implementation Plan: Event-Sourced Ledger Core
 
+> ⚠️ **迁移前文档（过期标记，T001）**：本 plan 生成于事件化迁移之前，以下内容已被已确认规格 [spec.md](spec.md)（2026-09-06 同步）取代，**不可作为实现依据**：
+> - **Project Structure** 的目录结构（`features/ledger/data/daos`、`models` 等；现行结构为 `lib/core/data/database/` + `lib/features/ledger/`，目标结构见 spec.md「Background」引用的 wayfinder lib/ 结构图）。
+> - **Testing** 一节的 `golden_toolkit` 与 integration_test 假设；现行测试策略见 tasks.md「测试策略」（全部逻辑测试经领域服务 + 内存 Drift）。
+> - 对旧 Draft spec 的引用（Draft 已被本目录 spec.md 取代）。
+>
+> 仍然有效的内容：技术栈选型（Dart/Flutter、Drift/SQLite、Riverpod、rrule、uuid、clock、本地优先）、性能目标与 Constitution 检查。实施依据一律为 [spec.md](spec.md) + [tasks.md](tasks.md)。
+
 **Branch**: `003-event-sourced-ledger` | **Date**: 2026-01-25 | **Spec**: [specs/003-event-sourced-ledger/spec.md](specs/003-event-sourced-ledger/spec.md)
 **Input**: Feature specification from `specs/003-event-sourced-ledger/spec.md`
 
