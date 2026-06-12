@@ -1,18 +1,14 @@
 <!--
 SYNC IMPACT REPORT
-Version Change: 0.0.0 -> 1.0.0
-Status: Initial Ratification
+Version Change: 1.0.0 -> 1.1.0
+Status: Amended (spec 003 event-sourcing migration completion, T074)
 
 Modified Principles:
-- N/A (Initial creation)
+- N/A
 
 Added Sections:
-- I. Strict MVVM Architecture
-- II. State Management with Riverpod
-- III. Material 3 Minimalist Design
-- IV. Internationalization (i18n) First
-- V. High Code Quality & Maintainability
-- VI. Comprehensive Testing
+- VII. Event Sourcing Governance (stable event types, schemaVersion/upcaster,
+  unknown-event hard-fail, single projection writer, rebuild-from-events)
 
 Templates Requiring Updates:
 - .specify/templates/plan-template.md (✅ Verified)
@@ -105,6 +101,16 @@ Quality is non-negotiable.
 - **Widget Tests**: Required for reusable UI components and critical screens.
 - **Coverage**: New features MUST include accompanying tests.
 
+### VII. Event Sourcing Governance (spec 003)
+
+The ledger's write model is the `ledger_events` event store; all projections derive from it. These disciplines are binding:
+
+- **Stable event types**: `eventType` is a hand-declared Dart class name string — never `runtimeType.toString()`. Renaming an event type is a breaking change requiring an upcaster.
+- **schemaVersion + upcasting**: every payload embeds `schemaVersion`. On read, payloads MUST pass through the registered upcaster (`ledgerEventRegistry.upcast`) before decoding — the projector and queries never see stale payload shapes. Once published (first release), payload changes must bump schemaVersion and ship an upcaster; pre-release payloads may still be revised (dev data is disposable).
+- **Unknown events hard-fail**: an unregistered eventType must abort the rebuild/apply with the event id reported — a projector that guesses makes the ledger silently drift.
+- **Single projection writer**: only the projector mutates event-sourced projections and only the projector computes balances. UI and DAOs never write them directly (recurring_series / scheduled_transactions_view are the declared CRUD exemption).
+- **Rebuild from events**: projections must be reproducible field-for-field from the event store alone (golden equivalence tests gate this).
+
 ## Governance
 
 This Constitution acts as the supreme source of truth for engineering decisions within the Feather Ledger project.
@@ -113,4 +119,4 @@ This Constitution acts as the supreme source of truth for engineering decisions 
 2.  **Compliance**: All code reviews MUST verify adherence to these principles. Violations are blocking issues.
 3.  **Versioning**: This document follows Semantic Versioning. Major changes (architecture shifts) increment MAJOR, new principles increment MINOR.
 
-**Version**: 1.0.0 | **Ratified**: 2026-01-17 | **Last Amended**: 2026-01-17
+**Version**: 1.1.0 | **Ratified**: 2026-01-17 | **Last Amended**: 2026-09-07（新增原则 VII：Event Sourcing Governance，spec 003/T074）
