@@ -4,7 +4,6 @@
   "@appTitle": {
     "description": "应用程序标题"
   },
-  
   "ledgerTitle": "账本",
   "@ledgerTitle": {
     "description": "账本页面标题"
@@ -34,7 +33,6 @@
   "@noTransactionsHint": {
     "description": "无交易时的空状态提示"
   },
-  
   "addTransaction": "添加交易",
   "@addTransaction": {
     "description": "添加交易页面标题"
@@ -118,7 +116,6 @@
       }
     }
   },
-  
   "settings": "设置",
   "@settings": {
     "description": "设置页面标题"
@@ -167,7 +164,6 @@
   "@loading": {
     "description": "加载指示器文本"
   },
-  
   "reports": "报表",
   "@reports": {
     "description": "报表页面标题"
@@ -192,7 +188,6 @@
   "@noData": {
     "description": "无数据时的提示"
   },
-  
   "more": "更多",
   "@more": {
     "description": "更多页面标题"
@@ -205,7 +200,6 @@
   "@categories": {
     "description": "分类菜单项"
   },
-  
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
     "description": "美元货币选项"
@@ -226,7 +220,6 @@
   "@poundCurrency": {
     "description": "英镑货币选项"
   },
-  
   "accountsTitle": "账户",
   "@accountsTitle": {
     "description": "账户页面标题"
@@ -371,5 +364,93 @@
     "description": "系统分类名称：冲正 (收入)"
   },
   "accountCash": "现金",
-  "accountBankCard": "银行卡"
+  "accountBankCard": "银行卡",
+  "errorAccountNotFound": "账户不存在",
+  "@errorAccountNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorAccountArchived": "账户已归档",
+  "@errorAccountArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryNotFound": "分类不存在",
+  "@errorCategoryNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryArchived": "分类已归档",
+  "@errorCategoryArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryTypeMismatch": "分类类型与交易类型不符",
+  "@errorCategoryTypeMismatch": {
+    "description": "Localized ledger error code message"
+  },
+  "errorSystemCategoryProtected": "系统分类不可归档",
+  "@errorSystemCategoryProtected": {
+    "description": "Localized ledger error code message"
+  },
+  "errorInvalidTransfer": "无效转账",
+  "@errorInvalidTransfer": {
+    "description": "Localized ledger error code message"
+  },
+  "transfer": "转账",
+  "@transfer": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferFrom": "转出账户",
+  "@transferFrom": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferTo": "转入账户",
+  "@transferTo": {
+    "description": "Transfer display label (US5)"
+  },
+  "errorTransactionNotFound": "交易不存在",
+  "@errorTransactionNotFound": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "errorTransactionAlreadyReversed": "交易已被冲正",
+  "@errorTransactionAlreadyReversed": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "auditHistory": "审计历史",
+  "@auditHistory": {
+    "description": "Transaction detail section showing the event chain (US6)"
+  },
+  "eventRecorded": "已记录",
+  "@eventRecorded": {
+    "description": "Audit history entry for TransactionRecorded (US6)"
+  },
+  "eventReversed": "已冲正",
+  "@eventReversed": {
+    "description": "Audit history entry for TransactionReversed (US6)"
+  },
+  "reversalUserDeleted": "用户删除",
+  "@reversalUserDeleted": {
+    "description": "Reversal reason label (US6)"
+  },
+  "reversalCorrection": "修改",
+  "@reversalCorrection": {
+    "description": "Reversal reason label (US6)"
+  },
+  "rebuildProjections": "重建投影",
+  "@rebuildProjections": {
+    "description": "Developer-only maintenance entry (US8)"
+  },
+  "rebuildProjectionsHint": "开发者工具——长按执行",
+  "@rebuildProjectionsHint": {
+    "description": "Subtitle of the developer rebuild entry (US8)"
+  },
+  "rebuildProjectionsConfirm": "清空全部派生数据并从完整事件历史重放？定期规则与偏好设置保留。",
+  "@rebuildProjectionsConfirm": {
+    "description": "Confirmation dialog body (US8)"
+  },
+  "rebuildProjectionsSuccess": "投影已重建",
+  "@rebuildProjectionsSuccess": {
+    "description": "Rebuild success snackbar (US8)"
+  },
+  "rebuildProjectionsFailure": "重建失败",
+  "@rebuildProjectionsFailure": {
+    "description": "Rebuild failure snackbar (US8)"
+  }
 }

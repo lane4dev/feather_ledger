@@ -306,6 +306,76 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountBankCard => '银行卡';
+
+  @override
+  String get errorAccountNotFound => 'Account not found';
+
+  @override
+  String get errorAccountArchived => 'Account is archived';
+
+  @override
+  String get errorCategoryNotFound => 'Category not found';
+
+  @override
+  String get errorCategoryArchived => 'Category is archived';
+
+  @override
+  String get errorCategoryTypeMismatch =>
+      'Category type does not match the transaction type';
+
+  @override
+  String get errorSystemCategoryProtected =>
+      'System categories cannot be archived';
+
+  @override
+  String get errorInvalidTransfer => 'Invalid transfer';
+
+  @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get transferFrom => 'From';
+
+  @override
+  String get transferTo => 'To';
+
+  @override
+  String get errorTransactionNotFound => 'Transaction not found';
+
+  @override
+  String get errorTransactionAlreadyReversed =>
+      'Transaction was already reversed';
+
+  @override
+  String get auditHistory => 'Audit history';
+
+  @override
+  String get eventRecorded => 'Recorded';
+
+  @override
+  String get eventReversed => 'Reversed';
+
+  @override
+  String get reversalUserDeleted => 'User deleted';
+
+  @override
+  String get reversalCorrection => 'Correction';
+
+  @override
+  String get rebuildProjections => 'Rebuild projections';
+
+  @override
+  String get rebuildProjectionsHint => 'Developer tool — long-press to run';
+
+  @override
+  String get rebuildProjectionsConfirm =>
+      'Clear all derived data and replay the full event history? Recurring rules and preferences are kept.';
+
+  @override
+  String get rebuildProjectionsSuccess => 'Projections rebuilt';
+
+  @override
+  String get rebuildProjectionsFailure => 'Rebuild failed';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -610,6 +680,72 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get accountBankCard => '银行卡';
+
+  @override
+  String get errorAccountNotFound => '账户不存在';
+
+  @override
+  String get errorAccountArchived => '账户已归档';
+
+  @override
+  String get errorCategoryNotFound => '分类不存在';
+
+  @override
+  String get errorCategoryArchived => '分类已归档';
+
+  @override
+  String get errorCategoryTypeMismatch => '分类类型与交易类型不符';
+
+  @override
+  String get errorSystemCategoryProtected => '系统分类不可归档';
+
+  @override
+  String get errorInvalidTransfer => '无效转账';
+
+  @override
+  String get transfer => '转账';
+
+  @override
+  String get transferFrom => '转出账户';
+
+  @override
+  String get transferTo => '转入账户';
+
+  @override
+  String get errorTransactionNotFound => '交易不存在';
+
+  @override
+  String get errorTransactionAlreadyReversed => '交易已被冲正';
+
+  @override
+  String get auditHistory => '审计历史';
+
+  @override
+  String get eventRecorded => '已记录';
+
+  @override
+  String get eventReversed => '已冲正';
+
+  @override
+  String get reversalUserDeleted => '用户删除';
+
+  @override
+  String get reversalCorrection => '修改';
+
+  @override
+  String get rebuildProjections => '重建投影';
+
+  @override
+  String get rebuildProjectionsHint => '开发者工具——长按执行';
+
+  @override
+  String get rebuildProjectionsConfirm => '清空全部派生数据并从完整事件历史重放？定期规则与偏好设置保留。';
+
+  @override
+  String get rebuildProjectionsSuccess => '投影已重建';
+
+  @override
+  String get rebuildProjectionsFailure => '重建失败';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -914,4 +1050,70 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get accountBankCard => '銀行卡';
+
+  @override
+  String get errorAccountNotFound => '帳戶不存在';
+
+  @override
+  String get errorAccountArchived => '帳戶已封存';
+
+  @override
+  String get errorCategoryNotFound => '分類不存在';
+
+  @override
+  String get errorCategoryArchived => '分類已封存';
+
+  @override
+  String get errorCategoryTypeMismatch => '分類類型與交易類型不符';
+
+  @override
+  String get errorSystemCategoryProtected => '系統分類不可封存';
+
+  @override
+  String get errorInvalidTransfer => '無效轉帳';
+
+  @override
+  String get transfer => '轉帳';
+
+  @override
+  String get transferFrom => '轉出帳戶';
+
+  @override
+  String get transferTo => '轉入帳戶';
+
+  @override
+  String get errorTransactionNotFound => '交易不存在';
+
+  @override
+  String get errorTransactionAlreadyReversed => '交易已被沖正';
+
+  @override
+  String get auditHistory => '審計歷史';
+
+  @override
+  String get eventRecorded => '已記錄';
+
+  @override
+  String get eventReversed => '已沖正';
+
+  @override
+  String get reversalUserDeleted => '使用者刪除';
+
+  @override
+  String get reversalCorrection => '修改';
+
+  @override
+  String get rebuildProjections => '重建投影';
+
+  @override
+  String get rebuildProjectionsHint => '開發者工具——長按執行';
+
+  @override
+  String get rebuildProjectionsConfirm => '清空全部衍生資料並從完整事件歷史重放？定期規則與偏好設定保留。';
+
+  @override
+  String get rebuildProjectionsSuccess => '投影已重建';
+
+  @override
+  String get rebuildProjectionsFailure => '重建失敗';
 }

@@ -693,6 +693,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bank Card'**
   String get accountBankCard;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Account not found'**
+  String get errorAccountNotFound;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Account is archived'**
+  String get errorAccountArchived;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Category not found'**
+  String get errorCategoryNotFound;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Category is archived'**
+  String get errorCategoryArchived;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Category type does not match the transaction type'**
+  String get errorCategoryTypeMismatch;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'System categories cannot be archived'**
+  String get errorSystemCategoryProtected;
+
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid transfer'**
+  String get errorInvalidTransfer;
+
+  /// Transfer display label (US5)
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transfer;
+
+  /// Transfer display label (US5)
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get transferFrom;
+
+  /// Transfer display label (US5)
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get transferTo;
+
+  /// Localized ledger error code message (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction not found'**
+  String get errorTransactionNotFound;
+
+  /// Localized ledger error code message (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction was already reversed'**
+  String get errorTransactionAlreadyReversed;
+
+  /// Transaction detail section showing the event chain (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Audit history'**
+  String get auditHistory;
+
+  /// Audit history entry for TransactionRecorded (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded'**
+  String get eventRecorded;
+
+  /// Audit history entry for TransactionReversed (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Reversed'**
+  String get eventReversed;
+
+  /// Reversal reason label (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'User deleted'**
+  String get reversalUserDeleted;
+
+  /// Reversal reason label (US6)
+  ///
+  /// In en, this message translates to:
+  /// **'Correction'**
+  String get reversalCorrection;
+
+  /// Developer-only maintenance entry (US8)
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild projections'**
+  String get rebuildProjections;
+
+  /// Subtitle of the developer rebuild entry (US8)
+  ///
+  /// In en, this message translates to:
+  /// **'Developer tool — long-press to run'**
+  String get rebuildProjectionsHint;
+
+  /// Confirmation dialog body (US8)
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all derived data and replay the full event history? Recurring rules and preferences are kept.'**
+  String get rebuildProjectionsConfirm;
+
+  /// Rebuild success snackbar (US8)
+  ///
+  /// In en, this message translates to:
+  /// **'Projections rebuilt'**
+  String get rebuildProjectionsSuccess;
+
+  /// Rebuild failure snackbar (US8)
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild failed'**
+  String get rebuildProjectionsFailure;
 }
 
 class _AppLocalizationsDelegate

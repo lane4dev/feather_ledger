@@ -312,4 +312,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountBankCard => 'Bank Card';
+
+  @override
+  String get errorAccountNotFound => 'Account not found';
+
+  @override
+  String get errorAccountArchived => 'Account is archived';
+
+  @override
+  String get errorCategoryNotFound => 'Category not found';
+
+  @override
+  String get errorCategoryArchived => 'Category is archived';
+
+  @override
+  String get errorCategoryTypeMismatch =>
+      'Category type does not match the transaction type';
+
+  @override
+  String get errorSystemCategoryProtected =>
+      'System categories cannot be archived';
+
+  @override
+  String get errorInvalidTransfer => 'Invalid transfer';
+
+  @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get transferFrom => 'From';
+
+  @override
+  String get transferTo => 'To';
+
+  @override
+  String get errorTransactionNotFound => 'Transaction not found';
+
+  @override
+  String get errorTransactionAlreadyReversed =>
+      'Transaction was already reversed';
+
+  @override
+  String get auditHistory => 'Audit history';
+
+  @override
+  String get eventRecorded => 'Recorded';
+
+  @override
+  String get eventReversed => 'Reversed';
+
+  @override
+  String get reversalUserDeleted => 'User deleted';
+
+  @override
+  String get reversalCorrection => 'Correction';
+
+  @override
+  String get rebuildProjections => 'Rebuild projections';
+
+  @override
+  String get rebuildProjectionsHint => 'Developer tool — long-press to run';
+
+  @override
+  String get rebuildProjectionsConfirm =>
+      'Clear all derived data and replay the full event history? Recurring rules and preferences are kept.';
+
+  @override
+  String get rebuildProjectionsSuccess => 'Projections rebuilt';
+
+  @override
+  String get rebuildProjectionsFailure => 'Rebuild failed';
 }
