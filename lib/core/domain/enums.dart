@@ -1,19 +1,21 @@
-/// 交易类型：收入 vs 支出
-enum TransactionType {
-  income,
-  expense;
-}
+/// Shared domain enums (spec 003, US1/T012).
+///
+/// Amount enums carry no sign semantics — money direction lives in
+/// [PostingDirection]; amounts are int minor units everywhere.
+library;
 
-/// 交易角色，用于表示交易的流入或流出
-enum TransactionRole {
-  outflow,
-  inflow;
-}
+/// Transaction kind (spec Domain Model). `transfer` is the single
+/// exclusion criterion for income/expense statistics — no other code path
+/// may invent a second one.
+enum TransactionKind { income, expense, transfer }
 
-/// 账户类型：现金、银行卡等
-enum AccountType {
-  cash,
-  bank,
-  credit,
-  other;
-}
+/// Balance direction of a posting (personal-bookkeeping semantics, defined
+/// only here): credit = balance increases by amountMinor;
+/// debit = balance decreases by amountMinor.
+enum PostingDirection { credit, debit }
+
+/// Category kind: income or expense.
+enum CategoryType { income, expense }
+
+/// Account type: cash, bank, credit card, other.
+enum AccountType { cash, bank, credit, other }

@@ -6,24 +6,49 @@ part of 'category_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$categoryRepositoryHash() =>
-    r'b7e8e7aaa3fcf9f480a17e948962bbaa849fc6bd';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [categoryRepository].
 @ProviderFor(categoryRepository)
-final categoryRepositoryProvider =
-    AutoDisposeProvider<CategoryRepository>.internal(
-  categoryRepository,
-  name: r'categoryRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$categoryRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final categoryRepositoryProvider = CategoryRepositoryProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef CategoryRepositoryRef = AutoDisposeProviderRef<CategoryRepository>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class CategoryRepositoryProvider extends $FunctionalProvider<
+    CategoryRepository,
+    CategoryRepository,
+    CategoryRepository> with $Provider<CategoryRepository> {
+  CategoryRepositoryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'categoryRepositoryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$categoryRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<CategoryRepository> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  CategoryRepository create(Ref ref) {
+    return categoryRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CategoryRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CategoryRepository>(value),
+    );
+  }
+}
+
+String _$categoryRepositoryHash() =>
+    r'b7f8b587bbd4257a035fc5de9eb79a7dbb188566';

@@ -1,5 +1,3 @@
-import 'package:drift/drift.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
@@ -19,61 +17,25 @@ class AccountRepositoryImpl implements AccountRepository {
   @override
   Stream<List<AccountEntity>> watchAccounts() {
     return _accountDao.watchAllAccounts().map((rows) {
-      return rows.map((row) {
-        return AccountEntity(
-          id: row.id,
-          name: row.name,
-          type: row.type,
-          postedBalance: row.postedBalance,
-          availableBalance: row.availableBalance,
-          lastUpdatedEventId: row.lastUpdatedEventId,
-        );
-      }).toList();
+      return rows.map(_toEntity).toList();
     });
   }
 
   @override
   Future<AccountEntity?> getAccount(String id) async {
     final row = await _accountDao.getAccountById(id);
-    if (row == null) return null;
-    return AccountEntity(
-      id: row.id,
-      name: row.name,
-      type: row.type,
-      postedBalance: row.postedBalance,
-      availableBalance: row.availableBalance,
-      lastUpdatedEventId: row.lastUpdatedEventId,
-    );
+    return row == null ? null : _toEntity(row);
   }
 
-  @override
-  Future<void> addAccount(AccountEntity account) async {
-    await _accountDao.insertOrReplace(AccountsViewCompanion(
-      id: Value(account.id),
-      name: Value(account.name),
-      type: Value(account.type),
-      postedBalance: Value(account.postedBalance),
-      availableBalance: Value(account.availableBalance),
-      lastUpdatedEventId: const Value(0),
-    ));
-  }
-
-  @override
-  Future<void> updateAccount(AccountEntity account) async {
-    await _accountDao.insertOrReplace(AccountsViewCompanion(
-      id: Value(account.id),
-      name: Value(account.name),
-      type: Value(account.type),
-      postedBalance: Value(account.postedBalance),
-      availableBalance: Value(account.availableBalance),
-      lastUpdatedEventId: Value(account.lastUpdatedEventId!),
-    ));
-  }
-
-  @override
-  Future<void> deleteAccountProjection(String id) {
-    return _accountDao.deleteAccount(id);
-  }
+  AccountEntity _toEntity(AccountViewRow row) => AccountEntity(
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        currencyCode: row.currencyCode,
+        balanceMinor: row.balanceMinor,
+        archived: row.archived,
+        lastUpdatedEventId: row.lastUpdatedEventId,
+      );
 }
 
 @Riverpod(keepAlive: true)

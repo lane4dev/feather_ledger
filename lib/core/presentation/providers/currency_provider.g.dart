@@ -6,22 +6,47 @@ part of 'currency_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(CurrencyController)
+final currencyControllerProvider = CurrencyControllerProvider._();
+
+final class CurrencyControllerProvider
+    extends $AsyncNotifierProvider<CurrencyController, String> {
+  CurrencyControllerProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'currencyControllerProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$currencyControllerHash();
+
+  @$internal
+  @override
+  CurrencyController create() => CurrencyController();
+}
+
 String _$currencyControllerHash() =>
     r'aeda4d681144994436db730da771396e129be008';
 
-/// See also [CurrencyController].
-@ProviderFor(CurrencyController)
-final currencyControllerProvider =
-    AutoDisposeAsyncNotifierProvider<CurrencyController, String>.internal(
-  CurrencyController.new,
-  name: r'currencyControllerProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$currencyControllerHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-typedef _$CurrencyController = AutoDisposeAsyncNotifier<String>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+abstract class _$CurrencyController extends $AsyncNotifier<String> {
+  FutureOr<String> build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<String>, String>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<String>, String>,
+        AsyncValue<String>,
+        Object?,
+        Object?>;
+    return element.handleCreate(ref, build);
+  }
+}

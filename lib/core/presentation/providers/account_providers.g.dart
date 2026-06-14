@@ -6,22 +6,43 @@ part of 'account_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$accountListHash() => r'd1561cdbf3c899355572ad145962baa644cacf68';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [accountList].
 @ProviderFor(accountList)
-final accountListProvider =
-    AutoDisposeStreamProvider<List<AccountEntity>>.internal(
-  accountList,
-  name: r'accountListProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$accountListHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final accountListProvider = AccountListProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AccountListRef = AutoDisposeStreamProviderRef<List<AccountEntity>>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class AccountListProvider extends $FunctionalProvider<
+        AsyncValue<List<AccountEntity>>,
+        List<AccountEntity>,
+        Stream<List<AccountEntity>>>
+    with
+        $FutureModifier<List<AccountEntity>>,
+        $StreamProvider<List<AccountEntity>> {
+  AccountListProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'accountListProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$accountListHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<AccountEntity>> $createElement(
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<AccountEntity>> create(Ref ref) {
+    return accountList(ref);
+  }
+}
+
+String _$accountListHash() => r'd1561cdbf3c899355572ad145962baa644cacf68';
