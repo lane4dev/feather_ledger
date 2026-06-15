@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 class AccountSummaryCard extends ConsumerWidget {
   final String accountId;
@@ -36,20 +37,16 @@ class AccountSummaryCard extends ConsumerWidget {
               data: (balance) {
                 // Formatting: This logic assumes negative balance for Liability = Debt.
                 // We display Debt as Positive number "Owed".
-                final posted = balance.posted / 100.0;
-                // available logic: If credit limit exists, available = limit + posted (since posted is negative).
-                // But we don't know credit limit here unless passed or in Account entity.
-                // For now just show "Balance" or "Owed".
+                final posted = balance.balance;
 
                 if (isLiability) {
                   return Column(
                     children: [
-                      Text('Owed: \$${(-posted).abs().toStringAsFixed(2)}'),
-                      // Available logic omitted as we don't have limit in AccountBalance yet
+                      Text('Owed: \$${formatMinor(posted.abs())}'),
                     ],
                   );
                 } else {
-                  return Text('Balance: \$${posted.toStringAsFixed(2)}');
+                  return Text('Balance: \$${formatMinor(posted)}');
                 }
               },
               loading: () => const SizedBox(

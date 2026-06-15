@@ -1,4 +1,5 @@
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -15,9 +16,11 @@ class TransactionUiMapper {
     final category = e.category;
     final account = e.account;
 
-    final displayAmount = (e.amount.abs() / 100.0)
-        .toStringAsFixed(2); // Assuming amount is in cents
-    final displaySign = e.type == TransactionType.income ? '+' : '-';
+    final displayAmount = formatMinor(amount);
+    // Transfers carry no sign — the two legs net to zero (spec US5).
+    final displaySign = e.type == TransactionKind.transfer
+        ? ''
+        : (e.type == TransactionKind.income ? '+' : '-');
 
     return TransactionTileUiModel(
       id: id,
@@ -27,6 +30,7 @@ class TransactionUiMapper {
       note: note,
       category: category,
       account: account,
+      toAccount: e.toAccount,
       displayAmount: displayAmount,
       displaySign: displaySign,
     );

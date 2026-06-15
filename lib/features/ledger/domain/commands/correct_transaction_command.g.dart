@@ -6,25 +6,49 @@ part of 'correct_transaction_command.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$correctTransactionCommandHash() =>
-    r'31487a6371983904e337889af4aa0e4a5cf449f0';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [correctTransactionCommand].
 @ProviderFor(correctTransactionCommand)
-final correctTransactionCommandProvider =
-    AutoDisposeProvider<CorrectTransactionCommand>.internal(
-  correctTransactionCommand,
-  name: r'correctTransactionCommandProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$correctTransactionCommandHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final correctTransactionCommandProvider = CorrectTransactionCommandProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef CorrectTransactionCommandRef
-    = AutoDisposeProviderRef<CorrectTransactionCommand>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class CorrectTransactionCommandProvider extends $FunctionalProvider<
+    CorrectTransactionCommand,
+    CorrectTransactionCommand,
+    CorrectTransactionCommand> with $Provider<CorrectTransactionCommand> {
+  CorrectTransactionCommandProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'correctTransactionCommandProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$correctTransactionCommandHash();
+
+  @$internal
+  @override
+  $ProviderElement<CorrectTransactionCommand> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  CorrectTransactionCommand create(Ref ref) {
+    return correctTransactionCommand(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CorrectTransactionCommand value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CorrectTransactionCommand>(value),
+    );
+  }
+}
+
+String _$correctTransactionCommandHash() =>
+    r'df479bb848a4a98320b1c8795824a99da3225ace';

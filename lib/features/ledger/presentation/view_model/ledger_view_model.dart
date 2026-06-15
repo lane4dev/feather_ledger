@@ -1,12 +1,15 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/queries/watch_monthly_snapshot_query.dart';
 import '../../domain/services/ledger_service.dart';
-import '../../domain/value_objects/monthly_summary.dart';
 
 import '../mappers/transaction_ui_mapper.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -42,7 +45,7 @@ Map<DateTime, List<TransactionTileUiModel>> groupTransactionsByDay(
 
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
-  StreamSubscription<MonthlySummary>? _summarySub;
+  StreamSubscription<MonthlySnapshotTotals>? _summarySub;
   StreamSubscription<List<ScheduledTransactionEntity>>? _scheduledSub;
 
   @override
@@ -104,16 +107,17 @@ class LedgerViewModel extends _$LedgerViewModel {
     }
   }
 
-  Future<void> addTransaction({
-    required double amount,
-    required TransactionType type,
+  Future<Result<void>> addTransaction({
+    required int amountMinor,
+    required TransactionKind type,
     required DateTime date,
     required String categoryId,
     required String accountId,
     String? note,
   }) {
     return ref.read(ledgerServiceProvider).addTransaction(
-          amount: amount,
+          commandId: const Uuid().v4(),
+          amountMinor: amountMinor,
           type: type,
           date: date,
           categoryId: categoryId,
@@ -122,18 +126,19 @@ class LedgerViewModel extends _$LedgerViewModel {
         );
   }
 
-  Future<void> updateTransaction({
+  Future<Result<void>> updateTransaction({
     required String id,
-    required double amount,
-    required TransactionType type,
+    required int amountMinor,
+    required TransactionKind type,
     required DateTime date,
     required String categoryId,
     required String accountId,
     String? note,
   }) {
     return ref.read(ledgerServiceProvider).updateTransaction(
+          commandId: const Uuid().v4(),
           id: id,
-          amount: amount,
+          amountMinor: amountMinor,
           type: type,
           date: date,
           categoryId: categoryId,
@@ -142,8 +147,10 @@ class LedgerViewModel extends _$LedgerViewModel {
         );
   }
 
-  Future<void> deleteTransaction(String id) {
-    return ref.read(ledgerServiceProvider).deleteTransaction(id);
+  Future<Result<void>> deleteTransaction(String id) {
+    return ref
+        .read(ledgerServiceProvider)
+        .deleteTransaction(id, commandId: const Uuid().v4());
   }
 
   void _subscribeScheduledTransactions() {
@@ -166,7 +173,14 @@ class LedgerViewModel extends _$LedgerViewModel {
     _summarySub?.cancel();
 
     _summarySub =
-        ref.read(ledgerServiceProvider).watchMonthlySummary(datetime).listen(
+        ref
+            .read(ledgerServiceProvider)
+            .watchMonthlySnapshot(
+              datetime,
+              currencyCode: ref.read(currencyControllerProvider).value ??
+                  AppCurrencies.defaultCurrency.code,
+            )
+            .listen(
       (summary) {
         state = state.copyWith(summary: AsyncData(summary));
       },

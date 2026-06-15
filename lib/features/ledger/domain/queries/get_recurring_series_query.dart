@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
@@ -20,7 +19,7 @@ class GetRecurringSeriesQuery {
       description: seriesRow.description,
       startDate: seriesRow.startDate,
       endDate: seriesRow.endDate,
-      amount: seriesRow.amount / 100.0,
+      amountMinor: seriesRow.amountMinor,
       categoryId: seriesRow.categoryId,
       accountId: seriesRow.accountId,
       type: seriesRow.type,

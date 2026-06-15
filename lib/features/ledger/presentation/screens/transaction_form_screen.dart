@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
@@ -14,6 +16,8 @@ import 'package:feather_ledger/core/presentation/providers/account_providers.dar
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 // import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -38,19 +42,25 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Form Data
-  double? _amount;
-  TransactionType _type = TransactionType.expense;
+  int? _amountMinor;
+  TransactionKind _type = TransactionKind.expense;
   DateTime _date = DateTime.now();
   String? _note;
   String? _categoryId;
   String? _accountId;
+
+  // Category repositories are typed by CategoryType; the transaction form
+  // only exposes income/expense kinds.
+  CategoryType get _categoryType => _type == TransactionKind.income
+      ? CategoryType.income
+      : CategoryType.expense;
 
   @override
   void initState() {
     super.initState();
 
     if (widget.transaction != null) {
-      _amount = widget.transaction!.amount / 100.0;
+      _amountMinor = widget.transaction!.amount;
       _type = widget.transaction!.type;
       _date = widget.transaction!.date;
       _note = widget.transaction!.note;
@@ -61,9 +71,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoryListProvider(_type));
+    final categoriesAsync = ref.watch(categoryListProvider(_categoryType));
     final accountsAsync = ref.watch(accountListProvider);
-    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
+    final currencyKey = ref.watch(currencyControllerProvider).value ??
         AppCurrencies.supportedCurrencyCodes.first;
     final currencySymbol = AppCurrencies.getSymbol(currencyKey);
 
@@ -105,11 +115,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 2. Amount Input
               LedgerAmountInput(
-                initialValue: _amount,
+                initialMinorUnits: _amountMinor,
                 type: _type,
                 currencySymbol: currencySymbol,
                 autofocus: widget.transaction == null,
-                onSaved: (value) => _amount = double.parse(value!),
+                onSaved: (minor) => _amountMinor = minor,
               ),
               const SizedBox(height: 32),
 
@@ -149,8 +159,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 icon: Icons.grid_view_outlined,
                 child: categoriesAsync.when(
                   data: (categories) {
-                    final filtered =
-                        categories.where((c) => c.type == _type).toList();
+                    final filtered = categories
+                        .where((c) => c.type == _categoryType)
+                        .toList();
                     return FormField<String>(
                       key: ValueKey(_type),
                       initialValue: _categoryId,
@@ -209,11 +220,15 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 icon: Icons.account_balance_wallet_outlined,
                 child: accountsAsync.when(
                   data: (accounts) {
+                    // Pickers only offer non-archived accounts (spec 003,
+                    // US3); history and balances retain archived rows.
+                    final activeAccounts =
+                        accounts.where((a) => !a.archived).toList();
                     return FormField<String>(
                       initialValue: _accountId,
                       validator: (val) => val == null ? l10n.required : null,
                       builder: (state) {
-                        final selected = accounts
+                        final selected = activeAccounts
                             .where((a) => a.id == state.value)
                             .firstOrNull;
                         return LedgerSelectorField(
@@ -231,13 +246,13 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                               builder: (context) =>
                                   LedgerSelectionSheet<AccountEntity>(
                                 title: l10n.account,
-                                options: accounts,
+                                options: activeAccounts,
                                 getLabel: (a) => a.name,
                                 getTrailing: (context, a) => Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '$currencySymbol${(a.postedBalance / 100.0).toStringAsFixed(2)}',
+                                      '$currencySymbol${formatMinor(a.balanceMinor)}',
                                       style:
                                           Theme.of(context).textTheme.bodyLarge,
                                     ),
@@ -303,7 +318,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(
+                child: AppButton(
                   onPressed: _submit,
                   child: Text(l10n.saveTransaction),
                 ),
@@ -359,13 +374,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       _formKey.currentState!.save();
 
       // Overdraft check
-      if (_type == TransactionType.expense && _accountId != null) {
-        final accounts = ref.read(accountListProvider).valueOrNull;
+      if (_type == TransactionKind.expense && _accountId != null) {
+        final accounts = ref.read(accountListProvider).value;
         final account = accounts?.where((a) => a.id == _accountId).firstOrNull;
 
         if (account != null && account.type != AccountType.credit) {
-          final currentBalance = account.postedBalance / 100.0;
-          if (currentBalance - _amount! < 0) {
+          if (account.balanceMinor - _amountMinor! < 0) {
             final confirm = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
@@ -390,36 +404,35 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         }
       }
 
-      try {
-        final vm = ref.read(ledgerViewModelProvider.notifier);
-        if (widget.transaction == null) {
-          await vm.addTransaction(
-            amount: _amount!,
-            type: _type,
-            date: _date,
-            categoryId: _categoryId!,
-            accountId: _accountId!,
-            note: _note,
-          );
-        } else {
-          await vm.updateTransaction(
-            id: widget.transaction!.id,
-            amount: _amount!,
-            type: _type,
-            date: _date,
-            categoryId: _categoryId!,
-            accountId: _accountId!,
-            note: _note,
-          );
-        }
-        if (mounted) context.pop();
-      } catch (e) {
+      final vm = ref.read(ledgerViewModelProvider.notifier);
+      final result = widget.transaction == null
+          ? await vm.addTransaction(
+              amountMinor: _amountMinor!,
+              type: _type,
+              date: _date,
+              categoryId: _categoryId!,
+              accountId: _accountId!,
+              note: _note,
+            )
+          : await vm.updateTransaction(
+              id: widget.transaction!.id,
+              amountMinor: _amountMinor!,
+              type: _type,
+              date: _date,
+              categoryId: _categoryId!,
+              accountId: _accountId!,
+              note: _note,
+            );
+
+      if (result case Failure(:final code)) {
         if (mounted) {
           final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
+              SnackBar(content: Text(code.message(l10n))));
         }
+        return;
       }
+      if (mounted) context.pop();
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 
@@ -134,68 +135,90 @@ class TransactionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title: Note if exists, else Account
+                  // Title: Note if exists, else Account (transfer shows its
+                  // localized label with both sides in the subtitle).
                   Text(
-                    (transaction.note != null && transaction.note!.isNotEmpty)
-                        ? transaction.note!
-                        : transaction.account.name,
+                    _title(context),
                     style: LedgerTheme.transactionTitle(context),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
 
                   // Subtitle: Account (only if note was the title)
-                  if (transaction.note != null && transaction.note!.isNotEmpty)
+                  if (_subtitle != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 2.0),
                       child: Text(
-                        transaction.account.name,
+                        _subtitle!,
                         style: LedgerTheme.transactionMeta(context),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
 
-                  // Category Tag
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6.0, vertical: 2.0),
-                      decoration: BoxDecoration(
-                        color: Color(transaction.category.colorInt)
-                            .withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4.0),
-                      ),
-                      child: Text(
-                        transaction.category.name,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSecondaryContainer,
-                              fontSize: 10,
-                            ),
+                  // Category Tag — transfers have no category (spec US5).
+                  if (transaction.type != TransactionKind.transfer)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0, vertical: 2.0),
+                        decoration: BoxDecoration(
+                          color: Color(transaction.category.colorInt)
+                              .withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        child: Text(
+                          transaction.category.name,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
 
             SizedBox(width: context.spacing.md),
 
-            // Amount
+            // Amount — transfers are neutral (net zero, spec US5).
             Text(
               '${transaction.displaySign} $effectiveCurrencySymbol${transaction.displayAmount}',
               style: LedgerTheme.transactionAmount(context).copyWith(
-                color: transaction.type == TransactionType.expense
-                    ? context.colors.expense
-                    : context.colors.income,
+                color: switch (transaction.type) {
+                  TransactionKind.expense => context.colors.expense,
+                  TransactionKind.income => context.colors.income,
+                  TransactionKind.transfer =>
+                    Theme.of(context).colorScheme.onSurface,
+                },
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _title(BuildContext context) {
+    final hasNote = transaction.note != null && transaction.note!.isNotEmpty;
+    if (hasNote) return transaction.note!;
+    if (transaction.type == TransactionKind.transfer) {
+      return AppLocalizations.of(context)!.transfer;
+    }
+    return transaction.account.name;
+  }
+
+  String? get _subtitle {
+    final hasNote = transaction.note != null && transaction.note!.isNotEmpty;
+    if (transaction.type == TransactionKind.transfer && transaction.toAccount != null) {
+      return '${transaction.account.name} → ${transaction.toAccount!.name}';
+    }
+    if (hasNote) return transaction.account.name;
+    return null;
   }
 }

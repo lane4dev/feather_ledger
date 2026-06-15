@@ -6,25 +6,52 @@ part of 'convert_scheduled_to_posted_command.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$convertScheduledToPostedCommandHash() =>
-    r'932ce0ca639f3574f3b405ba23e50695529a2bc3';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [convertScheduledToPostedCommand].
 @ProviderFor(convertScheduledToPostedCommand)
 final convertScheduledToPostedCommandProvider =
-    AutoDisposeProvider<ConvertScheduledToPostedCommand>.internal(
-  convertScheduledToPostedCommand,
-  name: r'convertScheduledToPostedCommandProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$convertScheduledToPostedCommandHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+    ConvertScheduledToPostedCommandProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ConvertScheduledToPostedCommandRef
-    = AutoDisposeProviderRef<ConvertScheduledToPostedCommand>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class ConvertScheduledToPostedCommandProvider extends $FunctionalProvider<
+        ConvertScheduledToPostedCommand,
+        ConvertScheduledToPostedCommand,
+        ConvertScheduledToPostedCommand>
+    with $Provider<ConvertScheduledToPostedCommand> {
+  ConvertScheduledToPostedCommandProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'convertScheduledToPostedCommandProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$convertScheduledToPostedCommandHash();
+
+  @$internal
+  @override
+  $ProviderElement<ConvertScheduledToPostedCommand> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ConvertScheduledToPostedCommand create(Ref ref) {
+    return convertScheduledToPostedCommand(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ConvertScheduledToPostedCommand value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<ConvertScheduledToPostedCommand>(value),
+    );
+  }
+}
+
+String _$convertScheduledToPostedCommandHash() =>
+    r'50cf3180a44eefe8ac95ee1aa2809e85acfd5239';

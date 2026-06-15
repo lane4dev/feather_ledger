@@ -9,6 +9,8 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
+import '../../domain/events/ledger_events.dart';
+import '../../domain/queries/get_transaction_history_query.dart';
 import '../models/transaction_tile_ui_model.dart';
 
 import 'ledger_detail_row.dart';
@@ -33,13 +35,13 @@ class TransactionDetailSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final currencyKey =
-        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+        ref.watch(currencyControllerProvider).value ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     final locale = Localizations.localeOf(context).toString();
 
     // Premium Detail View
-    final color = transaction.type == TransactionType.expense
+    final color = transaction.type == TransactionKind.expense
         ? context.colors.expense
         : context.colors.income;
 
@@ -102,31 +104,10 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
           SizedBox(height: context.spacing.sm),
 
-          // REVERSED BANNER
-          // if (transaction.isReversed)
-          //   Container(
-          //     margin: EdgeInsets.only(bottom: context.spacing.md),
-          //     padding: EdgeInsets.symmetric(
-          //       horizontal: context.spacing.md,
-          //       vertical: context.spacing.xs,
-          //     ),
-          //     decoration: BoxDecoration(
-          //       color: Theme.of(context).colorScheme.errorContainer,
-          //       borderRadius: BorderRadius.circular(8),
-          //     ),
-          //     child: Text(
-          //       'REVERSED', // TODO: Localize
-          //       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          //             color: Theme.of(context).colorScheme.onErrorContainer,
-          //           ),
-          //       textAlign: TextAlign.center,
-          //     ),
-          //   ),
-
           // Amount (Hero)
           Text(
             [
-              transaction.type == TransactionType.expense ? '-' : '+',
+              transaction.type == TransactionKind.expense ? '-' : '+',
               '$currency${transaction.displayAmount}',
             ].join(' '),
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -137,29 +118,30 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
           SizedBox(height: context.spacing.md),
 
-          // Title / Category
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                backgroundColor:
-                    Color(transaction.category.colorInt).withValues(alpha: 0.2),
-                foregroundColor: Color(transaction.category.colorInt),
-                child: Icon(
-                  IconData(
-                    int.tryParse(transaction.category.iconKey) ?? 0xe574,
-                    fontFamily: 'MaterialIcons',
+          // Title / Category — transfers have no category (spec US5).
+          if (transaction.type != TransactionKind.transfer)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  backgroundColor:
+                      Color(transaction.category.colorInt).withValues(alpha: 0.2),
+                  foregroundColor: Color(transaction.category.colorInt),
+                  child: Icon(
+                    IconData(
+                      int.tryParse(transaction.category.iconKey) ?? 0xe574,
+                      fontFamily: 'MaterialIcons',
+                    ),
+                    size: 20,
                   ),
-                  size: 20,
                 ),
-              ),
-              SizedBox(width: context.spacing.sm),
-              Text(
-                transaction.category.name,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
-          ),
+                SizedBox(width: context.spacing.sm),
+                Text(
+                  transaction.category.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
           SizedBox(height: context.spacing.lg),
           const FeatherDivider(),
           SizedBox(height: context.spacing.md),
@@ -170,10 +152,22 @@ class TransactionDetailSheet extends ConsumerWidget {
             value: DateFormat.yMMMMEEEEd(locale).format(transaction.date),
           ),
           SizedBox(height: context.spacing.md),
-          LedgerDetailRow(
-            label: l10n.account,
-            value: transaction.account.name,
-          ),
+          if (transaction.type == TransactionKind.transfer &&
+              transaction.toAccount != null) ...[
+            LedgerDetailRow(
+              label: l10n.transferFrom,
+              value: transaction.account.name,
+            ),
+            SizedBox(height: context.spacing.md),
+            LedgerDetailRow(
+              label: l10n.transferTo,
+              value: transaction.toAccount!.name,
+            ),
+          ] else
+            LedgerDetailRow(
+              label: l10n.account,
+              value: transaction.account.name,
+            ),
           if (transaction.note != null && transaction.note!.isNotEmpty) ...[
             SizedBox(height: context.spacing.md),
             LedgerDetailRow(
@@ -182,8 +176,49 @@ class TransactionDetailSheet extends ConsumerWidget {
             ),
           ],
 
+          // Audit history (spec 003, US6/T047): the event chain of this
+          // transaction — Recorded, plus Reversed with its reason once the
+          // transaction is corrected or deleted. Reversed rows are hidden
+          // from the list, so the chain is how the UI presents isReversed.
           SizedBox(height: context.spacing.lg),
-          // Close Button (Optional, standard sheet swipe is fine)
+          const FeatherDivider(),
+          SizedBox(height: context.spacing.md),
+          Text(
+            l10n.auditHistory,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).hintColor,
+                ),
+          ),
+          SizedBox(height: context.spacing.sm),
+          ...ref
+              .watch(getTransactionHistoryProvider(transaction.id))
+              .maybeWhen(
+                data: (history) => history.map((entry) {
+                  final label = entry.eventType == 'TransactionRecorded'
+                      ? l10n.eventRecorded
+                      : entry.reversalReason == ReversalReason.correction
+                          ? '${l10n.eventReversed} · ${l10n.reversalCorrection}'
+                          : '${l10n.eventReversed} · ${l10n.reversalUserDeleted}';
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: context.spacing.xs),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(label,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        Text(
+                          DateFormat.yMMMd(locale).format(entry.occurredAt),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Theme.of(context).hintColor),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                orElse: () => const [],
+              ),
         ],
       ),
     );

@@ -126,7 +126,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     final currencyKey =
-        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+        ref.watch(currencyControllerProvider).value ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Scaffold(

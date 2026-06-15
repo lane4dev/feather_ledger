@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
@@ -43,7 +42,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
               id: row.id,
               seriesId: row.seriesId,
               date: row.date,
-              amount: row.amount / 100.0,
+              amountMinor: row.amountMinor,
               status: ScheduledTransactionStatus.values.firstWhere(
                   (e) => e.toString().split('.').last == row.status),
               transactionId: row.transactionId,
@@ -52,7 +51,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
                 description: seriesRow.description,
                 startDate: seriesRow.startDate,
                 endDate: seriesRow.endDate,
-                amount: seriesRow.amount / 100.0,
+                amountMinor: seriesRow.amountMinor,
                 categoryId: seriesRow.categoryId,
                 accountId: seriesRow.accountId,
                 type: seriesRow.type,

@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart'; // Added import for Value and ScheduledTransactionsViewCompanion
 import 'package:rrule/rrule.dart';
@@ -45,7 +44,7 @@ class ProjectRecurringEventsCommand {
               id: Value(id),
               seriesId: Value(series.id),
               date: Value(date.toLocal()),
-              amount: Value((series.amount * 100).round()), // Convert to cents
+              amountMinor: Value(series.amountMinor),
               status: Value(ScheduledTransactionStatus.scheduled
                   .toString()
                   .split('.')
