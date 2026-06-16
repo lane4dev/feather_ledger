@@ -2,12 +2,15 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../../domain/entities/reports_entities.dart';
 
-class ReportBreakdownView extends StatefulWidget {
+class ReportBreakdownView extends ConsumerStatefulWidget {
   final AsyncValue<List<ReportCategoryTotal>> dataAsync;
   final String emptyMessage;
 
@@ -18,10 +21,11 @@ class ReportBreakdownView extends StatefulWidget {
   });
 
   @override
-  State<ReportBreakdownView> createState() => _ReportBreakdownViewState();
+  ConsumerState<ReportBreakdownView> createState() =>
+      _ReportBreakdownViewState();
 }
 
-class _ReportBreakdownViewState extends State<ReportBreakdownView> {
+class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
   int touchedIndex = -1;
 
   Color _getTonalColor(Color color) {
@@ -35,6 +39,12 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Formatting boundary (spec 003, US9/T065): pie values are doubles for
+    // fl_chart; display strings go through formatMinor + the currency
+    // setting — no business calculation happens here.
+    final currencyKey = ref.watch(currencyControllerProvider).value ??
+        AppCurrencies.supportedCurrencyCodes.first;
+    final currencySymbol = AppCurrencies.getSymbol(currencyKey);
     return widget.dataAsync.when(
       data: (data) {
         if (data.isEmpty) {
@@ -42,7 +52,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
         }
 
         final sorted = List<ReportCategoryTotal>.from(data)
-          ..sort((a, b) => b.total.compareTo(a.total));
+          ..sort((a, b) => b.totalMinor.compareTo(a.totalMinor));
 
         final processedData = <ReportCategoryTotal>[];
         if (sorted.length <= 5) {
@@ -50,7 +60,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
         } else {
           processedData.addAll(sorted.take(5));
           final otherTotal =
-              sorted.skip(5).fold(0.0, (sum, item) => sum + item.total);
+              sorted.skip(5).fold(0, (sum, item) => sum + item.totalMinor);
           processedData.add(ReportCategoryTotal(
             category: CategoryEntity(
               id: 'others',
@@ -58,13 +68,12 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
               iconKey: '57564',
               colorInt: Colors.grey.toARGB32(),
               type: sorted.first.category.type,
-              isDefault: false,
             ),
-            total: otherTotal,
+            totalMinor: otherTotal,
           ));
         }
 
-        final totalSum = data.fold(0.0, (sum, item) => sum + item.total);
+        final totalSum = data.fold(0, (sum, item) => sum + item.totalMinor);
 
         return Column(
           children: [
@@ -96,13 +105,14 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
                     final index = entry.key;
                     final item = entry.value;
                     final isTouched = index == touchedIndex;
-                    final percentage =
-                        totalSum > 0 ? (item.total / totalSum * 100) : 0.0;
+                    final percentage = totalSum > 0
+                        ? (item.totalMinor / totalSum * 100)
+                        : 0.0;
                     final color = _getTonalColor(Color(item.category.colorInt));
 
                     return PieChartSectionData(
                       color: isTouched ? Color(item.category.colorInt) : color,
-                      value: item.total,
+                      value: item.totalMinor.toDouble(),
                       title: '${percentage.toStringAsFixed(0)}%',
                       radius: isTouched ? 55 : 45,
                       titleStyle:
@@ -182,7 +192,7 @@ class _ReportBreakdownViewState extends State<ReportBreakdownView> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            '\$${item.total.toStringAsFixed(2)}',
+                            '$currencySymbol${formatMinor(item.totalMinor)}',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
