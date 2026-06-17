@@ -6,25 +6,49 @@ part of 'watch_all_accounts_query.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(watchAllAccountsQuery)
+final watchAllAccountsQueryProvider = WatchAllAccountsQueryProvider._();
+
+final class WatchAllAccountsQueryProvider extends $FunctionalProvider<
+    WatchAllAccountsQuery,
+    WatchAllAccountsQuery,
+    WatchAllAccountsQuery> with $Provider<WatchAllAccountsQuery> {
+  WatchAllAccountsQueryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'watchAllAccountsQueryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$watchAllAccountsQueryHash();
+
+  @$internal
+  @override
+  $ProviderElement<WatchAllAccountsQuery> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  WatchAllAccountsQuery create(Ref ref) {
+    return watchAllAccountsQuery(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WatchAllAccountsQuery value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WatchAllAccountsQuery>(value),
+    );
+  }
+}
+
 String _$watchAllAccountsQueryHash() =>
     r'565fe6d2e3a49c72d5af1d05661550de23d5cee6';
-
-/// See also [watchAllAccountsQuery].
-@ProviderFor(watchAllAccountsQuery)
-final watchAllAccountsQueryProvider =
-    AutoDisposeProvider<WatchAllAccountsQuery>.internal(
-  watchAllAccountsQuery,
-  name: r'watchAllAccountsQueryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$watchAllAccountsQueryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef WatchAllAccountsQueryRef
-    = AutoDisposeProviderRef<WatchAllAccountsQuery>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

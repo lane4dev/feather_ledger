@@ -4,16 +4,19 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
-import 'package:feather_ledger/core/data/repositories/category_repository.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/settings/domain/services/category_service.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final CategoryEntity? category;
-  final TransactionType type; // Removed prefix
+  final CategoryType type; // Removed prefix
 
   const CategoryFormSheet({super.key, this.category, required this.type});
 
@@ -139,70 +142,73 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     const FeatherDivider(),
                     SizedBox(height: context.spacing.md),
 
-                    // Color Picker
-                    Text(l10n.color, style: theme.textTheme.titleMedium),
-                    SizedBox(height: context.spacing.sm),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: CategoryTokens.defaultColors.map((color) {
-                        return GestureDetector(
-                          onTap: () =>
-                              setState(() => _colorInt = color.toARGB32()),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: _colorInt == color.toARGB32()
-                                  ? Border.all(
-                                      color: colorScheme.primary, width: 2)
-                                  : null,
+                    // Color Picker — creation only (spec 003 has no recolor
+                    // event; edits rename only)
+                    if (!isEditing) ...[
+                      Text(l10n.color, style: theme.textTheme.titleMedium),
+                      SizedBox(height: context.spacing.sm),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: CategoryTokens.defaultColors.map((color) {
+                          return GestureDetector(
+                            onTap: () =>
+                                setState(() => _colorInt = color.toARGB32()),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: _colorInt == color.toARGB32()
+                                    ? Border.all(
+                                        color: colorScheme.primary, width: 2)
+                                    : null,
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    SizedBox(height: context.spacing.lg),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: context.spacing.lg),
 
-                    // Icon Picker
-                    Text(l10n.icon, style: theme.textTheme.titleMedium),
-                    SizedBox(height: context.spacing.sm),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: CategoryTokens.defaultIcons.map((iconCode) {
-                        final isSelected = _iconKey == iconCode.toString();
-                        return GestureDetector(
-                          onTap: () =>
-                              setState(() => _iconKey = iconCode.toString()),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? colorScheme.primaryContainer
-                                  : null,
-                              borderRadius: BorderRadius.circular(8),
+                      // Icon Picker
+                      Text(l10n.icon, style: theme.textTheme.titleMedium),
+                      SizedBox(height: context.spacing.sm),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: CategoryTokens.defaultIcons.map((iconCode) {
+                          final isSelected = _iconKey == iconCode.toString();
+                          return GestureDetector(
+                            onTap: () =>
+                                setState(() => _iconKey = iconCode.toString()),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? colorScheme.primaryContainer
+                                    : null,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                IconData(iconCode, fontFamily: 'MaterialIcons'),
+                                color: isSelected
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurface,
+                              ),
                             ),
-                            child: Icon(
-                              IconData(iconCode, fontFamily: 'MaterialIcons'),
-                              color: isSelected
-                                  ? colorScheme.onPrimaryContainer
-                                  : colorScheme.onSurface,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
 
                     SizedBox(height: context.spacing.xl),
 
                     // Save Button
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton(
+                      child: AppButton(
                         onPressed: _save,
                         child: Text(l10n.save),
                       ),
@@ -242,53 +248,53 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
 
     if (confirm == true) {
       if (!mounted) return;
-      await ref
-          .read(categoryRepositoryProvider)
-          .deleteCategory(widget.category!.id);
-      if (mounted) context.pop();
+      final result = await ref.read(categoryServiceProvider).archiveCategory(
+            commandId: const Uuid().v4(),
+            categoryId: widget.category!.id,
+          );
+      if (!mounted) return;
+      if (result case Failure(:final code)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(code.message(AppLocalizations.of(context)!))),
+        );
+        return;
+      }
+      context.pop();
     }
   }
 
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final repository = ref.read(categoryRepositoryProvider);
+      final service = ref.read(categoryServiceProvider);
 
-      try {
-        if (widget.category != null) {
-          await repository.updateCategory(CategoryEntity(
-            id: widget.category!.id,
-            name: _name,
-            iconKey: _iconKey,
-            colorInt: _colorInt,
-            type: widget.type,
-            isDefault: widget.category!.isDefault,
-          ));
-        } else {
-          final newCategory = CategoryEntity(
-            id: const Uuid().v4(),
-            name: _name,
-            iconKey: _iconKey,
-            colorInt: _colorInt,
-            type: widget.type,
-            isDefault: false,
-          );
-
-          await repository.addCategory(
-            newCategory,
-          );
-        }
-
-        if (mounted) {
-          context.pop();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
-        }
+      Result<void> result;
+      if (widget.category != null) {
+        // Only the name is editable after creation (spec 003: no
+        // icon/color events exist).
+        result = await service.renameCategory(
+          commandId: const Uuid().v4(),
+          categoryId: widget.category!.id,
+          name: _name,
+        );
+      } else {
+        result = await service.createCategory(
+          commandId: const Uuid().v4(),
+          name: _name,
+          iconKey: _iconKey,
+          colorInt: _colorInt,
+          type: widget.type,
+        );
       }
+
+      if (!mounted) return;
+      if (result case Failure(:final code)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(code.message(AppLocalizations.of(context)!))),
+        );
+        return;
+      }
+      context.pop();
     }
   }
 }

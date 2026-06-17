@@ -23,10 +23,10 @@ class AboutScreen extends ConsumerWidget {
           children: [
             SizedBox(height: spacing.xl),
             // App Logo
-            Icon(
-              Icons.book, // Placeholder for App Icon
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
+            Image.asset(
+              'assets/images/app_logo.png',
+              width: 80,
+              height: 80,
             ),
             SizedBox(height: spacing.md),
             // App Name
@@ -54,7 +54,7 @@ class AboutScreen extends ConsumerWidget {
               title: Text(l10n.openSourceLicenses),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                final version = packageInfoAsync.valueOrNull?.version;
+                final version = packageInfoAsync.value?.version;
                 showLicensePage(
                   context: context,
                   applicationName: l10n.appTitle,

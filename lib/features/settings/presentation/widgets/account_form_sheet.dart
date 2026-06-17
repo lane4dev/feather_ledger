@@ -6,12 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:uuid/uuid.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final AccountEntity? account;
@@ -25,16 +30,14 @@ class AccountFormSheet extends ConsumerStatefulWidget {
 class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
-  late double _balance;
+  late int _balanceMinor;
   late AccountType _selectedType; // Removed prefix
 
   @override
   void initState() {
     super.initState();
     _name = widget.account?.name ?? '';
-    _balance = widget.account?.postedBalance != null
-        ? widget.account!.postedBalance / 100.0
-        : 0.0;
+    _balanceMinor = widget.account?.balanceMinor ?? 0;
     _selectedType = widget.account?.type ?? AccountType.cash; // Removed prefix
   }
 
@@ -44,8 +47,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final isEditing = widget.account != null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final currencyKey = ref.watch(currencyControllerProvider).valueOrNull ??
-        AppCurrencies.defaultCurrency.symbol;
+    final currencyKey = ref.watch(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code;
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Container(
@@ -100,9 +103,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   children: [
                     // Balance Input (Hero) - Left Aligned
                     TextFormField(
-                      initialValue: _balance == 0 && !isEditing
+                      initialValue: _balanceMinor == 0 && !isEditing
                           ? null
-                          : _balance.toStringAsFixed(2),
+                          : formatMinor(_balanceMinor),
                       textAlign: TextAlign.left,
                       decoration: InputDecoration(
                         prefixText: '$currency ',
@@ -146,7 +149,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                         }
                         return null;
                       },
-                      onSaved: (value) => _balance = double.parse(value!),
+                      onSaved: (value) => _balanceMinor = parseMinor(value!),
                     ),
                     SizedBox(height: context.spacing.lg),
 
@@ -179,9 +182,14 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                         );
                       }).toList(),
                       selected: {_selectedType},
-                      onSelectionChanged: (newSelection) {
-                        setState(() => _selectedType = newSelection.first);
-                      },
+                      // Account type is fixed at creation (spec 003: only
+                      // Renamed/Archived exist) — disabled when editing.
+                      onSelectionChanged: isEditing
+                          ? null
+                          : (newSelection) {
+                              setState(() =>
+                                  _selectedType = newSelection.first);
+                            },
                       showSelectedIcon: false,
                     ),
                     SizedBox(height: context.spacing.lg),
@@ -215,7 +223,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     // Save Button
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton(
+                      child: AppButton(
                         onPressed: _save,
                         child: Text(l10n.save),
                       ),
@@ -254,7 +262,10 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
     if (confirm == true) {
       if (!mounted) return;
-      await ref.read(accountServiceProvider).deleteAccount(widget.account!.id);
+      await ref.read(accountServiceProvider).archiveAccount(
+            commandId: const Uuid().v4(),
+            accountId: widget.account!.id,
+          );
       if (mounted) context.pop();
     }
   }
@@ -264,70 +275,80 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
       _formKey.currentState!.save();
       final service = ref.read(accountServiceProvider);
 
-      try {
-        if (widget.account != null) {
-          final currentBalance = widget.account!.postedBalance / 100.0;
-          if ((_balance - currentBalance).abs() > 0.001) {
-            final l10n = AppLocalizations.of(context)!;
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text(l10n.balanceChangeDetectedTitle),
-                content: Text(l10n.balanceChangeDetectedMessage),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(l10n.save),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirm != true) return;
-
-            await service.updateAccount(
-              id: widget.account!.id,
-              name: _name,
-              type: _selectedType,
-              newBalance: _balance,
-              balanceAdjustmentDescription:
-                  l10n.accountBalanceAdjustmentDescription,
-              balanceAdjustmentNotes: l10n.accountBalanceAdjustmentNotes,
-            );
-          } else {
-            await service.updateAccount(
-              id: widget.account!.id,
-              name: _name,
-              type: _selectedType,
-            );
-          }
-        } else {
-          await service.createAccount(
-            name: _name,
-            type: _selectedType,
-            initialBalance: _balance,
-          );
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.accountSaved),
-              behavior: SnackBarBehavior.floating,
+      Result<void> result;
+      if (widget.account != null) {
+        final currentBalanceMinor = widget.account!.balanceMinor;
+        final balanceChanged = _balanceMinor != currentBalanceMinor;
+        if (balanceChanged) {
+          final l10n = AppLocalizations.of(context)!;
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.balanceChangeDetectedTitle),
+              content: Text(l10n.balanceChangeDetectedMessage),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.save),
+                ),
+              ],
             ),
           );
-          context.pop();
+
+          if (confirm != true) return;
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+
+        result = await service.renameAccount(
+          commandId: const Uuid().v4(),
+          accountId: widget.account!.id,
+          name: _name,
+        );
+
+        if (balanceChanged && result is Success<void>) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context)!;
+          result = await service.adjustAccountBalance(
+            commandId: const Uuid().v4(),
+            accountId: widget.account!.id,
+            newBalanceMinor: _balanceMinor,
+            description: l10n.accountBalanceAdjustmentDescription,
+            notes: l10n.accountBalanceAdjustmentNotes,
           );
         }
+      } else {
+        final currencyKey = ref.read(currencyControllerProvider).value ??
+            AppCurrencies.defaultCurrency.code;
+        result = await service.createAccount(
+          commandId: const Uuid().v4(),
+          name: _name,
+          type: _selectedType,
+          initialBalanceMinor: _balanceMinor,
+          currencyCode: currencyKey,
+        );
+      }
+
+      if (result case Failure(:final code)) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(code.message(l10n))),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.accountSaved),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        context.pop();
       }
     }
   }

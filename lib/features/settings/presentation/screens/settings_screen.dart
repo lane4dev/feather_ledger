@@ -10,6 +10,7 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart'
 import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -31,10 +32,10 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.brightness_6),
             title: Text(l10n.theme),
-            subtitle: Text(_getThemeLabel(themeAsync.valueOrNull, l10n)),
+            subtitle: Text(_getThemeLabel(themeAsync.value, l10n)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () =>
-                _showThemeDialog(context, ref, themeAsync.valueOrNull, l10n),
+                _showThemeDialog(context, ref, themeAsync.value, l10n),
           ),
           const FeatherDivider(),
 
@@ -44,10 +45,10 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.language),
             // Show the actual language name. If null (system), resolve the current active locale.
             subtitle:
-                Text(_getLocaleLabel(context, localeAsync.valueOrNull, l10n)),
+                Text(_getLocaleLabel(context, localeAsync.value, l10n)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showLanguageDialog(
-                context, ref, localeAsync.valueOrNull, l10n),
+                context, ref, localeAsync.value, l10n),
           ),
           const FeatherDivider(),
 
@@ -62,11 +63,58 @@ class SettingsScreen extends ConsumerWidget {
             )),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showCurrencyDialog(
-                context, ref, currencyAsync.valueOrNull, l10n),
+                context, ref, currencyAsync.value, l10n),
+          ),
+          const FeatherDivider(),
+
+          // Developer-only maintenance (spec 003, US8/T059): the rebuild
+          // replays the full event history into the projections. Hidden
+          // behind a long-press so no regular user flow can touch it.
+          ListTile(
+            leading: const Icon(Icons.construction),
+            title: Text(l10n.rebuildProjections),
+            subtitle: Text(l10n.rebuildProjectionsHint),
+            onLongPress: () => _confirmRebuild(context, ref, l10n),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmRebuild(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.rebuildProjections),
+        content: Text(l10n.rebuildProjectionsConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    String message;
+    try {
+      await ref.read(ledgerRebuildServiceProvider).rebuild();
+      message = l10n.rebuildProjectionsSuccess;
+    } catch (e) {
+      message = l10n.rebuildProjectionsFailure;
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showThemeDialog(
