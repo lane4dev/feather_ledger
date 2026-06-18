@@ -52,7 +52,7 @@ class RenderSliverClipRect extends RenderProxySliver {
       return;
     }
 
-    final Rect clipRect = switch (constraints.axis) {
+    final clipRect = switch (constraints.axis) {
       Axis.vertical => Rect.fromLTWH(
           0,
           0,

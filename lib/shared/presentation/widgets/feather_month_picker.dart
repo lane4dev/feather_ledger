@@ -80,7 +80,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toString();
     final dateFormat = DateFormat.MMM(locale);
-    final int yearCount = widget.lastDate.year - widget.firstDate.year + 1;
+    final yearCount = widget.lastDate.year - widget.firstDate.year + 1;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -128,8 +128,9 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
             const mainAxisSpacing = 12.0;
             const childAspectRatio = 2.0;
 
-            final itemWidth = (width - (crossAxisSpacing * (crossAxisCount - 1))) /
-                crossAxisCount;
+            final itemWidth =
+                (width - (crossAxisSpacing * (crossAxisCount - 1))) /
+                    crossAxisCount;
             final itemHeight = itemWidth / childAspectRatio;
             // 4 rows of items + 3 spaces
             final gridHeight = (itemHeight * 4) + (mainAxisSpacing * 3);
@@ -142,7 +143,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                 onPageChanged: _handlePageChanged,
                 itemBuilder: (context, pageIndex) {
                   final year = widget.firstDate.year + pageIndex;
-                  
+
                   // Grid of 12 months for this specific year
                   return GridView.count(
                     crossAxisCount: crossAxisCount,
@@ -152,12 +153,10 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                     childAspectRatio: childAspectRatio,
                     children: List.generate(12, (index) {
                       final monthDate = DateTime(year, index + 1);
-                      final isSelected =
-                          year == widget.initialDate.year &&
-                              index + 1 == widget.initialDate.month;
-                      final isCurrentMonth =
-                          year == DateTime.now().year &&
-                              index + 1 == DateTime.now().month;
+                      final isSelected = year == widget.initialDate.year &&
+                          index + 1 == widget.initialDate.month;
+                      final isCurrentMonth = year == DateTime.now().year &&
+                          index + 1 == DateTime.now().month;
 
                       return _MonthTile(
                         label: dateFormat.format(monthDate),
@@ -198,8 +197,9 @@ class _MonthTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final backgroundColor =
-        isSelected ? colorScheme.primary : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
+    final backgroundColor = isSelected
+        ? colorScheme.primary
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
     final foregroundColor =
         isSelected ? colorScheme.onPrimary : colorScheme.onSurface;
     final borderColor = isCurrentMonth && !isSelected
