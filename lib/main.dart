@@ -8,9 +8,14 @@ import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/config/app_languages.dart';
 import 'app/bootstrap/seeder.dart';
+import 'app/bootstrap/register_ledger_events.dart';
 import 'core/data/database/app_database.dart';
 import 'core/presentation/providers/theme_provider.dart';
 import 'core/presentation/providers/locale_provider.dart';
+import 'features/ledger/data/event_sourcing/drift_event_store.dart';
+import 'features/ledger/data/projections/ledger_rebuild_service.dart';
+import 'features/settings/domain/services/account_service.dart';
+import 'features/settings/domain/services/category_service.dart';
 
 void setupEdgeToEdge() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -30,8 +35,15 @@ void setupEdgeToEdge() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Production event catalog registration (spec 003, US2/T021): every event
+  // the store persists must be deserializable at startup without test-only
+  // factory registration.
+  registerLedgerEvents();
+
   final container = ProviderContainer();
-  final db = container.read(appDatabaseProvider);
+  // Open the database eagerly (LazyDatabase) so startup work overlaps the
+  // locale resolution below.
+  container.read(appDatabaseProvider);
 
   final systemLocales = WidgetsBinding.instance.platformDispatcher.locales;
 
@@ -47,7 +59,22 @@ void main() async {
   }
 
   final l10n = await AppLocalizations.delegate.load(seedLocale);
-  await seedDatabase(db, l10n);
+  await seedDatabase(
+    eventStore: container.read(driftEventStoreProvider),
+    accountService: container.read(accountServiceProvider),
+    categoryService: container.read(categoryServiceProvider),
+    l10n: l10n,
+  );
+
+  // Startup rebuild gate (spec 003, US8/T058): a schema upgrade already
+  // rebuilds destructively (empty event store + re-seed); here any view
+  // carrying an outdated projection version is rebuilt from the event
+  // store. recurring_series, scheduled_transactions_view and
+  // SharedPreferences are exempt.
+  final rebuildService = container.read(ledgerRebuildServiceProvider);
+  if (await rebuildService.isStale()) {
+    await rebuildService.rebuild();
+  }
 
   setupEdgeToEdge();
 
@@ -68,12 +95,12 @@ class FeatherLedgerApp extends ConsumerWidget {
       title: 'Feather Ledger',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeAsync.valueOrNull ?? ThemeMode.system,
+      themeMode: themeAsync.value ?? ThemeMode.system,
       routerConfig: router,
-      locale: localeAsync.valueOrNull,
+      locale: localeAsync.value,
       localeResolutionCallback: (deviceLocale, supportedLocales) {
-        if (localeAsync.valueOrNull != null) {
-          return localeAsync.valueOrNull;
+        if (localeAsync.value != null) {
+          return localeAsync.value;
         }
 
         if (deviceLocale == null) {
