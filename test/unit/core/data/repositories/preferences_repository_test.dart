@@ -215,93 +215,93 @@ void main() {
     });
 
     group('getCurrency', () {
-      test('should return stored currency symbol', () {
+      test('should return stored currency code', () {
         // Arrange
-        mockPrefs.setMockString('currency_symbol', '¥');
+        mockPrefs.setMockString('currency_code', 'CNY');
 
         // Act
         final result = repository.getCurrency();
 
         // Assert
-        expect(result, '¥');
+        expect(result, 'CNY');
       });
 
-      test('should return "\$" as default when no value is stored', () {
+      test('should return "USD" as default when no value is stored', () {
         // Arrange - no value set
 
         // Act
         final result = repository.getCurrency();
 
         // Assert
-        expect(result, '\$');
+        expect(result, 'USD');
       });
 
-      test('should return euro symbol when stored', () {
+      test('should return euro code when stored', () {
         // Arrange
-        mockPrefs.setMockString('currency_symbol', '€');
+        mockPrefs.setMockString('currency_code', 'EUR');
 
         // Act
         final result = repository.getCurrency();
 
         // Assert
-        expect(result, '€');
+        expect(result, 'EUR');
       });
 
-      test('should return pound symbol when stored', () {
+      test('should return pound code when stored', () {
         // Arrange
-        mockPrefs.setMockString('currency_symbol', '£');
+        mockPrefs.setMockString('currency_code', 'GBP');
 
         // Act
         final result = repository.getCurrency();
 
         // Assert
-        expect(result, '£');
+        expect(result, 'GBP');
       });
     });
 
     group('setCurrency', () {
-      test('should store currency symbol', () async {
+      test('should store currency code', () async {
         // Arrange
-        const symbol = '¥';
+        const code = 'CNY';
 
         // Act
-        await repository.setCurrency(symbol);
+        await repository.setCurrency(code);
 
         // Assert
-        expect(mockPrefs.getString('currency_symbol'), '¥');
+        expect(mockPrefs.getString('currency_code'), 'CNY');
       });
 
-      test('should store dollar symbol', () async {
+      test('should store dollar code', () async {
         // Arrange
-        const symbol = '\$';
+        const code = 'USD';
 
         // Act
-        await repository.setCurrency(symbol);
+        await repository.setCurrency(code);
 
         // Assert
-        expect(mockPrefs.getString('currency_symbol'), '\$');
+        expect(mockPrefs.getString('currency_code'), 'USD');
       });
 
-      test('should store euro symbol', () async {
+      test('should store euro code', () async {
         // Arrange
-        const symbol = '€';
+        const code = 'EUR';
 
         // Act
-        await repository.setCurrency(symbol);
+        await repository.setCurrency(code);
 
         // Assert
-        expect(mockPrefs.getString('currency_symbol'), '€');
+        expect(mockPrefs.getString('currency_code'), 'EUR');
       });
 
-      test('should overwrite previous currency symbol', () async {
+      test('should overwrite previous currency code', () async {
         // Arrange
-        await repository.setCurrency('¥');
+        await repository.setCurrency('CNY');
 
         // Act
-        await repository.setCurrency('€');
+        await repository.setCurrency('EUR');
 
         // Assert
-        expect(mockPrefs.getString('currency_symbol'), '€');
+        expect(mockPrefs.getString('currency_code'), 'EUR');
       });
     });
 
@@ -310,12 +310,12 @@ void main() {
         // Act - Set all settings
         await repository.setThemeMode(ThemeMode.dark);
         await repository.setLocale(const Locale('zh'));
-        await repository.setCurrency('¥');
+        await repository.setCurrency('CNY');
 
         // Assert - Verify all settings
         expect(repository.getThemeMode(), ThemeMode.dark);
         expect(repository.getLocale(), const Locale('zh'));
-        expect(repository.getCurrency(), '¥');
+        expect(repository.getCurrency(), 'CNY');
       });
 
       test('should handle multiple updates correctly', () async {
@@ -332,7 +332,7 @@ void main() {
         // Act - Set different settings
         await repository.setThemeMode(ThemeMode.dark);
         await repository.setLocale(const Locale('en'));
-        await repository.setCurrency('\$');
+        await repository.setCurrency('USD');
 
         // Change one setting
         await repository.setLocale(const Locale('zh'));
@@ -340,7 +340,7 @@ void main() {
         // Assert - Other settings unchanged
         expect(repository.getThemeMode(), ThemeMode.dark);
         expect(repository.getLocale(), const Locale('zh'));
-        expect(repository.getCurrency(), '\$');
+        expect(repository.getCurrency(), 'USD');
       });
     });
   });

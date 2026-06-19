@@ -90,6 +90,76 @@ class FakeAppLocalizations implements AppLocalizations {
   String get invalidAmount => 'Invalid amount';
 
   @override
+  String get errorAccountNotFound => 'Account not found';
+
+  @override
+  String get errorAccountArchived => 'Account is archived';
+
+  @override
+  String get errorCategoryNotFound => 'Category not found';
+
+  @override
+  String get errorCategoryArchived => 'Category is archived';
+
+  @override
+  String get errorCategoryTypeMismatch =>
+      'Category type does not match the transaction type';
+
+  @override
+  String get errorSystemCategoryProtected =>
+      'System categories cannot be archived';
+
+  @override
+  String get errorInvalidTransfer => 'Invalid transfer';
+
+  @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get transferFrom => 'From';
+
+  @override
+  String get transferTo => 'To';
+
+  @override
+  String get errorTransactionNotFound => 'Transaction not found';
+
+  @override
+  String get errorTransactionAlreadyReversed =>
+      'Transaction was already reversed';
+
+  @override
+  String get auditHistory => 'Audit history';
+
+  @override
+  String get eventRecorded => 'Recorded';
+
+  @override
+  String get eventReversed => 'Reversed';
+
+  @override
+  String get reversalUserDeleted => 'User deleted';
+
+  @override
+  String get reversalCorrection => 'Correction';
+
+  @override
+  String get rebuildProjections => 'Rebuild projections';
+
+  @override
+  String get rebuildProjectionsHint => 'Developer tool — long-press to run';
+
+  @override
+  String get rebuildProjectionsConfirm =>
+      'Clear all derived data and replay the full event history? Recurring rules and preferences are kept.';
+
+  @override
+  String get rebuildProjectionsSuccess => 'Projections rebuilt';
+
+  @override
+  String get rebuildProjectionsFailure => 'Rebuild failed';
+
+  @override
   String get noCategoriesFound => 'No categories found. Please add some first.';
 
   @override
@@ -200,6 +270,21 @@ class FakeAppLocalizations implements AppLocalizations {
   String get accountSaved => 'Account saved';
 
   @override
+  String get balanceChangeDetectedTitle => 'Balance change detected';
+
+  @override
+  String get balanceChangeDetectedMessage =>
+      'Balance has changed. A correction transaction will be created. Continue?';
+
+  @override
+  String get accountBalanceAdjustmentDescription =>
+      'Account balance adjustment';
+
+  @override
+  String get accountBalanceAdjustmentNotes =>
+      'Automated adjustment for account balance change.';
+
+  @override
   String get deleteAccountConfirmation =>
       'Are you sure you want to delete this account?';
 
@@ -289,5 +374,11 @@ class FakeAppLocalizations implements AppLocalizations {
   String get categoryInvestmentReturns => 'Investment Returns';
 
   @override
+  String get categoryReversalExpense => 'Reversal';
+
+  @override
   String get categoryPartTimeJob => 'Part-Time Job';
+
+  @override
+  String get categoryReversalIncome => 'Reversal';
 }

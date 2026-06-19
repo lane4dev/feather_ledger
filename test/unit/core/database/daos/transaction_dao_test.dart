@@ -1,244 +1,173 @@
+import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../../../support/fakes/fake_app_database.dart';
 
 void main() {
   late AppDatabase database;
-  late int accountId;
-  late int categoryId;
+  late String accountId;
+  late String expenseCategoryId;
+  late String incomeCategoryId;
 
   setUp(() async {
     database = FakeAppDatabase();
 
     // Create baseline data
-    accountId = await database.into(database.accounts).insert(
-          AccountsCompanion.insert(
-            name: 'Test Account',
-            type: AccountType.cash,
-            initialBalance: const Value(1000.0),
-          ),
-        );
+    accountId = 'acc_1';
+    await database.accountDao.upsert(AccountsViewCompanion.insert(
+      id: accountId,
+      name: 'Test Account',
+      type: AccountType.cash,
+      currencyCode: 'USD',
+      balanceMinor: 100000, // $1000.00 in minor units
+      lastUpdatedEventId: 1,
+    ));
 
-    categoryId = await database.into(database.categories).insert(
-          CategoriesCompanion.insert(
-            name: 'Test Category',
-            iconKey: 'test',
-            colorInt: 0xFF000000,
-            type: TransactionType.expense,
-          ),
-        );
+    expenseCategoryId = 'cat_expense';
+    await database.categoriesDao.upsert(CategoriesViewCompanion.insert(
+      id: expenseCategoryId,
+      name: 'Test Category',
+      iconKey: 'test',
+      colorInt: 0xFF000000,
+      type: CategoryType.expense,
+      lastUpdatedEventId: 0,
+    ));
+
+    incomeCategoryId = 'cat_income';
+    await database.categoriesDao.upsert(CategoriesViewCompanion.insert(
+      id: incomeCategoryId,
+      name: 'Income Category',
+      iconKey: 'income',
+      colorInt: 0xFF00FF00,
+      type: CategoryType.income,
+      lastUpdatedEventId: 0,
+    ));
   });
 
   tearDown(() async {
     await database.close();
   });
 
-  group('TransactionDao', () {
+  Future<void> insertTransaction({
+    required String transactionId,
+    required DateTime date,
+    required TransactionKind kind,
+    required String categoryId,
+    required PostingDirection direction,
+    required int amountMinor,
+    int originalEventId = 1,
+  }) async {
+    await database.transactionsDao.upsertTransaction(
+        TransactionsViewCompanion.insert(
+      transactionId: transactionId,
+      occurredAt: date,
+      kind: kind,
+      description: 'desc-$transactionId',
+      categoryName: Value('cat-$transactionId'),
+      categoryIcon: const Value('icon'),
+      categoryColorInt: const Value('ff000000'),
+      originalEventId: originalEventId,
+    ));
+    await database.transactionsDao.upsertPosting(
+        TransactionPostingsViewCompanion.insert(
+      id: '$transactionId:0',
+      transactionId: transactionId,
+      accountId: accountId,
+      direction: direction,
+      amountMinor: amountMinor,
+      currencyCode: 'USD',
+      categoryId: Value(categoryId),
+    ));
+  }
+
+  group('TransactionsDao', () {
     test('should add and update transaction', () async {
       final now = DateTime.now();
-      final id = await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 50.0,
-          type: TransactionType.expense,
-          date: now,
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
+      const id = 'tx_1';
+      await insertTransaction(
+        transactionId: id,
+        date: now,
+        kind: TransactionKind.expense,
+        categoryId: expenseCategoryId,
+        direction: PostingDirection.debit,
+        amountMinor: 5000, // $50.00
+        originalEventId: 1,
+      );
+      await insertTransaction(
+        transactionId: id,
+        date: now,
+        kind: TransactionKind.expense,
+        categoryId: expenseCategoryId,
+        direction: PostingDirection.debit,
+        amountMinor: 7500, // $75.00
+        originalEventId: 2,
       );
 
-      expect(id, greaterThan(0));
-
-      // Drift's replace requires all non-nullable fields without defaults to be present
-      await database.transactionDao.updateTransaction(
-        TransactionsCompanion(
-          id: Value(id),
-          amount: const Value(75.0),
-          type: const Value(TransactionType.expense),
-          date: Value(now),
-          categoryId: Value(categoryId),
-          accountId: Value(accountId),
-        ),
-      );
-
-      final retrieved = await (database.select(database.transactions)
-            ..where((t) => t.id.equals(id)))
+      final retrieved = await (database.select(database.transactionsView)
+            ..where((t) => t.transactionId.equals(id)))
           .getSingle();
-      expect(retrieved.amount, equals(75.0));
+      final posting = await (database.select(database.transactionPostingsView)
+            ..where((p) => p.transactionId.equals(id)))
+          .getSingle();
+      expect(posting.amountMinor, equals(7500));
+      expect(retrieved.kind, TransactionKind.expense);
     });
 
-    test('should delete transaction', () async {
-      final id = await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 50.0,
-          type: TransactionType.expense,
-          date: DateTime.now(),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
+    test('markTransactionAsReversed flags the row', () async {
+      const id = 'tx_delete';
+      await insertTransaction(
+        transactionId: id,
+        date: DateTime.now(),
+        kind: TransactionKind.expense,
+        categoryId: expenseCategoryId,
+        direction: PostingDirection.debit,
+        amountMinor: 5000,
       );
 
-      final deleted = await database.transactionDao.deleteTransaction(id);
-      expect(deleted, equals(1));
+      await database.transactionsDao.markTransactionAsReversed(id);
 
-      final results = await (database.select(database.transactions)
-            ..where((t) => t.id.equals(id)))
+      final results = await (database.select(database.transactionsView)
+            ..where((t) => t.transactionId.equals(id)))
           .get();
-      expect(results, isEmpty);
+      expect(results, hasLength(1));
+      expect(results.single.isReversed, isTrue);
     });
 
     test('watchTransactionsByMonth should filter correctly', () async {
       final month = DateTime(2023, 5);
 
       // Inside May
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 10.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 15),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
+      await insertTransaction(
+        transactionId: 'txn_may',
+        date: DateTime(2023, 5, 15),
+        kind: TransactionKind.expense,
+        categoryId: expenseCategoryId,
+        direction: PostingDirection.debit,
+        amountMinor: 1000,
       );
 
       // Outside May
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 20.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 6, 1),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
+      await insertTransaction(
+        transactionId: 'txn_june',
+        date: DateTime(2023, 6, 1),
+        kind: TransactionKind.expense,
+        categoryId: expenseCategoryId,
+        direction: PostingDirection.debit,
+        amountMinor: 2000,
+        originalEventId: 2,
       );
 
-      final stream = database.transactionDao.watchTransactionsByMonth(month);
+      final stream = database.transactionsDao.watchTransactionsByMonth(month);
       final list = await stream.first;
 
       expect(list.length, equals(1));
-      expect(list.first.transaction.amount, equals(10.0));
+      expect(list.first.transaction.transactionId, equals('txn_may'));
       expect(list.first.account.name, equals('Test Account'));
-      expect(list.first.category.name, equals('Test Category'));
+      expect(list.first.transaction.categoryName, equals('cat-txn_may'));
     });
 
-    test('watchMonthlyTotals should calculate income and expense', () async {
-      final month = DateTime(2023, 5);
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 100.0,
-          type: TransactionType.income,
-          date: DateTime(2023, 5, 10),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 40.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 12),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      final totals =
-          await database.transactionDao.watchMonthlyTotals(month).first;
-      expect(totals['income'], equals(100.0));
-      expect(totals['expense'], equals(40.0));
-    });
-
-    test(
-        'getRunningBalance should include initial balance and all transactions',
-        () async {
-      final monthEnd = DateTime(2023, 5, 31);
-
-      // Initial balance of Test Account is 1000.0
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 200.0,
-          type: TransactionType.income,
-          date: DateTime(2023, 5, 10),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 50.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 12),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      final balance = await database.transactionDao.getRunningBalance(monthEnd);
-      // 1000 + 200 - 50 = 1150
-      expect(balance, equals(1150.0));
-    });
-
-    test('watchCategoryTotals should group correctly', () async {
-      final month = DateTime(2023, 5);
-
-      final category2Id = await database.into(database.categories).insert(
-            CategoriesCompanion.insert(
-              name: 'Cat 2',
-              iconKey: '2',
-              colorInt: 0,
-              type: TransactionType.expense,
-            ),
-          );
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 30.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 5),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 20.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 6),
-          categoryId: categoryId,
-          accountId: accountId,
-        ),
-      );
-
-      await database.transactionDao.addTransaction(
-        TransactionsCompanion.insert(
-          amount: 100.0,
-          type: TransactionType.expense,
-          date: DateTime(2023, 5, 7),
-          categoryId: category2Id,
-          accountId: accountId,
-        ),
-      );
-
-      final totals = await database.transactionDao
-          .watchCategoryTotals(month, TransactionType.expense)
-          .first;
-
-      expect(totals.length, equals(2));
-      final cat1Total =
-          totals.firstWhere((t) => t.category.id == categoryId).total;
-      final cat2Total =
-          totals.firstWhere((t) => t.category.id == category2Id).total;
-
-      expect(cat1Total, equals(50.0));
-      expect(cat2Total, equals(100.0));
-    });
   });
 }

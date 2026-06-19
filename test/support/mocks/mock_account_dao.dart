@@ -4,47 +4,46 @@ import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
 
 /// Mock AccountDao for testing purposes
 class MockAccountDao implements AccountDao {
-  final StreamController<List<Account>> _accountsController =
-      StreamController<List<Account>>.broadcast(sync: true);
+  final StreamController<List<AccountViewRow>> _accountsController =
+      StreamController<List<AccountViewRow>>.broadcast(sync: true);
 
-  int addAccountCallCount = 0;
-  int updateAccountCallCount = 0;
-  int deleteAccountCallCount = 0;
-  AccountsCompanion? lastAddedAccount;
-  AccountsCompanion? lastUpdatedAccount;
-  int? lastDeletedId;
+  int upsertCallCount = 0;
+  int clearAllCallCount = 0;
+
+  AccountsViewCompanion? lastUpsertedAccount;
+
+  List<AccountViewRow> _currentAccounts = const [];
 
   @override
-  Stream<List<Account>> watchAllAccounts() {
-    return _accountsController.stream;
+  Stream<List<AccountViewRow>> watchAllAccounts() => _accountsController.stream;
+
+  @override
+  Future<List<AccountViewRow>> getAllAccounts() async => _currentAccounts;
+
+  @override
+  Future<AccountViewRow?> getAccountById(String id) async {
+    for (final row in _currentAccounts) {
+      if (row.id == id) return row;
+    }
+    return null;
   }
 
   @override
-  Future<int> addAccount(AccountsCompanion entry) async {
-    addAccountCallCount++;
-    lastAddedAccount = entry;
-    // Return a fake ID
-    return 1;
+  Future<void> upsert(AccountsViewCompanion entry) async {
+    upsertCallCount++;
+    lastUpsertedAccount = entry;
+    await Future.delayed(Duration.zero);
   }
 
   @override
-  Future<bool> updateAccount(AccountsCompanion entry) async {
-    updateAccountCallCount++;
-    lastUpdatedAccount = entry;
-    // Return success
-    return true;
-  }
-
-  @override
-  Future<int> deleteAccount(int id) async {
-    deleteAccountCallCount++;
-    lastDeletedId = id;
-    // Return number of deleted rows
-    return 1;
+  Future<int> clearAll() async {
+    clearAllCallCount++;
+    return 0;
   }
 
   // Helper methods for testing
-  void emitAccounts(List<Account> accounts) {
+  void emitAccounts(List<AccountViewRow> accounts) {
+    _currentAccounts = accounts;
     _accountsController.add(accounts);
   }
 
@@ -53,15 +52,12 @@ class MockAccountDao implements AccountDao {
   }
 
   void reset() {
-    addAccountCallCount = 0;
-    updateAccountCallCount = 0;
-    deleteAccountCallCount = 0;
-    lastAddedAccount = null;
-    lastUpdatedAccount = null;
-    lastDeletedId = null;
+    upsertCallCount = 0;
+    clearAllCallCount = 0;
+    lastUpsertedAccount = null;
   }
 
-  // Unimplemented methods from AccountDao
+  // DatabaseAccessor mixin members are irrelevant for this mock.
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
