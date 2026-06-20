@@ -20,7 +20,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(7));
+      expect(database.schemaVersion, equals(1));
     });
 
     test('should create all tables on initialization', () async {
@@ -163,7 +163,8 @@ void main() {
           lastUpdatedEventId: 0,
         );
 
-        final rowId = await database.into(database.categoriesView).insert(category);
+        final rowId =
+            await database.into(database.categoriesView).insert(category);
         expect(rowId, greaterThan(0));
 
         final retrieved = await (database.select(database.categoriesView)

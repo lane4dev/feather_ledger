@@ -51,4 +51,4 @@ final class CorrectTransactionCommandProvider extends $FunctionalProvider<
 }
 
 String _$correctTransactionCommandHash() =>
-    r'df479bb848a4a98320b1c8795824a99da3225ace';
+    r'cc12db0b1dd6586f94d738f7c6fce47bb0bfeb70';

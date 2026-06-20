@@ -736,6 +736,12 @@ abstract class AppLocalizations {
   /// **'Invalid transfer'**
   String get errorInvalidTransfer;
 
+  /// Localized ledger error code message
+  ///
+  /// In en, this message translates to:
+  /// **'This transaction is not valid and was not saved'**
+  String get errorInvalidTransactionShape;
+
   /// Transfer display label (US5)
   ///
   /// In en, this message translates to:

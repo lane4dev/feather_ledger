@@ -228,7 +228,12 @@ class LedgerProjectorImpl implements LedgerProjector {
     // Aggregate invariants (single-posting income/expense with
     // direction==kind; two-posting transfer with opposite directions,
     // equal amounts, distinct same-currency accounts — US4/US5).
-    final txn = Transaction(
+    //
+    // Replay guard, not the write-path gate (ADR-0001): writers validate
+    // before building the event, so reaching here with a violation means
+    // the stored stream is corrupt — which is exactly when a rebuild must
+    // refuse rather than project nonsense.
+    final txn = Transaction.rehydrate(
       transactionId: p.transactionId,
       occurredAt: p.occurredAt,
       description: p.description,
@@ -239,7 +244,7 @@ class LedgerProjectorImpl implements LedgerProjector {
     final violation = txn.validate();
     if (violation != null) {
       throw StateError(
-          'TransactionRecorded violates invariants: $violation '
+          'TransactionRecorded violates shape contract: ${violation.name} '
           '(event ${e.eventId})');
     }
 

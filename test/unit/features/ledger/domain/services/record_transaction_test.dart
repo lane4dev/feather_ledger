@@ -278,6 +278,58 @@ void main() {
       expect(await harness.db.select(harness.db.transactionsView).get(),
           isEmpty);
     });
+
+    test('replay names the violation it refuses', () async {
+      // A shape no intent constructor can produce — a two-leg expense.
+      // Writers are gated now (ADR-0001), so this can only be a corrupted
+      // stored stream, and the guard has to say which rule broke rather
+      // than project nonsense.
+      final envelope = EventEnvelope(
+        eventId: 'evt-bad-shape',
+        streamId: 'txn-bad-shape',
+        aggregateType: AggregateType.transaction,
+        eventType: 'TransactionRecorded',
+        streamVersion: 0,
+        payloadJson: TransactionRecorded(
+          transactionId: 'txn-bad-shape',
+          occurredAt: DateTime(2026, 1, 15),
+          kind: TransactionKind.expense,
+          description: 'two legs on an expense',
+          postings: const [
+            Posting(
+              accountId: 'a',
+              direction: PostingDirection.debit,
+              amountMinor: 100,
+              currencyCode: 'USD',
+              categoryId: 'c',
+            ),
+            Posting(
+              accountId: 'a',
+              direction: PostingDirection.debit,
+              amountMinor: 100,
+              currencyCode: 'USD',
+              categoryId: 'c',
+            ),
+          ],
+        ).toJson(),
+        occurredAt: DateTime(2026, 1, 15),
+        recordedAt: DateTime(2026, 1, 15),
+        commandId: 'cmd-bad-shape',
+      );
+
+      await expectLater(
+        harness.eventStore.append(
+          [envelope],
+          options: AppendOptions(apply: harness.projector.applyAll),
+        ),
+        throwsA(isA<StateError>()
+            .having((e) => e.message, 'message', contains('postingCount'))),
+      );
+
+      expect((await harness.eventStore.readAll()).events, isEmpty);
+      expect(await harness.db.select(harness.db.transactionsView).get(),
+          isEmpty);
+    });
   });
 
   group('archived category history', () {

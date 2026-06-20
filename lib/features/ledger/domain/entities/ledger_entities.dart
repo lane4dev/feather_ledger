@@ -110,7 +110,9 @@ class RecurringTransactionSeriesEntity {
   final String id;
   final String description;
   final int amountMinor;
-  final TransactionKind type;
+
+  /// Never `transfer`: a series has a single account (ADR-0002).
+  final RecurringSeriesKind type;
   final String categoryId;
   final String accountId;
   final String frequency; // e.g., 'monthly', 'weekly'

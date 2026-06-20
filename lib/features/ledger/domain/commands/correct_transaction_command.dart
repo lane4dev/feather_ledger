@@ -1,12 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/core/data/repositories/account_repository.dart';
-import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 
 import '../../data/event_sourcing/drift_event_store.dart';
 import '../../data/projections/ledger_projector.dart';
@@ -14,6 +11,7 @@ import '../../data/repositories/ledger_repository.dart';
 import '../../domain/events/ledger_events.dart';
 import '../../domain/model/transaction.dart';
 import '../../domain/projections/ledger_projection.dart';
+import '../../domain/services/posting_context.dart';
 
 part 'correct_transaction_command.g.dart';
 
@@ -23,19 +21,20 @@ part 'correct_transaction_command.g.dart';
 /// transaction. The original's audit chain is preserved and the pair's
 /// balance impact cancels out. Only live transactions can be corrected;
 /// transfers have no edit form and are rejected.
+///
+/// The replacement is built and validated as a [Transaction] before either
+/// event exists (ADR-0001).
 class CorrectTransactionCommand {
   final EventStore _eventStore;
   final LedgerProjector _projector;
   final LedgerRepository _ledgerRepository;
-  final AccountRepository _accountRepository;
-  final CategoryRepository _categoryRepository;
+  final PostingContextResolver _context;
 
   CorrectTransactionCommand(
     this._eventStore,
     this._projector,
     this._ledgerRepository,
-    this._accountRepository,
-    this._categoryRepository,
+    this._context,
   );
 
   Future<void> execute({
@@ -63,42 +62,38 @@ class CorrectTransactionCommand {
           LedgerErrorCode.invalidTransfer, 'transfers cannot be corrected');
     }
 
-    // New values pass the same validations as a fresh record (US4/T035).
-    if (amountMinor <= 0) {
-      throw const CommandRejected(
-          LedgerErrorCode.invalidAmount, 'amountMinor must be positive');
-    }
-    final account = await _accountRepository.getAccount(accountId);
-    if (account == null) {
-      throw CommandRejected(
-          LedgerErrorCode.accountNotFound, 'Account $accountId not found');
-    }
-    if (account.archived) {
-      throw CommandRejected(
-          LedgerErrorCode.accountArchived, 'Account $accountId is archived');
-    }
-    final category = await _categoryRepository.getCategory(categoryId);
-    if (category == null) {
-      throw CommandRejected(
-          LedgerErrorCode.categoryNotFound, 'Category $categoryId not found');
-    }
-    if (category.archived) {
-      throw CommandRejected(
-          LedgerErrorCode.categoryArchived, 'Category $categoryId is archived');
-    }
-    final expectedType = type == TransactionKind.income
-        ? CategoryType.income
-        : CategoryType.expense;
-    if (category.type != expectedType) {
-      throw CommandRejected(LedgerErrorCode.categoryTypeMismatch,
-          'Category $categoryId is ${category.type.name}, expected '
-          '${expectedType.name}');
-    }
+    final context = await _context.resolveForKind(
+      accountId: accountId,
+      categoryId: categoryId,
+      kind: type,
+    );
 
     final transactionId = const Uuid().v4();
-    final direction = type == TransactionKind.income
-        ? PostingDirection.credit
-        : PostingDirection.debit;
+    final replacement = type == TransactionKind.income
+        ? Transaction.income(
+            transactionId: transactionId,
+            occurredAt: date,
+            amountMinor: amountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            categoryId: context.category!.id,
+            description: note ?? '',
+            notes: note,
+            memo: note,
+          )
+        : Transaction.expense(
+            transactionId: transactionId,
+            occurredAt: date,
+            amountMinor: amountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            categoryId: context.category!.id,
+            description: note ?? '',
+            notes: note,
+            memo: note,
+          );
+
+    replacement.validateOrThrow();
 
     // Paired events, one command, one append transaction (spec Event Model):
     // the reversal lands on the original's stream, the replacement starts a
@@ -118,21 +113,12 @@ class CorrectTransactionCommand {
         ),
         envelopeFor(
           TransactionRecorded(
-            transactionId: transactionId,
-            occurredAt: date,
-            kind: type,
-            description: note ?? '',
-            notes: note,
-            postings: [
-              Posting(
-                accountId: accountId,
-                direction: direction,
-                amountMinor: amountMinor,
-                currencyCode: account.currencyCode,
-                categoryId: categoryId,
-                memo: note,
-              ),
-            ],
+            transactionId: replacement.transactionId,
+            occurredAt: replacement.occurredAt,
+            kind: replacement.kind,
+            description: replacement.description,
+            notes: replacement.notes,
+            postings: replacement.postings,
           ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,
@@ -151,7 +137,6 @@ CorrectTransactionCommand correctTransactionCommand(Ref ref) {
     ref.watch(driftEventStoreProvider),
     ref.watch(ledgerProjectorProvider),
     ref.watch(ledgerRepositoryProvider),
-    ref.watch(accountRepositoryProvider),
-    ref.watch(categoryRepositoryProvider),
+    ref.watch(postingContextResolverProvider),
   );
 }

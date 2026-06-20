@@ -393,6 +393,10 @@
   "@errorInvalidTransfer": {
     "description": "Localized ledger error code message"
   },
+  "errorInvalidTransactionShape": "This transaction is not valid and was not saved",
+  "@errorInvalidTransactionShape": {
+    "description": "Localized ledger error code message"
+  },
   "transfer": "Transfer",
   "@transfer": {
     "description": "Transfer display label (US5)"

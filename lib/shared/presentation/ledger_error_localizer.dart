@@ -16,6 +16,8 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
           l10n.errorSystemCategoryProtected,
         LedgerErrorCode.invalidAmount => l10n.invalidAmount,
         LedgerErrorCode.invalidTransfer => l10n.errorInvalidTransfer,
+        LedgerErrorCode.invalidTransactionShape =>
+          l10n.errorInvalidTransactionShape,
         LedgerErrorCode.transactionNotFound => l10n.errorTransactionNotFound,
         LedgerErrorCode.transactionAlreadyReversed =>
           l10n.errorTransactionAlreadyReversed,

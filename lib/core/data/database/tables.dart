@@ -125,8 +125,9 @@ class RecurringSeries extends Table {
   TextColumn get description => text()();
   TextColumn get categoryId => text()();
   TextColumn get accountId => text()();
-  // Type is useful for filtering
-  IntColumn get type => intEnum<TransactionKind>()();
+  // Type is useful for filtering. Narrower than TransactionKind: a series
+  // has one account, so a transfer is not representable (ADR-0002).
+  IntColumn get type => intEnum<RecurringSeriesKind>()();
 
   @override
   Set<Column> get primaryKey => {id};

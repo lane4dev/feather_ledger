@@ -19,6 +19,7 @@ import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snap
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
+import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
 import 'package:feather_ledger/features/settings/domain/commands/archive_account_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/create_account_command.dart';
@@ -78,15 +79,17 @@ class LedgerServiceHarness {
         LedgerRepositoryImpl(db.transactionsDao, db.recurringDao);
     recurringRepository = RecurringRepositoryImpl(db.recurringDao);
 
-    final recordCommand = RecordTransactionCommand(
-        eventStore, projector, accountRepository, categoryRepository);
+    final contextResolver =
+        PostingContextResolver(accountRepository, categoryRepository);
+    final recordCommand =
+        RecordTransactionCommand(eventStore, projector, contextResolver);
     ledgerService = LedgerService(
       recordCommand,
       ReverseTransactionCommand(eventStore, projector, ledgerRepository),
-      CorrectTransactionCommand(eventStore, projector, ledgerRepository,
-          accountRepository, categoryRepository),
-      ConvertScheduledToPostedCommand(eventStore, projector,
-          recurringRepository, accountRepository, categoryRepository),
+      CorrectTransactionCommand(
+          eventStore, projector, ledgerRepository, contextResolver),
+      ConvertScheduledToPostedCommand(
+          eventStore, projector, recurringRepository, contextResolver),
       WatchTransactionsQuery(ledgerRepository),
       WatchMonthlySnapshotQuery(db.monthlySnapshotDao, db.accountDao),
       GetAccountBalanceQuery(accountRepository),

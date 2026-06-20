@@ -2534,10 +2534,11 @@ class $RecurringSeriesTable extends RecurringSeries
       'account_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   @override
-  late final GeneratedColumnWithTypeConverter<TransactionKind, int> type =
+  late final GeneratedColumnWithTypeConverter<RecurringSeriesKind, int> type =
       GeneratedColumn<int>('type', aliasedName, false,
               type: DriftSqlType.int, requiredDuringInsert: true)
-          .withConverter<TransactionKind>($RecurringSeriesTable.$convertertype);
+          .withConverter<RecurringSeriesKind>(
+              $RecurringSeriesTable.$convertertype);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2672,8 +2673,8 @@ class $RecurringSeriesTable extends RecurringSeries
     return $RecurringSeriesTable(attachedDatabase, alias);
   }
 
-  static JsonTypeConverter2<TransactionKind, int, int> $convertertype =
-      const EnumIndexConverter<TransactionKind>(TransactionKind.values);
+  static JsonTypeConverter2<RecurringSeriesKind, int, int> $convertertype =
+      const EnumIndexConverter<RecurringSeriesKind>(RecurringSeriesKind.values);
 }
 
 class RecurringSeriesRow extends DataClass
@@ -2689,7 +2690,7 @@ class RecurringSeriesRow extends DataClass
   final String description;
   final String categoryId;
   final String accountId;
-  final TransactionKind type;
+  final RecurringSeriesKind type;
   const RecurringSeriesRow(
       {required this.id,
       required this.rrule,
@@ -2804,7 +2805,7 @@ class RecurringSeriesRow extends DataClass
           String? description,
           String? categoryId,
           String? accountId,
-          TransactionKind? type}) =>
+          RecurringSeriesKind? type}) =>
       RecurringSeriesRow(
         id: id ?? this.id,
         rrule: rrule ?? this.rrule,
@@ -2903,7 +2904,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
   final Value<String> description;
   final Value<String> categoryId;
   final Value<String> accountId;
-  final Value<TransactionKind> type;
+  final Value<RecurringSeriesKind> type;
   final Value<int> rowid;
   const RecurringSeriesCompanion({
     this.id = const Value.absent(),
@@ -2932,7 +2933,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     required String description,
     required String categoryId,
     required String accountId,
-    required TransactionKind type,
+    required RecurringSeriesKind type,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         rrule = Value(rrule),
@@ -2987,7 +2988,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       Value<String>? description,
       Value<String>? categoryId,
       Value<String>? accountId,
-      Value<TransactionKind>? type,
+      Value<RecurringSeriesKind>? type,
       Value<int>? rowid}) {
     return RecurringSeriesCompanion(
       id: id ?? this.id,
@@ -5682,7 +5683,7 @@ typedef $$RecurringSeriesTableCreateCompanionBuilder = RecurringSeriesCompanion
   required String description,
   required String categoryId,
   required String accountId,
-  required TransactionKind type,
+  required RecurringSeriesKind type,
   Value<int> rowid,
 });
 typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
@@ -5698,7 +5699,7 @@ typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
   Value<String> description,
   Value<String> categoryId,
   Value<String> accountId,
-  Value<TransactionKind> type,
+  Value<RecurringSeriesKind> type,
   Value<int> rowid,
 });
 
@@ -5769,7 +5770,7 @@ class $$RecurringSeriesTableFilterComposer
   ColumnFilters<String> get accountId => $composableBuilder(
       column: $table.accountId, builder: (column) => ColumnFilters(column));
 
-  ColumnWithTypeConverterFilters<TransactionKind, TransactionKind, int>
+  ColumnWithTypeConverterFilters<RecurringSeriesKind, RecurringSeriesKind, int>
       get type => $composableBuilder(
           column: $table.type,
           builder: (column) => ColumnWithTypeConverterFilters(column));
@@ -5887,7 +5888,7 @@ class $$RecurringSeriesTableAnnotationComposer
   GeneratedColumn<String> get accountId =>
       $composableBuilder(column: $table.accountId, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<TransactionKind, int> get type =>
+  GeneratedColumnWithTypeConverter<RecurringSeriesKind, int> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
   Expression<T> scheduledTransactionsViewRefs<T extends Object>(
@@ -5950,7 +5951,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<String> description = const Value.absent(),
             Value<String> categoryId = const Value.absent(),
             Value<String> accountId = const Value.absent(),
-            Value<TransactionKind> type = const Value.absent(),
+            Value<RecurringSeriesKind> type = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion(
@@ -5980,7 +5981,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             required String description,
             required String categoryId,
             required String accountId,
-            required TransactionKind type,
+            required RecurringSeriesKind type,
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion.insert(

@@ -1,17 +1,15 @@
 import 'package:uuid/uuid.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/core/data/repositories/account_repository.dart';
-import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_projector.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
+import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 
 part 'record_transaction_command.g.dart';
 
@@ -19,21 +17,20 @@ part 'record_transaction_command.g.dart';
 /// the projector applied in the same append transaction (spec 003,
 /// US4/T035).
 ///
-/// Domain validations (spec Command Model): account and category exist,
-/// neither is archived, the category type matches the transaction kind, and
-/// the amount is positive. Rejections throw [CommandRejected] with a
-/// presentable [LedgerErrorCode].
+/// The command builds and validates the [Transaction] aggregate *before* the
+/// event exists (ADR-0001), so a shape error is rejected here rather than by
+/// a projector rollback. What may be recorded is context — does the account
+/// exist, is it archived, does the category's kind match — and that resolves
+/// through [PostingContextResolver].
 class RecordTransactionCommand {
   final EventStore _eventStore;
   final LedgerProjector _projector;
-  final AccountRepository _accountRepository;
-  final CategoryRepository _categoryRepository;
+  final PostingContextResolver _context;
 
   RecordTransactionCommand(
     this._eventStore,
     this._projector,
-    this._accountRepository,
-    this._categoryRepository,
+    this._context,
   );
 
   Future<void> execute({
@@ -45,68 +42,46 @@ class RecordTransactionCommand {
     required String accountId,
     String? note,
   }) async {
+    // Describes this entry point, not the transaction: transfers have their
+    // own (ADR-0002). Past this line `kind` is provably income or expense.
     if (kind == TransactionKind.transfer) {
       throw const CommandRejected(LedgerErrorCode.invalidTransfer,
           'transfers go through executeTransfer');
     }
-    if (amountMinor <= 0) {
-      throw const CommandRejected(
-          LedgerErrorCode.invalidAmount, 'amountMinor must be positive');
-    }
 
-    final account = await _accountRepository.getAccount(accountId);
-    if (account == null) {
-      throw CommandRejected(
-          LedgerErrorCode.accountNotFound, 'Account $accountId not found');
-    }
-    if (account.archived) {
-      throw CommandRejected(
-          LedgerErrorCode.accountArchived, 'Account $accountId is archived');
-    }
-
-    final category = await _categoryRepository.getCategory(categoryId);
-    if (category == null) {
-      throw CommandRejected(
-          LedgerErrorCode.categoryNotFound, 'Category $categoryId not found');
-    }
-    if (category.archived) {
-      throw CommandRejected(
-          LedgerErrorCode.categoryArchived, 'Category $categoryId is archived');
-    }
-    final expectedType = kind == TransactionKind.income
-        ? CategoryType.income
-        : CategoryType.expense;
-    if (category.type != expectedType) {
-      throw CommandRejected(LedgerErrorCode.categoryTypeMismatch,
-          'Category $categoryId is ${category.type.name}, expected '
-          '${expectedType.name}');
-    }
-
-    final transactionId = const Uuid().v4();
-    final direction = kind == TransactionKind.income
-        ? PostingDirection.credit
-        : PostingDirection.debit;
-    final event = TransactionRecorded(
-      transactionId: transactionId,
-      occurredAt: occurredAt,
+    final context = await _context.resolveForKind(
+      accountId: accountId,
+      categoryId: categoryId,
       kind: kind,
-      description: note ?? '',
-      notes: note,
-      postings: [
-        Posting(
-          accountId: accountId,
-          direction: direction,
-          amountMinor: amountMinor,
-          // Single-currency per transaction: copied from the account at
-          // write time (spec 红线).
-          currencyCode: account.currencyCode,
-          categoryId: categoryId,
-          memo: note,
-        ),
-      ],
     );
 
-    await _append(event, commandId);
+    final transactionId = const Uuid().v4();
+    final transaction = kind == TransactionKind.income
+        ? Transaction.income(
+            transactionId: transactionId,
+            occurredAt: occurredAt,
+            amountMinor: amountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            categoryId: context.category!.id,
+            description: note ?? '',
+            notes: note,
+            memo: note,
+          )
+        : Transaction.expense(
+            transactionId: transactionId,
+            occurredAt: occurredAt,
+            amountMinor: amountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            categoryId: context.category!.id,
+            description: note ?? '',
+            notes: note,
+            memo: note,
+          );
+
+    transaction.validateOrThrow();
+    await _append(transaction, commandId);
   }
 
   /// Records a transfer (kind=transfer): one debit posting on
@@ -121,71 +96,43 @@ class RecordTransactionCommand {
     required String toAccountId,
     String? note,
   }) async {
-    if (amountMinor <= 0) {
-      throw const CommandRejected(
-          LedgerErrorCode.invalidAmount, 'amountMinor must be positive');
-    }
-    if (fromAccountId == toAccountId) {
-      throw const CommandRejected(
-          LedgerErrorCode.sameAccountTransfer, 'transfer needs two accounts');
-    }
-
-    final from = await _accountRepository.getAccount(fromAccountId);
-    if (from == null) {
-      throw CommandRejected(LedgerErrorCode.accountNotFound,
-          'Account $fromAccountId not found');
-    }
-    if (from.archived) {
-      throw CommandRejected(LedgerErrorCode.accountArchived,
-          'Account $fromAccountId is archived');
-    }
-    final to = await _accountRepository.getAccount(toAccountId);
-    if (to == null) {
-      throw CommandRejected(
-          LedgerErrorCode.accountNotFound, 'Account $toAccountId not found');
-    }
-    if (to.archived) {
-      throw CommandRejected(
-          LedgerErrorCode.accountArchived, 'Account $toAccountId is archived');
-    }
-    // Single-currency per transaction (spec 红线): balances must never be
-    // merged across currencies.
-    if (from.currencyCode != to.currencyCode) {
-      throw const CommandRejected(LedgerErrorCode.currencyMismatch,
-          'transfer across currencies is rejected');
-    }
-
-    final transactionId = const Uuid().v4();
-    final event = TransactionRecorded(
-      transactionId: transactionId,
-      occurredAt: occurredAt,
-      kind: TransactionKind.transfer,
-      description: note ?? '',
-      notes: note,
-      postings: [
-        Posting(
-          accountId: fromAccountId,
-          direction: PostingDirection.debit,
-          amountMinor: amountMinor,
-          currencyCode: from.currencyCode,
-        ),
-        Posting(
-          accountId: toAccountId,
-          direction: PostingDirection.credit,
-          amountMinor: amountMinor,
-          currencyCode: to.currencyCode,
-        ),
-      ],
+    final context = await _context.resolveForTransfer(
+      fromAccountId: fromAccountId,
+      toAccountId: toAccountId,
     );
 
-    await _append(event, commandId);
+    final transaction = Transaction.transfer(
+      transactionId: const Uuid().v4(),
+      occurredAt: occurredAt,
+      amountMinor: amountMinor,
+      fromAccountId: context.account.id,
+      fromCurrencyCode: context.account.currencyCode,
+      toAccountId: context.counterAccount!.id,
+      toCurrencyCode: context.counterAccount!.currencyCode,
+      description: note ?? '',
+      notes: note,
+    );
+
+    // Same account, mismatched currencies and the two-leg shape are all
+    // aggregate invariants — never re-checked here.
+    transaction.validateOrThrow();
+    await _append(transaction, commandId);
   }
 
-  Future<void> _append(TransactionRecorded event, String commandId) async {
+  /// The validated aggregate is what gets persisted, so the event cannot
+  /// drift from the shape that was checked.
+  Future<void> _append(Transaction transaction, String commandId) async {
     await _eventStore.append(
       [
         envelopeFor(
-          event,
+          TransactionRecorded(
+            transactionId: transaction.transactionId,
+            occurredAt: transaction.occurredAt,
+            kind: transaction.kind,
+            description: transaction.description,
+            notes: transaction.notes,
+            postings: transaction.postings,
+          ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,
           commandId: commandId,
@@ -202,7 +149,6 @@ RecordTransactionCommand recordTransactionCommand(Ref ref) {
   return RecordTransactionCommand(
     ref.watch(driftEventStoreProvider),
     ref.watch(ledgerProjectorProvider),
-    ref.watch(accountRepositoryProvider),
-    ref.watch(categoryRepositoryProvider),
+    ref.watch(postingContextResolverProvider),
   );
 }

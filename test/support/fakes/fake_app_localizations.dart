@@ -113,6 +113,10 @@ class FakeAppLocalizations implements AppLocalizations {
   String get errorInvalidTransfer => 'Invalid transfer';
 
   @override
+  String get errorInvalidTransactionShape =>
+      'This transaction is not valid and was not saved';
+
+  @override
   String get transfer => 'Transfer';
 
   @override

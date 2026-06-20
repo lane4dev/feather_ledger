@@ -51,4 +51,4 @@ final class RecordTransactionCommandProvider extends $FunctionalProvider<
 }
 
 String _$recordTransactionCommandHash() =>
-    r'e5bf00bbaa666770d7716fa02bee18251743b8bf';
+    r'fe52682c1d878cb4d89ec1a209a69612b0150713';

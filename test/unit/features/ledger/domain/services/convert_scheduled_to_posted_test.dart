@@ -22,7 +22,10 @@ void main() {
   late String cashId;
   late String foodId;
 
-  Future<void> seedSeriesAndScheduled() async {
+  Future<void> seedSeriesAndScheduled({
+    RecurringSeriesKind seriesKind = RecurringSeriesKind.expense,
+    int scheduledAmountMinor = 5000,
+  }) async {
     await harness.accountService.createAccount(
       commandId: 'conv_seed_cash',
       name: 'Cash',
@@ -52,14 +55,14 @@ void main() {
       description: 'Rent',
       categoryId: foodId,
       accountId: cashId,
-      type: TransactionKind.expense,
+      type: seriesKind,
     ));
     await harness.db.recurringDao.insertOrUpdateScheduled(
         ScheduledTransactionsViewCompanion.insert(
       id: 'sched_1',
       seriesId: 'series_1',
       date: DateTime(2026, 1, 5),
-      amountMinor: 5000,
+      amountMinor: scheduledAmountMinor,
       status: 'scheduled',
       transactionId: const Value(null),
     ));
@@ -128,6 +131,42 @@ void main() {
     );
   });
 
+  // The next two rules were missing here before ADR-0002: a series whose
+  // category kind disagreed was recorded silently, and a non-positive
+  // scheduled amount reached the projector and surfaced as an
+  // unknown-event failure instead of a real reason.
+
+  test('a series whose category kind disagrees is rejected', () async {
+    await seedSeriesAndScheduled(seriesKind: RecurringSeriesKind.income);
+
+    final result = await harness.ledgerService
+        .convertScheduledToPosted('sched_1', commandId: 'conv_mismatch');
+
+    expect(
+      result,
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.categoryTypeMismatch),
+    );
+    expect(await _recordedCount(harness), 0,
+        reason: 'a rejected conversion records no transaction');
+    final scheduled = await harness.db.recurringDao.getScheduled('sched_1');
+    expect(scheduled!.status, 'scheduled', reason: 'the row stays convertible');
+  });
+
+  test('a non-positive scheduled amount is rejected', () async {
+    await seedSeriesAndScheduled(scheduledAmountMinor: 0);
+
+    final result = await harness.ledgerService
+        .convertScheduledToPosted('sched_1', commandId: 'conv_zero');
+
+    expect(
+      result,
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.invalidAmount),
+    );
+    expect(await _recordedCount(harness), 0);
+  });
+
   test('rebuild leaves the exempt tables untouched', () async {
     await seedSeriesAndScheduled();
     await harness.ledgerService
@@ -152,3 +191,12 @@ void main() {
     expect(scheduledAfter.amountMinor, scheduledBefore!.amountMinor);
   });
 }
+
+/// `TransactionRecorded` events in the store. Counting by type, because the
+/// seed itself writes AccountCreated/CategoryCreated — "the conversion
+/// recorded nothing" is not the same as "the store is empty".
+Future<int> _recordedCount(LedgerServiceHarness harness) async =>
+    (await harness.eventStore.readAll())
+        .events
+        .where((e) => e.eventType == 'TransactionRecorded')
+        .length;

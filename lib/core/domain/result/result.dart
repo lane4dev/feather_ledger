@@ -18,6 +18,7 @@ enum LedgerErrorCode {
   sameAccountTransfer,
   invalidAmount,
   invalidTransfer,
+  invalidTransactionShape,
   transactionNotFound,
   transactionAlreadyReversed,
   systemCategoryProtected,

@@ -17,6 +17,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/correct_transacti
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snapshot_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
@@ -54,14 +55,15 @@ void main() {
     recurringRepository = RecurringRepositoryImpl(database.recurringDao);
 
     final projector = LedgerProjectorImpl(database);
-    recordCommand = RecordTransactionCommand(
-        eventStore, projector, accountRepository, categoryRepository);
+    final contextResolver =
+        PostingContextResolver(accountRepository, categoryRepository);
+    recordCommand =
+        RecordTransactionCommand(eventStore, projector, contextResolver);
     reverseCommand = ReverseTransactionCommand(eventStore, projector, repository);
-    correctCommand = CorrectTransactionCommand(eventStore, projector,
-        repository, accountRepository, categoryRepository);
+    correctCommand = CorrectTransactionCommand(
+        eventStore, projector, repository, contextResolver);
     convertScheduledCommand = ConvertScheduledToPostedCommand(
-        eventStore, projector, recurringRepository, accountRepository,
-        categoryRepository);
+        eventStore, projector, recurringRepository, contextResolver);
     watchTransactionsQuery = WatchTransactionsQuery(repository);
     watchMonthlySnapshotQuery =
         WatchMonthlySnapshotQuery(database.monthlySnapshotDao, database.accountDao);
