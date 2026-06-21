@@ -386,4 +386,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rebuildProjectionsFailure => 'Rebuild failed';
+
+  @override
+  String get overdraftWarningTitle => 'Warning';
+
+  @override
+  String get overdraftWarningMessage =>
+      'This transaction will cause an overdraft. Continue?';
+
+  @override
+  String get previousYear => 'Previous Year';
+
+  @override
+  String get nextYear => 'Next Year';
 }

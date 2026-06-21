@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
+
 /// A premium, minimalist month picker displayed as a modal dialog.
 ///
 /// Follows the "Google Tasks" aesthetic with clean typography and
@@ -78,6 +80,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final dateFormat = DateFormat.MMM(locale);
     final yearCount = widget.lastDate.year - widget.firstDate.year + 1;
@@ -99,7 +102,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                         )
                     : null,
                 icon: const Icon(Icons.chevron_left),
-                tooltip: 'Previous Year',
+                tooltip: l10n.previousYear,
               ),
               Text(
                 '$_displayedYear',
@@ -115,7 +118,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                         )
                     : null,
                 icon: const Icon(Icons.chevron_right),
-                tooltip: 'Next Year',
+                tooltip: l10n.nextYear,
               ),
             ],
           ),

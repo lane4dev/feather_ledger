@@ -4,6 +4,10 @@ class CategoryTokens {
   // Prevent instantiation
   const CategoryTokens._();
 
+  /// Colour a new category starts on. Must appear in [defaultColors] so the
+  /// swatch grid shows it as the current selection.
+  static const Color defaultColor = Colors.blue;
+
   /// Predefined colors for user categories
   static const List<Color> defaultColors = [
     Colors.red,

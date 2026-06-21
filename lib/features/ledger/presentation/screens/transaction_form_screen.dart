@@ -378,29 +378,27 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         final accounts = ref.read(accountListProvider).value;
         final account = accounts?.where((a) => a.id == _accountId).firstOrNull;
 
-        if (account != null && account.type != AccountType.credit) {
-          if (account.balanceMinor - _amountMinor! < 0) {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('warning'),
-                content: const Text(
-                    'This transaction will cause an overdraft. Continue?'), // Ideally localized
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(AppLocalizations.of(context)!.cancel),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(AppLocalizations.of(context)!.save),
-                  ),
-                ],
-              ),
-            );
+        if (account != null && account.wouldOverdraft(_amountMinor!)) {
+          final l10n = AppLocalizations.of(context)!;
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.overdraftWarningTitle),
+              content: Text(l10n.overdraftWarningMessage),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.save),
+                ),
+              ],
+            ),
+          );
 
-            if (confirm != true) return;
-          }
+          if (confirm != true) return;
         }
       }
 

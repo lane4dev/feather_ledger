@@ -51,13 +51,16 @@ class EventTypeRegistry {
   /// [targetVersion] (default: current = no further upcaster registered).
   ///
   /// Throws [UnknownEventTypeError] if no factory exists for [eventType] —
-  /// an event type nobody can read is a hard failure, not a skip.
+  /// an event type nobody can read is a hard failure, not a skip. Callers
+  /// holding the offending envelope pass its [eventId] so the failure names
+  /// the event that caused it.
   Map<String, dynamic> upcast(
     String eventType,
     Map<String, dynamic> payload, {
     int? targetVersion,
+    String? eventId,
   }) {
-    _requireFactory(eventType);
+    _requireFactory(eventType, eventId);
 
     var current = Map<String, dynamic>.from(payload);
     var version = _schemaVersionOf(current);
@@ -80,9 +83,9 @@ class EventTypeRegistry {
 
   bool hasFactory(String eventType) => _factories.containsKey(eventType);
 
-  void _requireFactory(String eventType) {
+  void _requireFactory(String eventType, [String? eventId]) {
     if (!_factories.containsKey(eventType)) {
-      throw UnknownEventTypeError(eventType, '(registry lookup)');
+      throw UnknownEventTypeError(eventType, eventId ?? '(registry lookup)');
     }
   }
 

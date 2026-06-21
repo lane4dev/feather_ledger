@@ -831,6 +831,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rebuild failed'**
   String get rebuildProjectionsFailure;
+
+  /// Title of the dialog shown when an expense overdraws a non-credit account
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get overdraftWarningTitle;
+
+  /// Body of the overdraft confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This transaction will cause an overdraft. Continue?'**
+  String get overdraftWarningMessage;
+
+  /// Tooltip for the month picker's previous-year button
+  ///
+  /// In en, this message translates to:
+  /// **'Previous Year'**
+  String get previousYear;
+
+  /// Tooltip for the month picker's next-year button
+  ///
+  /// In en, this message translates to:
+  /// **'Next Year'**
+  String get nextYear;
 }
 
 class _AppLocalizationsDelegate

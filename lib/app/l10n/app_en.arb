@@ -456,5 +456,21 @@
   "rebuildProjectionsFailure": "Rebuild failed",
   "@rebuildProjectionsFailure": {
     "description": "Rebuild failure snackbar (US8)"
+  },
+  "overdraftWarningTitle": "Warning",
+  "@overdraftWarningTitle": {
+    "description": "Title of the dialog shown when an expense overdraws a non-credit account"
+  },
+  "overdraftWarningMessage": "This transaction will cause an overdraft. Continue?",
+  "@overdraftWarningMessage": {
+    "description": "Body of the overdraft confirmation dialog"
+  },
+  "previousYear": "Previous Year",
+  "@previousYear": {
+    "description": "Tooltip for the month picker's previous-year button"
+  },
+  "nextYear": "Next Year",
+  "@nextYear": {
+    "description": "Tooltip for the month picker's next-year button"
   }
 }

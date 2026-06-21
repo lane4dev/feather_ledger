@@ -170,12 +170,10 @@ class TransactionTile extends StatelessWidget {
                         ),
                         child: Text(
                           transaction.category.name,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
+                          style: LedgerTheme.denseLabel(context).copyWith(
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSecondaryContainer,
-                            fontSize: 10,
                           ),
                         ),
                       ),

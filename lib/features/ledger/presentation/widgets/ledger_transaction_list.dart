@@ -110,7 +110,7 @@ class LedgerTransactionList extends ConsumerWidget {
               child: LedgerSkeleton(),
             ),
             error: (e, _) => SliverFillRemaining(
-              child: Center(child: Text('Error: $e')),
+              child: Center(child: Text(l10n.errorPrefix('$e'))),
             ),
           ),
         ],

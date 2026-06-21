@@ -34,7 +34,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   void initState() {
     super.initState();
     _name = widget.category?.name ?? '';
-    _colorInt = widget.category?.colorInt ?? Colors.blue.toARGB32();
+    _colorInt =
+        widget.category?.colorInt ?? CategoryTokens.defaultColor.toARGB32();
     _iconKey = widget.category?.iconKey ??
         CategoryTokens.defaultIcons.first.toString();
   }

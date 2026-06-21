@@ -191,9 +191,11 @@ class MonthlySnapshotProjectorImpl {
 
   /// Payload decoded through the upcaster, like the main projector (schema
   /// 演进: old rows may carry older schemaVersions).
-  Map<String, dynamic> _payload(LedgerEventRow row) =>
-      ledgerEventRegistry.upcast(row.eventType,
-          (jsonDecode(row.payload) as Map).cast<String, dynamic>());
+  Map<String, dynamic> _payload(LedgerEventRow row) => ledgerEventRegistry.upcast(
+        row.eventType,
+        (jsonDecode(row.payload) as Map).cast<String, dynamic>(),
+        eventId: row.eventId,
+      );
 
   static (int, int) _monthOf(DateTime d) => (d.year, d.month);
 

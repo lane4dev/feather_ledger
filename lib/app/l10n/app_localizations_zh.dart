@@ -308,78 +308,85 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountBankCard => '银行卡';
 
   @override
-  String get errorAccountNotFound => 'Account not found';
+  String get errorAccountNotFound => '账户不存在';
 
   @override
-  String get errorAccountArchived => 'Account is archived';
+  String get errorAccountArchived => '账户已归档';
 
   @override
-  String get errorCategoryNotFound => 'Category not found';
+  String get errorCategoryNotFound => '分类不存在';
 
   @override
-  String get errorCategoryArchived => 'Category is archived';
+  String get errorCategoryArchived => '分类已归档';
 
   @override
-  String get errorCategoryTypeMismatch =>
-      'Category type does not match the transaction type';
+  String get errorCategoryTypeMismatch => '分类类型与交易类型不符';
 
   @override
-  String get errorSystemCategoryProtected =>
-      'System categories cannot be archived';
+  String get errorSystemCategoryProtected => '系统分类不可归档';
 
   @override
-  String get errorInvalidTransfer => 'Invalid transfer';
+  String get errorInvalidTransfer => '无效转账';
 
   @override
-  String get errorInvalidTransactionShape =>
-      'This transaction is not valid and was not saved';
+  String get errorInvalidTransactionShape => '交易无效，未保存';
 
   @override
-  String get transfer => 'Transfer';
+  String get transfer => '转账';
 
   @override
-  String get transferFrom => 'From';
+  String get transferFrom => '转出账户';
 
   @override
-  String get transferTo => 'To';
+  String get transferTo => '转入账户';
 
   @override
-  String get errorTransactionNotFound => 'Transaction not found';
+  String get errorTransactionNotFound => '交易不存在';
 
   @override
-  String get errorTransactionAlreadyReversed =>
-      'Transaction was already reversed';
+  String get errorTransactionAlreadyReversed => '交易已被冲正';
 
   @override
-  String get auditHistory => 'Audit history';
+  String get auditHistory => '审计历史';
 
   @override
-  String get eventRecorded => 'Recorded';
+  String get eventRecorded => '已记录';
 
   @override
-  String get eventReversed => 'Reversed';
+  String get eventReversed => '已冲正';
 
   @override
-  String get reversalUserDeleted => 'User deleted';
+  String get reversalUserDeleted => '用户删除';
 
   @override
-  String get reversalCorrection => 'Correction';
+  String get reversalCorrection => '修改';
 
   @override
-  String get rebuildProjections => 'Rebuild projections';
+  String get rebuildProjections => '重建投影';
 
   @override
-  String get rebuildProjectionsHint => 'Developer tool — long-press to run';
+  String get rebuildProjectionsHint => '开发者工具——长按执行';
 
   @override
-  String get rebuildProjectionsConfirm =>
-      'Clear all derived data and replay the full event history? Recurring rules and preferences are kept.';
+  String get rebuildProjectionsConfirm => '清空全部派生数据并从完整事件历史重放？定期规则与偏好设置保留。';
 
   @override
-  String get rebuildProjectionsSuccess => 'Projections rebuilt';
+  String get rebuildProjectionsSuccess => '投影已重建';
 
   @override
-  String get rebuildProjectionsFailure => 'Rebuild failed';
+  String get rebuildProjectionsFailure => '重建失败';
+
+  @override
+  String get overdraftWarningTitle => '警告';
+
+  @override
+  String get overdraftWarningMessage => '该交易将导致账户透支，是否继续？';
+
+  @override
+  String get previousYear => '上一年';
+
+  @override
+  String get nextYear => '下一年';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -707,6 +714,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errorInvalidTransfer => '无效转账';
 
   @override
+  String get errorInvalidTransactionShape => '交易无效，未保存';
+
+  @override
   String get transfer => '转账';
 
   @override
@@ -750,6 +760,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get rebuildProjectionsFailure => '重建失败';
+
+  @override
+  String get overdraftWarningTitle => '警告';
+
+  @override
+  String get overdraftWarningMessage => '该交易将导致账户透支，是否继续？';
+
+  @override
+  String get previousYear => '上一年';
+
+  @override
+  String get nextYear => '下一年';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1077,6 +1099,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get errorInvalidTransfer => '無效轉帳';
 
   @override
+  String get errorInvalidTransactionShape => '交易無效，未儲存';
+
+  @override
   String get transfer => '轉帳';
 
   @override
@@ -1120,4 +1145,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get rebuildProjectionsFailure => '重建失敗';
+
+  @override
+  String get overdraftWarningTitle => '警告';
+
+  @override
+  String get overdraftWarningMessage => '該交易將導致帳戶透支，是否繼續？';
+
+  @override
+  String get previousYear => '上一年';
+
+  @override
+  String get nextYear => '下一年';
 }

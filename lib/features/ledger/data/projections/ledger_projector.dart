@@ -48,8 +48,11 @@ class LedgerProjectorImpl implements LedgerProjector {
   @override
   Future<void> apply(EventEnvelope envelope) async {
     // Projectors only ever see the latest payload structure (schema 演进).
-    final payload =
-        ledgerEventRegistry.upcast(envelope.eventType, envelope.payloadJson);
+    final payload = ledgerEventRegistry.upcast(
+      envelope.eventType,
+      envelope.payloadJson,
+      eventId: envelope.eventId,
+    );
 
     switch (envelope.eventType) {
       case 'AccountCreated':

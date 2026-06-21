@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 
 import '../../../../support/mocks/mock_shared_preferences.dart';
@@ -120,16 +121,37 @@ void main() {
     });
 
     group('getLocale', () {
-      test('should return Locale("zh") when stored value is "zh"', () {
+      test('should return zh_Hans when stored value is "zh-Hans"', () {
         // Arrange
+        mockPrefs.setMockString('app_locale', 'zh-Hans');
+
+        // Act
+        final result = repository.getLocale();
+
+        // Assert
+        expect(result, AppLanguages.zhHans);
+      });
+
+      test('should return zh_Hant when stored value is "zh-Hant"', () {
+        // Arrange
+        mockPrefs.setMockString('app_locale', 'zh-Hant');
+
+        // Act
+        final result = repository.getLocale();
+
+        // Assert
+        expect(result, AppLanguages.zhHant);
+      });
+
+      test('should treat a legacy "zh" as zh_Hans', () {
+        // Arrange - pre-tag installs stored the bare language code
         mockPrefs.setMockString('app_locale', 'zh');
 
         // Act
         final result = repository.getLocale();
 
         // Assert
-        expect(result, const Locale('zh'));
-        expect(result?.languageCode, 'zh');
+        expect(result, AppLanguages.zhHans);
       });
 
       test('should return Locale("en") when stored value is "en"', () {
@@ -169,15 +191,20 @@ void main() {
     });
 
     group('setLocale', () {
-      test('should store "zh" for Locale("zh")', () async {
-        // Arrange
-        const locale = Locale('zh');
-
+      test('should store the full tag for zh_Hans', () async {
         // Act
-        await repository.setLocale(locale);
+        await repository.setLocale(AppLanguages.zhHans);
 
         // Assert
-        expect(mockPrefs.getString('app_locale'), 'zh');
+        expect(mockPrefs.getString('app_locale'), 'zh-Hans');
+      });
+
+      test('should store the full tag for zh_Hant', () async {
+        // Act
+        await repository.setLocale(AppLanguages.zhHant);
+
+        // Assert
+        expect(mockPrefs.getString('app_locale'), 'zh-Hant');
       });
 
       test('should store "en" for Locale("en")', () async {
@@ -204,13 +231,22 @@ void main() {
 
       test('should overwrite previous locale', () async {
         // Arrange
-        await repository.setLocale(const Locale('zh'));
+        await repository.setLocale(AppLanguages.zhHans);
 
         // Act
         await repository.setLocale(const Locale('en'));
 
         // Assert
         expect(mockPrefs.getString('app_locale'), 'en');
+      });
+
+      test('should round-trip zh_Hant without collapsing to zh_Hans', () async {
+        // Arrange & Act - the regression this guards: both scripts used to
+        // persist as "zh" and read back as Simplified.
+        await repository.setLocale(AppLanguages.zhHant);
+
+        // Assert
+        expect(repository.getLocale(), AppLanguages.zhHant);
       });
     });
 
@@ -309,12 +345,12 @@ void main() {
       test('should handle complete settings workflow', () async {
         // Act - Set all settings
         await repository.setThemeMode(ThemeMode.dark);
-        await repository.setLocale(const Locale('zh'));
+        await repository.setLocale(AppLanguages.zhHans);
         await repository.setCurrency('CNY');
 
         // Assert - Verify all settings
         expect(repository.getThemeMode(), ThemeMode.dark);
-        expect(repository.getLocale(), const Locale('zh'));
+        expect(repository.getLocale(), AppLanguages.zhHans);
         expect(repository.getCurrency(), 'CNY');
       });
 
@@ -335,11 +371,11 @@ void main() {
         await repository.setCurrency('USD');
 
         // Change one setting
-        await repository.setLocale(const Locale('zh'));
+        await repository.setLocale(AppLanguages.zhHans);
 
         // Assert - Other settings unchanged
         expect(repository.getThemeMode(), ThemeMode.dark);
-        expect(repository.getLocale(), const Locale('zh'));
+        expect(repository.getLocale(), AppLanguages.zhHans);
         expect(repository.getCurrency(), 'USD');
       });
     });

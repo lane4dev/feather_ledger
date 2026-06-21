@@ -40,9 +40,8 @@ class LedgerSelectorField extends StatelessWidget {
           if (errorText != null)
             Text(
               errorText!,
-              style: TextStyle(
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.error,
-                fontSize: 12,
               ),
             ),
         ],

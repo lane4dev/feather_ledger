@@ -107,6 +107,17 @@ void main() {
         () => store.registry.upcast('MysteryEvent', {'schemaVersion': 1}),
         throwsA(isA<UnknownEventTypeError>()),
       );
+
+      // A caller holding the offending envelope hands its id through, so the
+      // failure names the event rather than a placeholder (constitution VII).
+      expect(
+        () => store.registry
+            .upcast('MysteryEvent', {'schemaVersion': 1}, eventId: 'evt-42'),
+        throwsA(
+          isA<UnknownEventTypeError>()
+              .having((e) => e.eventId, 'eventId', 'evt-42'),
+        ),
+      );
     });
   });
 

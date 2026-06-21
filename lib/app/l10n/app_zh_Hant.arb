@@ -452,5 +452,10 @@
   "rebuildProjectionsFailure": "重建失敗",
   "@rebuildProjectionsFailure": {
     "description": "Rebuild failure snackbar (US8)"
-  }
+  },
+  "overdraftWarningTitle": "警告",
+  "overdraftWarningMessage": "該交易將導致帳戶透支，是否繼續？",
+  "previousYear": "上一年",
+  "nextYear": "下一年",
+  "errorInvalidTransactionShape": "交易無效，未儲存"
 }

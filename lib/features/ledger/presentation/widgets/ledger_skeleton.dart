@@ -60,9 +60,9 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
                 width: LedgerTheme.colAnchorWidth,
                 child: Column(
                   children: [
-                    _box(width: 24, height: 24), // Day
+                    _box(context, width: 24, height: 24), // Day
                     const SizedBox(height: 4),
-                    _box(width: 32, height: 12), // Weekday
+                    _box(context, width: 32, height: 12), // Weekday
                   ],
                 ),
               ),
@@ -92,25 +92,26 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _box(width: 120, height: 16), // Title
+                _box(context, width: 120, height: 16), // Title
                 const SizedBox(height: 6),
-                _box(width: 80, height: 12), // Meta
+                _box(context, width: 80, height: 12), // Meta
               ],
             ),
           ),
           SizedBox(width: context.spacing.md),
-          _box(width: 60, height: 16), // Amount
+          _box(context, width: 60, height: 16), // Amount
         ],
       ),
     );
   }
 
-  Widget _box({required double width, required double height}) {
+  Widget _box(BuildContext context,
+      {required double width, required double height}) {
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.2), // Light grey placeholder
+        color: LedgerTheme.skeletonFill(context),
         borderRadius: BorderRadius.circular(4),
       ),
     );

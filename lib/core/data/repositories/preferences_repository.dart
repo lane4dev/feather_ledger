@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,10 +38,15 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
 
   @override
   Locale? getLocale() {
-    final val = _prefs.getString(_keyLocale);
-    if (val == 'zh') return const Locale('zh');
-    if (val == 'en') return const Locale('en');
-    return null;
+    final tag = _prefs.getString(_keyLocale);
+    if (tag == null) return null;
+    // Pre-tag installs stored a bare language code, where `zh` meant 简体.
+    if (tag == 'zh') return AppLanguages.zhHans;
+    // Unsupported tags fall through to the system locale rather than a
+    // Locale the app cannot translate.
+    return AppLanguages.supportedLocales
+        .where((locale) => locale.toLanguageTag() == tag)
+        .firstOrNull;
   }
 
   @override
@@ -48,7 +54,9 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
     if (locale == null) {
       return _prefs.remove(_keyLocale);
     }
-    return _prefs.setString(_keyLocale, locale.languageCode);
+    // The script subtag distinguishes 简体 from 繁体 — languageCode alone
+    // collapses both into `zh`.
+    return _prefs.setString(_keyLocale, locale.toLanguageTag());
   }
 
   @override

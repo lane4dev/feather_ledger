@@ -110,7 +110,7 @@ class LedgerHeaderCompact extends ConsumerWidget {
             width: 60,
             height: 16,
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: LedgerTheme.skeletonFill(context),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -267,32 +267,33 @@ class _BalanceSummary extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _skeleton(width: 60, height: 12),
+                _skeleton(context, width: 60, height: 12),
                 const SizedBox(height: 8),
-                _skeleton(width: 120, height: 28),
+                _skeleton(context, width: 120, height: 28),
               ],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _skeleton(width: 80, height: 24),
+                _skeleton(context, width: 80, height: 24),
                 const SizedBox(height: 8),
-                _skeleton(width: 80, height: 24),
+                _skeleton(context, width: 80, height: 24),
               ],
             ),
           ],
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(l10n.errorPrefix('$e'))),
       ),
     );
   }
 
-  Widget _skeleton({required double width, required double height}) {
+  Widget _skeleton(BuildContext context,
+      {required double width, required double height}) {
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.2),
+        color: LedgerTheme.skeletonFill(context),
         borderRadius: BorderRadius.circular(4),
       ),
     );
@@ -347,9 +348,8 @@ class _IncomeExpenseCompact extends StatelessWidget {
             ),
             Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(
+              style: LedgerTheme.denseLabel(context).copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 10,
               ),
             ),
           ],
