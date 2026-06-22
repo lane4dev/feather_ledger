@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feather Ledger — Architecture Review</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '13px',
+    primaryColor: '#1e293b', primaryTextColor: '#e2e8f0', primaryBorderColor: '#475569',
+    lineColor: '#64748b', secondaryColor: '#0f172a', tertiaryColor: '#020617'
+  }});
+</script>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#020617; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .grid-bg {
+    background-image: linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .card { background:linear-gradient(180deg,rgba(30,41,59,.55),rgba(15,23,42,.55)); }
+  .hop { border-left:2px solid #334155; }
+  .hop.pass { border-left-color:#f43f5e; }
+  .hop.real { border-left-color:#10b981; }
+  .seam-dead { border:1px dashed #f43f5e; }
+  .seam-live { border:1px solid #10b981; }
+  @media print { .no-print { display:none; } }
+</style>
+</head>
+<body class="grid-bg text-slate-300 antialiased">
+
+<header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🪶</span>
+      <div>
+        <div class="text-slate-100 font-semibold leading-tight">Feather Ledger — Architecture Review</div>
+        <div class="text-xs text-slate-500 mono">post-migration audit &middot; 2026-09-19</div>
+      </div>
+    </div>
+    <div class="text-xs text-slate-500 mono no-print">review only &middot; no code changed</div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-10 space-y-14">
+
+  <!-- ── Scope ─────────────────────────────────────────────── -->
+  <section>
+    <h1 class="text-3xl font-semibold text-slate-100 mb-3">Six deepening opportunities</h1>
+    <p class="text-slate-400 max-w-3xl leading-relaxed">
+      The migration landed. This review asks a different question: now that DDD + Feature First + CQRS +
+      Event Sourcing are <em>in</em>, are the seams in the right place? Everything below is read off the
+      working tree — file and line, not directory names.
+    </p>
+
+    <div class="mt-6 grid md:grid-cols-3 gap-4">
+      <div class="card border border-slate-800 rounded-lg p-4">
+        <div class="text-xs uppercase tracking-wider text-emerald-400 mb-2">Holds up</div>
+        <ul class="text-sm space-y-1.5 text-slate-400">
+          <li>One projection writer, one balance point</li>
+          <li>Append + project in one transaction</li>
+          <li>Money as int minor units, end to end</li>
+          <li>Write-time category snapshots</li>
+        </ul>
+      </div>
+      <div class="card border border-slate-800 rounded-lg p-4">
+        <div class="text-xs uppercase tracking-wider text-amber-400 mb-2">Shallow</div>
+        <ul class="text-sm space-y-1.5 text-slate-400">
+          <li>7 interfaces, 1 adapter each, 0 fakes</li>
+          <li>All 9 <span class="mono text-xs">LedgerService</span> methods forward</li>
+          <li>1 dead interface, 4 dead repository methods</li>
+        </ul>
+      </div>
+      <div class="card border border-slate-800 rounded-lg p-4">
+        <div class="text-xs uppercase tracking-wider text-rose-400 mb-2">Leaks</div>
+        <ul class="text-sm space-y-1.5 text-slate-400">
+          <li>Aggregate runs only at apply time</li>
+          <li>Projection depends on wall clock</li>
+          <li><span class="mono text-xs">balanceMinor</span> means two things</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="mt-6 text-xs text-slate-500 mono">
+      Method: 4 parallel code scans (write chain / read+projection / shallow modules / presentation+boundaries),
+      git churn over 79 commits, and first-hand reads of every file cited. No <span class="mono">CONTEXT.md</span>
+      or <span class="mono">docs/adr/</span> exists — the decision record is <span class="mono">specs/003-event-sourced-ledger/</span>.
+    </p>
+  </section>
+
+  <!-- ══ C1 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 01</div>
+        <h2 class="text-xl font-semibold text-slate-100">The aggregate never runs on the write path</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">Strong</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">domain/model/transaction.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">domain/commands/record_transaction_command.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">domain/commands/correct_transaction_command.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">data/projections/ledger_projector.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          <span class="mono text-sm text-slate-300">Transaction</span> is documented as the aggregate root and owns nine
+          invariant checks in <span class="mono text-sm">validate()</span>. It is constructed in exactly
+          <strong class="text-slate-200">one</strong> place — inside the projector, at apply time. No command ever builds one.
+          The validated local is dead the instant it is checked.
+        </p>
+        <div class="mt-3 grid md:grid-cols-2 gap-3">
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// ledger_projector.dart:231-244</span>
+final txn = Transaction(...);
+final violation = txn.validate();
+if (violation != null) {
+  throw StateError('...violates invariants: $violation');
+}
+<span class="text-rose-400/70">// 'txn' is never read again — every later
+// line uses 'p' (the raw payload)</span></pre>
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// transaction.dart:66-71 (doc comment)</span>
+/// Aggregate root. Invariants (validated
+/// in [Transaction.validate]):
+/// - postings is non-empty,
+/// - income/expense have exactly 1 posting,
+/// - transfer has exactly 2 postings ...
+<span class="text-rose-400/70">// ...but the write path never calls it</span></code></pre>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          So the same rules get re-typed at the command layer, and some land in three places:
+        </p>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-xs mono">
+            <thead class="text-slate-500 border-b border-slate-800">
+              <tr><th class="text-left py-2 pr-4 font-normal">rule</th><th class="text-left py-2 pr-4 font-normal">sites</th><th class="text-left py-2 font-normal">note</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr><td class="py-2 pr-4 text-slate-300">amount &gt; 0</td><td class="py-2 pr-4 text-slate-400">3</td><td class="py-2 text-slate-500">UI + command + aggregate</td></tr>
+              <tr><td class="py-2 pr-4 text-slate-300">transfer: same account</td><td class="py-2 pr-4 text-slate-400">2</td><td class="py-2 text-slate-500">command :128 &amp; aggregate :111</td></tr>
+              <tr><td class="py-2 pr-4 text-slate-300">transfer: same currency</td><td class="py-2 pr-4 text-slate-400">2</td><td class="py-2 text-slate-500">command :153 &amp; aggregate :112</td></tr>
+              <tr><td class="py-2 pr-4 text-slate-300">kind → CategoryType</td><td class="py-2 pr-4 text-slate-400">4</td><td class="py-2 text-slate-500">2 commands, repo, reports DAO</td></tr>
+              <tr><td class="py-2 pr-4 text-slate-300">kind → PostingDirection</td><td class="py-2 pr-4 text-slate-400">3</td><td class="py-2 text-slate-500">2 commands + aggregate</td></tr>
+              <tr class="bg-rose-500/5"><td class="py-2 pr-4 text-rose-200">category type matches kind</td><td class="py-2 pr-4 text-rose-300">2 of 3</td><td class="py-2 text-rose-400/80">missing from <span class="mono">convert_scheduled_to_posted</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          That last row is the real cost. There are three writers of <span class="mono text-sm">TransactionRecorded</span>,
+          and one of them skips a rule the other two enforce. Because the aggregate isn't a gate, nothing catches it —
+          and when the projector <em>does</em> throw, <span class="mono text-sm">guard()</span> maps a non-CommandRejected
+          error to <span class="mono text-sm">LedgerErrorCode.unknownEvent</span>, so an invariant violation reaches the
+          user as a generic unknown-event failure.
+        </p>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — validate() sits after the seam</div>
+            <div class="space-y-1 mono text-xs">
+              <div class="hop pass pl-3 py-1.5"><span class="text-slate-500">1</span> form screen</div>
+              <div class="hop pass pl-3 py-1.5"><span class="text-slate-500">2</span> view model <span class="text-slate-600">(mints commandId)</span></div>
+              <div class="hop pass pl-3 py-1.5"><span class="text-slate-500">3</span> LedgerService <span class="text-slate-600">(forwards)</span></div>
+              <div class="hop pass pl-3 py-1.5"><span class="text-slate-500">4</span> command <span class="text-rose-400/80">re-types the rules</span></div>
+              <div class="hop pass pl-3 py-1.5"><span class="text-slate-500">5</span> envelope → store → <em>commit point</em></div>
+              <div class="hop real pl-3 py-1.5 bg-emerald-500/5"><span class="text-slate-500">6</span> projector → <span class="text-emerald-300">Transaction.validate()</span> <span class="text-slate-600">← too late; throw = rollback</span></div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Rules live in 4 places. A miss is found by a rollback, not by the writer.</p>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — the aggregate gates every writer</div>
+            <div class="space-y-1 mono text-xs">
+              <div class="hop real pl-3 py-1.5"><span class="text-slate-500">1</span> command builds <span class="text-emerald-300">Transaction</span></div>
+              <div class="hop real pl-3 py-1.5 bg-emerald-500/5"><span class="text-slate-500">2</span> <span class="text-emerald-300">validate()</span> → reject before any event exists</div>
+              <div class="hop real pl-3 py-1.5"><span class="text-slate-500">3</span> envelope from the validated aggregate</div>
+              <div class="hop real pl-3 py-1.5"><span class="text-slate-500">4</span> store → <em>commit point</em></div>
+              <div class="hop pl-3 py-1.5"><span class="text-slate-500">5</span> projector validates again <span class="text-slate-600">(replay guard, now redundant-by-design)</span></div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Shape rules in one place; commands keep only context rules (exists / not archived).</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Delete <span class="mono">Transaction</span> and the complexity <strong class="text-slate-200">reappears</strong> —
+            replay still needs shape checks. So it earns its keep as a <em>checker</em>. What does not exist is any
+            gate on the write side; that is the deepening, and it is additive, not a rewrite.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">Locality</strong> — a new invariant is one edit, in the aggregate.</li>
+            <li><strong class="text-slate-300">Leverage</strong> — one gate covers 11 command files.</li>
+            <li><strong class="text-slate-300">Testability</strong> — invariant tests stop needing a DB + projector; the aggregate is testable through its own interface.</li>
+            <li><strong class="text-slate-300">AI navigability</strong> — "where are transaction rules?" gets one answer.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C2 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 02</div>
+        <h2 class="text-xl font-semibold text-slate-100">Monthly snapshots depend on the wall clock — the rebuild is not reproducible</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">Strong</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">data/projections/monthly_snapshot_projector.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">data/projections/ledger_projector.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">core/domain/clock/clock.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">test/.../projection_rebuild_equivalence_test.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          <span class="mono text-sm">DomainClock</span> exists precisely for this, with a
+          <span class="mono text-sm">FixedClock</span> ready to go. The snapshot projector takes one — and
+          <strong class="text-slate-200">no caller in the codebase ever passes it</strong>. Production, the test harness,
+          and the service test all build <span class="mono text-sm">LedgerProjectorImpl(db)</span>, which constructs the
+          snapshot projector with the default <span class="mono text-sm">SystemClock()</span>.
+        </p>
+        <div class="mt-3 grid md:grid-cols-2 gap-3">
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// ledger_projector.dart:35-36</span>
+late final MonthlySnapshotProjectorImpl _snapshots =
+    MonthlySnapshotProjectorImpl(_db);   <span class="text-rose-400/70">// no clock</span>
+
+<span class="text-slate-500">// every construction site:</span>
+<span class="text-slate-500">//   ledger_projector.dart:366  (provider)</span>
+<span class="text-slate-500">//   ledger_service_harness.dart:73</span>
+<span class="text-slate-500">//   ledger_service_test.dart:56</span>
+<span class="text-rose-400/70">// — none of them inject one</span></code></pre>
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// monthly_snapshot_projector.dart</span>
+:109  anchorMonth ??= _monthOf(_clock.today());
+:112  var latest = _monthOf(_clock.today());
+:183  updatedAt: Value(_clock.now()),
+
+<span class="text-rose-400/70">// :112 decides how many snapshot rows
+// get written (:186-188 walks forward
+// month by month until reaching latest)</span></code></pre>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Line 112 is the load-bearing one: the <em>set of rows produced</em> depends on which day the rebuild runs.
+          Rebuild a ledger in January and again in March and you get different projections from the same events.
+        </p>
+        <div class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <div class="text-xs uppercase tracking-wider text-amber-400 mb-2">This contradicts the project's own constitution</div>
+          <p class="text-sm text-slate-400">
+            Constitution <span class="mono text-xs">VII</span> (Event Sourcing Governance) requires projections be
+            "reproducible field-for-field from the event store alone (golden equivalence tests gate this)".
+            The golden test passes only because it rebuilds <em>immediately</em> after writing, and because its
+            comparison deliberately drops the artifacts the clock controls —
+            <span class="mono text-xs">id / createdAt / updatedAt</span> are excluded from <span class="mono text-xs">capture()</span>.
+          </p>
+          <p class="mt-2 text-sm text-slate-400">
+            The exclusion list is the tell: it is exactly the surface the un-injected clock writes to.
+          </p>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          A related leak: <span class="mono text-sm">clock.dart</span>'s doc says
+          <em>"Commands must never call <span class="mono">DateTime.now()</span> directly"</em> — but
+          <span class="mono text-sm">envelopeFor()</span> calls it for <span class="mono text-sm">occurredAt</span> and
+          <span class="mono text-sm">recordedAt</span>, and none of its 13 call sites passes
+          <span class="mono text-sm">occurredAt</span>. So every envelope stores the write wall-clock while the payload
+          stores the business date, and consumers disagree about which one to read.
+        </p>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — same events, two rebuilds, two truths</div>
+            <div class="space-y-3 mono text-xs">
+              <div class="rounded border border-slate-800 p-2">
+                <div class="text-slate-500 mb-1">rebuild on 2026-01-31</div>
+                <div class="text-slate-300">rows: 2025-11, 2025-12, 2026-01</div>
+              </div>
+              <div class="rounded border border-slate-800 p-2">
+                <div class="text-slate-500 mb-1">rebuild on 2026-03-31 &mdash; identical event store</div>
+                <div class="text-rose-300">rows: 2025-11 … 2026-03 <span class="text-slate-600">(+2 rows)</span></div>
+              </div>
+              <div class="text-slate-500 pt-1">Golden test green only because it excludes id/createdAt/updatedAt.</div>
+            </div>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — clock at the seam</div>
+            <div class="space-y-3 mono text-xs">
+              <div class="rounded border border-slate-800 p-2">
+                <div class="text-slate-500 mb-1">production</div>
+                <div class="text-slate-300">LedgerProjectorImpl(db, clock: SystemClock())</div>
+              </div>
+              <div class="rounded border border-emerald-900/60 p-2 bg-emerald-500/5">
+                <div class="text-slate-500 mb-1">tests</div>
+                <div class="text-emerald-300">LedgerProjectorImpl(db, clock: FixedClock(...))</div>
+              </div>
+              <div class="text-slate-500 pt-1">Rebuild output becomes a pure function of the event store; the exclusion list can shrink.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Not applicable — the module earns its keep; the <em>dependency</em> is what is misplaced. The fix is to
+            route the clock through the existing seam rather than create a new one.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">Testability</strong> — snapshot tests stop reading <span class="mono">DateTime.now()</span>.</li>
+            <li><strong class="text-slate-300">Correctness</strong> — closed months stop mutating on later rebuilds.</li>
+            <li><strong class="text-slate-300">Locality</strong> — one injected dependency, already written.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C3 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 03</div>
+        <h2 class="text-xl font-semibold text-slate-100">"Monthly totals" is three shapes and two meanings</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">Strong</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">core/data/database/daos/reports_dao.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">ledger/domain/queries/watch_monthly_snapshot_query.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">reports/domain/entities/reports_entities.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">reports/data/repositories/reports_repository.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          The same table feeds two "monthly totals" readers that agree on income and expense and
+          <strong class="text-slate-200">silently disagree on balance</strong> — under an identical field name.
+        </p>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-xs mono">
+            <thead class="text-slate-500 border-b border-slate-800">
+              <tr><th class="text-left py-2 pr-4 font-normal">field</th><th class="text-left py-2 pr-4 font-normal">ledger header<br><span class="text-slate-600">watch_monthly_snapshot_query.dart:41</span></th><th class="text-left py-2 font-normal">reports<br><span class="text-slate-600">reports_dao.dart:133</span></th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr><td class="py-2 pr-4 text-slate-300">incomeMinor</td><td class="py-2 pr-4 text-emerald-300">Σ row.incomeMinor</td><td class="py-2 text-emerald-300">Σ row.incomeMinor</td></tr>
+              <tr><td class="py-2 pr-4 text-slate-300">expenseMinor</td><td class="py-2 pr-4 text-emerald-300">Σ row.expenseMinor</td><td class="py-2 text-emerald-300">Σ row.expenseMinor</td></tr>
+              <tr class="bg-rose-500/5"><td class="py-2 pr-4 text-rose-200">balanceMinor</td><td class="py-2 pr-4 text-rose-300">Σ accounts_view.balanceMinor<br><span class="text-rose-400/70">= today's balance</span></td><td class="py-2 text-rose-300">Σ row.closingBalanceMinor<br><span class="text-rose-400/70">= that month's close</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          The divergence is deliberate on the ledger side — it is documented in a comment. The problem is that
+          the <em>other</em> side's doc comment asserts the opposite:
+        </p>
+        <div class="mt-3 grid md:grid-cols-2 gap-3">
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// watch_monthly_snapshot_query.dart:12-15</span>
+<span class="text-slate-400">/// balanceMinor is the sum of the account
+/// projections — the *current* balance ...
+/// a historical month's header balance is
+/// therefore today's balance, not that month's closing.</span></code></pre>
+          <pre class="mono text-xs bg-slate-950/70 border border-rose-900/50 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// reports_entities.dart:17-18</span>
+<span class="text-rose-300">/// Monthly totals read from the snapshot projection
+/// — the same source the ledger header uses ...
+/// [balanceMinor] is the month-end closing balance.</span></code></pre>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Three near-identical structs carry this: <span class="mono text-sm">MonthlySnapshotTotals</span>,
+          <span class="mono text-sm">ReportMonthlyTotalsRow</span>, <span class="mono text-sm">ReportMonthlyTotals</span>
+          — all <span class="mono text-sm">{incomeMinor, expenseMinor, balanceMinor}</span>. Between the last two sits a
+          mapper that copies fields one for one and adds nothing:
+        </p>
+        <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 mt-3 overflow-x-auto"><code><span class="text-slate-500">// reports_repository.dart:57-61 — the entire method</span>
+return _dao.watchMonthlyTotals(month, currencyCode: currencyCode).map((row) => ReportMonthlyTotals(
+      incomeMinor: row.incomeMinor,
+      expenseMinor: row.expenseMinor,
+      balanceMinor: row.balanceMinor,   <span class="text-rose-400/70">// 3rd copy of the same 3 fields</span>
+    ));</code></pre>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — one concept, fanned out</div>
+            <div class="mono text-xs space-y-2">
+              <div class="rounded border border-slate-700 bg-slate-900/60 p-2 text-center text-slate-300">monthly_account_balance_snapshots</div>
+              <div class="text-center text-slate-600">↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↓</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">ReportsDao<br><span class="text-rose-400/80 text-[10px]">balance = close</span></div>
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">WatchMonthly<br>SnapshotQuery<br><span class="text-rose-400/80 text-[10px]">balance = today</span></div>
+              </div>
+              <div class="text-center text-slate-600">↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↓</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">ReportMonthlyTotalsRow</div>
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">MonthlySnapshotTotals</div>
+              </div>
+              <div class="text-center text-slate-600">↓ <span class="text-slate-500">(pure copy)</span></div>
+              <div class="rounded border border-slate-700 p-2 text-center text-slate-400">ReportMonthlyTotals</div>
+            </div>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — one reader, two named queries</div>
+            <div class="mono text-xs space-y-2">
+              <div class="rounded border border-slate-700 bg-slate-900/60 p-2 text-center text-slate-300">monthly_account_balance_snapshots</div>
+              <div class="text-center text-slate-600">↓</div>
+              <div class="rounded border border-emerald-800/60 bg-emerald-500/5 p-2 text-center text-emerald-300">MonthlyTotals <span class="text-slate-500">(single shape)</span></div>
+              <div class="text-center text-slate-600">↓</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">monthClosingBalance()</div>
+                <div class="rounded border border-slate-700 p-2 text-center text-slate-400">currentBalance()</div>
+              </div>
+              <div class="text-slate-500 text-[10px] pt-1">Different names force the caller to choose. The pass-through struct and mapper disappear.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Delete <span class="mono">ReportMonthlyTotals</span> → complexity <strong class="text-slate-200">vanishes</strong>
+            (the DAO row is already the right shape). Delete <span class="mono">MonthlySnapshotTotals</span> instead and the
+            balance semantics have to be named somewhere — which is the fix.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">Correctness</strong> — a maintainer can no longer wire the wrong balance into a header.</li>
+            <li><strong class="text-slate-300">Locality</strong> — the "which balance" decision moves next to the SQL.</li>
+            <li><strong class="text-slate-300">AI navigability</strong> — three identically-shaped structs is an invitation to guess wrong.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C4 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 04</div>
+        <h2 class="text-xl font-semibold text-slate-100">A stack of single-adapter seams and pass-through facades</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">*/domain/repositories/*.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">features/ledger/domain/services/ledger_service.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">features/settings/domain/services/category_service.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">ledger/domain/projections/ledger_projection.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          The rule is <em>one adapter = a hypothetical seam</em>. Seven interfaces here have exactly one adapter, and
+          no test fake anywhere in <span class="mono text-sm">test/</span> implements any of them.
+        </p>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-xs mono">
+            <thead class="text-slate-500 border-b border-slate-800">
+              <tr><th class="text-left py-2 pr-4 font-normal">interface</th><th class="text-left py-2 pr-4 font-normal">impls</th><th class="text-left py-2 font-normal">fakes</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-400">
+              <tr><td class="py-1.5 pr-4">AccountRepository</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-rose-400/80">0</td></tr>
+              <tr><td class="py-1.5 pr-4">CategoryRepository</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-rose-400/80">0</td></tr>
+              <tr><td class="py-1.5 pr-4">LedgerRepository</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-rose-400/80">0</td></tr>
+              <tr><td class="py-1.5 pr-4">RecurringRepository</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-rose-400/80">0</td></tr>
+              <tr><td class="py-1.5 pr-4">PreferencesRepository</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-rose-400/80">0</td></tr>
+              <tr><td class="py-1.5 pr-4">EventStore</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-slate-500">0 <span class="text-slate-600">(deliberate)</span></td></tr>
+              <tr><td class="py-1.5 pr-4">LedgerProjector</td><td class="py-1.5 pr-4">1</td><td class="py-1.5 text-slate-500">0 <span class="text-slate-600">(deliberate)</span></td></tr>
+              <tr class="bg-rose-500/5"><td class="py-1.5 pr-4 text-rose-200">ProjectionCursor</td><td class="py-1.5 pr-4 text-rose-300">0</td><td class="py-1.5 text-rose-400/80">0 <span class="text-slate-600">— zero references anywhere</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          On top of that sit three service facades that forward without deciding. <span class="mono text-sm">CategoryService</span>
+          is four pure forwards. <span class="mono text-sm">LedgerService</span> is nine forwards — four bare, five wrapped in
+          <span class="mono text-sm">guard()</span>, and the mapping itself lives once in
+          <span class="mono text-sm">result.dart:94</span>, not in the service. Only
+          <span class="mono text-sm">AccountService.adjustAccountBalance</span> composes anything.
+        </p>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Dead surface inside the live layer: <span class="mono text-sm">LedgerRepository</span> exposes 7 methods and
+          <strong class="text-slate-200">4 have no caller</strong>; <span class="mono text-sm">ReportsRepository</span> has two
+          byte-identical methods, so the branch choosing between them is inert; and
+          <span class="mono text-sm">LedgerService</span>'s stated role as "the entry point the UI consumes" does not
+          hold — four presentation files import query providers directly, and reports' presentation reaches past
+          domain entirely into its own data repository.
+        </p>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — every layer costs a hop</div>
+            <div class="mono text-xs space-y-1">
+              <div class="seam-dead rounded p-2 text-slate-400">widget</div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">view model <span class="text-slate-500">(real: state + subscriptions)</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-dead rounded p-2 text-rose-300">LedgerService <span class="text-slate-500">9/9 forwards</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">command <span class="text-slate-500">(real: rules + events)</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-dead rounded p-2 text-rose-300">Repository <span class="text-slate-500">1 adapter, 4 dead methods</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">DAO</div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Dashed = interface with a single adapter and no second consumer.</p>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — collapse what never varies</div>
+            <div class="mono text-xs space-y-1">
+              <div class="seam-dead rounded p-2 text-slate-400">widget</div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">view model</div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="rounded p-2 text-slate-500 border border-dashed border-slate-700">LedgerService <span class="text-slate-600">only where it composes</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">command → EventStore <span class="text-slate-500">(deep, keep)</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="seam-live rounded p-2 text-emerald-300">DAO</div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Interfaces earn their keep when a second adapter or a fake actually shows up.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Delete <span class="mono">CategoryService</span> → each call site reaches a command directly instead; complexity
+            <em>moves</em>, it does not multiply. Delete the <span class="mono">LedgerRepository</span> <em>interface</em> and
+            the impl stays — nothing re-forms. Both are pass-throughs by the test.
+            <span class="mono">ProjectionCursor</span> fails the same test outright: deleting it removes complexity and
+            changes no behaviour.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">AI navigability</strong> — fewer hops to hold when tracing a change.</li>
+            <li><strong class="text-slate-300">Locality</strong> — a reader reaches the decision in one step, not three.</li>
+            <li><strong class="text-slate-300">Deepest-first caution</strong> — <span class="mono">EventStore</span> and <span class="mono">DriftEventStore</span> are genuinely deep; leave them alone.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C5 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 05</div>
+        <h2 class="text-xl font-semibold text-slate-100">Half the domain model has no caller outside tests</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">ledger/presentation/widgets/ledger_type_selector.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">ledger/domain/services/ledger_service.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">ledger/data/projections/monthly_snapshot_projector.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">core/data/database/daos/recurring_dao.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          The single <span class="mono text-sm">Transaction + Postings</span> model is the migration's headline decision, and it
+          buys income / expense / <strong class="text-slate-200">transfer</strong> in one shape. But transfers cannot be created
+          from the app: the type selector offers two segments, and <span class="mono text-sm">addTransaction</span> requires a
+          non-null <span class="mono text-sm">categoryId</span>, so it structurally cannot express one.
+          <span class="mono text-sm">LedgerService.addTransfer</span> is called from eleven places — all of them tests.
+        </p>
+        <div class="mt-3 grid md:grid-cols-2 gap-3">
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// ledger_type_selector.dart:25,29</span>
+SegmentedButton&lt;TransactionKind&gt;(
+  segments: [
+    ButtonSegment(value: <span class="text-emerald-300">TransactionKind.expense</span>, ...),
+    ButtonSegment(value: <span class="text-emerald-300">TransactionKind.income</span>, ...),
+  ])   <span class="text-rose-400/70">// no transfer segment</span></code></pre>
+          <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 overflow-x-auto"><code><span class="text-slate-500">// transaction_form_screen.dart:53</span>
+<span class="text-slate-400">// Category repositories are typed by CategoryType; the
+// transaction form only exposes income/expense kinds.</span>
+
+<span class="text-slate-500">// form calls addTransaction, which requires categoryId
+// → transfer is unreachable from the UI by construction</span></code></pre>
+        </div>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Everything downstream still pays for it: transfer invariants in the aggregate, the transfer branch in the
+          projector, <span class="mono text-sm">transferIn/Out</span> columns in every snapshot row, a two-leg collapse in
+          <span class="mono text-sm">ledger_repository.dart:75-84</span>, a transfer exclusion in
+          <span class="mono text-sm">reports_dao.dart:79</span>, and two dedicated test files. The two spec risks it exists
+          to mitigate — "transfers pollute income/expense" and "card repayment double-counts" — are therefore verified
+          only against tests, never against the running app.
+        </p>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          It is not only transfer. <span class="mono text-sm">RecurringDao.saveSeries</span> has no production caller at all,
+          which means <strong class="text-slate-200">a recurring series can only enter the database from a test</strong>, and the
+          conversion command that consumes it is likewise test-only.
+        </p>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — reachability</div>
+            <div class="mermaid">
+flowchart LR
+  UI["UI<br/>form screen"] --> REC["RecordTransactionCommand"]
+  UI -.->|"impossible"| TR["executeTransfer"]
+  T1["test files"] --> TR
+  T2["test files"] --> CONV["ConvertScheduledToPosted"]
+  REC --> P["projector + snapshots"]
+  TR --> P
+  CONV --> P
+  classDef dead fill:#450a0a,stroke:#f43f5e,color:#fecaca
+  classDef live fill:#022c22,stroke:#10b981,color:#a7f3d0
+  class TR dead
+  class CONV dead
+  class UI,REC,P live
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Red = reachable only from tests, yet fully wired into the projection path.</p>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — pick a direction</div>
+            <div class="mono text-xs space-y-3">
+              <div class="rounded border border-emerald-800/60 bg-emerald-500/5 p-3">
+                <div class="text-emerald-300 mb-1">Option A — finish it</div>
+                <div class="text-slate-400">Add the transfer segment + <span class="mono">addTransfer</span> path. The model already supports it; the UI is the only gap.</div>
+              </div>
+              <div class="rounded border border-slate-700 p-3">
+                <div class="text-slate-300 mb-1">Option B — park it honestly</div>
+                <div class="text-slate-400">Keep the branch, but stop counting its tests as mitigation for risks #3/#4 until it ships.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Delete the transfer branch and complexity <strong class="text-slate-200">vanishes</strong> for the app as it
+            ships today — only tests break. That is the strongest deletion-test hit in the repo, and it is a
+            <em>product</em> question, not a code-quality one: the answer is "finish it", not "delete it".
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">Leverage</strong> — the model's second shape starts paying rent.</li>
+            <li><strong class="text-slate-300">Testability</strong> — risk coverage becomes end-to-end rather than domain-only.</li>
+            <li><strong class="text-slate-300">Honesty</strong> — either way, stop implying shipped coverage that isn't there.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C6 ════════════════════════════════════════════════ -->
+  <section class="card border border-slate-800 rounded-xl overflow-hidden">
+    <div class="border-b border-slate-800 px-6 py-5 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mono mb-1">candidate 06</div>
+        <h2 class="text-xl font-semibold text-slate-100">Snapshot maintenance is orchestrated from inside the projector's switch</h2>
+      </div>
+      <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Worth exploring</span>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Files</div>
+        <div class="flex flex-wrap gap-2 mono text-xs">
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">data/projections/ledger_projector.dart</span>
+          <span class="px-2 py-1 rounded bg-slate-800/70 border border-slate-700">data/projections/monthly_snapshot_projector.dart</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Problem</div>
+        <p class="text-slate-400 leading-relaxed">
+          "Which events move a balance" is knowledge split across two modules. The projector's
+          <span class="mono text-sm">switch</span> encodes it by calling the snapshot projector inline from four separate
+          branches, and <span class="mono text-sm">applyAll</span> is a bare loop with no chance to coalesce.
+        </p>
+        <pre class="mono text-xs bg-slate-950/70 border border-slate-800 rounded p-3 mt-3 overflow-x-auto"><code><span class="text-slate-500">// ledger_projector.dart — four inline refresh sites</span>
+:58      await _snapshots.refreshAccount(p.accountId);          <span class="text-slate-500">// AccountCreated</span>
+:72      await _snapshots.refreshAccount(p.accountId);          <span class="text-slate-500">// OpeningBalanceSet</span>
+:76-78   for (final posting in p.postings) {
+           await _snapshots.refreshAccount(posting.accountId);  <span class="text-slate-500">// once per posting</span>
+         }
+:82-84   for (final accountId in affected) {
+           await _snapshots.refreshAccount(accountId);          <span class="text-slate-500">// once per reversed account</span>
+         }
+
+<span class="text-slate-500">// :42-46 — no post-apply hook to hang a single refresh on</span>
+Future&lt;void&gt; applyAll(List&lt;EventEnvelope&gt; events) async {
+  for (final event in events) { await apply(event); }
+}</code></pre>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Each refresh in turn does <span class="mono text-sm">eventsDao.getAll()</span> — a full event-store scan. Creating an
+          account emits two events under one command, so it scans twice; during rebuild this compounds into the
+          <span class="mono text-sm">O(events²)</span> the code already flags in a ponytail comment. The cost is accepted; the
+          <em>placement</em> is the issue — the projector knows <em>which</em> events matter, the snapshot projector knows
+          <em>how</em> to recompute, and neither owns the decision to refresh.
+        </p>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          One ordering detail worth noting while here: the reversal branch iterates a
+          <span class="mono text-sm">Set&lt;String&gt;</span> built from rows fetched <em>without</em> an
+          <span class="mono text-sm">orderBy</span>, so the refresh order is decided by unspecified SQL row order. It happens
+          not to matter today, which is exactly the kind of thing that stops being true later.
+        </p>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before / After</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <div class="text-xs text-rose-400 mb-3 font-semibold">BEFORE — refresh knowledge inside the switch</div>
+            <div class="mono text-xs space-y-2">
+              <div class="rounded border border-slate-700 p-2 text-slate-400">applyAll <span class="text-rose-400/80">(bare loop)</span></div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="rounded border border-slate-700 p-2 text-slate-400">apply → switch <span class="text-slate-500">(9 branches)</span></div>
+              <div class="grid grid-cols-4 gap-1 pt-1">
+                <div class="rounded border border-rose-800/60 bg-rose-500/5 p-1 text-center text-[10px] text-rose-300">refresh</div>
+                <div class="rounded border border-slate-800 p-1 text-center text-[10px] text-slate-600">—</div>
+                <div class="rounded border border-rose-800/60 bg-rose-500/5 p-1 text-center text-[10px] text-rose-300">refresh</div>
+                <div class="rounded border border-rose-800/60 bg-rose-500/5 p-1 text-center text-[10px] text-rose-300">refresh×n</div>
+              </div>
+              <div class="text-slate-500 text-[10px] pt-1">Two events, one command → two full event-store scans, no coalescing.</div>
+            </div>
+          </div>
+          <div class="rounded-lg border border-emerald-900/50 bg-slate-950/50 p-4">
+            <div class="text-xs text-emerald-400 mb-3 font-semibold">AFTER — one seam for "what moved"</div>
+            <div class="mono text-xs space-y-2">
+              <div class="rounded border border-emerald-800/60 bg-emerald-500/5 p-2 text-emerald-300">apply(event) → Set&lt;accountId&gt; affected</div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="rounded border border-slate-700 p-2 text-slate-400">applyAll collects the union</div>
+              <div class="text-center text-slate-600 text-[10px]">↓</div>
+              <div class="rounded border border-emerald-800/60 bg-emerald-500/5 p-2 text-emerald-300">refresh once, per distinct account</div>
+              <div class="text-slate-500 text-[10px] pt-1">Branch handlers stop knowing about snapshots; each just reports what it touched.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Deletion test</div>
+          <p class="text-sm text-slate-400">
+            Delete <span class="mono">MonthlySnapshotProjector</span> → the anchor/chain logic re-forms nowhere; it earns its
+            keep. The <em>orchestration</em> is the shallow part: it is a 4-line convention repeated in a switch, and the
+            fix concentrates it.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Benefits</div>
+          <ul class="text-sm text-slate-400 space-y-1.5">
+            <li><strong class="text-slate-300">Locality</strong> — a new event type cannot forget to refresh.</li>
+            <li><strong class="text-slate-300">Efficiency</strong> — natural place to coalesce scans.</li>
+            <li><strong class="text-slate-300">Testability</strong> — the refresh contract becomes assertable on its own.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Worth keeping ─────────────────────────────────────── -->
+  <section class="card border border-emerald-900/40 rounded-xl p-6">
+    <h2 class="text-xl font-semibold text-emerald-300 mb-4">Worth keeping — do not "simplify" these</h2>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="space-y-4">
+        <div>
+          <div class="text-slate-200 font-medium mb-1">The append hook is the best seam in the codebase</div>
+          <p class="text-sm text-slate-400">
+            <span class="mono text-xs">AppendOptions(apply:)</span> makes write-and-project atomic <em>and</em> lets rebuild
+            reuse the identical apply path. One seam, two consumers. That is why the golden-equivalence test can exist at all.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-200 font-medium mb-1"><span class="mono text-sm">DriftEventStore</span> is genuinely deep</div>
+          <p class="text-sm text-slate-400">
+            Transaction boundary, two-phase batch pre-check (so multi-event commands don't self-collide), GSN assignment,
+            projector hook, paging arithmetic — all behind five methods. It is <em>not</em> a DAO wrapper.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-200 font-medium mb-1">One sign convention, one balance writer</div>
+          <p class="text-sm text-slate-400">
+            <span class="mono text-xs">Posting.signedImpact</span> and the projector as sole
+            <span class="mono text-xs">balanceMinor</span> author both hold — the one exception
+            (<span class="mono text-xs">postingSignedImpact</span> in the DAO) is a projection-row re-implementation
+            worth folding back, not a design failure.
+          </p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <div class="text-slate-200 font-medium mb-1">Money as int minor units, end to end</div>
+          <p class="text-sm text-slate-400">
+            <span class="mono text-xs">Money.fromDouble</span> is the single double→int bridge, at the input boundary.
+            A repo-wide grep finds no floating-point arithmetic on any accounting path.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-200 font-medium mb-1">The risk-mapped regression suite</div>
+          <p class="text-sm text-slate-400">
+            <span class="mono text-xs">ledger_invariants_test</span>, <span class="mono text-xs">monthly_snapshot_test</span>,
+            <span class="mono text-xs">projection_rebuild_equivalence_test</span> — named after the spec's twelve financial
+            risks rather than after classes. That is unusually good, and it is the reason several findings above are
+            <em>provably</em> contained rather than merely suspected.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-200 font-medium mb-1">Write-time category snapshots</div>
+          <p class="text-sm text-slate-400">
+            Copying name/icon/color onto the transaction row means archival never distorts history, with no join to the
+            live table. It closes risk #8 permanently.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Secondary findings ────────────────────────────────── -->
+  <section class="rounded-xl border border-slate-800 bg-slate-900/30 p-6">
+    <h2 class="text-lg font-semibold text-slate-200 mb-4">Also surfaced — not carded, but load-bearing</h2>
+    <div class="grid md:grid-cols-2 gap-6 text-sm">
+      <div class="space-y-3">
+        <div>
+          <div class="text-slate-300 font-medium">Accounts and categories have no single owner</div>
+          <p class="text-slate-400">
+            Entity, repo interface+impl, DAO and table live in <span class="mono text-xs">lib/core</span>; commands, queries
+            and services in <span class="mono text-xs">features/settings</span>; the events and every projector handler in
+            <span class="mono text-xs">features/ledger</span>. Both feature layers rebuild
+            <span class="mono text-xs">AccountEntity</span>/<span class="mono text-xs">CategoryEntity</span> from projection
+            rows themselves, and the reports widget goes further — it fabricates a synthetic
+            <span class="mono text-xs">CategoryEntity(id: 'others')</span> in the UI.
+            Feature First is intact as a directory rule; it does not match the domain boundary, because
+            "account/category management" is a feature in the UI and an aggregate in the ledger.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-300 font-medium">Domain → data imports, in every command file</div>
+          <p class="text-slate-400">
+            Class-level dependencies are clean (commands hold <span class="mono text-xs">EventStore</span>, an interface).
+            But because the <span class="mono text-xs">@riverpod</span> provider lives in the same file, ~20 domain files
+            import <span class="mono text-xs">drift_event_store.dart</span> and
+            <span class="mono text-xs">ledger_projector.dart</span> directly. The file-level dependency is what leaks;
+            the convention is what causes it.
+          </p>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <div class="text-slate-300 font-medium">Existence checks use two different sources</div>
+          <p class="text-slate-400">
+            Most commands read the <em>projection</em> to confirm an account exists;
+            <span class="mono text-xs">rename_account</span> and <span class="mono text-xs">archive_account</span> instead ask
+            the <em>event stream</em> (<span class="mono text-xs">readStream(id).isNotEmpty</span>). Same rule, two truths,
+            and the event-store variant is stricter than the projection one.
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-300 font-medium">Dead surface inventory</div>
+          <p class="text-slate-400 mono text-xs leading-relaxed">
+            ProjectionCursor (0 impls, 0 refs) ·
+            LedgerRepository ×4 methods ·
+            MonthlySnapshotDao.watchAllForMonth ·
+            EventStore.commandExists (0 prod callers) ·
+            RecurringDao.saveSeries (0 prod callers) ·
+            ReportsRepository.watchHeatmapData/…AmountData (identical) ·
+            account_summary_card.dart (whole widget) ·
+            insert_or_update_scheduled + project_recurring_events providers (0 callers)
+          </p>
+        </div>
+        <div>
+          <div class="text-slate-300 font-medium">A second composition root</div>
+          <p class="text-slate-400">
+            <span class="mono text-xs">LedgerServiceHarness</span> hand-wires ~110 lines of the same graph Riverpod builds,
+            so every constructor change must land twice. Its <span class="mono text-xs">seedAccount</span> also inserts
+            projection rows directly with <span class="mono text-xs">lastUpdatedEventId: 0</span> — a state production
+            cannot reach, and one rebuild would erase.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Top recommendation ────────────────────────────────── -->
+  <section class="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-slate-950 p-8">
+    <div class="text-xs uppercase tracking-wider text-emerald-400 mb-3">Top recommendation</div>
+    <h2 class="text-2xl font-semibold text-slate-100 mb-4">Start with candidate 01 — put the aggregate on the write path</h2>
+    <p class="text-slate-300 leading-relaxed max-w-3xl">
+      It is the one finding that is simultaneously a DDD correctness issue, a locality problem, and the root cause of
+      four separate duplication rows in its own table. Every other candidate is either downstream of it or independent
+      of it; none of them unblock it. The fix is additive — commands already build the postings, they simply never wrap
+      them in the aggregate they are supposed to be producing — so it can land writer by writer without a freeze.
+    </p>
+    <div class="mt-6 grid md:grid-cols-3 gap-4 text-sm">
+      <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-4">
+        <div class="text-emerald-400 text-xs uppercase tracking-wider mb-1.5">Ship first if you want a quick win</div>
+        <p class="text-slate-400">
+          Candidate 02. Injecting the clock is a one-line change at a seam that already exists, and it removes a live
+          contradiction with the constitution's determinism rule.
+        </p>
+      </div>
+      <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-4">
+        <div class="text-emerald-400 text-xs uppercase tracking-wider mb-1.5">Ship first if correctness outranks design</div>
+        <p class="text-slate-400">
+          Candidate 03. Two meanings behind one field name is the only finding here that can put a wrong number in
+          front of a user without anyone noticing.
+        </p>
+      </div>
+      <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-4">
+        <div class="text-emerald-400 text-xs uppercase tracking-wider mb-1.5">Answer before the others</div>
+        <p class="text-slate-400">
+          Candidate 05 is a scope question, not a refactor. "Is transfer shipping?" changes whether the rest of the
+          transfer branch is leverage or dead weight.
+        </p>
+      </div>
+    </div>
+    <p class="mt-6 text-xs text-slate-500 mono">
+      Nothing in this report was applied. Next step is yours: pick a candidate and we go into the decision tree.
+    </p>
+  </section>
+
+</main>
+
+<footer class="border-t border-slate-800 mt-16">
+  <div class="max-w-6xl mx-auto px-6 py-6 text-xs text-slate-600 mono">
+    feather_ledger &middot; architecture review &middot; 79 commits scanned &middot; no production code modified
+  </div>
+</footer>
+
+</body>
+</html>

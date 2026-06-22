@@ -1,0 +1,178 @@
+# Tasks: P0 基础财务能力闭环
+
+**Input**: 已确认规格 [spec.md](spec.md) 与 [plan.md](plan.md)，[`.specify/memory/constitution.md`](../../.specify/memory/constitution.md)，以及产品审计 [`docs/reports/2026-09-21-product-feature-audit.md`](../../docs/reports/2026-09-21-product-feature-audit.md)。
+
+**测试策略**: 每个逻辑测试只经 `LedgerService` / `AccountService` / `RecurringService` 和内存 Drift 数据库驱动，断言事件流、投影表与月度快照；不为命令、投影器或 Event Store 建 mock/私有实现测试接缝。纯函数（CSV、状态编解码、`pending_restore` 的文件舞蹈、`TransactionFilter` 的相等性）用纯单测。每次代码调整后执行 `flutter analyze`。
+
+**组织方式**: 五个 Phase 对应四个用户故事 + 收尾。**执行顺序为 US1 → US4 → US2 → US3**，与优先级排序不同：US1 自成一体且迫使本地化缺口先被修；US4 与一切正交、是审计里唯一的 High，趁树还小时落地它比任务顺序的美观更值钱；US2 占 `main.dart` 的启动补课，等 US4 对 `main.dart` 的改动定下来再做；US3 最大且是唯一既加依赖又加一屏筛选状态的，放最后。
+
+**串行化交点**（任一时刻只能有一个故事在动）: `lib/main.dart`（US2、US4）、`lib/app/router/app_router.dart`（US1、US2、US3）、四个 ARB（全部）、`pubspec.yaml`（US3、US4）、`lib/features/ledger/presentation/view_model/ledger_view_model.dart` + `screens/ledger_screen.dart`（US1、US2、US3）。
+
+---
+
+## Phase 1: Setup（收口在途工作，建立干净基线）
+
+**Purpose**: 本 spec 的五个串行化交点中，四个 ARB 文件已被在途的 T077 修改。不先收口，本 spec 每一次 ARB 编辑都是冲突，且 `flutter analyze` 的失败归因会变得含糊。
+
+- [ ] T001 收口 `specs/003-event-sourced-ledger/tasks.md` 的 T077：将 ledger、reports 与 settings presentation 组件改为 ThemeExtension token 与统一 DS wrappers，移除直接 palette/typography/spacing/radius 原语，以满足 Constitution III，路径为 `lib/features/ledger/presentation/`、`lib/features/reports/presentation/`、`lib/features/settings/presentation/`、`lib/app/design_system/`
+- [ ] T002 收口 `specs/003-event-sourced-ledger/tasks.md` 的 T080：将 Event Store 的行为验收迁移为 `LedgerService`/`AccountService` 加内存 Drift harness 的外部可观察测试，并将直接 EventStore 测试限缩为结构性适配器测试，以满足 Spec Testing Strategy，路径为 `test/unit/features/ledger/domain/services/event_store_contract_test.dart`、`test/support/event_sourcing/ledger_service_harness.dart`
+- [ ] T003 提交工作区并确认基线：`flutter analyze` 零问题、`flutter test` 全绿（记录实际项数作为本 spec 的增量基线），路径为仓库根
+- [ ] T004 建立本 feature 的规格目录并将 `.specify/feature.json` 指向它，路径为 `specs/004-p0-core-finance-loop/`、`.specify/feature.json`
+
+**Checkpoint**: 工作区干净、基线数字已知，可以开始改动。
+
+---
+
+## Phase 2: Foundational（封闭集合与编解码的单一来源）
+
+**Purpose**: 两个横切缺口在多个故事里被暴露，先修以免每个故事各修一遍。
+
+**⚠️ CRITICAL**: `LedgerErrorCode` 是封闭集合，新增成员意味着四份 ARB 都要补条目（FR-028）。状态编解码必须一处定义、两个方向，只修解码会重新制造它消除的那个错配。
+
+- [ ] T005 [P] 新增 `LedgerErrorCode.scheduledAlreadyPosted`，并在 `ledger_error_localizer.dart` 补 `currencyMismatch`、`sameAccountTransfer`、`scheduledAlreadyPosted` 三个 case，路径为 `lib/core/domain/result/result.dart`、`lib/shared/presentation/ledger_error_localizer.dart`
+- [ ] T006 [P] 为上述三个错误码补齐四份 ARB 文案并重新生成，路径为 `lib/app/l10n/app_en.arb`、`app_zh.arb`、`app_zh_Hans.arb`、`app_zh_Hant.arb`
+- [ ] T007 [P] 编写封闭集合守护单测：遍历**全部** `LedgerErrorCode` 成员，断言每一个都映射到不等于 `errorPrefix(code.name)` 的文案——这正是让 `currencyMismatch`/`sameAccountTransfer` 漏网的回归，路径为 `test/unit/shared/presentation/ledger_error_localizer_test.dart`
+- [ ] T008 [P] 在 `ScheduledTransactionStatus` 旁定义 `toStorage()` 与 `decodeScheduledStatus(raw)`（含 `orElse: () => scheduled`），并替换全部 5 处（3 处解码 + 2 处写入），以满足 FR-013，路径为 `lib/features/ledger/domain/entities/ledger_entities.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`
+- [ ] T009 [P] 编写状态编解码单测：四个值往返；未知字符串降级为 `scheduled` 且不抛，路径为 `test/unit/features/ledger/domain/entities/scheduled_status_test.dart`
+
+**Checkpoint**: 错误码集合完备且被测试守护；周期状态只有一个真相来源。
+
+---
+
+## Phase 3: User Story 1 - 转账产品闭环（P1） 🎯 MVP
+
+**Goal**: 转账可创建、查看、编辑、删除；编辑走「冲销 + 重记」成对事件；更正的合法路径由**原交易的 kind** 决定。
+
+**Independent Test**: 新建转账 → 列表出现中性色、无符号的行 → 两个账户余额一增一减 → 编辑金额与账户 → 余额等于「一开始就按新值记」→ 删除可用。
+
+### Implementation
+
+- [ ] T010 [US1] 抽取 `_loadCorrectable` 与 `_appendCorrection`，把 `execute` 的 `type == transfer` 死守卫替换为**按原交易 kind** 判定，并新增 `executeTransfer`（约 28 行，append 逻辑零重复），以满足 FR-003/FR-004，路径为 `lib/features/ledger/domain/commands/correct_transaction_command.dart`
+- [ ] T011 [US1] 编写转账更正测试（经 `LedgerServiceHarness`）：原行 `isReversed`、新 `TransactionRecorded` 带两条 posting、`accounts_view` 余额与「直接新记一笔」完全相等（SC-002 的重复计数守卫）、两事件共用同一 `commandId`、transfer 原交易按 income 更正被拒、income 原交易按 transfer 更正被拒，路径为 `test/unit/features/ledger/domain/services/transfer_correction_test.dart`
+- [ ] T012 [US1] 新增 `LedgerService.updateTransfer`（`guard` 包 `executeTransfer`），`addTransfer` 原样复用，路径为 `lib/features/ledger/domain/services/ledger_service.dart`
+- [ ] T013 [US1] 在 `LedgerViewModel` 新增 `addTransfer`/`updateTransfer`（各自铸 `Uuid().v4()`），并补视图模型单测，路径为 `lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`test/unit/features/ledger/presentation/ledger_view_model_transfer_test.dart`
+- [ ] T014 [US1] 新建 `TransferFormScreen`：金额、日期时间、从账户、到账户、备注；复用 `LedgerAmountInput`/`LedgerSelectionSheet`/`AppButton`；文件内私有 `_AccountRow` 用两次；「到」的候选按「从」账户币种与未归档过滤，使跨币种与同账户组合不可达（FR-001/FR-002），路径为 `lib/features/ledger/presentation/screens/transfer_form_screen.dart`
+- [ ] T015 [US1] 新增 `/ledger/transfer` 路由，让 `/ledger/edit` 的 builder 按 `extra.type` 分流到转账或收支表单，并在账本页 `SliverAppBar` 加搜索与转账两个 action（FAB 保持直达 `/ledger/add`），路径为 `lib/app/router/app_router.dart`、`lib/features/ledger/presentation/screens/ledger_screen.dart`
+- [ ] T016 [US1] 编写转账表单组件测试：新建/编辑两种渲染、两个选择器都排除归档账户、保存调用 `addTransfer`、`sameAccountTransfer` 失败显示本地化文案，路径为 `test/ui/features/ledger/transfer_form_screen_test.dart`
+- [ ] T017 [US1] 修正转账展示：`transaction_detail_sheet` 的配色扩为三路（transfer → `onSurface`）、符号改用 `displaySign`；`ledger_amount_input` 的 `typeColor` 同样扩为三路，以满足 FR-005，路径为 `lib/features/ledger/presentation/widgets/transaction_detail_sheet.dart`、`lib/features/ledger/presentation/widgets/ledger_amount_input.dart`
+- [ ] T018 [US1] 编写组件测试：转账行与详情页均为中性色、无 `+`/`-` 前缀，路径为 `test/ui/features/ledger/transfer_display_test.dart`
+- [ ] T019 [US1] 补齐四份 ARB 的转账文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [ ] T020 [US1] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+
+**Checkpoint**: 转账在 UI 上完整可用；本地化缺口已闭合。
+
+---
+
+## Phase 4: User Story 4 - 可靠本地备份与恢复（P2）
+
+**Goal**: 账本可一键备份为单个可分享文件，可从中恢复；恢复是替换语义，校验失败不留痕，替换失败可回滚。
+
+**Independent Test**: 备份 → 解开归档确认三个条目 → 改动数据 → 恢复 → 确认框显示事件条数对比 → 暂存后重启 → 数据回到备份时刻。
+
+**为什么排在 US2/US3 之前**: 与其它三个故事完全正交，且是审计里唯一的 High。趁代码树还小时落地安全网，比维持任务顺序的美观更值钱。
+
+### Implementation
+
+- [ ] T021 [US4] 新增依赖 `share_plus`、`cross_file`、`archive`、`file_selector`（`cross_file` 需显式声明，因为要直接 import 其 `XFile`），路径为 `pubspec.yaml`
+- [ ] T022 [P] [US4] 为 `PreferencesRepository` 增加 `exportAll()`/`importAll(Map)`，**只针对已知的四个 key**（不用 `getKeys()`），并补单测，路径为 `lib/core/domain/repositories/preferences_repository.dart`、`lib/core/data/repositories/preferences_repository.dart`、`test/unit/core/data/repositories/preferences_repository_backup_test.dart`
+- [ ] T023 [P] [US4] 新建 `BackupManifest`（`@JsonSerializable`），`fromJson` 拒绝错误 `format` 与未知 `formatVersion`，并补单测（往返、两类拒绝、缺键拒绝），路径为 `lib/features/settings/domain/models/backup_manifest.dart`、`test/unit/features/settings/domain/backup_manifest_test.dart`
+- [ ] T024 [US4] 实现 `BackupService.createBackup`：`VACUUM INTO`（不在事务内、目标不存在、路径在 UI isolate 算好传入）产出干净快照，连同 `preferences.json` 与 manifest 打成一个 zip 后分享，以满足 FR-021/FR-022，路径为 `lib/features/settings/domain/services/backup_service.dart`
+- [ ] T025 [P] [US4] 新建 `applyPendingRestore(Directory supportDir)`（纯 `dart:io`）：无 PENDING 则空操作；改名旧库 → **删除陈旧的 `-wal`/`-shm`/`-journal`** → 改名新库 → 删 `restore/`；任一步失败回滚并保持原账本完好，以满足 FR-025/FR-026，路径为 `lib/app/bootstrap/pending_restore.dart`
+- [ ] T026 [US4] 编写 `applyPendingRestore` 单测（临时目录）：无 PENDING 无操作；顺路径后 `db.sqlite` 被替换且三个副档消失、PENDING 已清；改名失败时原库完好，路径为 `test/unit/app/bootstrap/pending_restore_test.dart`
+- [ ] T027 [US4] 实现 `BackupService.stageRestore`：解压 → 校验 manifest → 用一次性 `NativeDatabase` 打开暂存库跑 `PRAGMA integrity_check` 并读 `schemaVersion` → 异版本或损坏则拒绝且**不写** PENDING，以满足 FR-023，路径为 `lib/features/settings/domain/services/backup_service.dart`
+- [ ] T028 [US4] 编写 `createBackup`/`stageRestore` 单测：归档恰好 3 个条目、manifest 计数与库一致、解出的库通过 `integrity_check`；异版本/损坏 zip 与截断库均失败且不写 PENDING，路径为 `test/unit/features/settings/data/backup_service_test.dart`
+- [ ] T029 [US4] 在 `main.dart` 接线：`applyPendingRestore` **必须早于**任何 `appDatabaseProvider` 读取；容器与 seed 完成后再应用恢复出的偏好（两处都留醒目注释说明顺序的承重性），以满足 FR-025，路径为 `lib/main.dart`
+- [ ] T030 [US4] 在设置页新增「数据」区两个入口（立即备份 / 从备份恢复），含恢复确认框（**必须明示将丢弃的事件条数**）与暂存后的「关闭并重开」提示；补齐四份 ARB，以满足 FR-024/FR-028，路径为 `lib/features/settings/presentation/screens/settings_screen.dart`、`lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [ ] T031 [US4] 编写设置页组件测试：两个入口存在、恢复确认框出现、暂存后「关闭并重开」对话框出现，路径为 `test/ui/features/settings/backup_screen_test.dart`
+- [ ] T032 [US4] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+
+**Checkpoint**: 换设备/误删有安全网；恢复的每一步失败都不会损坏现有账本。
+
+---
+
+## Phase 5: User Story 2 - 周期账单闭环（P2）
+
+**Goal**: 周期系列可创建、可停用；到期实例以待办呈现，由用户显式「记入」或「跳过」；启动时幂等补课。
+
+**Independent Test**: 新建「每月 1 号房租」→ 立即出现在系列列表且待办区出现到期实例 → 「记入」→ 账本出现该笔且状态转 posted → 再建一个 → 「跳过」→ 状态 skipped、账本无变化 → 停用 → 不再新增，既有实例仍在。
+
+### Implementation
+
+- [ ] T033 [US2] 新增 `RecurringDao.watchAllSeries()`，并在 `RecurringRepository` 接口与实现上补 `saveSeries`/`watchAllSeries`（`saveSeries` 已存在、零调用方，就此转正），以满足 FR-012，路径为 `lib/core/data/database/daos/recurring_dao.dart`、`lib/features/ledger/domain/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`
+- [ ] T034 [US2] 新增三个命令：`CreateRecurringSeriesCommand`（收具名参数而非 Drift companion，复用 `PostingContextResolver` 跑账户/分类红线，走到 CRUD-exempt 表）、`DeactivateRecurringSeriesCommand`（设 `endDate`、保留既有实例）、`SkipScheduledTransactionCommand`（置 `'skipped'`，不写事件故无 `commandId`），以满足 FR-006/FR-007/FR-012，路径为 `lib/features/ledger/domain/commands/`
+- [ ] T035 [US2] 新增 `RecurringService` 门面（`createSeries` → `materialize()`、`deactivateSeries`、`postInstance`、`skipInstance`、`materialize`、`watchSeries`、`watchScheduled`），把 `convertScheduledToPosted` 与 `watchScheduledTransactions` 从 `LedgerService` 迁入，并把它加进测试 harness，路径为 `lib/features/ledger/domain/services/recurring_service.dart`、`lib/features/ledger/domain/services/ledger_service.dart`、`test/support/event_sourcing/ledger_service_harness.dart`
+- [ ] T036 [US2] 编写周期服务测试（经 harness）：创建后列值正确**且**实例已物化；停用后 `endDate` 已设、既有实例保留、不再新增；跳过置 `'skipped'`；跳过已 posted 得 `scheduledAlreadyPosted`；`postInstance` 产生一条事件且状态在同一次 append 内翻为 `'posted'`；**连续两次 `materialize()` 结果集完全相同**（SC-004），路径为 `test/unit/features/ledger/domain/services/recurring_series_test.dart`
+- [ ] T037 [US2] 在 `main.dart` 重建门禁之后加入启动补课：`try { await recurringService.materialize(); } catch (e) { debugPrint(...); }`，以满足 FR-008/FR-009，路径为 `lib/main.dart`
+- [ ] T038 [US2] 新增 `RecurringViewModel`（形态照 `LedgerViewModel`：两条订阅进 `AsyncValue`、`onDispose` 退订、`onError` 收进 `AsyncError`），并补待办筛选单测（含逾期 `scheduled`，排除 `posted`/`skipped`/未来），路径为 `lib/features/ledger/presentation/view_model/recurring_view_model.dart`、`test/unit/features/ledger/presentation/recurring_view_model_test.dart`
+- [ ] T039 [US2] 新建周期列表屏（上半「待办」含记入/跳过与确认框，下半「系列」含停用）与系列创建表单 sheet，形状照 `account_management_screen.dart` 与 `account_form_sheet.dart`；不做 `countLimit`，路径为 `lib/features/ledger/presentation/screens/recurring_list_screen.dart`、`lib/features/ledger/presentation/widgets/recurring_series_form_sheet.dart`
+- [ ] T040 [US2] 注册周期路由（照 `accounts`/`categories` 的双注册方式）并在 more 页加入口；**删除** `LedgerViewState.scheduledTransactions` 与 `LedgerViewModel._subscribeScheduledTransactions`（零读者且异常无人观察）以及 `LedgerService` 上迁移后的转发，路径为 `lib/app/router/app_router.dart`、`lib/features/settings/presentation/screens/more_screen.dart`、`lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`lib/features/ledger/presentation/view_model/ledger_view_state.dart`
+- [ ] T041 [US2] 补齐四份 ARB 的周期文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [ ] T042 [US2] 编写周期屏组件测试：空态、创建、停用确认、记入确认、跳过，路径为 `test/ui/features/ledger/recurring_list_screen_test.dart`
+- [ ] T043 [US2] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+
+**Checkpoint**: 租房/订阅/工资这类固定账单不再需要手记，且余额只在用户确认时变动。
+
+---
+
+## Phase 6: User Story 3 - 检索、基础筛选与 CSV 导出（P3）
+
+**Goal**: 交易可按关键词 + 类型 + 账户 + 分类 + 日期范围检索，结果可导出为 CSV。
+
+**Independent Test**: 搜索图标 → 输入关键词 → 结果按天分组 → 筛「转账 + 某账户」→ 该账户参与的两条腿的转账都出现且只出现一次 → 导出 → 文件能打开、中文不乱码、逗号被正确转义。
+
+### Implementation
+
+- [ ] T044 [P] [US3] 新建 `TransactionFilter` 值对象（六字段、手写 `==`/`hashCode`、`static const empty`、`isEmpty`；不做 `copyWith`、不做金额区间、不做 `limit`），并补相等性单测，以满足 FR-014，路径为 `lib/features/ledger/domain/value_objects/transaction_filter.dart`、`test/unit/features/ledger/domain/value_objects/transaction_filter_test.dart`
+- [ ] T045 [US3] 新增 `TransactionsDao.watchTransactionsFiltered`（收基本类型不收 VO；**`isReversed` 过滤写进 SQL**；账户/分类筛 posting 表以让既有分组逻辑合并转账双腿；日期两端含端点；关键词匹配描述/分类快照/账户名并转义 `%` 与 `_`；不加索引），以满足 FR-014–FR-018/FR-020，路径为 `lib/core/data/database/daos/transaction_dao.dart`
+- [ ] T046 [US3] 编写 DAO 筛选单测：冲销行被排除、关键词三处命中、类型筛选、日期两端含端点、**账户筛选以一条腿取回完整转账**、分类筛选、组合条件按 AND，路径为 `test/unit/core/database/daos/transaction_dao_filter_test.dart`
+- [ ] T047 [US3] 在 `LedgerRepository` 接口与实现上新增 `watchTransactionsFiltered`，**复用既有的私有 `_toTransactionEntities`**（不写第二个装配器），并补单测断言被筛选的转账合并为一行且 `toAccount` 已设，以满足 FR-017，路径为 `lib/features/ledger/domain/repositories/ledger_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`、`test/unit/features/ledger/data/ledger_repository_filter_test.dart`
+- [ ] T048 [US3] 新建 `SearchTransactionsQuery` + provider（不做 Dart 侧 `isReversed` 过滤），路径为 `lib/features/ledger/domain/queries/search_transactions_query.dart`
+- [ ] T049 [P] [US3] 新建 `transactionsToCsv` 纯函数（`formatMinor` 直接复用；ISO 日期；枚举 name 作 kind；收支带符号、转账不带；RFC 4180 转义；前置 UTF-8 BOM），并补单测，以满足 FR-019，路径为 `lib/features/ledger/domain/export/transaction_csv.dart`、`test/unit/features/ledger/domain/export/transaction_csv_test.dart`
+- [ ] T050 [US3] 新增 `share_plus` 与 `cross_file` 依赖，并实现 `TransactionExportService`（生成字符串 → 写临时文件 → 交给 `share_plus`；不为 share 抽接口），路径为 `pubspec.yaml`、`lib/features/ledger/domain/services/transaction_export_service.dart`
+- [ ] T051 [US3] 新建 `SearchViewModel` + `searchResults` provider（不用 family、不用 `keepAlive`、不做 debounce；日分组复用既有顶层 `groupTransactionsByDay`），并补状态流转单测，路径为 `lib/features/ledger/presentation/view_model/search_view_model.dart`、`test/unit/features/ledger/presentation/search_view_model_test.dart`
+- [ ] T052 [P] [US3] 为 `AppTextField` 增加可选 `onChanged` 与 `controller`（宪章 III 允许以命名 DS 变体扩展；不绕过 DS 直接用裸 `TextField`），路径为 `lib/app/design_system/app_text_field.dart`
+- [ ] T053 [US3] 新建搜索屏与筛选表单（类型 chips + 账户/分类选择器 + 日期范围；复用 `LedgerTimeline`/`TransactionTile`/`LedgerEmpty`/`LedgerSkeleton`），注册 `/ledger/search` 路由并在账本页加入口；导出按钮在无结果时禁用（SC 见 FR-019 的「导出所见即所得」），路径为 `lib/features/ledger/presentation/screens/search_screen.dart`、`lib/features/ledger/presentation/widgets/transaction_filter_sheet.dart`、`lib/app/router/app_router.dart`
+- [ ] T054 [US3] 编写搜索屏组件测试：结果渲染、空态、无结果时导出按钮禁用，路径为 `test/ui/features/ledger/search_screen_test.dart`
+- [ ] T055 [US3] 补齐四份 ARB 的检索与导出文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [ ] T056 [US3] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+
+**Checkpoint**: 历史数据找得到、带得走。
+
+---
+
+## Phase 7: Convergence（收敛与验收）
+
+**Purpose**: 全量门禁与架构断言复核。**SC-010 是本 spec 全部技术前提的验收点**——一旦它失败，说明动了事件 payload 或表结构，本 plan 的零写模型变更承诺即不成立。
+
+- [ ] T057 运行代码生成、`flutter gen-l10n`、`flutter analyze` 与完整 `flutter test`，修复所有新增失败并记录实际项数，路径为仓库根
+- [ ] T058 复核 SC-010：`git diff lib/features/ledger/domain/events/ledger_events.dart lib/core/data/database/tables.dart` **必须为空**；并确认 `AppDatabase.schemaVersion` 仍为 1、`MigrationStrategy.onUpgrade` 未被改动，路径为 `lib/features/ledger/domain/events/ledger_events.dart`、`lib/core/data/database/tables.dart`、`lib/core/data/database/app_database.dart`
+- [ ] T059 按 `spec.md` 的验收场景手工验收四个故事（转账闭环、周期闭环、检索与导出、备份与恢复的完整往返），并把结果记入本文件，路径为 `specs/004-p0-core-finance-loop/tasks.md`
+- [ ] T060 将本 spec 落地后 AGENTS.md 中已不成立的现状描述更新（转账 UI 缺失、周期链路「未完成」、无检索/导出/备份三处），路径为 `AGENTS.md`
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Phase 1（Setup）** 阻塞一切。T077/T080 未收口则 ARB 冲突，T003 未完成则没有可靠基线。
+- **Phase 2（Foundational）** 阻塞 US1 与 US2：错误码与编解码是两者的共用前置。T005–T009 彼此独立，可并行。
+- **Phase 3（US1）** 依赖 Phase 2 的 T005/T006/T007。
+- **Phase 4（US4）** 与 Phase 3 完全正交，但共用 `pubspec.yaml` 与 `main.dart`（后者在 US2 才用到）。T025/T026 独立于 T021–T024，可并行启动。
+- **Phase 5（US2）** 依赖 Phase 2 的 T008/T009 与 Phase 4 对 `main.dart` 的改动定型。
+- **Phase 6（US3）** 依赖 Phase 3 的 T015（账本页 app bar 的搜索 action 与转账 action 同处一个 `actions` 列表）。
+- **Phase 7** 阻塞于全部。
+
+### 关键约束
+
+- **T010 的测试 T011 是承重的**：它断言单次 append 与余额等价性（SC-002）。`_appendCorrection` 的抽取正是重构可能把「冲销 + 重记」悄悄拆成两次 append 的地方，那会让账目翻倍。
+- **T036 的幂等断言是承重的**：`'${seriesId}_${date.millisecondsSinceEpoch}'` 是周期幂等性的**唯一**保证；`series.id` 或日期归一化一变，每个实例都会重复。
+- **T029 的顺序无自动化守卫**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取。这是全 spec 唯一无自动化测试的接线点，两处注释必须写明。
+- **T040 与 T035 必须同时落地或 T035 保留转发**：`watchScheduledTransactions` 在 `LedgerViewModel` 的死订阅里还有一个调用方，T040 才删。
+- **T045 不得为筛选加索引**：`LIKE '%x%'` 用不上，且加索引就是 schema 变更，会破坏 SC-010。
+
+### 并行机会
+
+- T005–T009（Phase 2）：五个独立文件。
+- T022/T023/T025（Phase 4）：偏好导出、manifest、文件舞蹈三者互不依赖。
+- T044/T049/T052（Phase 6）：值对象、CSV 纯函数、DS 扩展三者互不依赖。
