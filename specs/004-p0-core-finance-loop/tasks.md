@@ -16,10 +16,17 @@
 
 - [ ] T001 收口 `specs/003-event-sourced-ledger/tasks.md` 的 T077：将 ledger、reports 与 settings presentation 组件改为 ThemeExtension token 与统一 DS wrappers，移除直接 palette/typography/spacing/radius 原语，以满足 Constitution III，路径为 `lib/features/ledger/presentation/`、`lib/features/reports/presentation/`、`lib/features/settings/presentation/`、`lib/app/design_system/`
 - [ ] T002 收口 `specs/003-event-sourced-ledger/tasks.md` 的 T080：将 Event Store 的行为验收迁移为 `LedgerService`/`AccountService` 加内存 Drift harness 的外部可观察测试，并将直接 EventStore 测试限缩为结构性适配器测试，以满足 Spec Testing Strategy，路径为 `test/unit/features/ledger/domain/services/event_store_contract_test.dart`、`test/support/event_sourcing/ledger_service_harness.dart`
-- [ ] T003 提交工作区并确认基线：`flutter analyze` 零问题、`flutter test` 全绿（记录实际项数作为本 spec 的增量基线），路径为仓库根
-- [ ] T004 建立本 feature 的规格目录并将 `.specify/feature.json` 指向它，路径为 `specs/004-p0-core-finance-loop/`、`.specify/feature.json`
+- [X] T003 提交工作区并确认基线：`flutter analyze` 零问题、`flutter test` 全绿（记录实际项数作为本 spec 的增量基线），路径为仓库根
 
-**Checkpoint**: 工作区干净、基线数字已知，可以开始改动。
+  > **执行记录（2026-09-21）**：T077 实际剩余量远大于 plan 的估计——18 个文件、52 处 palette/typography/spacing/radius 原语仍待迁移。经确认改为**把在途工作原样提交为 WIP 快照**（提交 `d9f9115`），T077/T080 在 `specs/003-event-sourced-ledger/tasks.md` 中**保持未勾选**。这样做的理由：plan 要求「先提交」的真实动机是让四个 ARB 文件有稳定基线以免 P0 的 ARB 编辑冲突，而提交 WIP 已经满足该动机，不必先完成一个与 P0 无关的大迁移。
+  > 基线：**`flutter test` 196 项通过，`flutter analyze` 零问题。** 分支 `004-p0-core-finance-loop`。
+  > T001/T002 因此**未完成**，保持未勾选。
+
+- [X] T004 建立本 feature 的规格目录并将 `.specify/feature.json` 指向它，路径为 `specs/004-p0-core-finance-loop/`、`.specify/feature.json`
+
+  > 注：`.specify/feature.json` 被 `.specify/.gitignore` 忽略，该改动只存在于本地工作副本。
+
+**Checkpoint**: 工作区干净、基线数字已知，可以开始改动。✅ 196 项基线。
 
 ---
 
@@ -29,13 +36,18 @@
 
 **⚠️ CRITICAL**: `LedgerErrorCode` 是封闭集合，新增成员意味着四份 ARB 都要补条目（FR-028）。状态编解码必须一处定义、两个方向，只修解码会重新制造它消除的那个错配。
 
-- [ ] T005 [P] 新增 `LedgerErrorCode.scheduledAlreadyPosted`，并在 `ledger_error_localizer.dart` 补 `currencyMismatch`、`sameAccountTransfer`、`scheduledAlreadyPosted` 三个 case，路径为 `lib/core/domain/result/result.dart`、`lib/shared/presentation/ledger_error_localizer.dart`
-- [ ] T006 [P] 为上述三个错误码补齐四份 ARB 文案并重新生成，路径为 `lib/app/l10n/app_en.arb`、`app_zh.arb`、`app_zh_Hans.arb`、`app_zh_Hant.arb`
-- [ ] T007 [P] 编写封闭集合守护单测：遍历**全部** `LedgerErrorCode` 成员，断言每一个都映射到不等于 `errorPrefix(code.name)` 的文案——这正是让 `currencyMismatch`/`sameAccountTransfer` 漏网的回归，路径为 `test/unit/shared/presentation/ledger_error_localizer_test.dart`
-- [ ] T008 [P] 在 `ScheduledTransactionStatus` 旁定义 `toStorage()` 与 `decodeScheduledStatus(raw)`（含 `orElse: () => scheduled`），并替换全部 5 处（3 处解码 + 2 处写入），以满足 FR-013，路径为 `lib/features/ledger/domain/entities/ledger_entities.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`
-- [ ] T009 [P] 编写状态编解码单测：四个值往返；未知字符串降级为 `scheduled` 且不抛，路径为 `test/unit/features/ledger/domain/entities/scheduled_status_test.dart`
+- [X] T005 [P] 新增 `LedgerErrorCode.scheduledAlreadyPosted`，并在 `ledger_error_localizer.dart` 补 `currencyMismatch`、`sameAccountTransfer`、`scheduledAlreadyPosted` 三个 case，路径为 `lib/core/domain/result/result.dart`、`lib/shared/presentation/ledger_error_localizer.dart`
+- [X] T006 [P] 为上述三个错误码补齐四份 ARB 文案并重新生成，路径为 `lib/app/l10n/app_en.arb`、`app_zh.arb`、`app_zh_Hans.arb`、`app_zh_Hant.arb`
+- [X] T007 [P] 编写封闭集合守护单测：遍历**全部** `LedgerErrorCode` 成员，断言每一个都映射到不等于 `errorPrefix(code.name)` 的文案——这正是让 `currencyMismatch`/`sameAccountTransfer` 漏网的回归，路径为 `test/unit/shared/presentation/ledger_error_localizer_test.dart`
+- [X] T008 [P] 在 `ScheduledTransactionStatus` 旁定义 `toStorage()` 与 `decodeScheduledStatus(raw)`（含 `orElse: () => scheduled`），并替换全部 5 处（3 处解码 + 2 处写入），以满足 FR-013，路径为 `lib/features/ledger/domain/entities/ledger_entities.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`
+- [X] T009 [P] 编写状态编解码单测：四个值往返；未知字符串降级为 `scheduled` 且不抛，路径为 `test/unit/features/ledger/domain/entities/scheduled_status_test.dart`
 
-**Checkpoint**: 错误码集合完备且被测试守护；周期状态只有一个真相来源。
+**Checkpoint**: 错误码集合完备且被测试守护；周期状态只有一个真相来源。✅
+
+> **执行记录（2026-09-21，201 项测试通过，analyze 零问题）**：
+> - **T007 的守护单测当场抓到一个 plan 没发现的既有缺陷**：`unknownEvent` 同样回落到 `errorPrefix`。而 `guard()` 把**每一个**未预期异常都归到 `unknownEvent`，也就是说任何意外错误都会把字面量 `Error: unknownEvent` 显示给用户。已一并补上 `errorUnknownEvent`（四份 ARB + localizer + fake）。实际修复的是**四个**码，不是三个。
+> - 补完之后 switch 变为穷尽，`_ =>` 分支不再可达（`unreachable_switch_case`）。**已删除该分支**：此后新增 `LedgerErrorCode` 成员而未加文案是**编译错误**，比运行时测试更强。T007 的测试保留，用于守住「不得重新引入回落分支」与「文案非空」。
+> - **T008 的实际改动点是 7 处，不是 5 处**：4 处解码（`ledger_repository.dart:132`/`:171`、`recurring_repository.dart`、`get_scheduled_transaction_query.dart`）+ 3 处写入（`ledger_repository.dart`、`project_recurring_events_command.dart`、`convert_scheduled_to_posted_command.dart` 的 `const Value('posted')` 字面量）。其中 `recurring_repository.dart` 与 `get_scheduled_transaction_query.dart` 两处原本**没有 `orElse`**，遇到未知 status 会直接抛。
 
 ---
 

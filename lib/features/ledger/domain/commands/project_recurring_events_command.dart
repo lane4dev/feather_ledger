@@ -45,10 +45,7 @@ class ProjectRecurringEventsCommand {
               seriesId: Value(series.id),
               date: Value(date.toLocal()),
               amountMinor: Value(series.amountMinor),
-              status: Value(ScheduledTransactionStatus.scheduled
-                  .toString()
-                  .split('.')
-                  .last),
+              status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
               transactionId: const Value(null),
             ),
           );

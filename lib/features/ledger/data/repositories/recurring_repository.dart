@@ -43,8 +43,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
               seriesId: row.seriesId,
               date: row.date,
               amountMinor: row.amountMinor,
-              status: ScheduledTransactionStatus.values.firstWhere(
-                  (e) => e.toString().split('.').last == row.status),
+              status: decodeScheduledStatus(row.status),
               transactionId: row.transactionId,
               recurringTransactionSeries: RecurringTransactionSeriesEntity(
                 id: seriesRow.id,

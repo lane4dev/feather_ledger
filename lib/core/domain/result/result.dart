@@ -7,7 +7,9 @@ library;
 
 /// Machine-readable failure codes, mapped to localized strings at the
 /// presentation edge. Keep the set closed: adding a code means adding its
-/// `.arb` entries in all three locales.
+/// `.arb` entries in all four locales (en, zh, zh_Hans, zh_Hant) — a code
+/// without one falls back to `errorPrefix(name)` and shows the raw enum
+/// name to the user.
 enum LedgerErrorCode {
   accountNotFound,
   accountArchived,
@@ -21,6 +23,7 @@ enum LedgerErrorCode {
   invalidTransactionShape,
   transactionNotFound,
   transactionAlreadyReversed,
+  scheduledAlreadyPosted,
   systemCategoryProtected,
   unknownEvent,
 }

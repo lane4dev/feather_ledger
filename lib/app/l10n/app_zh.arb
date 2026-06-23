@@ -413,6 +413,22 @@
   "@errorTransactionAlreadyReversed": {
     "description": "Localized ledger error code message (US6)"
   },
+  "errorCurrencyMismatch": "两个账户必须使用同一种货币",
+  "@errorCurrencyMismatch": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorSameAccountTransfer": "请选择两个不同的账户",
+  "@errorSameAccountTransfer": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorScheduledAlreadyPosted": "该周期交易已入账",
+  "@errorScheduledAlreadyPosted": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorUnknownEvent": "出了点问题，请重试。",
+  "@errorUnknownEvent": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
   "auditHistory": "审计历史",
   "@auditHistory": {
     "description": "Transaction detail section showing the event chain (US6)"

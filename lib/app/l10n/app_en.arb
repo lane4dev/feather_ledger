@@ -417,6 +417,22 @@
   "@errorTransactionAlreadyReversed": {
     "description": "Localized ledger error code message (US6)"
   },
+  "errorCurrencyMismatch": "Both accounts must use the same currency",
+  "@errorCurrencyMismatch": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorSameAccountTransfer": "Choose two different accounts",
+  "@errorSameAccountTransfer": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorScheduledAlreadyPosted": "This scheduled transaction was already posted",
+  "@errorScheduledAlreadyPosted": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
+  "errorUnknownEvent": "Something went wrong. Please try again.",
+  "@errorUnknownEvent": {
+    "description": "Localized ledger error code message (spec 004)"
+  },
   "auditHistory": "Audit history",
   "@auditHistory": {
     "description": "Transaction detail section showing the event chain (US6)"

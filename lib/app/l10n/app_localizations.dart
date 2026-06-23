@@ -772,6 +772,30 @@ abstract class AppLocalizations {
   /// **'Transaction was already reversed'**
   String get errorTransactionAlreadyReversed;
 
+  /// Localized ledger error code message (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'Both accounts must use the same currency'**
+  String get errorCurrencyMismatch;
+
+  /// Localized ledger error code message (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'Choose two different accounts'**
+  String get errorSameAccountTransfer;
+
+  /// Localized ledger error code message (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'This scheduled transaction was already posted'**
+  String get errorScheduledAlreadyPosted;
+
+  /// Localized ledger error code message (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errorUnknownEvent;
+
   /// Transaction detail section showing the event chain (US6)
   ///
   /// In en, this message translates to:

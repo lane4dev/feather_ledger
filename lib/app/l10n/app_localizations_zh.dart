@@ -347,6 +347,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorTransactionAlreadyReversed => '交易已被冲正';
 
   @override
+  String get errorCurrencyMismatch => '两个账户必须使用同一种货币';
+
+  @override
+  String get errorSameAccountTransfer => '请选择两个不同的账户';
+
+  @override
+  String get errorScheduledAlreadyPosted => '该周期交易已入账';
+
+  @override
+  String get errorUnknownEvent => '出了点问题，请重试。';
+
+  @override
   String get auditHistory => '审计历史';
 
   @override
@@ -732,6 +744,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errorTransactionAlreadyReversed => '交易已被冲正';
 
   @override
+  String get errorCurrencyMismatch => '两个账户必须使用同一种货币';
+
+  @override
+  String get errorSameAccountTransfer => '请选择两个不同的账户';
+
+  @override
+  String get errorScheduledAlreadyPosted => '该周期交易已入账';
+
+  @override
+  String get errorUnknownEvent => '出了点问题，请重试。';
+
+  @override
   String get auditHistory => '审计历史';
 
   @override
@@ -1115,6 +1139,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get errorTransactionAlreadyReversed => '交易已被沖正';
+
+  @override
+  String get errorCurrencyMismatch => '兩個帳戶必須使用同一種貨幣';
+
+  @override
+  String get errorSameAccountTransfer => '請選擇兩個不同的帳戶';
+
+  @override
+  String get errorScheduledAlreadyPosted => '該週期交易已入帳';
+
+  @override
+  String get errorUnknownEvent => '出了點問題，請重試。';
 
   @override
   String get auditHistory => '審計歷史';

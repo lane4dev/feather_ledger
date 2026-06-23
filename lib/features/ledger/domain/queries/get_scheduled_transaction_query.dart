@@ -25,8 +25,7 @@ class GetScheduledTransactionQuery {
       seriesId: scheduledRow.seriesId,
       date: scheduledRow.date,
       amountMinor: scheduledRow.amountMinor,
-      status: ScheduledTransactionStatus.values.firstWhere(
-          (e) => e.toString().split('.').last == scheduledRow.status),
+      status: decodeScheduledStatus(scheduledRow.status),
       transactionId: scheduledRow.transactionId,
       recurringTransactionSeries: RecurringTransactionSeriesEntity(
         id: seriesRow.id,

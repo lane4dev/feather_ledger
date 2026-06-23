@@ -129,10 +129,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
             amountMinor: row.amountMinor,
             date: row.date,
             seriesId: row.seriesId,
-            status: ScheduledTransactionStatus.values.firstWhere(
-              (e) => e.toString().split('.').last == row.status,
-              orElse: () => ScheduledTransactionStatus.scheduled,
-            ),
+            status: decodeScheduledStatus(row.status),
             transactionId: row.transactionId,
             recurringTransactionSeries: RecurringTransactionSeriesEntity(
               id: seriesRow.id,
@@ -168,10 +165,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       amountMinor: scheduledRow.amountMinor,
       date: scheduledRow.date,
       seriesId: scheduledRow.seriesId,
-      status: ScheduledTransactionStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == scheduledRow.status,
-        orElse: () => ScheduledTransactionStatus.scheduled,
-      ),
+      status: decodeScheduledStatus(scheduledRow.status),
       transactionId: scheduledRow.transactionId,
       recurringTransactionSeries: RecurringTransactionSeriesEntity(
         id: seriesRow.id,
@@ -239,7 +233,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         amountMinor: Value(scheduled.amountMinor),
         date: Value(scheduled.date),
         seriesId: Value(scheduled.seriesId),
-        status: Value(scheduled.status.toString().split('.').last),
+        status: Value(scheduled.status.toStorage()),
         transactionId: Value(scheduled.transactionId),
       ),
     );

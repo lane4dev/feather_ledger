@@ -10,6 +10,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_projector.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
@@ -115,7 +116,7 @@ class ConvertScheduledToPostedCommand {
             seriesId: Value(scheduled.seriesId),
             date: Value(scheduled.date),
             amountMinor: Value(scheduled.amountMinor),
-            status: const Value('posted'),
+            status: Value(ScheduledTransactionStatus.posted.toStorage()),
             transactionId: Value(transaction.transactionId),
           ),
         );

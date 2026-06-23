@@ -357,6 +357,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Transaction was already reversed';
 
   @override
+  String get errorCurrencyMismatch =>
+      'Both accounts must use the same currency';
+
+  @override
+  String get errorSameAccountTransfer => 'Choose two different accounts';
+
+  @override
+  String get errorScheduledAlreadyPosted =>
+      'This scheduled transaction was already posted';
+
+  @override
+  String get errorUnknownEvent => 'Something went wrong. Please try again.';
+
+  @override
   String get auditHistory => 'Audit history';
 
   @override
