@@ -409,6 +409,14 @@
   "@transferTo": {
     "description": "Transfer display label (US5)"
   },
+  "addTransfer": "New Transfer",
+  "@addTransfer": {
+    "description": "Transfer form title when creating (spec 004)"
+  },
+  "editTransfer": "Edit Transfer",
+  "@editTransfer": {
+    "description": "Transfer form title when correcting (spec 004)"
+  },
   "errorTransactionNotFound": "Transaction not found",
   "@errorTransactionNotFound": {
     "description": "Localized ledger error code message (US6)"

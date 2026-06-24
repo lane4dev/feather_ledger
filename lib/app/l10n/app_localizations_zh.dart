@@ -341,6 +341,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transferTo => '转入账户';
 
   @override
+  String get addTransfer => '新建转账';
+
+  @override
+  String get editTransfer => '编辑转账';
+
+  @override
   String get errorTransactionNotFound => '交易不存在';
 
   @override
@@ -738,6 +744,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get transferTo => '转入账户';
 
   @override
+  String get addTransfer => '新建转账';
+
+  @override
+  String get editTransfer => '编辑转账';
+
+  @override
   String get errorTransactionNotFound => '交易不存在';
 
   @override
@@ -1133,6 +1145,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get transferTo => '轉入帳戶';
+
+  @override
+  String get addTransfer => '新增轉帳';
+
+  @override
+  String get editTransfer => '編輯轉帳';
 
   @override
   String get errorTransactionNotFound => '交易不存在';

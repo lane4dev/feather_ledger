@@ -126,6 +126,12 @@ class FakeAppLocalizations implements AppLocalizations {
   String get transferTo => 'To';
 
   @override
+  String get addTransfer => 'New Transfer';
+
+  @override
+  String get editTransfer => 'Edit Transfer';
+
+  @override
   String get errorTransactionNotFound => 'Transaction not found';
 
   @override

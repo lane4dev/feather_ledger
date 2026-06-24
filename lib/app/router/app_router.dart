@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/ledger/presentation/screens/transfer_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/more_screen.dart';
@@ -42,12 +44,22 @@ GoRouter goRouter(Ref ref) {
                     builder: (context, state) => const TransactionFormScreen(),
                   ),
                   GoRoute(
+                    path: 'transfer',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const TransferFormScreen(),
+                  ),
+                  // One "edit this thing" route for both shapes: the extra's
+                  // kind picks the form, so callers push '/ledger/edit'
+                  // without having to know which screen they need.
+                  GoRoute(
                     path: 'edit',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
                       final transaction =
                           state.extra as TransactionTileUiModel?;
-                      return TransactionFormScreen(transaction: transaction);
+                      return transaction?.type == TransactionKind.transfer
+                          ? TransferFormScreen(transaction: transaction)
+                          : TransactionFormScreen(transaction: transaction);
                     },
                   ),
                 ],

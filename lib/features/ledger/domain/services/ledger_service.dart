@@ -122,6 +122,33 @@ class LedgerService {
         ));
   }
 
+  /// Corrects a transfer (spec 004, US1): the original is reversed and a
+  /// replacement transfer recorded, paired in one append. Mirrors
+  /// [updateTransaction] but takes the two accounts instead of a category —
+  /// a transfer has no category.
+  ///
+  /// Only a transfer original is accepted here; use [updateTransaction] for
+  /// income/expense. Converting between the two is not an edit.
+  Future<Result<void>> updateTransfer({
+    required String commandId,
+    required String id,
+    required int amountMinor,
+    required String fromAccountId,
+    required String toAccountId,
+    required DateTime date,
+    String? note,
+  }) {
+    return guard(() => _correctTransactionCommand.executeTransfer(
+          commandId: commandId,
+          originalTransactionId: id,
+          amountMinor: amountMinor,
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          date: date,
+          note: note,
+        ));
+  }
+
   Future<Result<void>> deleteTransaction(String id, {required String commandId}) {
     return guard(() =>
         _reverseTransactionCommand.execute(id, commandId: commandId));

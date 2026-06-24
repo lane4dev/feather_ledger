@@ -30,9 +30,14 @@ class LedgerAmountInput extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final typeColor = type == TransactionKind.income
-        ? context.colors.income
-        : context.colors.expense;
+    // A transfer is neither income nor expense, so it takes the neutral
+    // onSurface colour rather than being forced into one of them
+    // (spec 004, FR-005).
+    final typeColor = switch (type) {
+      TransactionKind.income => context.colors.income,
+      TransactionKind.expense => context.colors.expense,
+      TransactionKind.transfer => colorScheme.onSurface,
+    };
 
     return IntrinsicWidth(
       child: TextFormField(

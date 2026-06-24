@@ -405,6 +405,14 @@
   "@transferTo": {
     "description": "Transfer display label (US5)"
   },
+  "addTransfer": "新增轉帳",
+  "@addTransfer": {
+    "description": "Transfer form title when creating (spec 004)"
+  },
+  "editTransfer": "編輯轉帳",
+  "@editTransfer": {
+    "description": "Transfer form title when correcting (spec 004)"
+  },
   "errorTransactionNotFound": "交易不存在",
   "@errorTransactionNotFound": {
     "description": "Localized ledger error code message (US6)"

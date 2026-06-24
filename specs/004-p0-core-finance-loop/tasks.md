@@ -59,19 +59,26 @@
 
 ### Implementation
 
-- [ ] T010 [US1] 抽取 `_loadCorrectable` 与 `_appendCorrection`，把 `execute` 的 `type == transfer` 死守卫替换为**按原交易 kind** 判定，并新增 `executeTransfer`（约 28 行，append 逻辑零重复），以满足 FR-003/FR-004，路径为 `lib/features/ledger/domain/commands/correct_transaction_command.dart`
-- [ ] T011 [US1] 编写转账更正测试（经 `LedgerServiceHarness`）：原行 `isReversed`、新 `TransactionRecorded` 带两条 posting、`accounts_view` 余额与「直接新记一笔」完全相等（SC-002 的重复计数守卫）、两事件共用同一 `commandId`、transfer 原交易按 income 更正被拒、income 原交易按 transfer 更正被拒，路径为 `test/unit/features/ledger/domain/services/transfer_correction_test.dart`
-- [ ] T012 [US1] 新增 `LedgerService.updateTransfer`（`guard` 包 `executeTransfer`），`addTransfer` 原样复用，路径为 `lib/features/ledger/domain/services/ledger_service.dart`
-- [ ] T013 [US1] 在 `LedgerViewModel` 新增 `addTransfer`/`updateTransfer`（各自铸 `Uuid().v4()`），并补视图模型单测，路径为 `lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`test/unit/features/ledger/presentation/ledger_view_model_transfer_test.dart`
-- [ ] T014 [US1] 新建 `TransferFormScreen`：金额、日期时间、从账户、到账户、备注；复用 `LedgerAmountInput`/`LedgerSelectionSheet`/`AppButton`；文件内私有 `_AccountRow` 用两次；「到」的候选按「从」账户币种与未归档过滤，使跨币种与同账户组合不可达（FR-001/FR-002），路径为 `lib/features/ledger/presentation/screens/transfer_form_screen.dart`
-- [ ] T015 [US1] 新增 `/ledger/transfer` 路由，让 `/ledger/edit` 的 builder 按 `extra.type` 分流到转账或收支表单，并在账本页 `SliverAppBar` 加搜索与转账两个 action（FAB 保持直达 `/ledger/add`），路径为 `lib/app/router/app_router.dart`、`lib/features/ledger/presentation/screens/ledger_screen.dart`
-- [ ] T016 [US1] 编写转账表单组件测试：新建/编辑两种渲染、两个选择器都排除归档账户、保存调用 `addTransfer`、`sameAccountTransfer` 失败显示本地化文案，路径为 `test/ui/features/ledger/transfer_form_screen_test.dart`
-- [ ] T017 [US1] 修正转账展示：`transaction_detail_sheet` 的配色扩为三路（transfer → `onSurface`）、符号改用 `displaySign`；`ledger_amount_input` 的 `typeColor` 同样扩为三路，以满足 FR-005，路径为 `lib/features/ledger/presentation/widgets/transaction_detail_sheet.dart`、`lib/features/ledger/presentation/widgets/ledger_amount_input.dart`
-- [ ] T018 [US1] 编写组件测试：转账行与详情页均为中性色、无 `+`/`-` 前缀，路径为 `test/ui/features/ledger/transfer_display_test.dart`
-- [ ] T019 [US1] 补齐四份 ARB 的转账文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
-- [ ] T020 [US1] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+- [X] T010 [US1] 抽取 `_loadCorrectable` 与 `_appendCorrection`，把 `execute` 的 `type == transfer` 死守卫替换为**按原交易 kind** 判定，并新增 `executeTransfer`（约 28 行，append 逻辑零重复），以满足 FR-003/FR-004，路径为 `lib/features/ledger/domain/commands/correct_transaction_command.dart`
+- [X] T011 [US1] 编写转账更正测试（经 `LedgerServiceHarness`）：原行 `isReversed`、新 `TransactionRecorded` 带两条 posting、`accounts_view` 余额与「直接新记一笔」完全相等（SC-002 的重复计数守卫）、两事件共用同一 `commandId`、transfer 原交易按 income 更正被拒、income 原交易按 transfer 更正被拒，路径为 `test/unit/features/ledger/domain/services/transfer_correction_test.dart`
+- [X] T012 [US1] 新增 `LedgerService.updateTransfer`（`guard` 包 `executeTransfer`），`addTransfer` 原样复用，路径为 `lib/features/ledger/domain/services/ledger_service.dart`
+- [X] T013 [US1] 在 `LedgerViewModel` 新增 `addTransfer`/`updateTransfer`（各自铸 `Uuid().v4()`），并补视图模型单测，路径为 `lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`test/unit/features/ledger/presentation/ledger_view_model_transfer_test.dart`
+- [X] T014 [US1] 新建 `TransferFormScreen`：金额、日期时间、从账户、到账户、备注；复用 `LedgerAmountInput`/`LedgerSelectionSheet`/`AppButton`；文件内私有 `_AccountRow` 用两次；「到」的候选按「从」账户币种与未归档过滤，使跨币种与同账户组合不可达（FR-001/FR-002），路径为 `lib/features/ledger/presentation/screens/transfer_form_screen.dart`
+- [X] T015 [US1] 新增 `/ledger/transfer` 路由，让 `/ledger/edit` 的 builder 按 `extra.type` 分流到转账或收支表单，并在账本页 `SliverAppBar` 加搜索与转账两个 action（FAB 保持直达 `/ledger/add`），路径为 `lib/app/router/app_router.dart`、`lib/features/ledger/presentation/screens/ledger_screen.dart`
+- [X] T016 [US1] 编写转账表单组件测试：新建/编辑两种渲染、两个选择器都排除归档账户、保存调用 `addTransfer`、`sameAccountTransfer` 失败显示本地化文案，路径为 `test/ui/features/ledger/transfer_form_screen_test.dart`
+- [X] T017 [US1] 修正转账展示：`transaction_detail_sheet` 的配色扩为三路（transfer → `onSurface`）、符号改用 `displaySign`；`ledger_amount_input` 的 `typeColor` 同样扩为三路，以满足 FR-005，路径为 `lib/features/ledger/presentation/widgets/transaction_detail_sheet.dart`、`lib/features/ledger/presentation/widgets/ledger_amount_input.dart`
+- [X] T018 [US1] 编写组件测试：转账行与详情页均为中性色、无 `+`/`-` 前缀，路径为 `test/ui/features/ledger/transfer_display_test.dart`
+- [X] T019 [US1] 补齐四份 ARB 的转账文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [X] T020 [US1] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
 
-**Checkpoint**: 转账在 UI 上完整可用；本地化缺口已闭合。
+**Checkpoint**: 转账在 UI 上完整可用；本地化缺口已闭合。✅
+
+> **执行记录（2026-09-21，214 项测试通过，analyze 零问题，SC-010 已复核）**：
+> - T011 的余额等价性测试做了**变异验证**：临时删掉 `_appendCorrection` 里的冲销信封后，该测试以 `Expected: <115000> Actual: <105000>` 失败（正是未抵消的原交易被重复计入），确认这条守卫真的有效，而非恰好通过。之后已还原。
+> - T016 的组件测试**没有**用真实 DI 图。首版用 `appDatabaseProvider` 覆盖 + `GoRouter` + `LedgerViewModel`，结果卡在 `pumpAndSettle` 永不收敛（金额输入框 autofocus 的光标闪烁）并在拆卸时留下 pending timer，整个 suite 挂死 10 分钟。改为：组件测试只覆盖账户列表与视图模型两个 provider，断言「表单调用了哪个方法、传了什么参数」；真正的写入路径（事件对、余额、拒绝）由 T011 走真实 service 断言。这正是宪法 VI 描述的接缝分工。
+> - T016 还暴露了测试自身的一个陷阱：选中「从」账户后，选择器字段本身会渲染该账户名，未加限定的 `find.text('Cash')` 会命中字段而非弹窗选项。断言已限定在 `LedgerSelectionSheet` 内。
+> - T016 覆盖的是「表单装配」和「选择器过滤」，不含真实数据库；T018 覆盖转账的中性配色与无符号前缀（并保留一条「支出仍然是红色带减号」的对照，避免把三路分支写成「非收入即中性」）。
+> - **两处与任务描述有出入，记录在此**：(1) T013 原本还写了「补视图模型单测 `ledger_view_model_transfer_test.dart`」，实际未单独建该文件——`addTransfer`/`updateTransfer` 只是铸造 `commandId` 后转发给 service（三个同形方法里的第 4、5 个），单测只会重复断言 mock 调用，其装配已由 T016 的组件测试以真实参数断言覆盖。(2) T015 原本写了「加搜索与转账两个 action」，实际**只加了转账**：搜索路由属于 US3，先加会挂一个死路由。搜索 action 留到 T053 与 `/ledger/search` 一起加。
 
 ---
 

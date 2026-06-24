@@ -760,6 +760,18 @@ abstract class AppLocalizations {
   /// **'To'**
   String get transferTo;
 
+  /// Transfer form title when creating (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'New Transfer'**
+  String get addTransfer;
+
+  /// Transfer form title when correcting (spec 004)
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Transfer'**
+  String get editTransfer;
+
   /// Localized ledger error code message (US6)
   ///
   /// In en, this message translates to:

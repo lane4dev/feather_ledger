@@ -41,9 +41,13 @@ class TransactionDetailSheet extends ConsumerWidget {
     final locale = Localizations.localeOf(context).toString();
 
     // Premium Detail View
-    final color = transaction.type == TransactionKind.expense
-        ? context.colors.expense
-        : context.colors.income;
+    // A transfer is neither income nor expense — it gets the neutral
+    // onSurface colour, matching transaction_tile.dart (spec 004, FR-005).
+    final color = switch (transaction.type) {
+      TransactionKind.expense => context.colors.expense,
+      TransactionKind.income => context.colors.income,
+      TransactionKind.transfer => Theme.of(context).colorScheme.onSurface,
+    };
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -104,12 +108,11 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
           SizedBox(height: context.spacing.sm),
 
-          // Amount (Hero)
+          // Amount (Hero). The sign comes from the UI model, which already
+          // renders '' for transfers — this used to re-derive it here and
+          // showed every transfer with a '+'.
           Text(
-            [
-              transaction.type == TransactionKind.expense ? '-' : '+',
-              '$currency${transaction.displayAmount}',
-            ].join(' '),
+            '${transaction.displaySign} $currency${transaction.displayAmount}',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,

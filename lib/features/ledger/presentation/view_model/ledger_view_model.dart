@@ -147,6 +147,42 @@ class LedgerViewModel extends _$LedgerViewModel {
         );
   }
 
+  Future<Result<void>> addTransfer({
+    required int amountMinor,
+    required String fromAccountId,
+    required String toAccountId,
+    required DateTime date,
+    String? note,
+  }) {
+    return ref.read(ledgerServiceProvider).addTransfer(
+          commandId: const Uuid().v4(),
+          amountMinor: amountMinor,
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          date: date,
+          note: note,
+        );
+  }
+
+  Future<Result<void>> updateTransfer({
+    required String id,
+    required int amountMinor,
+    required String fromAccountId,
+    required String toAccountId,
+    required DateTime date,
+    String? note,
+  }) {
+    return ref.read(ledgerServiceProvider).updateTransfer(
+          commandId: const Uuid().v4(),
+          id: id,
+          amountMinor: amountMinor,
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          date: date,
+          note: note,
+        );
+  }
+
   Future<Result<void>> deleteTransaction(String id) {
     return ref
         .read(ledgerServiceProvider)
