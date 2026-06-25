@@ -92,20 +92,29 @@
 
 ### Implementation
 
-- [ ] T021 [US4] 新增依赖 `share_plus`、`cross_file`、`archive`、`file_selector`（`cross_file` 需显式声明，因为要直接 import 其 `XFile`），路径为 `pubspec.yaml`
-- [ ] T022 [P] [US4] 为 `PreferencesRepository` 增加 `exportAll()`/`importAll(Map)`，**只针对已知的四个 key**（不用 `getKeys()`），并补单测，路径为 `lib/core/domain/repositories/preferences_repository.dart`、`lib/core/data/repositories/preferences_repository.dart`、`test/unit/core/data/repositories/preferences_repository_backup_test.dart`
-- [ ] T023 [P] [US4] 新建 `BackupManifest`（`@JsonSerializable`），`fromJson` 拒绝错误 `format` 与未知 `formatVersion`，并补单测（往返、两类拒绝、缺键拒绝），路径为 `lib/features/settings/domain/models/backup_manifest.dart`、`test/unit/features/settings/domain/backup_manifest_test.dart`
-- [ ] T024 [US4] 实现 `BackupService.createBackup`：`VACUUM INTO`（不在事务内、目标不存在、路径在 UI isolate 算好传入）产出干净快照，连同 `preferences.json` 与 manifest 打成一个 zip 后分享，以满足 FR-021/FR-022，路径为 `lib/features/settings/domain/services/backup_service.dart`
-- [ ] T025 [P] [US4] 新建 `applyPendingRestore(Directory supportDir)`（纯 `dart:io`）：无 PENDING 则空操作；改名旧库 → **删除陈旧的 `-wal`/`-shm`/`-journal`** → 改名新库 → 删 `restore/`；任一步失败回滚并保持原账本完好，以满足 FR-025/FR-026，路径为 `lib/app/bootstrap/pending_restore.dart`
-- [ ] T026 [US4] 编写 `applyPendingRestore` 单测（临时目录）：无 PENDING 无操作；顺路径后 `db.sqlite` 被替换且三个副档消失、PENDING 已清；改名失败时原库完好，路径为 `test/unit/app/bootstrap/pending_restore_test.dart`
-- [ ] T027 [US4] 实现 `BackupService.stageRestore`：解压 → 校验 manifest → 用一次性 `NativeDatabase` 打开暂存库跑 `PRAGMA integrity_check` 并读 `schemaVersion` → 异版本或损坏则拒绝且**不写** PENDING，以满足 FR-023，路径为 `lib/features/settings/domain/services/backup_service.dart`
-- [ ] T028 [US4] 编写 `createBackup`/`stageRestore` 单测：归档恰好 3 个条目、manifest 计数与库一致、解出的库通过 `integrity_check`；异版本/损坏 zip 与截断库均失败且不写 PENDING，路径为 `test/unit/features/settings/data/backup_service_test.dart`
-- [ ] T029 [US4] 在 `main.dart` 接线：`applyPendingRestore` **必须早于**任何 `appDatabaseProvider` 读取；容器与 seed 完成后再应用恢复出的偏好（两处都留醒目注释说明顺序的承重性），以满足 FR-025，路径为 `lib/main.dart`
-- [ ] T030 [US4] 在设置页新增「数据」区两个入口（立即备份 / 从备份恢复），含恢复确认框（**必须明示将丢弃的事件条数**）与暂存后的「关闭并重开」提示；补齐四份 ARB，以满足 FR-024/FR-028，路径为 `lib/features/settings/presentation/screens/settings_screen.dart`、`lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
-- [ ] T031 [US4] 编写设置页组件测试：两个入口存在、恢复确认框出现、暂存后「关闭并重开」对话框出现，路径为 `test/ui/features/settings/backup_screen_test.dart`
-- [ ] T032 [US4] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+- [X] T021 [US4] 新增依赖 `share_plus`、`cross_file`、`archive`、`file_selector`（`cross_file` 需显式声明，因为要直接 import 其 `XFile`），路径为 `pubspec.yaml`
+- [X] T022 [P] [US4] 为 `PreferencesRepository` 增加 `exportAll()`/`importAll(Map)`，**只针对已知的四个 key**（不用 `getKeys()`），并补单测，路径为 `lib/core/domain/repositories/preferences_repository.dart`、`lib/core/data/repositories/preferences_repository.dart`、`test/unit/core/data/repositories/preferences_repository_backup_test.dart`
+- [X] T023 [P] [US4] 新建 `BackupManifest`（`@JsonSerializable`），`fromJson` 拒绝错误 `format` 与未知 `formatVersion`，并补单测（往返、两类拒绝、缺键拒绝），路径为 `lib/features/settings/domain/models/backup_manifest.dart`、`test/unit/features/settings/domain/backup_manifest_test.dart`
+- [X] T024 [US4] 实现 `BackupService.createBackup`：`VACUUM INTO`（不在事务内、目标不存在、路径在 UI isolate 算好传入）产出干净快照，连同 `preferences.json` 与 manifest 打成一个 zip 后分享，以满足 FR-021/FR-022，路径为 `lib/features/settings/domain/services/backup_service.dart`
+- [X] T025 [P] [US4] 新建 `applyPendingRestore(Directory supportDir)`（纯 `dart:io`）：无 PENDING 则空操作；改名旧库 → **删除陈旧的 `-wal`/`-shm`/`-journal`** → 改名新库 → 删 `restore/`；任一步失败回滚并保持原账本完好，以满足 FR-025/FR-026，路径为 `lib/app/bootstrap/pending_restore.dart`
+- [X] T026 [US4] 编写 `applyPendingRestore` 单测（临时目录）：无 PENDING 无操作；顺路径后 `db.sqlite` 被替换且三个副档消失、PENDING 已清；改名失败时原库完好，路径为 `test/unit/app/bootstrap/pending_restore_test.dart`
+- [X] T027 [US4] 实现 `BackupService.stageRestore`：解压 → 校验 manifest → 用一次性 `NativeDatabase` 打开暂存库跑 `PRAGMA integrity_check` 并读 `schemaVersion` → 异版本或损坏则拒绝且**不写** PENDING，以满足 FR-023，路径为 `lib/features/settings/domain/services/backup_service.dart`
+- [X] T028 [US4] 编写 `createBackup`/`stageRestore` 单测：归档恰好 3 个条目、manifest 计数与库一致、解出的库通过 `integrity_check`；异版本/损坏 zip 与截断库均失败且不写 PENDING，路径为 `test/unit/features/settings/data/backup_service_test.dart`
+- [X] T029 [US4] 在 `main.dart` 接线：`applyPendingRestore` **必须早于**任何 `appDatabaseProvider` 读取；容器与 seed 完成后再应用恢复出的偏好（两处都留醒目注释说明顺序的承重性），以满足 FR-025，路径为 `lib/main.dart`
+- [X] T030 [US4] 在设置页新增「数据」区两个入口（立即备份 / 从备份恢复），含恢复确认框（**必须明示将丢弃的事件条数**）与暂存后的「关闭并重开」提示；补齐四份 ARB，以满足 FR-024/FR-028，路径为 `lib/features/settings/presentation/screens/settings_screen.dart`、`lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [X] T031 [US4] 编写设置页组件测试：两个入口存在、恢复确认框出现、暂存后「关闭并重开」对话框出现，路径为 `test/ui/features/settings/backup_screen_test.dart`
+- [X] T032 [US4] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
 
-**Checkpoint**: 换设备/误删有安全网；恢复的每一步失败都不会损坏现有账本。
+**Checkpoint**: 换设备/误删有安全网；恢复的每一步失败都不会损坏现有账本。✅
+
+> **执行记录（2026-09-22，254 项测试通过，analyze 零问题，SC-010 已复核）**：
+> - **T023 的一个坑**：`json_serializable` 会把构造器默认值表达式原样抄进 `.g.dart`，未加类名限定的 `formatName` / `currentFormatVersion` 在那里解析不到。默认值已写成 `BackupManifest.formatName` 形式。
+> - **T029 增加了一处计划没写明的返回契约**：`applyPendingRestore` 原本设计为无返回值，但它在最后一步会删掉整个 `restore/` 目录——包括 `preferences.json`。而应用恢复出来的偏好必须等到容器存在之后，那时文件已经没了。改为让它**返回**恢复出的偏好吧 map（在清理暂存区之前读出）。三项新测试覆盖：正常返回、未暂存返回 null、偏好文件损坏时返回 null 且**不影响已完成的数据替换**。
+> - **`db.sqlite` 这个字面量原本会出现在两处**（`app_database.dart` 与 `RestoreLayout`）。两处若漂移，恢复会静默地替换一个没人读的文件、表现为「恢复没反应」。已抽出零依赖的 `lib/core/data/database/database_file.dart` 作为唯一来源。
+> - **`cross_file` 依赖已移除**：`share_plus` 与 `file_selector` 都重新导出了同一个 `XFile`，没有任何地方需要直接 import 它，声明了反而触发 `unnecessary_import`。实际新增依赖是三个而非四个。
+> - **T031 的组件测试改为 stub `BackupService`**。原因是硬的：`testWidgets` 跑在 fake-async zone 里，真实文件 I/O 永不完成——用真实 service 会在 tap 里挂死（实测卡满 5 分钟并带垮整个 suite），而不是给出可读的失败。服务本身的行为已由 `backup_service_test.dart`（真实文件、真实 zip、10 项）与 `pending_restore_test.dart`（11 项）覆盖；组件测试只负责「屏幕按正确顺序问了正确的问题」。`_FakeBackupService` 仍 `extends BackupService`，所以签名变化在这里也会断。
+> - **`openFile` 已提取为 `backupFilePickerProvider`**，否则恢复流程无法在无平台通道的情况下被驱动。
+> - **未覆盖项**：`main.dart` 中 `applyPendingRestore` 必须早于任何数据库读取这一**顺序**仍无自动化守卫（T029 的 plan 已声明这是全 spec 唯一无测试的接线点），只由 `main.dart` 里的醒目注释与 `pending_restore_test.dart` 的文件级测试共同守着。
 
 ---
 

@@ -78,6 +78,37 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   Future<void> setShowBalance(bool show) {
     return _prefs.setBool(_keyShowBalance, show);
   }
+
+  /// The four known keys, in a stable order. Values are stored in their raw
+  /// SharedPreferences form (String/Bool), so a backup round-trips without
+  /// the archive having to know how each is parsed.
+  @override
+  Map<String, Object?> exportAll() => {
+        for (final key in _knownKeys)
+          if (_prefs.containsKey(key)) key: _prefs.get(key),
+      };
+
+  @override
+  Future<void> importAll(Map<String, Object?> values) async {
+    for (final key in _knownKeys) {
+      if (!values.containsKey(key)) continue;
+      final value = values[key];
+      // A null (or wrong-typed) entry from a hand-edited archive is skipped
+      // rather than throwing: a partly-restorable backup beats none.
+      if (value is String) {
+        await _prefs.setString(key, value);
+      } else if (value is bool) {
+        await _prefs.setBool(key, value);
+      }
+    }
+  }
+
+  static const _knownKeys = [
+    _keyTheme,
+    _keyLocale,
+    _keyCurrency,
+    _keyShowBalance,
+  ];
 }
 
 @riverpod

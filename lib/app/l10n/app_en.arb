@@ -496,5 +496,56 @@
   "nextYear": "Next Year",
   "@nextYear": {
     "description": "Tooltip for the month picker's next-year button"
+  },
+  "backupNow": "Back up now",
+  "@backupNow": {
+    "description": "Settings entry that exports the ledger (spec 004, US4)"
+  },
+  "backupNowHint": "Export the whole ledger to a single file",
+  "@backupNowHint": {
+    "description": "Subtitle of the backup entry"
+  },
+  "restoreFromBackup": "Restore from backup",
+  "@restoreFromBackup": {
+    "description": "Settings entry that stages a restore (spec 004, US4)"
+  },
+  "restoreFromBackupHint": "Replace all data from a backup file",
+  "@restoreFromBackupHint": {
+    "description": "Subtitle of the restore entry"
+  },
+  "backupCreated": "Backup created",
+  "@backupCreated": {
+    "description": "Confirmation after a backup is shared"
+  },
+  "restoreConfirmTitle": "Replace all data?",
+  "@restoreConfirmTitle": {
+    "description": "Title of the restore confirmation dialog"
+  },
+  "restoreConfirmMessage": "This backup holds {backupEvents} events. This ledger has {currentEvents}, so restoring discards {discarded} of them. Everything currently stored will be replaced.",
+  "@restoreConfirmMessage": {
+    "description": "States exactly what a restore costs — a restore is a replacement, never a merge",
+    "placeholders": {
+      "backupEvents": {
+        "type": "int"
+      },
+      "currentEvents": {
+        "type": "int"
+      },
+      "discarded": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreReadyTitle": "Restore ready",
+  "@restoreReadyTitle": {
+    "description": "Title shown once a restore has been staged"
+  },
+  "restoreReadyMessage": "Close Feather Ledger completely and open it again to finish restoring.",
+  "@restoreReadyMessage": {
+    "description": "Explains why a restart is needed: the database cannot be swapped while it is open"
+  },
+  "exitNow": "Exit now",
+  "@exitNow": {
+    "description": "Button that closes the app so the staged restore can run"
   }
 }

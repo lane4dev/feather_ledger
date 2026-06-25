@@ -1,16 +1,26 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
+import 'package:feather_ledger/features/settings/domain/services/backup_service.dart';
+
+part 'settings_screen.g.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -67,6 +77,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const FeatherDivider(),
 
+          // Data portability (spec 004, US4).
+          ListTile(
+            leading: const Icon(Icons.backup_outlined),
+            title: Text(l10n.backupNow),
+            subtitle: Text(l10n.backupNowHint),
+            onTap: () => _createBackup(context, ref, l10n),
+          ),
+          const FeatherDivider(),
+          ListTile(
+            leading: const Icon(Icons.restore),
+            title: Text(l10n.restoreFromBackup),
+            subtitle: Text(l10n.restoreFromBackupHint),
+            onTap: () => _restoreFromBackup(context, ref, l10n),
+          ),
+          const FeatherDivider(),
+
           // Developer-only maintenance (spec 003, US8/T059): the rebuild
           // replays the full event history into the projections. Hidden
           // behind a long-press so no regular user flow can touch it.
@@ -75,6 +101,106 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.rebuildProjections),
             subtitle: Text(l10n.rebuildProjectionsHint),
             onLongPress: () => _confirmRebuild(context, ref, l10n),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the archive and hands it to the share sheet.
+  Future<void> _createBackup(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final service = await ref.read(backupServiceProvider.future);
+    final result = await service.createBackup();
+    if (!context.mounted) return;
+
+    final message = result.when(
+      success: (_) => l10n.backupCreated,
+      // `message` is the developer-facing English; the code is what a person
+      // may be shown.
+      failure: (code, _) => code.message(l10n),
+    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Picks a backup, states what it would cost, stages it, and tells the user
+  /// to restart.
+  ///
+  /// The restart is not a shortcut — the database is open for the whole run,
+  /// so the swap can only happen at startup. See `pending_restore.dart`.
+  Future<void> _restoreFromBackup(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final picked = await ref.read(backupFilePickerProvider)();
+    if (picked == null || !context.mounted) return;
+
+    final service = await ref.read(backupServiceProvider.future);
+    final preview = await service.preview(picked);
+    if (!context.mounted) return;
+
+    if (preview case Failure(:final code)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+      return;
+    }
+    final info = (preview as Success<BackupPreview>).value;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.restoreConfirmTitle),
+        content: Text(l10n.restoreConfirmMessage(
+          info.manifest.eventCount,
+          info.currentEventCount,
+          info.discardedEventCount,
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.restoreFromBackup),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final staged = await service.stageRestore(picked);
+    if (!context.mounted) return;
+
+    if (staged case Failure(:final code)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.restoreReadyTitle),
+        content: Text(l10n.restoreReadyMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Android closes the activity; elsewhere the user reopens the
+              // app themselves, which the message already asked for.
+              SystemNavigator.pop();
+            },
+            child: Text(l10n.exitNow),
           ),
         ],
       ),
@@ -232,6 +358,23 @@ class SettingsScreen extends ConsumerWidget {
     return AppLanguages.getName(effectiveLocale, l10n);
   }
 }
+
+/// Opens the platform file dialog and returns the chosen backup, or null if
+/// the user cancelled.
+///
+/// A provider rather than a direct [openFile] call so a widget test can drive
+/// the whole restore flow without a platform channel.
+typedef BackupFilePicker = Future<File?> Function();
+
+@riverpod
+BackupFilePicker backupFilePicker(Ref ref) => () async {
+      final picked = await openFile(
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'Feather Ledger backup', extensions: ['flbackup']),
+        ],
+      );
+      return picked == null ? null : File(picked.path);
+    };
 
 class _DialogOption<T> extends StatelessWidget {
   final String label;

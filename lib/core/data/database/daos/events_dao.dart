@@ -69,6 +69,15 @@ class EventsDao extends DatabaseAccessor<AppDatabase> with _$EventsDaoMixin {
     return result.read(ledgerEvents.id.max());
   }
 
+  /// Total number of events. Counted in SQL rather than by loading rows —
+  /// the backup manifest needs only the number.
+  Future<int> countAll() async {
+    final countExp = ledgerEvents.id.count();
+    final query = selectOnly(ledgerEvents)..addColumns([countExp]);
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
+  }
+
   // Row ↔ envelope mapping ————————————————————————————————————————————
 
   LedgerEventsCompanion toCompanion(EventEnvelope e) => LedgerEventsCompanion(

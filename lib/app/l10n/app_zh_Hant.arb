@@ -481,5 +481,28 @@
   "overdraftWarningMessage": "該交易將導致帳戶透支，是否繼續？",
   "previousYear": "上一年",
   "nextYear": "下一年",
-  "errorInvalidTransactionShape": "交易無效，未儲存"
+  "errorInvalidTransactionShape": "交易無效，未儲存",
+  "backupNow": "立即備份",
+  "backupNowHint": "把整個帳本匯出為一個檔案",
+  "restoreFromBackup": "從備份還原",
+  "restoreFromBackupHint": "用備份檔案取代全部資料",
+  "backupCreated": "備份已產生",
+  "restoreConfirmTitle": "取代全部資料？",
+  "restoreConfirmMessage": "這份備份包含 {backupEvents} 條事件，目前帳本有 {currentEvents} 條，還原將捨棄其中 {discarded} 條。目前儲存的全部內容都會被取代。",
+  "@restoreConfirmMessage": {
+    "placeholders": {
+      "backupEvents": {
+        "type": "int"
+      },
+      "currentEvents": {
+        "type": "int"
+      },
+      "discarded": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreReadyTitle": "還原已就緒",
+  "restoreReadyMessage": "請完全關閉 Feather Ledger 後重新開啟，以完成還原。",
+  "exitNow": "現在結束"
 }

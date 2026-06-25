@@ -405,6 +405,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get nextYear => '下一年';
+
+  @override
+  String get backupNow => '立即备份';
+
+  @override
+  String get backupNowHint => '把整个账本导出为一个文件';
+
+  @override
+  String get restoreFromBackup => '从备份恢复';
+
+  @override
+  String get restoreFromBackupHint => '用备份文件替换全部数据';
+
+  @override
+  String get backupCreated => '备份已生成';
+
+  @override
+  String get restoreConfirmTitle => '替换全部数据？';
+
+  @override
+  String restoreConfirmMessage(
+      int backupEvents, int currentEvents, int discarded) {
+    return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
+  }
+
+  @override
+  String get restoreReadyTitle => '恢复已就绪';
+
+  @override
+  String get restoreReadyMessage => '请完全关闭 Feather Ledger 后重新打开，以完成恢复。';
+
+  @override
+  String get exitNow => '现在退出';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -808,6 +841,39 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get nextYear => '下一年';
+
+  @override
+  String get backupNow => '立即备份';
+
+  @override
+  String get backupNowHint => '把整个账本导出为一个文件';
+
+  @override
+  String get restoreFromBackup => '从备份恢复';
+
+  @override
+  String get restoreFromBackupHint => '用备份文件替换全部数据';
+
+  @override
+  String get backupCreated => '备份已生成';
+
+  @override
+  String get restoreConfirmTitle => '替换全部数据？';
+
+  @override
+  String restoreConfirmMessage(
+      int backupEvents, int currentEvents, int discarded) {
+    return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
+  }
+
+  @override
+  String get restoreReadyTitle => '恢复已就绪';
+
+  @override
+  String get restoreReadyMessage => '请完全关闭 Feather Ledger 后重新打开，以完成恢复。';
+
+  @override
+  String get exitNow => '现在退出';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1211,4 +1277,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get nextYear => '下一年';
+
+  @override
+  String get backupNow => '立即備份';
+
+  @override
+  String get backupNowHint => '把整個帳本匯出為一個檔案';
+
+  @override
+  String get restoreFromBackup => '從備份還原';
+
+  @override
+  String get restoreFromBackupHint => '用備份檔案取代全部資料';
+
+  @override
+  String get backupCreated => '備份已產生';
+
+  @override
+  String get restoreConfirmTitle => '取代全部資料？';
+
+  @override
+  String restoreConfirmMessage(
+      int backupEvents, int currentEvents, int discarded) {
+    return '這份備份包含 $backupEvents 條事件，目前帳本有 $currentEvents 條，還原將捨棄其中 $discarded 條。目前儲存的全部內容都會被取代。';
+  }
+
+  @override
+  String get restoreReadyTitle => '還原已就緒';
+
+  @override
+  String get restoreReadyMessage => '請完全關閉 Feather Ledger 後重新開啟，以完成還原。';
+
+  @override
+  String get exitNow => '現在結束';
 }

@@ -9,6 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/enums.dart';
 import '../../domain/event_sourcing/event_envelope.dart';
 
+import 'database_file.dart';
 import 'tables.dart';
 
 import 'daos/transaction_dao.dart';
@@ -66,7 +67,7 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory();
-    final file = File(p.join(dbFolder.path, 'db.sqlite'));
+    final file = File(p.join(dbFolder.path, kDatabaseFileName));
     return NativeDatabase.createInBackground(file);
   });
 }

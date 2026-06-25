@@ -891,6 +891,67 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next Year'**
   String get nextYear;
+
+  /// Settings entry that exports the ledger (spec 004, US4)
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get backupNow;
+
+  /// Subtitle of the backup entry
+  ///
+  /// In en, this message translates to:
+  /// **'Export the whole ledger to a single file'**
+  String get backupNowHint;
+
+  /// Settings entry that stages a restore (spec 004, US4)
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from backup'**
+  String get restoreFromBackup;
+
+  /// Subtitle of the restore entry
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all data from a backup file'**
+  String get restoreFromBackupHint;
+
+  /// Confirmation after a backup is shared
+  ///
+  /// In en, this message translates to:
+  /// **'Backup created'**
+  String get backupCreated;
+
+  /// Title of the restore confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all data?'**
+  String get restoreConfirmTitle;
+
+  /// States exactly what a restore costs — a restore is a replacement, never a merge
+  ///
+  /// In en, this message translates to:
+  /// **'This backup holds {backupEvents} events. This ledger has {currentEvents}, so restoring discards {discarded} of them. Everything currently stored will be replaced.'**
+  String restoreConfirmMessage(
+      int backupEvents, int currentEvents, int discarded);
+
+  /// Title shown once a restore has been staged
+  ///
+  /// In en, this message translates to:
+  /// **'Restore ready'**
+  String get restoreReadyTitle;
+
+  /// Explains why a restart is needed: the database cannot be swapped while it is open
+  ///
+  /// In en, this message translates to:
+  /// **'Close Feather Ledger completely and open it again to finish restoring.'**
+  String get restoreReadyMessage;
+
+  /// Button that closes the app so the staged restore can run
+  ///
+  /// In en, this message translates to:
+  /// **'Exit now'**
+  String get exitNow;
 }
 
 class _AppLocalizationsDelegate

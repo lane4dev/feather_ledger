@@ -39,6 +39,14 @@ dependencies:
   clock: ^1.1.2
   json_annotation: ^4.9.0
 
+  # Data portability (spec 004, US3/US4): CSV export and the backup archive
+  # move bytes across the app boundary, which is the deliverable itself.
+  # No separate cross_file dependency: share_plus and file_selector both
+  # re-export the same XFile, so it is never imported from its own package.
+  archive: ^4.3.0
+  share_plus: ^12.0.2
+  file_selector: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

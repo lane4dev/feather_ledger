@@ -419,4 +419,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nextYear => 'Next Year';
+
+  @override
+  String get backupNow => 'Back up now';
+
+  @override
+  String get backupNowHint => 'Export the whole ledger to a single file';
+
+  @override
+  String get restoreFromBackup => 'Restore from backup';
+
+  @override
+  String get restoreFromBackupHint => 'Replace all data from a backup file';
+
+  @override
+  String get backupCreated => 'Backup created';
+
+  @override
+  String get restoreConfirmTitle => 'Replace all data?';
+
+  @override
+  String restoreConfirmMessage(
+      int backupEvents, int currentEvents, int discarded) {
+    return 'This backup holds $backupEvents events. This ledger has $currentEvents, so restoring discards $discarded of them. Everything currently stored will be replaced.';
+  }
+
+  @override
+  String get restoreReadyTitle => 'Restore ready';
+
+  @override
+  String get restoreReadyMessage =>
+      'Close Feather Ledger completely and open it again to finish restoring.';
+
+  @override
+  String get exitNow => 'Exit now';
 }

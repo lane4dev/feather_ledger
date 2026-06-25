@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'app/l10n/app_localizations.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/config/app_languages.dart';
+import 'app/bootstrap/pending_restore.dart';
 import 'app/bootstrap/seeder.dart';
 import 'app/bootstrap/register_ledger_events.dart';
 import 'core/data/database/app_database.dart';
+import 'core/data/repositories/preferences_repository.dart';
 import 'core/presentation/providers/theme_provider.dart';
 import 'core/presentation/providers/locale_provider.dart';
 import 'features/ledger/data/event_sourcing/drift_event_store.dart';
@@ -39,6 +42,15 @@ void main() async {
   // the store persists must be deserializable at startup without test-only
   // factory registration.
   registerLedgerEvents();
+
+  // ⚠️ ORDER IS LOAD-BEARING (spec 004, US4/FR-025): the pending restore must
+  // be applied before ANYTHING reads `appDatabaseProvider`. That provider is
+  // keep-alive and backed by a LazyDatabase, so the first read opens the file
+  // — and then the swap's renames either fail, or worse, succeed underneath
+  // a live handle. Nothing in this function may read the database, or any
+  // provider that reads it, above this line.
+  final supportDir = await getApplicationSupportDirectory();
+  final restoredPreferences = await applyPendingRestore(supportDir);
 
   final container = ProviderContainer();
   // Open the database eagerly (LazyDatabase) so startup work overlaps the
@@ -74,6 +86,17 @@ void main() async {
   final rebuildService = container.read(ledgerRebuildServiceProvider);
   if (await rebuildService.isStale()) {
     await rebuildService.rebuild();
+  }
+
+  // Preferences that arrived with a restored backup. Applied exactly once, on
+  // the launch AFTER staging — never in the run that staged the restore.
+  // SharedPreferences caches in memory per process, so applying them any
+  // earlier would be reading and writing a store the swap is about to
+  // replace. See applyPendingRestore's return value.
+  if (restoredPreferences != null) {
+    final preferences =
+        await container.read(preferencesRepositoryProvider.future);
+    await preferences.importAll(restoredPreferences);
   }
 
   setupEdgeToEdge();
