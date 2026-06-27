@@ -600,5 +600,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "searchHint": "Search notes, categories, accounts",
+  "filterTitle": "Filter",
+  "filterAllKinds": "All",
+  "filterAnyAccount": "Any account",
+  "filterAnyCategory": "Any category",
+  "filterAnyDate": "Any date",
+  "filterDateRange": "Date range",
+  "filterApply": "Apply",
+  "filterClear": "Clear",
+  "exportCsv": "Export CSV",
+  "noSearchResults": "No matching transactions"
 }

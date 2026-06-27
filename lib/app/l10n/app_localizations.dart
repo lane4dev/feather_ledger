@@ -1126,6 +1126,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ends {date}'**
   String seriesEndsOn(String date);
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes, categories, accounts'**
+  String get searchHint;
+
+  /// No description provided for @filterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filterTitle;
+
+  /// No description provided for @filterAllKinds.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAllKinds;
+
+  /// No description provided for @filterAnyAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Any account'**
+  String get filterAnyAccount;
+
+  /// No description provided for @filterAnyCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Any category'**
+  String get filterAnyCategory;
+
+  /// No description provided for @filterAnyDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Any date'**
+  String get filterAnyDate;
+
+  /// No description provided for @filterDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get filterDateRange;
+
+  /// No description provided for @filterApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get filterApply;
+
+  /// No description provided for @filterClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get filterClear;
+
+  /// No description provided for @exportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get exportCsv;
+
+  /// No description provided for @noSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching transactions'**
+  String get noSearchResults;
 }
 
 class _AppLocalizationsDelegate

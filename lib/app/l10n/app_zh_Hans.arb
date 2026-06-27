@@ -533,5 +533,16 @@
   "frequencyYearly": "年",
   "everyFrequency": "每{unit}",
   "everyNthFrequency": "每 {count} {unit}",
-  "seriesEndsOn": "结束于 {date}"
+  "seriesEndsOn": "结束于 {date}",
+  "searchHint": "搜索备注、分类、账户",
+  "filterTitle": "筛选",
+  "filterAllKinds": "全部",
+  "filterAnyAccount": "任意账户",
+  "filterAnyCategory": "任意分类",
+  "filterAnyDate": "任意日期",
+  "filterDateRange": "日期范围",
+  "filterApply": "应用",
+  "filterClear": "清空",
+  "exportCsv": "导出 CSV",
+  "noSearchResults": "没有匹配的交易"
 }

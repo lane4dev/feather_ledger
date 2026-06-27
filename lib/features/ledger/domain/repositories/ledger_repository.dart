@@ -1,10 +1,19 @@
 import '../entities/ledger_entities.dart';
+import '../value_objects/transaction_filter.dart';
 
 abstract class LedgerRepository {
   /// Watches transactions for the given month.
   /// [month] should be any date within the desired month.
   /// Returns a stream of lists of [TransactionEntity].
   Stream<List<TransactionEntity>> watchTransactions(DateTime month);
+
+  /// Watches the transactions matching [filter], newest first
+  /// (spec 004, US3).
+  ///
+  /// Reversed transactions are excluded by the query itself, not by this
+  /// layer; a transfer matching on either of its accounts comes back whole.
+  Stream<List<TransactionEntity>> watchTransactionsFiltered(
+      TransactionFilter filter);
 
   /// Retrieves a transaction by its ID.
   /// [transactionId] is the ID of the transaction.

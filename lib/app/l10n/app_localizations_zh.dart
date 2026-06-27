@@ -531,6 +531,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String seriesEndsOn(String date) {
     return '结束于 $date';
   }
+
+  @override
+  String get searchHint => '搜索备注、分类、账户';
+
+  @override
+  String get filterTitle => '筛选';
+
+  @override
+  String get filterAllKinds => '全部';
+
+  @override
+  String get filterAnyAccount => '任意账户';
+
+  @override
+  String get filterAnyCategory => '任意分类';
+
+  @override
+  String get filterAnyDate => '任意日期';
+
+  @override
+  String get filterDateRange => '日期范围';
+
+  @override
+  String get filterApply => '应用';
+
+  @override
+  String get filterClear => '清空';
+
+  @override
+  String get exportCsv => '导出 CSV';
+
+  @override
+  String get noSearchResults => '没有匹配的交易';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1060,6 +1093,39 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String seriesEndsOn(String date) {
     return '结束于 $date';
   }
+
+  @override
+  String get searchHint => '搜索备注、分类、账户';
+
+  @override
+  String get filterTitle => '筛选';
+
+  @override
+  String get filterAllKinds => '全部';
+
+  @override
+  String get filterAnyAccount => '任意账户';
+
+  @override
+  String get filterAnyCategory => '任意分类';
+
+  @override
+  String get filterAnyDate => '任意日期';
+
+  @override
+  String get filterDateRange => '日期范围';
+
+  @override
+  String get filterApply => '应用';
+
+  @override
+  String get filterClear => '清空';
+
+  @override
+  String get exportCsv => '导出 CSV';
+
+  @override
+  String get noSearchResults => '没有匹配的交易';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1589,4 +1655,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String seriesEndsOn(String date) {
     return '結束於 $date';
   }
+
+  @override
+  String get searchHint => '搜尋備註、分類、帳戶';
+
+  @override
+  String get filterTitle => '篩選';
+
+  @override
+  String get filterAllKinds => '全部';
+
+  @override
+  String get filterAnyAccount => '任意帳戶';
+
+  @override
+  String get filterAnyCategory => '任意分類';
+
+  @override
+  String get filterAnyDate => '任意日期';
+
+  @override
+  String get filterDateRange => '日期範圍';
+
+  @override
+  String get filterApply => '套用';
+
+  @override
+  String get filterClear => '清除';
+
+  @override
+  String get exportCsv => '匯出 CSV';
+
+  @override
+  String get noSearchResults => '沒有符合的交易';
 }

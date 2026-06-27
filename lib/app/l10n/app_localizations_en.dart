@@ -547,4 +547,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String seriesEndsOn(String date) {
     return 'ends $date';
   }
+
+  @override
+  String get searchHint => 'Search notes, categories, accounts';
+
+  @override
+  String get filterTitle => 'Filter';
+
+  @override
+  String get filterAllKinds => 'All';
+
+  @override
+  String get filterAnyAccount => 'Any account';
+
+  @override
+  String get filterAnyCategory => 'Any category';
+
+  @override
+  String get filterAnyDate => 'Any date';
+
+  @override
+  String get filterDateRange => 'Date range';
+
+  @override
+  String get filterApply => 'Apply';
+
+  @override
+  String get filterClear => 'Clear';
+
+  @override
+  String get exportCsv => 'Export CSV';
+
+  @override
+  String get noSearchResults => 'No matching transactions';
 }

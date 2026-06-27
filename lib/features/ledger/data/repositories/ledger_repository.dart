@@ -10,6 +10,7 @@ import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/ledger_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/value_objects/transaction_filter.dart';
 
 export 'package:feather_ledger/features/ledger/domain/repositories/ledger_repository.dart';
 
@@ -29,6 +30,25 @@ class LedgerRepositoryImpl implements LedgerRepository {
     return _transactionsDao.watchTransactionsByMonth(datetime).map((rows) {
       return _toTransactionEntities(rows);
     });
+  }
+
+  /// Routes through the same [_toTransactionEntities] the monthly list uses.
+  /// That is deliberate: leg collapsing, `toAccount` resolution, the amount
+  /// coming from the debit leg and the write-time category snapshot all live
+  /// there, already tested. A second assembler would be a second set of bugs.
+  @override
+  Stream<List<TransactionEntity>> watchTransactionsFiltered(
+      TransactionFilter filter) {
+    return _transactionsDao
+        .watchTransactionsFiltered(
+          query: filter.query,
+          kind: filter.kind,
+          accountId: filter.accountId,
+          categoryId: filter.categoryId,
+          from: filter.from,
+          to: filter.to,
+        )
+        .map(_toTransactionEntities);
   }
 
   @override

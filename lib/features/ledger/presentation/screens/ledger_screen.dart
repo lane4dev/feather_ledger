@@ -145,6 +145,11 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 // entry point here (spec 004, US1).
                 actions: [
                   IconButton(
+                    icon: const Icon(Icons.search),
+                    tooltip: l10n.searchHint,
+                    onPressed: () => context.push('/ledger/search'),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.swap_horiz),
                     tooltip: l10n.transfer,
                     onPressed: () => context.push('/ledger/transfer'),

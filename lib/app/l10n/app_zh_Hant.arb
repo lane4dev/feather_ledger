@@ -533,5 +533,16 @@
   "frequencyYearly": "年",
   "everyFrequency": "每{unit}",
   "everyNthFrequency": "每 {count} {unit}",
-  "seriesEndsOn": "結束於 {date}"
+  "seriesEndsOn": "結束於 {date}",
+  "searchHint": "搜尋備註、分類、帳戶",
+  "filterTitle": "篩選",
+  "filterAllKinds": "全部",
+  "filterAnyAccount": "任意帳戶",
+  "filterAnyCategory": "任意分類",
+  "filterAnyDate": "任意日期",
+  "filterDateRange": "日期範圍",
+  "filterApply": "套用",
+  "filterClear": "清除",
+  "exportCsv": "匯出 CSV",
+  "noSearchResults": "沒有符合的交易"
 }

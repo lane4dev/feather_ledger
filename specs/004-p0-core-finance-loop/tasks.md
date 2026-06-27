@@ -160,21 +160,29 @@
 
 ### Implementation
 
-- [ ] T044 [P] [US3] 新建 `TransactionFilter` 值对象（六字段、手写 `==`/`hashCode`、`static const empty`、`isEmpty`；不做 `copyWith`、不做金额区间、不做 `limit`），并补相等性单测，以满足 FR-014，路径为 `lib/features/ledger/domain/value_objects/transaction_filter.dart`、`test/unit/features/ledger/domain/value_objects/transaction_filter_test.dart`
-- [ ] T045 [US3] 新增 `TransactionsDao.watchTransactionsFiltered`（收基本类型不收 VO；**`isReversed` 过滤写进 SQL**；账户/分类筛 posting 表以让既有分组逻辑合并转账双腿；日期两端含端点；关键词匹配描述/分类快照/账户名并转义 `%` 与 `_`；不加索引），以满足 FR-014–FR-018/FR-020，路径为 `lib/core/data/database/daos/transaction_dao.dart`
-- [ ] T046 [US3] 编写 DAO 筛选单测：冲销行被排除、关键词三处命中、类型筛选、日期两端含端点、**账户筛选以一条腿取回完整转账**、分类筛选、组合条件按 AND，路径为 `test/unit/core/database/daos/transaction_dao_filter_test.dart`
-- [ ] T047 [US3] 在 `LedgerRepository` 接口与实现上新增 `watchTransactionsFiltered`，**复用既有的私有 `_toTransactionEntities`**（不写第二个装配器），并补单测断言被筛选的转账合并为一行且 `toAccount` 已设，以满足 FR-017，路径为 `lib/features/ledger/domain/repositories/ledger_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`、`test/unit/features/ledger/data/ledger_repository_filter_test.dart`
-- [ ] T048 [US3] 新建 `SearchTransactionsQuery` + provider（不做 Dart 侧 `isReversed` 过滤），路径为 `lib/features/ledger/domain/queries/search_transactions_query.dart`
-- [ ] T049 [P] [US3] 新建 `transactionsToCsv` 纯函数（`formatMinor` 直接复用；ISO 日期；枚举 name 作 kind；收支带符号、转账不带；RFC 4180 转义；前置 UTF-8 BOM），并补单测，以满足 FR-019，路径为 `lib/features/ledger/domain/export/transaction_csv.dart`、`test/unit/features/ledger/domain/export/transaction_csv_test.dart`
-- [ ] T050 [US3] 新增 `share_plus` 与 `cross_file` 依赖，并实现 `TransactionExportService`（生成字符串 → 写临时文件 → 交给 `share_plus`；不为 share 抽接口），路径为 `pubspec.yaml`、`lib/features/ledger/domain/services/transaction_export_service.dart`
-- [ ] T051 [US3] 新建 `SearchViewModel` + `searchResults` provider（不用 family、不用 `keepAlive`、不做 debounce；日分组复用既有顶层 `groupTransactionsByDay`），并补状态流转单测，路径为 `lib/features/ledger/presentation/view_model/search_view_model.dart`、`test/unit/features/ledger/presentation/search_view_model_test.dart`
-- [ ] T052 [P] [US3] 为 `AppTextField` 增加可选 `onChanged` 与 `controller`（宪章 III 允许以命名 DS 变体扩展；不绕过 DS 直接用裸 `TextField`），路径为 `lib/app/design_system/app_text_field.dart`
-- [ ] T053 [US3] 新建搜索屏与筛选表单（类型 chips + 账户/分类选择器 + 日期范围；复用 `LedgerTimeline`/`TransactionTile`/`LedgerEmpty`/`LedgerSkeleton`），注册 `/ledger/search` 路由并在账本页加入口；导出按钮在无结果时禁用（SC 见 FR-019 的「导出所见即所得」），路径为 `lib/features/ledger/presentation/screens/search_screen.dart`、`lib/features/ledger/presentation/widgets/transaction_filter_sheet.dart`、`lib/app/router/app_router.dart`
-- [ ] T054 [US3] 编写搜索屏组件测试：结果渲染、空态、无结果时导出按钮禁用，路径为 `test/ui/features/ledger/search_screen_test.dart`
-- [ ] T055 [US3] 补齐四份 ARB 的检索与导出文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
-- [ ] T056 [US3] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+- [X] T044 [P] [US3] 新建 `TransactionFilter` 值对象（六字段、手写 `==`/`hashCode`、`static const empty`、`isEmpty`；不做 `copyWith`、不做金额区间、不做 `limit`），并补相等性单测，以满足 FR-014，路径为 `lib/features/ledger/domain/value_objects/transaction_filter.dart`、`test/unit/features/ledger/domain/value_objects/transaction_filter_test.dart`
+- [X] T045 [US3] 新增 `TransactionsDao.watchTransactionsFiltered`（收基本类型不收 VO；**`isReversed` 过滤写进 SQL**；账户/分类筛 posting 表以让既有分组逻辑合并转账双腿；日期两端含端点；关键词匹配描述/分类快照/账户名并转义 `%` 与 `_`；不加索引），以满足 FR-014–FR-018/FR-020，路径为 `lib/core/data/database/daos/transaction_dao.dart`
+- [X] T046 [US3] 编写 DAO 筛选单测：冲销行被排除、关键词三处命中、类型筛选、日期两端含端点、**账户筛选以一条腿取回完整转账**、分类筛选、组合条件按 AND，路径为 `test/unit/core/database/daos/transaction_dao_filter_test.dart`
+- [X] T047 [US3] 在 `LedgerRepository` 接口与实现上新增 `watchTransactionsFiltered`，**复用既有的私有 `_toTransactionEntities`**（不写第二个装配器），并补单测断言被筛选的转账合并为一行且 `toAccount` 已设，以满足 FR-017，路径为 `lib/features/ledger/domain/repositories/ledger_repository.dart`、`lib/features/ledger/data/repositories/ledger_repository.dart`、`test/unit/features/ledger/data/ledger_repository_filter_test.dart`
+- [X] T048 [US3] 新建 `SearchTransactionsQuery` + provider（不做 Dart 侧 `isReversed` 过滤），路径为 `lib/features/ledger/domain/queries/search_transactions_query.dart`
+- [X] T049 [P] [US3] 新建 `transactionsToCsv` 纯函数（`formatMinor` 直接复用；ISO 日期；枚举 name 作 kind；收支带符号、转账不带；RFC 4180 转义；前置 UTF-8 BOM），并补单测，以满足 FR-019，路径为 `lib/features/ledger/domain/export/transaction_csv.dart`、`test/unit/features/ledger/domain/export/transaction_csv_test.dart`
+- [X] T050 [US3] 新增 `share_plus` 与 `cross_file` 依赖，并实现 `TransactionExportService`（生成字符串 → 写临时文件 → 交给 `share_plus`；不为 share 抽接口），路径为 `pubspec.yaml`、`lib/features/ledger/domain/services/transaction_export_service.dart`
+- [X] T051 [US3] 新建 `SearchViewModel` + `searchResults` provider（不用 family、不用 `keepAlive`、不做 debounce；日分组复用既有顶层 `groupTransactionsByDay`），并补状态流转单测，路径为 `lib/features/ledger/presentation/view_model/search_view_model.dart`、`test/unit/features/ledger/presentation/search_view_model_test.dart`
+- [X] T052 [P] [US3] 为 `AppTextField` 增加可选 `onChanged` 与 `controller`（宪章 III 允许以命名 DS 变体扩展；不绕过 DS 直接用裸 `TextField`），路径为 `lib/app/design_system/app_text_field.dart`
+- [X] T053 [US3] 新建搜索屏与筛选表单（类型 chips + 账户/分类选择器 + 日期范围；复用 `LedgerTimeline`/`TransactionTile`/`LedgerEmpty`/`LedgerSkeleton`），注册 `/ledger/search` 路由并在账本页加入口；导出按钮在无结果时禁用（SC 见 FR-019 的「导出所见即所得」），路径为 `lib/features/ledger/presentation/screens/search_screen.dart`、`lib/features/ledger/presentation/widgets/transaction_filter_sheet.dart`、`lib/app/router/app_router.dart`
+- [X] T054 [US3] 编写搜索屏组件测试：结果渲染、空态、无结果时导出按钮禁用，路径为 `test/ui/features/ledger/search_screen_test.dart`
+- [X] T055 [US3] 补齐四份 ARB 的检索与导出文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [X] T056 [US3] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
 
-**Checkpoint**: 历史数据找得到、带得走。
+**Checkpoint**: 历史数据找得到、带得走。✅
+
+> **执行记录（2026-09-22，311 项测试通过，analyze 零问题）**：
+> - **T046 抓到实现缺陷**：我按计划转义了 LIKE 元字符（`%` → `\%`），但**没有声明 `ESCAPE`**——于是 SQLite 把 `\%` 读成「字面反斜杠 + 通配符」，比不转义更糟：搜 `50% off` 一条也返回不了。计划里我原本写的是「若 Drift 的 `like` 表达不了 `ESCAPE` 就先不处理并留 ponytail 注释」，实际查证 `like(regex, {String? escapeChar})` **支持** escapeChar。已按正确做法修（`escapeChar: r'\'` 传给三个 `like`），`\` 本身先转义以免自我转义。测试断言的是用户可见行为（`%` 是字面量），所以它正确地失败并逼出真修法。
+> - **T053 的两处 API 误用由 analyze 抓出**：`LedgerTimeline` 是 **sliver**（`SliverMainAxisGroup`）且接收整张 `groupedTransactions` map，不是「每天一个 box 组件」——首版按后者写，改用 `CustomScrollView` + 单个 `LedgerTimeline`。`categoryListProvider` 是 `CategoryType` family 而非可空——筛选面板改为同时 watch 支出与收入两类再合并。
+> - **T051 里两次自我修正**：先写了以 `List<TransactionEntity>` 为 key 的 family provider 做导出，随即意识到 Dart 的 `List` 用**恒等相等**，每次重建都会造一个新 provider（泄漏）。改为 `SearchViewModel.export(rows)` 方法。同时 `searchResults` 改为返回 `SearchResults{entities, tiles}`，让「渲染用」和「导出用」来自**同一次订阅**，这样导出的文件不可能与屏幕内容不一致。
+> - **T049 删掉了一个自己造的累赘**：CSV 函数原本收一个 `currencySymbol` 参数，但 `currency` 列已经带 ISO 代码（对机器可读文件更正确），我甚至写了个 `extension on Never` 去「说明」这个参数——已把参数和那个 extension 一并删除。
+> - T052 为 `AppTextField` 增加可选 `controller`/`onChanged`（宪章 III 允许的命名 DS 变体扩展），并加 assert 禁止同时传 `controller` 与 `initialValue`。
+> - 账本页的搜索入口在 T053 一并补上（T015 当时刻意留到路由存在时再加）。
 
 ---
 
