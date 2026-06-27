@@ -126,19 +126,29 @@
 
 ### Implementation
 
-- [ ] T033 [US2] 新增 `RecurringDao.watchAllSeries()`，并在 `RecurringRepository` 接口与实现上补 `saveSeries`/`watchAllSeries`（`saveSeries` 已存在、零调用方，就此转正），以满足 FR-012，路径为 `lib/core/data/database/daos/recurring_dao.dart`、`lib/features/ledger/domain/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`
-- [ ] T034 [US2] 新增三个命令：`CreateRecurringSeriesCommand`（收具名参数而非 Drift companion，复用 `PostingContextResolver` 跑账户/分类红线，走到 CRUD-exempt 表）、`DeactivateRecurringSeriesCommand`（设 `endDate`、保留既有实例）、`SkipScheduledTransactionCommand`（置 `'skipped'`，不写事件故无 `commandId`），以满足 FR-006/FR-007/FR-012，路径为 `lib/features/ledger/domain/commands/`
-- [ ] T035 [US2] 新增 `RecurringService` 门面（`createSeries` → `materialize()`、`deactivateSeries`、`postInstance`、`skipInstance`、`materialize`、`watchSeries`、`watchScheduled`），把 `convertScheduledToPosted` 与 `watchScheduledTransactions` 从 `LedgerService` 迁入，并把它加进测试 harness，路径为 `lib/features/ledger/domain/services/recurring_service.dart`、`lib/features/ledger/domain/services/ledger_service.dart`、`test/support/event_sourcing/ledger_service_harness.dart`
-- [ ] T036 [US2] 编写周期服务测试（经 harness）：创建后列值正确**且**实例已物化；停用后 `endDate` 已设、既有实例保留、不再新增；跳过置 `'skipped'`；跳过已 posted 得 `scheduledAlreadyPosted`；`postInstance` 产生一条事件且状态在同一次 append 内翻为 `'posted'`；**连续两次 `materialize()` 结果集完全相同**（SC-004），路径为 `test/unit/features/ledger/domain/services/recurring_series_test.dart`
-- [ ] T037 [US2] 在 `main.dart` 重建门禁之后加入启动补课：`try { await recurringService.materialize(); } catch (e) { debugPrint(...); }`，以满足 FR-008/FR-009，路径为 `lib/main.dart`
-- [ ] T038 [US2] 新增 `RecurringViewModel`（形态照 `LedgerViewModel`：两条订阅进 `AsyncValue`、`onDispose` 退订、`onError` 收进 `AsyncError`），并补待办筛选单测（含逾期 `scheduled`，排除 `posted`/`skipped`/未来），路径为 `lib/features/ledger/presentation/view_model/recurring_view_model.dart`、`test/unit/features/ledger/presentation/recurring_view_model_test.dart`
-- [ ] T039 [US2] 新建周期列表屏（上半「待办」含记入/跳过与确认框，下半「系列」含停用）与系列创建表单 sheet，形状照 `account_management_screen.dart` 与 `account_form_sheet.dart`；不做 `countLimit`，路径为 `lib/features/ledger/presentation/screens/recurring_list_screen.dart`、`lib/features/ledger/presentation/widgets/recurring_series_form_sheet.dart`
-- [ ] T040 [US2] 注册周期路由（照 `accounts`/`categories` 的双注册方式）并在 more 页加入口；**删除** `LedgerViewState.scheduledTransactions` 与 `LedgerViewModel._subscribeScheduledTransactions`（零读者且异常无人观察）以及 `LedgerService` 上迁移后的转发，路径为 `lib/app/router/app_router.dart`、`lib/features/settings/presentation/screens/more_screen.dart`、`lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`lib/features/ledger/presentation/view_model/ledger_view_state.dart`
-- [ ] T041 [US2] 补齐四份 ARB 的周期文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
-- [ ] T042 [US2] 编写周期屏组件测试：空态、创建、停用确认、记入确认、跳过，路径为 `test/ui/features/ledger/recurring_list_screen_test.dart`
-- [ ] T043 [US2] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
+- [X] T033 [US2] 新增 `RecurringDao.watchAllSeries()`，并在 `RecurringRepository` 接口与实现上补 `saveSeries`/`watchAllSeries`（`saveSeries` 已存在、零调用方，就此转正），以满足 FR-012，路径为 `lib/core/data/database/daos/recurring_dao.dart`、`lib/features/ledger/domain/repositories/recurring_repository.dart`、`lib/features/ledger/data/repositories/recurring_repository.dart`
+- [X] T034 [US2] 新增三个命令：`CreateRecurringSeriesCommand`（收具名参数而非 Drift companion，复用 `PostingContextResolver` 跑账户/分类红线，走到 CRUD-exempt 表）、`DeactivateRecurringSeriesCommand`（设 `endDate`、保留既有实例）、`SkipScheduledTransactionCommand`（置 `'skipped'`，不写事件故无 `commandId`），以满足 FR-006/FR-007/FR-012，路径为 `lib/features/ledger/domain/commands/`
+- [X] T035 [US2] 新增 `RecurringService` 门面（`createSeries` → `materialize()`、`deactivateSeries`、`postInstance`、`skipInstance`、`materialize`、`watchSeries`、`watchScheduled`），把 `convertScheduledToPosted` 与 `watchScheduledTransactions` 从 `LedgerService` 迁入，并把它加进测试 harness，路径为 `lib/features/ledger/domain/services/recurring_service.dart`、`lib/features/ledger/domain/services/ledger_service.dart`、`test/support/event_sourcing/ledger_service_harness.dart`
+- [X] T036 [US2] 编写周期服务测试（经 harness）：创建后列值正确**且**实例已物化；停用后 `endDate` 已设、既有实例保留、不再新增；跳过置 `'skipped'`；跳过已 posted 得 `scheduledAlreadyPosted`；`postInstance` 产生一条事件且状态在同一次 append 内翻为 `'posted'`；**连续两次 `materialize()` 结果集完全相同**（SC-004），路径为 `test/unit/features/ledger/domain/services/recurring_series_test.dart`
+- [X] T037 [US2] 在 `main.dart` 重建门禁之后加入启动补课：`try { await recurringService.materialize(); } catch (e) { debugPrint(...); }`，以满足 FR-008/FR-009，路径为 `lib/main.dart`
+- [X] T038 [US2] 新增 `RecurringViewModel`（形态照 `LedgerViewModel`：两条订阅进 `AsyncValue`、`onDispose` 退订、`onError` 收进 `AsyncError`），并补待办筛选单测（含逾期 `scheduled`，排除 `posted`/`skipped`/未来），路径为 `lib/features/ledger/presentation/view_model/recurring_view_model.dart`、`test/unit/features/ledger/presentation/recurring_view_model_test.dart`
+- [X] T039 [US2] 新建周期列表屏（上半「待办」含记入/跳过与确认框，下半「系列」含停用）与系列创建表单 sheet，形状照 `account_management_screen.dart` 与 `account_form_sheet.dart`；不做 `countLimit`，路径为 `lib/features/ledger/presentation/screens/recurring_list_screen.dart`、`lib/features/ledger/presentation/widgets/recurring_series_form_sheet.dart`
+- [X] T040 [US2] 注册周期路由（照 `accounts`/`categories` 的双注册方式）并在 more 页加入口；**删除** `LedgerViewState.scheduledTransactions` 与 `LedgerViewModel._subscribeScheduledTransactions`（零读者且异常无人观察）以及 `LedgerService` 上迁移后的转发，路径为 `lib/app/router/app_router.dart`、`lib/features/settings/presentation/screens/more_screen.dart`、`lib/features/ledger/presentation/view_model/ledger_view_model.dart`、`lib/features/ledger/presentation/view_model/ledger_view_state.dart`
+- [X] T041 [US2] 补齐四份 ARB 的周期文案并重新生成，路径为 `lib/app/l10n/app_{en,zh,zh_Hans,zh_Hant}.arb`
+- [X] T042 [US2] 编写周期屏组件测试：空态、创建、停用确认、记入确认、跳过，路径为 `test/ui/features/ledger/recurring_list_screen_test.dart`
+- [X] T043 [US2] 门禁：`dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 零问题、`flutter test` 不减少，路径为仓库根
 
-**Checkpoint**: 租房/订阅/工资这类固定账单不再需要手记，且余额只在用户确认时变动。
+**Checkpoint**: 租房/订阅/工资这类固定账单不再需要手记，且余额只在用户确认时变动。✅
+
+> **执行记录（2026-09-22，281 项测试通过，analyze 零问题，SC-010 已复核）**：
+> - **发现并修复了一个既有的性能缺陷，它是 T037 的前提**：`ProjectRecurringEventsCommand` 对 `rrule` 的 `getInstances()` 返回的惰性生成器用了 `.where(d.isBefore(limit))` 过滤。该生成器只在 `before` / `until` / `count` / **年份 9999** 处停止，所以一个今年开始的月度系列要跑 **~95,600 步**才能产出视野内的 ~20 个实例——实测**每个系列 ~37 秒**。修法是把 `before: limit` 直接传给生成器（语义完全等价，因为 `.where` 做的正是同一件事），并加 `startUtc.isBefore(limitUtc)` 短路，因为生成器**断言 `before >= start`**（起始日晚于视野的系列会撞断言——这条由 T036 的一个测试抓到）。单文件测试耗时 **87 秒 → 2.2 秒**。
+>   这个缺陷此前不可见：命令**没有任何调用方**。本 spec 让它跑在每一次应用启动和每一次创建系列之后，所以不修就是「应用打不开」。已加一条 10 秒上限的定时守卫（修复后 <1 秒，余量 10 倍，不会因机器慢而抖动）。
+> - **T035 顺带收掉了两个入口**：`convertScheduledToPosted` 与 `watchScheduledTransactions` 从 `LedgerService` 迁入 `RecurringService`，`LedgerService` 保留一行转发（`lib/` 内唯一调用方是 `LedgerViewModel` 的死订阅，已在 T040 删除，但 `convert_scheduled_to_posted_test.dart` 仍用显式 commandId 走它）。`postInstance` 因此接受可选 `commandId`——默认自己铸，调用方自带则用它。
+> - **T036 抓到第二个缺陷**：`ConvertScheduledToPostedCommand` 的「已 posted」守卫仍在比字符串字面量 `'posted'` 并复用 `transactionAlreadyReversed`。Phase 2 的 T008 只替换了**写入**侧的编码（`const Value('posted')`），没动这个**比较**侧——两处是不同的代码路径。已一并改为 `decodeScheduledStatus` + `scheduledAlreadyPosted`。既有的 `convert_scheduled_to_posted_test.dart` 断言旧码，已同步更新。
+> - **T038 的待办筛选单测抓到实现缺陷**：`dueScheduledInstances` 把「今天」截到零点，却拿实例的**完整时间戳**去比——实例保留系列的时刻，所以今天上午到期的账单会被判成「未到期」。改为两侧都按天比较。
+> - **T042 的 `_FakeRecurringViewModel` 首版 `build()` 返回 `AsyncLoading`**，导致系列区永远转圈、`pumpAndSettle` 不收敛；改为 `AsyncData`（读取测试在 pump 前设好的字段）。另有两处断言未限定作用域：列表行的「记入」按钮与确认框里的同名按钮、系列行的「停用」与确认框里的同名——都已限定在 `AlertDialog` / `ScaffoldMessenger` 内。
+> - T039 **未做** `countLimit`（列保持可空），与 spec 的「v1 只让用户面对一条结束规则」一致。
+> - 入口按计划放在「更多」页，与账户/分类管理同级（`/more/recurring` + 顶层 `/recurring_management` 双注册）。
 
 ---
 

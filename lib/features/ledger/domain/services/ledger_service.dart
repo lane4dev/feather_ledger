@@ -8,11 +8,10 @@ import 'package:feather_ledger/features/ledger/domain/value_objects/account_bala
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/correct_transaction_command.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snapshot_query.dart';
-import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart'; // New import
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
 part 'ledger_service.g.dart';
 
@@ -20,21 +19,19 @@ class LedgerService {
   final RecordTransactionCommand _recordTransactionCommand;
   final ReverseTransactionCommand _reverseTransactionCommand;
   final CorrectTransactionCommand _correctTransactionCommand;
-  final ConvertScheduledToPostedCommand _convertScheduledToPostedCommand;
+  final RecurringService _recurringService;
   final WatchTransactionsQuery _watchTransactionsQuery;
   final WatchMonthlySnapshotQuery _watchMonthlySnapshotQuery;
   final GetAccountBalanceQuery _getAccountBalanceQuery;
-  final WatchScheduledTransactionsQuery _watchScheduledTransactionsQuery;
 
   LedgerService(
     this._recordTransactionCommand,
     this._reverseTransactionCommand,
     this._correctTransactionCommand,
-    this._convertScheduledToPostedCommand,
+    this._recurringService,
     this._watchTransactionsQuery,
     this._watchMonthlySnapshotQuery,
     this._getAccountBalanceQuery,
-    this._watchScheduledTransactionsQuery,
   );
 
   Stream<List<TransactionEntity>> watchTransactions(DateTime month) {
@@ -46,8 +43,10 @@ class LedgerService {
     return _watchMonthlySnapshotQuery.execute(month, currencyCode: currencyCode);
   }
 
+  /// Recurring bills are [RecurringService]'s business (spec 004, US2); these
+  /// two forward so existing callers keep working while the surface moves.
   Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() {
-    return _watchScheduledTransactionsQuery.execute();
+    return _recurringService.watchScheduled();
   }
 
   Future<AccountBalance> accountBalance(String accountId) {
@@ -156,9 +155,7 @@ class LedgerService {
 
   Future<Result<void>> convertScheduledToPosted(String scheduledId,
       {required String commandId}) {
-    return guard(() =>
-        _convertScheduledToPostedCommand.execute(scheduledId,
-            commandId: commandId));
+    return _recurringService.postInstance(scheduledId, commandId: commandId);
   }
 }
 
@@ -168,10 +165,9 @@ LedgerService ledgerService(Ref ref) {
     ref.watch(recordTransactionCommandProvider),
     ref.watch(reverseTransactionCommandProvider),
     ref.watch(correctTransactionCommandProvider),
-    ref.watch(convertScheduledToPostedCommandProvider),
+    ref.watch(recurringServiceProvider),
     ref.watch(watchTransactionsQueryProvider),
     ref.watch(watchMonthlySnapshotQueryProvider),
     ref.watch(getAccountBalanceQueryProvider),
-    ref.watch(watchScheduledTransactionsQueryProvider), // New dependency
   );
 }

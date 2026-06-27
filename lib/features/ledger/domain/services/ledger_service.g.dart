@@ -48,4 +48,4 @@ final class LedgerServiceProvider
   }
 }
 
-String _$ledgerServiceHash() => r'33e6160701aab34750bc3692795b771f16a54cce';
+String _$ledgerServiceHash() => r'ed33daebe3814ba2e7fe662a6ee345e67ff9131d';

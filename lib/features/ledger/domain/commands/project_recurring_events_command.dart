@@ -28,11 +28,19 @@ class ProjectRecurringEventsCommand {
         count: series.countLimit,
       );
 
-      final instances = rrule
-          .getInstances(
-            start: series.startDate.toUtc(),
-          )
-          .where((d) => d.isBefore(limit.toUtc()));
+      // `before` bounds the generator itself. Filtering a `.where` on top of
+      // it instead would look equivalent but is not: getInstances is a lazy
+      // generator that only stops at `before`, `until`, `count` or year 9999
+      // — so a monthly series starting this year would run ~95,600 steps to
+      // yield the ~20 inside the horizon. That was ~37 seconds per series on
+      // this command, and this command now runs on every app launch.
+      final startUtc = series.startDate.toUtc();
+      final limitUtc = limit.toUtc();
+      // getInstances asserts `before >= start`, so a series starting beyond
+      // the horizon is answered directly instead of by querying.
+      final instances = startUtc.isBefore(limitUtc)
+          ? rrule.getInstances(start: startUtc, before: limitUtc)
+          : const Iterable<DateTime>.empty();
 
       for (var date in instances) {
         final id = '${series.id}_${date.millisecondsSinceEpoch}';

@@ -49,8 +49,9 @@ class ConvertScheduledToPostedCommand {
       throw const CommandRejected(
           LedgerErrorCode.transactionNotFound, 'Scheduled instance not found');
     }
-    if (scheduled.status == 'posted') {
-      throw const CommandRejected(LedgerErrorCode.transactionAlreadyReversed,
+    if (decodeScheduledStatus(scheduled.status) ==
+        ScheduledTransactionStatus.posted) {
+      throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
           'Scheduled instance already posted');
     }
 

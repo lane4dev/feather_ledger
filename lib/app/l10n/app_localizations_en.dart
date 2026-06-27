@@ -453,4 +453,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exitNow => 'Exit now';
+
+  @override
+  String get recurringTitle => 'Recurring bills';
+
+  @override
+  String get dueSection => 'Due';
+
+  @override
+  String get noDueInstances => 'Nothing due right now';
+
+  @override
+  String get seriesSection => 'Series';
+
+  @override
+  String get noRecurringSeries => 'No recurring bills yet';
+
+  @override
+  String get postInstanceTitle => 'Record this bill';
+
+  @override
+  String get postInstanceConfirm => 'Record this bill as a transaction?';
+
+  @override
+  String get postInstance => 'Post';
+
+  @override
+  String get instancePosted => 'Bill recorded';
+
+  @override
+  String get skipInstance => 'Skip';
+
+  @override
+  String get instanceSkipped => 'Bill skipped';
+
+  @override
+  String get deactivateSeries => 'Deactivate';
+
+  @override
+  String get deactivateSeriesConfirm =>
+      'Stop this series creating new bills? Bills already created are kept.';
+
+  @override
+  String get seriesDeactivated => 'Series deactivated';
+
+  @override
+  String get newRecurringSeries => 'New recurring bill';
+
+  @override
+  String get seriesDescriptionHint => 'e.g. Rent';
+
+  @override
+  String get seriesFrequency => 'Repeat';
+
+  @override
+  String get seriesInterval => 'Every N periods';
+
+  @override
+  String get seriesIntervalInvalid => 'Enter a whole number of 1 or more';
+
+  @override
+  String get seriesStartDate => 'Starts';
+
+  @override
+  String get seriesEndDate => 'Ends';
+
+  @override
+  String get seriesEndDateNone => 'No end date';
+
+  @override
+  String get frequencyDaily => 'day';
+
+  @override
+  String get frequencyWeekly => 'week';
+
+  @override
+  String get frequencyMonthly => 'month';
+
+  @override
+  String get frequencyYearly => 'year';
+
+  @override
+  String everyFrequency(String unit) {
+    return 'Every $unit';
+  }
+
+  @override
+  String everyNthFrequency(int count, String unit) {
+    return 'Every $count ${unit}s';
+  }
+
+  @override
+  String seriesEndsOn(String date) {
+    return 'ends $date';
+  }
 }

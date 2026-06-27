@@ -107,8 +107,11 @@ void main() {
 
     expect(
       result,
+      // Its own code since spec 004/FR-011: this used to reuse
+      // transactionAlreadyReversed, which told the user their transaction had
+      // been reversed when nothing of the sort had happened.
       isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.transactionAlreadyReversed),
+          LedgerErrorCode.scheduledAlreadyPosted),
     );
     final events = (await harness.eventStore.readAll()).events;
     expect(

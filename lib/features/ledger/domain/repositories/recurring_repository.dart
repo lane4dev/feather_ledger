@@ -22,4 +22,13 @@ abstract class RecurringRepository {
   /// Retrieves all recurring series.
   /// Returns a list of [RecurringSeriesRow].
   Future<List<RecurringSeriesRow>> getAllRecurringSeries();
+
+  /// Inserts or updates a series (spec 004, US2). `recurring_series` is
+  /// CRUD-exempt — this writes the table directly and emits no event.
+  Future<void> saveSeries(RecurringSeriesCompanion entry);
+
+  /// Watches the series themselves, not their instances (spec 004, US2).
+  ///
+  /// A series with no materialized instances yet must still be listed.
+  Stream<List<RecurringTransactionSeriesEntity>> watchAllSeries();
 }

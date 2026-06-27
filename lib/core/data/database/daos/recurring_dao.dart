@@ -35,4 +35,13 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
   Stream<List<ScheduledTransactionViewRow>> watchAllScheduled() {
     return select(scheduledTransactionsView).watch();
   }
+
+  /// Watches the series themselves, not their instances.
+  ///
+  /// Needed because a series can produce zero scheduled rows — an `endDate`
+  /// at or before its `startDate`, or one created before its first instance
+  /// materializes — and would otherwise be invisible, including in the moment
+  /// right after it is created.
+  Stream<List<RecurringSeriesRow>> watchAllSeries() =>
+      select(recurringSeries).watch();
 }

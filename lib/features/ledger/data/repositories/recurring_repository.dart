@@ -70,6 +70,33 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
     return _recurringDao.getAllSeries();
   }
+
+  @override
+  Future<void> saveSeries(RecurringSeriesCompanion entry) {
+    return _recurringDao.saveSeries(entry);
+  }
+
+  @override
+  Stream<List<RecurringTransactionSeriesEntity>> watchAllSeries() {
+    return _recurringDao.watchAllSeries().map(
+          (rows) => rows.map(_toSeriesEntity).toList(),
+        );
+  }
+
+  RecurringTransactionSeriesEntity _toSeriesEntity(RecurringSeriesRow row) =>
+      RecurringTransactionSeriesEntity(
+        id: row.id,
+        description: row.description,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        amountMinor: row.amountMinor,
+        categoryId: row.categoryId,
+        accountId: row.accountId,
+        type: row.type,
+        frequency: row.frequency,
+        interval: row.interval,
+        limit: row.countLimit,
+      );
 }
 
 @riverpod

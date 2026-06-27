@@ -39,6 +39,16 @@ class MoreScreen extends ConsumerWidget {
           ),
           const FeatherDivider(),
           ListTile(
+            leading: const Icon(Icons.repeat),
+            title: Text(l10n.recurringTitle),
+            subtitle: Text(l10n.dueSection),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              context.go('/more/recurring');
+            },
+          ),
+          const FeatherDivider(),
+          ListTile(
             leading: const Icon(Icons.category),
             title: Text(l10n.categories),
             trailing: const Icon(Icons.chevron_right),

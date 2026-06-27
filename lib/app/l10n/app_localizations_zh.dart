@@ -438,6 +438,99 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exitNow => '现在退出';
+
+  @override
+  String get recurringTitle => '周期账单';
+
+  @override
+  String get dueSection => '待办';
+
+  @override
+  String get noDueInstances => '暂无到期账目';
+
+  @override
+  String get seriesSection => '周期规则';
+
+  @override
+  String get noRecurringSeries => '还没有周期账单';
+
+  @override
+  String get postInstanceTitle => '记入这笔';
+
+  @override
+  String get postInstanceConfirm => '把这笔账单记为交易？';
+
+  @override
+  String get postInstance => '记入';
+
+  @override
+  String get instancePosted => '已记入';
+
+  @override
+  String get skipInstance => '跳过';
+
+  @override
+  String get instanceSkipped => '已跳过';
+
+  @override
+  String get deactivateSeries => '停用';
+
+  @override
+  String get deactivateSeriesConfirm => '停止这条规则产生新的账单？已生成的账单会保留。';
+
+  @override
+  String get seriesDeactivated => '规则已停用';
+
+  @override
+  String get newRecurringSeries => '新建周期账单';
+
+  @override
+  String get seriesDescriptionHint => '例如：房租';
+
+  @override
+  String get seriesFrequency => '重复';
+
+  @override
+  String get seriesInterval => '每 N 期';
+
+  @override
+  String get seriesIntervalInvalid => '请输入 1 或更大的整数';
+
+  @override
+  String get seriesStartDate => '开始';
+
+  @override
+  String get seriesEndDate => '结束';
+
+  @override
+  String get seriesEndDateNone => '无结束日期';
+
+  @override
+  String get frequencyDaily => '天';
+
+  @override
+  String get frequencyWeekly => '周';
+
+  @override
+  String get frequencyMonthly => '月';
+
+  @override
+  String get frequencyYearly => '年';
+
+  @override
+  String everyFrequency(String unit) {
+    return '每$unit';
+  }
+
+  @override
+  String everyNthFrequency(int count, String unit) {
+    return '每 $count $unit';
+  }
+
+  @override
+  String seriesEndsOn(String date) {
+    return '结束于 $date';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -874,6 +967,99 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get exitNow => '现在退出';
+
+  @override
+  String get recurringTitle => '周期账单';
+
+  @override
+  String get dueSection => '待办';
+
+  @override
+  String get noDueInstances => '暂无到期账目';
+
+  @override
+  String get seriesSection => '周期规则';
+
+  @override
+  String get noRecurringSeries => '还没有周期账单';
+
+  @override
+  String get postInstanceTitle => '记入这笔';
+
+  @override
+  String get postInstanceConfirm => '把这笔账单记为交易？';
+
+  @override
+  String get postInstance => '记入';
+
+  @override
+  String get instancePosted => '已记入';
+
+  @override
+  String get skipInstance => '跳过';
+
+  @override
+  String get instanceSkipped => '已跳过';
+
+  @override
+  String get deactivateSeries => '停用';
+
+  @override
+  String get deactivateSeriesConfirm => '停止这条规则产生新的账单？已生成的账单会保留。';
+
+  @override
+  String get seriesDeactivated => '规则已停用';
+
+  @override
+  String get newRecurringSeries => '新建周期账单';
+
+  @override
+  String get seriesDescriptionHint => '例如：房租';
+
+  @override
+  String get seriesFrequency => '重复';
+
+  @override
+  String get seriesInterval => '每 N 期';
+
+  @override
+  String get seriesIntervalInvalid => '请输入 1 或更大的整数';
+
+  @override
+  String get seriesStartDate => '开始';
+
+  @override
+  String get seriesEndDate => '结束';
+
+  @override
+  String get seriesEndDateNone => '无结束日期';
+
+  @override
+  String get frequencyDaily => '天';
+
+  @override
+  String get frequencyWeekly => '周';
+
+  @override
+  String get frequencyMonthly => '月';
+
+  @override
+  String get frequencyYearly => '年';
+
+  @override
+  String everyFrequency(String unit) {
+    return '每$unit';
+  }
+
+  @override
+  String everyNthFrequency(int count, String unit) {
+    return '每 $count $unit';
+  }
+
+  @override
+  String seriesEndsOn(String date) {
+    return '结束于 $date';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1310,4 +1496,97 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get exitNow => '現在結束';
+
+  @override
+  String get recurringTitle => '週期帳單';
+
+  @override
+  String get dueSection => '待辦';
+
+  @override
+  String get noDueInstances => '暫無到期帳目';
+
+  @override
+  String get seriesSection => '週期規則';
+
+  @override
+  String get noRecurringSeries => '還沒有週期帳單';
+
+  @override
+  String get postInstanceTitle => '記入這筆';
+
+  @override
+  String get postInstanceConfirm => '把這筆帳單記為交易？';
+
+  @override
+  String get postInstance => '記入';
+
+  @override
+  String get instancePosted => '已記入';
+
+  @override
+  String get skipInstance => '跳過';
+
+  @override
+  String get instanceSkipped => '已跳過';
+
+  @override
+  String get deactivateSeries => '停用';
+
+  @override
+  String get deactivateSeriesConfirm => '停止這條規則產生新的帳單？已產生的帳單會保留。';
+
+  @override
+  String get seriesDeactivated => '規則已停用';
+
+  @override
+  String get newRecurringSeries => '新增週期帳單';
+
+  @override
+  String get seriesDescriptionHint => '例如：房租';
+
+  @override
+  String get seriesFrequency => '重複';
+
+  @override
+  String get seriesInterval => '每 N 期';
+
+  @override
+  String get seriesIntervalInvalid => '請輸入 1 或更大的整數';
+
+  @override
+  String get seriesStartDate => '開始';
+
+  @override
+  String get seriesEndDate => '結束';
+
+  @override
+  String get seriesEndDateNone => '無結束日期';
+
+  @override
+  String get frequencyDaily => '天';
+
+  @override
+  String get frequencyWeekly => '週';
+
+  @override
+  String get frequencyMonthly => '月';
+
+  @override
+  String get frequencyYearly => '年';
+
+  @override
+  String everyFrequency(String unit) {
+    return '每$unit';
+  }
+
+  @override
+  String everyNthFrequency(int count, String unit) {
+    return '每 $count $unit';
+  }
+
+  @override
+  String seriesEndsOn(String date) {
+    return '結束於 $date';
+  }
 }

@@ -12,14 +12,19 @@ import 'package:feather_ledger/features/ledger/data/repositories/ledger_reposito
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/correct_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/deactivate_recurring_series_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/skip_scheduled_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snapshot_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
 import 'package:feather_ledger/features/settings/domain/commands/archive_account_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/create_account_command.dart';
@@ -64,6 +69,12 @@ class LedgerServiceHarness {
 
   /// The write/read seam every migration logic test goes through.
   late final LedgerService ledgerService;
+
+  /// Recurring bills live here (spec 004, US2) — `recurring_series` and
+  /// `scheduled_transactions_view` are CRUD-exempt, and this is the only
+  /// service that reaches them and the event store in one action.
+  late final RecurringService recurringService;
+
   late final AccountService accountService;
   late final CategoryService categoryService;
 
@@ -83,17 +94,25 @@ class LedgerServiceHarness {
         PostingContextResolver(accountRepository, categoryRepository);
     final recordCommand =
         RecordTransactionCommand(eventStore, projector, contextResolver);
+    recurringService = RecurringService(
+      CreateRecurringSeriesCommand(recurringRepository, contextResolver),
+      DeactivateRecurringSeriesCommand(recurringRepository),
+      SkipScheduledTransactionCommand(recurringRepository),
+      ConvertScheduledToPostedCommand(
+          eventStore, projector, recurringRepository, contextResolver),
+      ProjectRecurringEventsCommand(recurringRepository),
+      WatchScheduledTransactionsQuery(recurringRepository),
+      recurringRepository,
+    );
     ledgerService = LedgerService(
       recordCommand,
       ReverseTransactionCommand(eventStore, projector, ledgerRepository),
       CorrectTransactionCommand(
           eventStore, projector, ledgerRepository, contextResolver),
-      ConvertScheduledToPostedCommand(
-          eventStore, projector, recurringRepository, contextResolver),
+      recurringService,
       WatchTransactionsQuery(ledgerRepository),
       WatchMonthlySnapshotQuery(db.monthlySnapshotDao, db.accountDao),
       GetAccountBalanceQuery(accountRepository),
-      WatchScheduledTransactionsQuery(recurringRepository),
     );
 
     accountService = AccountService(

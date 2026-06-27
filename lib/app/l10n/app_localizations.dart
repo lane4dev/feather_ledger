@@ -952,6 +952,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exit now'**
   String get exitNow;
+
+  /// No description provided for @recurringTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring bills'**
+  String get recurringTitle;
+
+  /// No description provided for @dueSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Due'**
+  String get dueSection;
+
+  /// No description provided for @noDueInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing due right now'**
+  String get noDueInstances;
+
+  /// No description provided for @seriesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Series'**
+  String get seriesSection;
+
+  /// No description provided for @noRecurringSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'No recurring bills yet'**
+  String get noRecurringSeries;
+
+  /// No description provided for @postInstanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Record this bill'**
+  String get postInstanceTitle;
+
+  /// No description provided for @postInstanceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Record this bill as a transaction?'**
+  String get postInstanceConfirm;
+
+  /// No description provided for @postInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postInstance;
+
+  /// No description provided for @instancePosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill recorded'**
+  String get instancePosted;
+
+  /// No description provided for @skipInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skipInstance;
+
+  /// No description provided for @instanceSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill skipped'**
+  String get instanceSkipped;
+
+  /// No description provided for @deactivateSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get deactivateSeries;
+
+  /// No description provided for @deactivateSeriesConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop this series creating new bills? Bills already created are kept.'**
+  String get deactivateSeriesConfirm;
+
+  /// No description provided for @seriesDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Series deactivated'**
+  String get seriesDeactivated;
+
+  /// No description provided for @newRecurringSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'New recurring bill'**
+  String get newRecurringSeries;
+
+  /// No description provided for @seriesDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Rent'**
+  String get seriesDescriptionHint;
+
+  /// No description provided for @seriesFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get seriesFrequency;
+
+  /// No description provided for @seriesInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Every N periods'**
+  String get seriesInterval;
+
+  /// No description provided for @seriesIntervalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number of 1 or more'**
+  String get seriesIntervalInvalid;
+
+  /// No description provided for @seriesStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get seriesStartDate;
+
+  /// No description provided for @seriesEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get seriesEndDate;
+
+  /// No description provided for @seriesEndDateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No end date'**
+  String get seriesEndDateNone;
+
+  /// No description provided for @frequencyDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'day'**
+  String get frequencyDaily;
+
+  /// No description provided for @frequencyWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'week'**
+  String get frequencyWeekly;
+
+  /// No description provided for @frequencyMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'month'**
+  String get frequencyMonthly;
+
+  /// No description provided for @frequencyYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'year'**
+  String get frequencyYearly;
+
+  /// No description provided for @everyFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {unit}'**
+  String everyFrequency(String unit);
+
+  /// No description provided for @everyNthFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {count} {unit}s'**
+  String everyNthFrequency(int count, String unit);
+
+  /// No description provided for @seriesEndsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'ends {date}'**
+  String seriesEndsOn(String date);
 }
 
 class _AppLocalizationsDelegate

@@ -17,6 +17,7 @@ import 'core/presentation/providers/theme_provider.dart';
 import 'core/presentation/providers/locale_provider.dart';
 import 'features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'features/ledger/data/projections/ledger_rebuild_service.dart';
+import 'features/ledger/domain/services/recurring_service.dart';
 import 'features/settings/domain/services/account_service.dart';
 import 'features/settings/domain/services/category_service.dart';
 
@@ -86,6 +87,23 @@ void main() async {
   final rebuildService = container.read(ledgerRebuildServiceProvider);
   if (await rebuildService.isStale()) {
     await rebuildService.rebuild();
+  }
+
+  // Startup catch-up for recurring bills (spec 004, US2): materialize the
+  // instances due within the projection horizon.
+  //
+  // Awaited rather than fired after runApp: it writes no events and no
+  // projected rows, so no first frame depends on it, but the pending list
+  // would otherwise race its own provider. It is idempotent — instances are
+  // keyed by (series, date) and skipped when present — so a partial run, or
+  // running it again, costs nothing but the queries.
+  //
+  // The catch is not decoration: this is new work over user data on the
+  // launch path, and one bad series row must not stop the ledger opening.
+  try {
+    await container.read(recurringServiceProvider).materialize();
+  } catch (e) {
+    debugPrint('recurring catch-up failed: $e');
   }
 
   // Preferences that arrived with a restored backup. Applied exactly once, on

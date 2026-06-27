@@ -14,8 +14,12 @@ import 'package:feather_ledger/features/ledger/data/repositories/ledger_reposito
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/correct_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/deactivate_recurring_series_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/skip_scheduled_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
@@ -23,6 +27,7 @@ import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snap
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
 
 import '../../../../../support/fakes/fake_app_database.dart';
@@ -41,7 +46,7 @@ void main() {
   late WatchTransactionsQuery watchTransactionsQuery;
   late WatchMonthlySnapshotQuery watchMonthlySnapshotQuery;
   late GetAccountBalanceQuery getAccountBalanceQuery;
-  late WatchScheduledTransactionsQuery watchScheduledTransactionsQuery;
+  late RecurringService recurringService;
   late LedgerService service;
 
   setUp(() {
@@ -68,18 +73,27 @@ void main() {
     watchMonthlySnapshotQuery =
         WatchMonthlySnapshotQuery(database.monthlySnapshotDao, database.accountDao);
     getAccountBalanceQuery = GetAccountBalanceQuery(accountRepository);
-    watchScheduledTransactionsQuery =
-        WatchScheduledTransactionsQuery(recurringRepository);
+
+    // Recurring bills moved to their own service (spec 004, US2); the ledger
+    // service now forwards to it rather than owning the commands.
+    recurringService = RecurringService(
+      CreateRecurringSeriesCommand(recurringRepository, contextResolver),
+      DeactivateRecurringSeriesCommand(recurringRepository),
+      SkipScheduledTransactionCommand(recurringRepository),
+      convertScheduledCommand,
+      ProjectRecurringEventsCommand(recurringRepository),
+      WatchScheduledTransactionsQuery(recurringRepository),
+      recurringRepository,
+    );
 
     service = LedgerService(
       recordCommand,
       reverseCommand,
       correctCommand,
-      convertScheduledCommand,
+      recurringService,
       watchTransactionsQuery,
       watchMonthlySnapshotQuery,
       getAccountBalanceQuery,
-      watchScheduledTransactionsQuery,
     );
   });
 

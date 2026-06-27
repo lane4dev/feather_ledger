@@ -7,7 +7,6 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
-import '../../domain/entities/ledger_entities.dart';
 import '../../domain/queries/watch_monthly_snapshot_query.dart';
 import '../../domain/services/ledger_service.dart';
 
@@ -46,7 +45,6 @@ Map<DateTime, List<TransactionTileUiModel>> groupTransactionsByDay(
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
   StreamSubscription<MonthlySnapshotTotals>? _summarySub;
-  StreamSubscription<List<ScheduledTransactionEntity>>? _scheduledSub;
 
   @override
   LedgerViewState build() {
@@ -54,11 +52,9 @@ class LedgerViewModel extends _$LedgerViewModel {
 
     ref.onDispose(() {
       _summarySub?.cancel();
-      _scheduledSub?.cancel();
     });
 
     _subscribeSummary(initial.selectedDate);
-    _subscribeScheduledTransactions();
     return initial;
   }
 
@@ -187,22 +183,6 @@ class LedgerViewModel extends _$LedgerViewModel {
     return ref
         .read(ledgerServiceProvider)
         .deleteTransaction(id, commandId: const Uuid().v4());
-  }
-
-  void _subscribeScheduledTransactions() {
-    _scheduledSub ??=
-        ref.read(ledgerServiceProvider).watchScheduledTransactions().listen(
-      (items) {
-        state = state.copyWith(
-          scheduledTransactions: AsyncData(items),
-        );
-      },
-      onError: (Object error, StackTrace st) {
-        state = state.copyWith(
-          scheduledTransactions: AsyncError(error, st),
-        );
-      },
-    );
   }
 
   void _subscribeSummary(DateTime datetime) {
