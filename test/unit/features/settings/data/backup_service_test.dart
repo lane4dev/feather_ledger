@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:feather_ledger/app/bootstrap/pending_restore.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -238,6 +240,46 @@ void main() {
       expect(result, isA<Failure<void>>());
       expect(stagingMarker().existsSync(), isFalse,
           reason: 'a corrupt restore must not be armed');
+    });
+
+    test('refuses a database whose schema this build cannot read', () async {
+      // Found by running the app against a real leftover database: one
+      // written before the event-sourcing migration has user_version 1 —
+      // the same as the current schemaVersion — and passes
+      // PRAGMA integrity_check, but has none of the tables this build reads.
+      // Accepting it would replace the user's ledger with one the app cannot
+      // open, which is the worst possible outcome for a restore.
+      final legacy = File(p.join(supportDir.path, 'legacy.sqlite'));
+      final legacyDb = AppDatabase.internal(NativeDatabase(legacy, setup: (db) {
+        // `setup` runs on the raw database before drift's migration decides
+        // anything. Writing the current user_version is what makes drift skip
+        // `onCreate` — which is exactly the trap: a same-version database with
+        // the wrong tables looks fine to every check but this one.
+        db.execute('PRAGMA user_version = 1');
+        db.execute('CREATE TABLE accounts (id TEXT PRIMARY KEY)');
+        db.execute('CREATE TABLE transactions (id TEXT PRIMARY KEY)');
+      }));
+      await legacyDb.customStatement('SELECT 1');
+      await legacyDb.close();
+      expect(legacy.existsSync(), isTrue);
+
+      final picked = await archiveFile(corrupt: (valid) {
+        final manifest = jsonDecode(
+          utf8.decode(valid.findFile(RestoreLayout.stagedManifest)!.content),
+        ) as Map<String, dynamic>;
+        return Archive()
+          ..addFile(ArchiveFile.string(
+              RestoreLayout.stagedManifest, jsonEncode(manifest)))
+          ..addFile(ArchiveFile.bytes(RestoreLayout.stagedDb,
+              legacy.readAsBytesSync()))
+          ..addFile(ArchiveFile.string(RestoreLayout.stagedPreferences, '{}'));
+      });
+
+      final result = await service().stageRestore(picked);
+
+      expect(result, isA<Failure<void>>());
+      expect(stagingMarker().existsSync(), isFalse,
+          reason: 'a database this build cannot read must not be armed');
     });
 
     test('carries the event counts the restore warning needs', () async {

@@ -42,20 +42,21 @@ lib/shared/     跨特性的组件与扩展
 
 特性内部：
 
-- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。
+- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。**例外**：周期链路的三个命令（创建系列/停用系列/跳过实例）直接写 CRUD 豁免表、不发事件、因此也没有 `commandId`。
 - `domain/queries/` —— 读用例，流式读取 Drift 视图。
-- `domain/services/` —— 组合命令 + 查询的门面（`LedgerService`、`AccountService`、`CategoryService`）；UI 消费的入口。ledger 还有 `PostingContextResolver`（`domain/services/posting_context.dart`），即每个写入方都要经过的接缝：在构建聚合前校验账户/分类（ADR-0002）。
-- `domain/model/` —— 聚合根及其组成部分（`Transaction`、`Posting`）；另有 `domain/value_objects/`、`domain/entities/`、`domain/projections/`（投影器接口，实现放在 `data/projections/`）。
+- `domain/services/` —— 组合命令 + 查询的门面（`LedgerService`、`AccountService`、`CategoryService`、`RecurringService`、`BackupService`、`TransactionExportService`）；UI 消费的入口。ledger 还有 `PostingContextResolver`（`domain/services/posting_context.dart`），即每个写入方都要经过的接缝：在构建聚合前校验账户/分类（ADR-0002）。
+- `domain/model/` —— 聚合根及其组成部分（`Transaction`、`Posting`）；另有 `domain/value_objects/`（含 `TransactionFilter`）、`domain/entities/`、`domain/export/`（`transaction_csv.dart`，纯函数）、`domain/projections/`（投影器接口，实现放在 `data/projections/`）。
 - `domain/repositories/`（接口）↔ `data/repositories/`（实现），由 Riverpod provider 接线。
 - CQRS 靠命名约定：每个命令/查询都是普通类，带 `execute()`、构造器注入依赖，并在同文件内手写 `@riverpod` provider。没有命令总线。
 - 表现层：组件 → 视图模型（`@riverpod` notifier）→ service → 命令/查询。组件内不放业务逻辑。**这是 ledger 的形态；另外两个切片目前并不对称**（见下）。
 
 ### 各切片成熟度（描述代码现状，不是目标）
 
-- **ledger** —— 完整切片：视图模型（`LedgerViewModel`）→ service → 命令/查询。
+- **ledger** —— 完整切片：视图模型（`LedgerViewModel`、`RecurringViewModel`、`SearchViewModel`）→ service → 命令/查询。
 - **settings** —— 只有 `domain/` + `presentation/`，**没有视图模型层**：表单直接调 service，并在组件内
-  现场生成命令 ID。为 settings 加 UI 时，优先引入 notifier 而不是继续把组件养大。它还有一处跨特性依赖，
-  用于长按重建入口（`settings_screen.dart` → `features/ledger/data/projections/ledger_rebuild_service.dart`）
+  现场生成命令 ID（备份/恢复的对话框也是直接调 `BackupService`）。为 settings 加 UI 时，优先引入 notifier
+  而不是继续把组件养大。它还有一处跨特性依赖，用于长按重建入口
+  （`settings_screen.dart` → `features/ledger/data/projections/ledger_rebuild_service.dart`）
   —— 除 `main.dart` 这一组合根之外，唯一被认可的跨特性 data 层依赖。
 - **reports** —— 没有 `commands/`、`queries/` 或 `services/`；provider 直接读
   `data/repositories/reports_repository.dart`，且 `report_breakdown_view.dart` 在组件内自己做排序 /
@@ -99,14 +100,18 @@ lib/shared/     跨特性的组件与扩展
 - `recurring_series` 存规则（frequency、interval、start/end、count）；`scheduled_transactions_view`
   存物化出来的实例，状态为 `scheduled | posted | skipped | failed`。两者都是 CRUD 表 —— 直接写入，
   永不重建，投影器永不触碰。
-- `ProjectRecurringEventsCommand` 用 `package:rrule`（`RRULE`）把每个系列展开为未来 `months: 12` 的
-  实例，id 形如 `'${series.id}_${date.millisecondsSinceEpoch}'`，因此重复执行是幂等的。
+- `ProjectRecurringEventsCommand` 用 `package:rrule` 把每个系列展开为未来 `months: 12` 的实例，
+  id 形如 `'${series.id}_${date.millisecondsSinceEpoch}'`，因此重复执行是幂等的。**`getInstances`
+  的 `before:` 必须传**：它只在 `before` / `until` / `count` / 年份 9999 处停止，改用 `.where`
+  过滤会让一个今年开始的月度系列跑 ~95,600 步才产出视野内的 ~20 个实例（实测每系列 ~37 秒，
+  而本命令跑在启动路径上）。
 - `ConvertScheduledToPostedCommand` 是通往事件溯源世界的桥：一个实例变成真正的 `TransactionRecorded`，
   **并且**它的状态在同一个 append 事务里翻转。
 - 这里的金额与币种代码同样遵循最小单位规则（`amountMinor`）。
-- **当前接线缺口：** 只有转正这一步可达（`LedgerService.convertScheduledToPosted`）；
-  `ProjectRecurringEventsCommand` 没有任何调用方，没有系列创建/管理 UI，`LedgerViewModel` 的
-  `scheduledTransactions` 状态没有任何组件渲染。请把这条周期链路当作**未完成**，而不是**已损坏**。
+- `RecurringService` 是这条链路唯一的服务入口（`createSeries` / `deactivateSeries` /
+  `postInstance` / `skipInstance` / `materialize` / `watchSeries` / `watchScheduled`）；
+  三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者）。
+- 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
 
 ## 金额约定（重要）
 
@@ -146,12 +151,23 @@ lib/shared/     跨特性的组件与扩展
 - `AppLanguages.supportedLocales`（`lib/app/config/app_languages.dart`）是可选语言集合；偏好里存的是
   完整 language tag，因此简体 / 繁體重启后仍保留。不要把它退回成只存 `languageCode`。
 
+## 数据可携带性与恢复（spec 004）
+
+- **转账**有自己的表单（`transfer_form_screen.dart`）与路由 `/ledger/transfer`；`/ledger/edit` 按 `extra.type` 分流到转账或收支表单，因此调用方始终推同一个「编辑这个东西」URL。「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`。
+- **检索**：`TransactionFilter`（值对象，手写 `==`/`hashCode` —— Riverpod 按 `==` 去重 state）→ `TransactionsDao.watchTransactionsFiltered` → `LedgerRepository.watchTransactionsFiltered`（复用既有的 `_toTransactionEntities`，不写第二个装配器）。两个刻意之处：`isReversed` 在 **SQL** 里过滤（查询层不再过滤第二次），账户/分类筛选用子查询选出**哪些交易**合格、再返回它们的**全部** posting —— 转账因此不会被截成单腿。
+- **导出**：`transactionsToCsv` 是纯函数（RFC 4180 转义、ISO 日期、枚举名而非译名、前置 UTF-8 BOM）；`TransactionExportService` 只负责落盘与分享。导出的是**屏幕上那些行**，无结果时按钮禁用。
+- **备份**：`VACUUM INTO` 产出一致快照（不是复制文件），连同偏好与 manifest 打成一个 `.flbackup`。恢复是**替换**语义，且**只暂存不就地应用**——数据库整个运行期都被打开，替换只能发生在下次启动、任何东西读取 `db.sqlite` **之前**。
+- 暂存区标志是**文件**（`restore/PENDING`）而非 SharedPreferences 键：它必须早于任何 provider 存在时可读，而且恢复本身会覆盖偏好。
+- 替换时**必须删除陈旧的 `-wal`/`-shm`/`-journal`**：旧库留下的 `-wal` 会被重放进恢复后的库，静默损坏。
+- 校验在写 PENDING **之前**全部完成：容器 format/formatVersion、库的 schemaVersion（读 SQLite 头，不打开文件——打开会跑迁移并改写待校验的那份副本）、`PRAGMA integrity_check`、以及**用真实 DAO 读一次事件表**。最后一项不可省：一个事件溯源迁移**之前**的库 user_version 同样是 1、integrity_check 同样通过，但本 build 根本读不了它。
+
 ## 应用流程
 
-- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（事件溯源：AccountCreated/OpeningBalanceSet/CategoryCreated × N，含 2 个内置系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → `runApp`。
-- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add` 与 `/ledger/edit` 推在根导航器上。`/accounts_management` 与 `/categories_management` 是顶层路由，从交易表单的选择器打开。
-- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、预约交易、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。
-- 偏好设置走 SharedPreferences（`PreferencesRepository`）：主题模式、语言、币种、余额可见性。
+- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（事件溯源：AccountCreated/OpeningBalanceSet/CategoryCreated × N，含 2 个内置系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
+  **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
+- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/transfer`、`/ledger/search` 推在根导航器上；账本页的 app bar 放搜索与转账两个入口（FAB 保持直达 `/ledger/add`）。`/accounts_management`、`/categories_management`、`/recurring_management` 是顶层路由，`/more/recurring` 与之双注册。
+- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。周期与检索各有自己的视图模型（`RecurringViewModel`、`SearchViewModel`）。
+- 偏好设置走 SharedPreferences（`PreferencesRepository`）：主题模式、语言、币种、余额可见性；另有 `exportAll`/`importAll` 供备份使用，**只针对已知的四个键**。
 
 ## 测试布局
 

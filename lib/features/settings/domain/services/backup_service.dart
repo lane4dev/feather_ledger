@@ -249,6 +249,21 @@ class BackupService {
         throw BackupFormatException('Backup database failed its integrity '
             'check: $verdict');
       }
+
+      // A consistent SQLite file is not necessarily *this* application's
+      // database. `integrity_check` and the schema version both pass for a
+      // database written before the event-sourcing migration — it carries
+      // user_version 1 and a perfectly valid set of older tables — and
+      // installing it makes the app die on the first event-store query, with
+      // the user's current ledger already replaced. Reading through the real
+      // DAO is what proves the schema is one this build can use.
+      try {
+        await probe.eventsDao.countAll();
+      } catch (e) {
+        throw BackupFormatException(
+            'Backup is a Feather Ledger database this version cannot read '
+            '(its schema predates the event store): $e');
+      }
     } finally {
       await probe.close();
     }

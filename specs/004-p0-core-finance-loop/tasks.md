@@ -190,10 +190,102 @@
 
 **Purpose**: 全量门禁与架构断言复核。**SC-010 是本 spec 全部技术前提的验收点**——一旦它失败，说明动了事件 payload 或表结构，本 plan 的零写模型变更承诺即不成立。
 
-- [ ] T057 运行代码生成、`flutter gen-l10n`、`flutter analyze` 与完整 `flutter test`，修复所有新增失败并记录实际项数，路径为仓库根
-- [ ] T058 复核 SC-010：`git diff lib/features/ledger/domain/events/ledger_events.dart lib/core/data/database/tables.dart` **必须为空**；并确认 `AppDatabase.schemaVersion` 仍为 1、`MigrationStrategy.onUpgrade` 未被改动，路径为 `lib/features/ledger/domain/events/ledger_events.dart`、`lib/core/data/database/tables.dart`、`lib/core/data/database/app_database.dart`
+- [X] T057 运行代码生成、`flutter gen-l10n`、`flutter analyze` 与完整 `flutter test`，修复所有新增失败并记录实际项数，路径为仓库根
+- [X] T058 复核 SC-010：`git diff lib/features/ledger/domain/events/ledger_events.dart lib/core/data/database/tables.dart` **必须为空**；并确认 `AppDatabase.schemaVersion` 仍为 1、`MigrationStrategy.onUpgrade` 未被改动，路径为 `lib/features/ledger/domain/events/ledger_events.dart`、`lib/core/data/database/tables.dart`、`lib/core/data/database/app_database.dart`
 - [ ] T059 按 `spec.md` 的验收场景手工验收四个故事（转账闭环、周期闭环、检索与导出、备份与恢复的完整往返），并把结果记入本文件，路径为 `specs/004-p0-core-finance-loop/tasks.md`
-- [ ] T060 将本 spec 落地后 AGENTS.md 中已不成立的现状描述更新（转账 UI 缺失、周期链路「未完成」、无检索/导出/备份三处），路径为 `AGENTS.md`
+
+  > **部分完成 —— GUI 交互部分未执行。** 我不能驱动界面，所以「手工点击验收」由两部分代替：
+  > **(a) 可自动化的部分已有测试覆盖**，逐条对照见下方映射表；
+  > **(b) 应用端到端跑通**：`flutter build linux --debug` 构建成功，二进制实际启动并完成播种
+  > （日志见「启动验证」），说明 `main.dart` 的新接线（恢复替换 → 建容器 → 播种 → 重建门禁 →
+  > 周期补课 → 应用恢复偏好 → runApp）在真实进程里没有崩溃。
+  > **仍未验证的**：需要人眼与手指的部分 —— 转账行在屏幕上的配色、CSV 在真实 Excel 里打开、
+  > 分享面板与文件选择器在两个移动平台上的行为、以及「暂存后重启」的完整往返。
+- [X] T060 将本 spec 落地后 AGENTS.md 中已不成立的现状描述更新（转账 UI 缺失、周期链路「未完成」、无检索/导出/备份三处），路径为 `AGENTS.md`
+
+  > 除逐条订正外，新增「数据可携带性与恢复（spec 004）」一节，记录四个故事的**承重不变量**：
+  > 转账更正的 kind 守卫、`before:` 必传的 rrule 陷阱、`isReversed` 在 SQL 层过滤、
+  > 恢复的暂存-替换模型与 `-wal` 删除、以及「用户版本号相同但 schema 不可读」这道校验。
+
+---
+
+## 验收场景覆盖映射（T059）
+
+`spec.md` 的用户故事验收场景逐条对应到测试。**「自动化」列是已通过的测试；「手工」列尚未执行**
+（见 T059 的执行记录）。
+
+### US1 转账
+
+| 场景 | 覆盖 |
+|---|---|
+| 1. 从 A 转 B，余额一增一减、kind=transfer | `transfer_correction_test.dart`（A1 断言两条 posting 与余额）、`transfer_form_screen_test.dart`（保存后 cash 75000 / bank 25000） |
+| 2. 改成 150，余额等于「一开始就记 150」 | `transfer_correction_test.dart`「a corrected transfer leaves the balances a fresh recording would」—— 已做**变异验证** |
+| 3. transfer 原交易按收入更正被拒 | `transfer_correction_test.dart`「correcting a transfer as income is rejected…」 |
+| 4. income 原交易按转账更正被拒 | `transfer_correction_test.dart`「correcting an income as a transfer is rejected」 |
+| 5. 「到」候选排除自身与异币种账户 | `transfer_form_screen_test.dart`「the to picker excludes the from account and other currencies」 |
+| 6. 同账户错误显示本地化文案 | `ledger_error_localizer_test.dart`（`sameAccountTransfer` 有专属 case）＋ `transfer_display_test.dart` |
+| 7. 详情页中性色、无符号、编辑删除可用 | `transfer_display_test.dart`（3 项，含「支出仍是红色带减号」的对照） |
+| — 转账行在真实设备上的观感 | **手工，未验** |
+
+### US2 周期账单
+
+| 场景 | 覆盖 |
+|---|---|
+| 1. 创建系列并物化未来实例 | `recurring_series_test.dart`「creating a series stores it and materializes its instances」 |
+| 2. 重复物化不产生重复实例 | 同上「materializing twice produces the identical instance set」（SC-004） |
+| 3. 记入产生一条事件且同事务翻状态 | 同上「posting an instance records one transaction and flips its status」 |
+| 4. 跳过不产生事件、不动余额 | 同上「skipping writes no event and moves no money」 |
+| 5. 已 posted 再处理被拒且是专属码 | 同上「posting/skipping an already-posted instance…」 |
+| 6. 停用后保留既有实例、不再新增 | 同上「deactivating keeps existing instances and adds no more」 |
+| 7. 未知 status 降级不抛 | `scheduled_status_test.dart` |
+| — 待办列表与确认框的交互 | `recurring_list_screen_test.dart`（7 项） |
+| — 真实设备上的启动补课 | **手工，未验**（但 `main.dart` 的调用已在真实进程里跑过一次，见启动验证） |
+
+### US3 检索与导出
+
+| 场景 | 覆盖 |
+|---|---|
+| 1. 关键词命中备注/分类快照/账户名，按天倒序 | `transaction_dao_filter_test.dart`「the keyword matches…」 |
+| 2. 多条件 AND，账户筛选下转账只出现一次 | 同上「combines conditions with AND」＋「an account filter returns a whole transfer, both legs」＋ `ledger_repository_filter_test.dart` |
+| 3. 冲销行不出现 | 同上「a reversed transaction is excluded」 |
+| 4. 日期范围两端含端点 | 同上「the date range includes both endpoints, by day」 |
+| 5. CSV 含 BOM、RFC 4180 转义 | `transaction_csv_test.dart`（11 项） |
+| 6. 无结果时导出禁用 | `search_screen_test.dart`「export is disabled while there is nothing to export」 |
+| — CSV 在真实 Excel/分享面板中的表现 | **手工，未验** |
+
+### US4 备份与恢复
+
+| 场景 | 覆盖 |
+|---|---|
+| 1. 单文件归档含三个条目、库由 VACUUM 产出 | `backup_service_test.dart`「produces a three-entry archive…」＋「the snapshot is a complete SQLite database」 |
+| 2. 确认框写明事件条数对比 | `backup_screen_test.dart`「restoring states what it would discard…」＋ `BackupPreview` 三项算术测试 |
+| 3. 异版本/错误 format 被拒且不留 PENDING | 同上「refuses a zip that is not one of ours」＋「refuses a backup from a future schema version」 |
+| 4. 损坏内容被拒且不留 PENDING | 同上「refuses a truncated database…」＋「refuses a database whose schema this build cannot read」 |
+| 5. 下次启动替换、副档清除、偏好应用 | `pending_restore_test.dart`（12 项） |
+| 6. 替换失败回滚 | 同上「resumes an interrupted swap instead of wedging」＋「a marker with no staged database leaves the ledger alone」 |
+| 7. 恢复前数据留有 `db.sqlite.replaced` | 同上（顺路径断言） |
+| — 暂存后重启的完整往返、分享面板/文件选择器 | **手工，未验** |
+
+### 启动验证（T057/T059 的端到端部分）
+
+```
+$ flutter build linux --debug
+✓ Built build/linux/x64/debug/bundle/feather_ledger
+$ ./build/linux/x64/debug/bundle/feather_ledger
+Seeding default categories and accounts via the event stream...
+（运行 25 秒无异常，由 timeout 结束）
+```
+
+第一次运行**崩溃**，原因不是本次改动：开发机上的 `~/.local/share/com.example.feather_ledger/db.sqlite`
+是 2026-01-22 留下的、**事件溯源迁移之前**的库（`user_version` 同样是 1，表是旧的
+`accounts`/`categories`/`transactions`），drift 认为版本一致便跳过迁移，于是第一条事件查询就
+`no such table: ledger_events`。把该文件改名为 `db.sqlite.pre-event-sourcing.bak` 后启动正常
+（spec 003 已声明开发库可丢弃）。
+
+**这次崩溃直接暴露了 US4 的一个真实漏洞**：这样一个库 `user_version` 与当前 `schemaVersion` 相同、
+`PRAGMA integrity_check` 也通过，因此 `stageRestore` 会**接受**它——用户会在自己当前账本已被替换之后，
+才遇到上面那个崩溃。已补上第四道校验（用真实 DAO 读一次事件表），并加了对应的拒绝测试；
+该测试经过**变异验证**：去掉这次读，它会以 `Expected: Failure, Actual: Success` 失败。
 
 ---
 
