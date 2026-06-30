@@ -140,19 +140,14 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 pinned: true,
                 expandedHeight: _kExpandedHeight,
                 forceElevated: innerBoxIsScrolled,
-                // The FAB still goes straight to the income/expense form —
-                // quick entry must not lose a step. Transfers get their own
-                // entry point here (spec 004, US1).
+                // The FAB goes straight to the form, which carries all three
+                // kinds — a transfer is one tap away on its type selector, so
+                // it needs no separate entry point here.
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.search),
                     tooltip: l10n.searchHint,
                     onPressed: () => context.push('/ledger/search'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.swap_horiz),
-                    tooltip: l10n.transfer,
-                    onPressed: () => context.push('/ledger/transfer'),
                   ),
                 ],
                 // Collapsed Content (Title)

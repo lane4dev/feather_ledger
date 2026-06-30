@@ -90,7 +90,6 @@ void main() {
   Future<void> pumpForm(
     WidgetTester tester, {
     TransactionTileUiModel? transaction,
-    TransactionKind initialType = TransactionKind.expense,
   }) async {
     const delegates = [
       AppLocalizations.delegate,
@@ -108,10 +107,8 @@ void main() {
           routes: [
             GoRoute(
               path: 'form',
-              builder: (_, __) => TransactionFormScreen(
-                transaction: transaction,
-                initialType: initialType,
-              ),
+              builder: (_, __) =>
+                  TransactionFormScreen(transaction: transaction),
             ),
           ],
         ),
@@ -174,18 +171,32 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('offers all three kinds and starts on the requested one',
-      (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+  testWidgets('starts on expense and offers all three kinds', (tester) async {
+    await pumpForm(tester);
 
     expect(find.text('Expense'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Transfer'), findsOneWidget);
+    // A new transaction is an expense by default — what the FAB is for.
+    expect(find.text('Add Transaction'), findsOneWidget);
+    expect(find.text('Category'), findsOneWidget);
+    expect(find.text('From'), findsNothing);
+  });
+
+  testWidgets('tapping Transfer swaps the form to the transfer layout',
+      (tester) async {
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
+
     expect(find.text('New Transfer'), findsOneWidget);
+    expect(find.text('From'), findsOneWidget);
+    expect(find.text('To'), findsOneWidget);
+    expect(find.text('Category'), findsNothing);
   });
 
   testWidgets('a transfer shows two accounts and no category', (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     expect(find.byType(LedgerSelectorField), findsNWidgets(2),
         reason: 'from and to');
@@ -198,7 +209,8 @@ void main() {
 
   testWidgets('switching to expense swaps back to one account and a category',
       (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     await selectKind(tester, 'Expense');
 
@@ -211,7 +223,8 @@ void main() {
   });
 
   testWidgets('the pickers offer only active accounts', (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     await openPicker(tester, 0);
 
@@ -226,7 +239,8 @@ void main() {
 
   testWidgets('the to picker excludes the from account and other currencies',
       (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     await openPicker(tester, 0);
     await tester.tap(inSheet('Cash'));
@@ -246,7 +260,8 @@ void main() {
 
   testWidgets('saving a transfer calls addTransfer with the chosen legs',
       (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     await tester.enterText(
       find.descendant(
@@ -307,7 +322,8 @@ void main() {
   });
 
   testWidgets('a transfer is required to name both accounts', (tester) async {
-    await pumpForm(tester, initialType: TransactionKind.transfer);
+    await pumpForm(tester);
+    await selectKind(tester, 'Transfer');
 
     await tester.enterText(
       find.descendant(
@@ -351,7 +367,8 @@ void main() {
 
     await pumpForm(tester, transaction: tile);
 
-    // The kind comes from the transaction, not from initialType.
+    // The kind comes from the transaction being corrected, not from the
+    // form's default.
     expect(find.text('Edit Transfer'), findsOneWidget);
     // Both legs are pre-filled, so the fields show the accounts rather than
     // their placeholders. Direction is carried by the up/down icons, the same

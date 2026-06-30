@@ -41,15 +41,7 @@ import '../widgets/ledger_type_selector.dart';
 class TransactionFormScreen extends ConsumerStatefulWidget {
   final TransactionTileUiModel? transaction;
 
-  /// Which kind a *new* transaction starts as. Ignored when correcting, where
-  /// the existing transaction's own kind decides.
-  final TransactionKind initialType;
-
-  const TransactionFormScreen({
-    super.key,
-    this.transaction,
-    this.initialType = TransactionKind.expense,
-  });
+  const TransactionFormScreen({super.key, this.transaction});
 
   @override
   ConsumerState<TransactionFormScreen> createState() =>
@@ -95,7 +87,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       _accountId = transaction.account.id;
       _toAccountId = transaction.toAccount?.id;
     } else {
-      _type = widget.initialType;
+      // A new transaction starts as an expense — the common case, and the one
+      // the FAB is for.
+      _type = TransactionKind.expense;
     }
   }
 

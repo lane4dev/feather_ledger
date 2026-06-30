@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/recurring_list_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
@@ -43,15 +42,6 @@ GoRouter goRouter(Ref ref) {
                     parentNavigatorKey:
                         _rootNavigatorKey, // Open over the shell
                     builder: (context, state) => const TransactionFormScreen(),
-                  ),
-                  // The transfer shortcut opens the same form, already showing
-                  // a transfer. One screen, two entry points.
-                  GoRoute(
-                    path: 'transfer',
-                    parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) => const TransactionFormScreen(
-                      initialType: TransactionKind.transfer,
-                    ),
                   ),
                   GoRoute(
                     path: 'search',

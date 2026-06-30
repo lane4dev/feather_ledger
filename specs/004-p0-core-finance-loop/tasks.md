@@ -78,7 +78,9 @@
 > - 删除 `lib/features/ledger/presentation/screens/transfer_form_screen.dart`；
 > - `transaction_form_screen.dart` 承载三种 kind —— 转账渲染「从/到」两个账户行、**不渲染分类行**；收支渲染分类行与单个账户行。**不适用的字段根本不渲染**，所以「带分类的转账」不是这个表单能进入的状态（比原有的「渲染后校验拦住」更贴合 ADR-0002）。
 > - `LedgerTypeSelector` 新增 `kinds` 参数（默认三种）；**周期系列表单必须传 `[expense, income]`**，因为一个系列只有一个账户，transfer 对它不可表达。
-> - 路由：`/ledger/transfer` 仍存在，但指向 `TransactionFormScreen(initialType: transfer)`（保留转账快捷入口）；`/ledger/edit` **不再按 kind 分流**——kind 由 `extra` 里的交易自己决定。
+> - 路由：`/ledger/edit` **不再按 kind 分流**——kind 由 `extra` 里的交易自己决定。
+>
+> **后续（2026-09-22，同日）：转账快捷入口也移除了。** 用户要求移除账本页右上角的转账按钮。该按钮是 `/ledger/transfer` 的**唯一**引用，因此该路由一并删除（留着就是死路由）。现在转账只能从表单内的类型选择器进入——这是合并的自然终点：一个屏幕，一个入口。随之删除的还有 `TransactionFormScreen.initialType`：它已无生产调用方，只剩测试在用，而测试改用**点击 Transfer segment**（真实用户路径）反而更贴近实际。
 > - 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支仍用全局显示偏好。
 > - 账户选择器改用**每个账户自己的币种符号**（原先是全局符号）：转账模式下两条腿并排出现，共用符号在账户币种不同时会标错其中一条。这是合并**必需**的改动，不是顺手改的。
 > - 测试：`transfer_form_screen_test.dart` 重写为 9 项（覆盖三种 kind 的渲染切换、两条写路径的分流、编辑时从 `toAccount` 回填）。全套 312 → 316 项，`flutter analyze` 零问题，`flutter build linux --debug` 成功且启动无异常。
@@ -234,6 +236,7 @@
 | 3. transfer 原交易按收入更正被拒 | `transfer_correction_test.dart`「correcting a transfer as income is rejected…」 |
 | 4. income 原交易按转账更正被拒 | `transfer_correction_test.dart`「correcting an income as a transfer is rejected」 |
 | 5. 「到」候选排除自身与异币种账户 | `transfer_form_screen_test.dart`「the to picker excludes the from account and other currencies」 |
+| — 转账入口 | 无独立入口；`transfer_form_screen_test.dart`「tapping Transfer swaps the form to the transfer layout」覆盖从表单内切换 |
 | 6. 同账户错误显示本地化文案 | `ledger_error_localizer_test.dart`（`sameAccountTransfer` 有专属 case）＋ `transfer_display_test.dart` |
 | 7. 详情页中性色、无符号、编辑删除可用 | `transfer_display_test.dart`（3 项，含「支出仍是红色带减号」的对照） |
 | — 转账行在真实设备上的观感 | **手工，未验** |
