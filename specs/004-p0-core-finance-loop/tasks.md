@@ -73,6 +73,17 @@
 
 **Checkpoint**: 转账在 UI 上完整可用；本地化缺口已闭合。✅
 
+> **⚠️ 设计变更（2026-09-22，用户要求）：T014/T015 被推翻，转账并入收支表单。**
+> 原实现按计划建了独立的 `transfer_form_screen.dart`；用户要求把转账迁移进 `transaction_form_screen.dart`。现已：
+> - 删除 `lib/features/ledger/presentation/screens/transfer_form_screen.dart`；
+> - `transaction_form_screen.dart` 承载三种 kind —— 转账渲染「从/到」两个账户行、**不渲染分类行**；收支渲染分类行与单个账户行。**不适用的字段根本不渲染**，所以「带分类的转账」不是这个表单能进入的状态（比原有的「渲染后校验拦住」更贴合 ADR-0002）。
+> - `LedgerTypeSelector` 新增 `kinds` 参数（默认三种）；**周期系列表单必须传 `[expense, income]`**，因为一个系列只有一个账户，transfer 对它不可表达。
+> - 路由：`/ledger/transfer` 仍存在，但指向 `TransactionFormScreen(initialType: transfer)`（保留转账快捷入口）；`/ledger/edit` **不再按 kind 分流**——kind 由 `extra` 里的交易自己决定。
+> - 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支仍用全局显示偏好。
+> - 账户选择器改用**每个账户自己的币种符号**（原先是全局符号）：转账模式下两条腿并排出现，共用符号在账户币种不同时会标错其中一条。这是合并**必需**的改动，不是顺手改的。
+> - 测试：`transfer_form_screen_test.dart` 重写为 9 项（覆盖三种 kind 的渲染切换、两条写路径的分流、编辑时从 `toAccount` 回填）。全套 312 → 316 项，`flutter analyze` 零问题，`flutter build linux --debug` 成功且启动无异常。
+> - **仍未处理的 UX 取舍**：转账模式下选中账户后字段只显示账户名，方向靠上下箭头图标；详情页用的是 From/To 文字标签。合并前同样如此，非本次引入。
+
 > **执行记录（2026-09-21，214 项测试通过，analyze 零问题，SC-010 已复核）**：
 > - T011 的余额等价性测试做了**变异验证**：临时删掉 `_appendCorrection` 里的冲销信封后，该测试以 `Expected: <115000> Actual: <105000>` 失败（正是未抵消的原交易被重复计入），确认这条守卫真的有效，而非恰好通过。之后已还原。
 > - T016 的组件测试**没有**用真实 DI 图。首版用 `appDatabaseProvider` 覆盖 + `GoRouter` + `LedgerViewModel`，结果卡在 `pumpAndSettle` 永不收敛（金额输入框 autofocus 的光标闪烁）并在拆卸时留下 pending timer，整个 suite 挂死 10 分钟。改为：组件测试只覆盖账户列表与视图模型两个 provider，断言「表单调用了哪个方法、传了什么参数」；真正的写入路径（事件对、余额、拒绝）由 T011 走真实 service 断言。这正是宪法 VI 描述的接缝分工。

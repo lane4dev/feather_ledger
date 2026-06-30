@@ -125,6 +125,13 @@ test/
 
 **表单与入口**：新建 `transfer_form_screen.dart`（金额、日期时间、从账户、到账户、备注；复用 `LedgerAmountInput`、`LedgerSelectionSheet`、`AppButton`）。「到」的候选按「从」账户的币种过滤——同币种是聚合根不变量，让非法状态**不可表达**优于写完再拒（ADR-0002 的精神）。路由新增 `/ledger/transfer`；`/ledger/edit` 的 builder 按 `extra.type` 分流，这样一个「编辑这个东西」的 URL 同时服务两种形态，调用方一行不改。**不给 `LedgerTypeSelector` 加第三个 segment**——那会让 436 行的收支表单需要表达非法状态，并与 T077 在同一区域冲突。`ledger_screen.dart` 的 `SliverAppBar` 加搜索与转账两个 action；FAB 保持直达 `/ledger/add`（不回退「快速记账」）。
 
+> **⚠️ 本节已被实现推翻（2026-09-22，用户要求）。** 转账**没有**独立屏幕：三种 kind 现在共用一个 `transaction_form_screen.dart`，`LedgerTypeSelector` 加了第三个 segment，`transfer_form_screen.dart` 已删除。
+> 推翻的两条理由各自成立与否，如实记录：
+> - 「436 行的表单需要表达非法状态」—— **不成立**。做法是让 kind 决定**哪些字段存在**：转账不渲染分类行，收支不渲染「到」账户行。非法形状不是「被校验拦住」，而是**进不去**，这比原方案更贴合 ADR-0002 的精神。字段从 3 个（类型/分类/账户）变成按 kind 分支的 2 或 2 个，表单反而**变短**了（436 → ~470 行，但其中 ~90 行是抽出来的 `_accountRow`，两个 kind 共用；删掉了一整个屏幕文件）。
+> - 「与 T077 在同一区域冲突」—— **已经过期**。T077 的在途改动在 Phase 1 就提交为快照了。
+> `kinds` 参数是这次合并的必需品：周期系列表单必须**不显示** transfer（一个系列只有一个账户），默认值给三种。
+> 一个仍然成立的代价：转账模式下两个账户字段在选中后只显示账户名，方向靠上下箭头图标表达，而详情页用的是 From/To 文字标签。合并前就如此（旧 `TransferFormScreen` 同样只显示名字），不是本次引入的回归。
+
 **展示修正**：`transaction_detail_sheet.dart` 的配色扩为三路（transfer → `onSurface`）、符号改用 `displaySign`；`ledger_amount_input.dart` 同理。这两处是「第二处推导同一件事」的清除。
 
 ### US2 — 周期账单

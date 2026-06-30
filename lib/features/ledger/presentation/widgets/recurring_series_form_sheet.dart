@@ -80,6 +80,12 @@ class _RecurringSeriesFormSheetState
 
               LedgerTypeSelector(
                 selectedType: _type.toTransactionKind,
+                // A series has one account, so a transfer is not
+                // representable — do not offer it (ADR-0002).
+                kinds: const [
+                  TransactionKind.expense,
+                  TransactionKind.income,
+                ],
                 onSelectionChanged: (kind) => setState(() {
                   _type = kind == TransactionKind.income
                       ? RecurringSeriesKind.income

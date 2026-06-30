@@ -9,7 +9,6 @@ import 'package:feather_ledger/features/ledger/presentation/screens/ledger_scree
 import 'package:feather_ledger/features/ledger/presentation/screens/recurring_list_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
-import 'package:feather_ledger/features/ledger/presentation/screens/transfer_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/more_screen.dart';
@@ -45,29 +44,29 @@ GoRouter goRouter(Ref ref) {
                         _rootNavigatorKey, // Open over the shell
                     builder: (context, state) => const TransactionFormScreen(),
                   ),
+                  // The transfer shortcut opens the same form, already showing
+                  // a transfer. One screen, two entry points.
                   GoRoute(
                     path: 'transfer',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) => const TransferFormScreen(),
+                    builder: (context, state) => const TransactionFormScreen(
+                      initialType: TransactionKind.transfer,
+                    ),
                   ),
                   GoRoute(
                     path: 'search',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const SearchScreen(),
                   ),
-                  // One "edit this thing" route for both shapes: the extra's
-                  // kind picks the form, so callers push '/ledger/edit'
-                  // without having to know which screen they need.
+                  // One "edit this thing" route: the form reads the extra's
+                  // kind itself, so callers push '/ledger/edit' without
+                  // knowing what they are editing.
                   GoRoute(
                     path: 'edit',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) {
-                      final transaction =
-                          state.extra as TransactionTileUiModel?;
-                      return transaction?.type == TransactionKind.transfer
-                          ? TransferFormScreen(transaction: transaction)
-                          : TransactionFormScreen(transaction: transaction);
-                    },
+                    builder: (context, state) => TransactionFormScreen(
+                      transaction: state.extra as TransactionTileUiModel?,
+                    ),
                   ),
                 ],
               ),

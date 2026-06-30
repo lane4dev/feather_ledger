@@ -153,7 +153,12 @@ lib/shared/     跨特性的组件与扩展
 
 ## 数据可携带性与恢复（spec 004）
 
-- **转账**有自己的表单（`transfer_form_screen.dart`）与路由 `/ledger/transfer`；`/ledger/edit` 按 `extra.type` 分流到转账或收支表单，因此调用方始终推同一个「编辑这个东西」URL。「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`。
+- **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
+- 路由：`/ledger/add`（默认支出）、`/ledger/transfer`（同一屏幕、`initialType: transfer`）、`/ledger/edit`（kind 由 `extra` 里的交易自己决定，调用方不需要知道在编辑什么）。
+- `LedgerTypeSelector` 收一个 `kinds` 列表：默认三种，周期系列表单传 `[expense, income]` —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
+- 「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。同账户同理（候选排除 + 一条兜底校验）。
+- 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支用全局显示偏好。
+- 更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`。
 - **检索**：`TransactionFilter`（值对象，手写 `==`/`hashCode` —— Riverpod 按 `==` 去重 state）→ `TransactionsDao.watchTransactionsFiltered` → `LedgerRepository.watchTransactionsFiltered`（复用既有的 `_toTransactionEntities`，不写第二个装配器）。两个刻意之处：`isReversed` 在 **SQL** 里过滤（查询层不再过滤第二次），账户/分类筛选用子查询选出**哪些交易**合格、再返回它们的**全部** posting —— 转账因此不会被截成单腿。
 - **导出**：`transactionsToCsv` 是纯函数（RFC 4180 转义、ISO 日期、枚举名而非译名、前置 UTF-8 BOM）；`TransactionExportService` 只负责落盘与分享。导出的是**屏幕上那些行**，无结果时按钮禁用。
 - **备份**：`VACUUM INTO` 产出一致快照（不是复制文件），连同偏好与 manifest 打成一个 `.flbackup`。恢复是**替换**语义，且**只暂存不就地应用**——数据库整个运行期都被打开，替换只能发生在下次启动、任何东西读取 `db.sqlite` **之前**。
@@ -165,7 +170,7 @@ lib/shared/     跨特性的组件与扩展
 
 - `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（事件溯源：AccountCreated/OpeningBalanceSet/CategoryCreated × N，含 2 个内置系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
-- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/transfer`、`/ledger/search` 推在根导航器上；账本页的 app bar 放搜索与转账两个入口（FAB 保持直达 `/ledger/add`）。`/accounts_management`、`/categories_management`、`/recurring_management` 是顶层路由，`/more/recurring` 与之双注册。
+- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/transfer`、`/ledger/search` 推在根导航器上，前三者都指向 `TransactionFormScreen`；账本页的 app bar 放搜索与转账两个入口（FAB 保持直达 `/ledger/add`）。`/accounts_management`、`/categories_management`、`/recurring_management` 是顶层路由，`/more/recurring` 与之双注册。
 - 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。周期与检索各有自己的视图模型（`RecurringViewModel`、`SearchViewModel`）。
 - 偏好设置走 SharedPreferences（`PreferencesRepository`）：主题模式、语言、币种、余额可见性；另有 `exportAll`/`importAll` 供备份使用，**只针对已知的四个键**。
 
