@@ -7,6 +7,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
+import '../../domain/entities/ledger_entities.dart';
 import '../../domain/queries/watch_monthly_snapshot_query.dart';
 import '../../domain/services/ledger_service.dart';
 
@@ -17,6 +18,51 @@ import 'ledger_view_state.dart';
 
 part 'ledger_view_model.g.dart';
 
+/// The month's upcoming recurring bills, as rows.
+///
+/// Only `scheduled` instances: a posted one is already a real transaction and
+/// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
+/// one is a decision the user made and does not want to see again.
+///
+/// Filtered to the month here rather than in the DAO because the ledger's
+/// month view is what needs the slice; the instance table itself stays whole.
+@riverpod
+Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
+  Ref ref,
+  DateTime month,
+) {
+  final service = ref.watch(ledgerServiceProvider);
+  const mapper = TransactionUiMapper();
+
+  return service.watchScheduledTransactions().map((instances) {
+    final tiles = <TransactionTileUiModel>[];
+    for (final instance in instances) {
+      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
+      if (instance.date.year != month.year ||
+          instance.date.month != month.month) {
+        continue;
+      }
+      // A bill whose category or account can no longer be resolved has
+      // nothing to render; accounts and categories are archived, not
+      // deleted, so this is a corruption guard rather than a normal path.
+      final category = instance.category;
+      final account = instance.account;
+      if (category == null || account == null) continue;
+
+      tiles.add(
+        mapper.toPendingTile(instance, category: category, account: account),
+      );
+    }
+    return tiles;
+  });
+}
+
+/// The month's ledger rows: what happened, then what is coming.
+///
+/// Pending bills are merged into the same day-grouped map so a bill dated the
+/// 1st sits under the 1st, beside whatever real transactions share that day.
+/// Within a day the posted rows stay first — the list reads as history and
+/// then as forecast.
 @riverpod
 Stream<Map<DateTime, List<TransactionTileUiModel>>> ledgerMonthlyTransactions(
   Ref ref,
@@ -25,8 +71,18 @@ Stream<Map<DateTime, List<TransactionTileUiModel>>> ledgerMonthlyTransactions(
   final service = ref.watch(ledgerServiceProvider);
   const mapper = TransactionUiMapper();
 
+  // Watching this rebuilds the provider when the pending set changes. Each
+  // rebuild re-runs the month query, which at personal-ledger scale is
+  // cheaper than hand-rolling a stream combine.
+  final pending =
+      ref.watch(monthlyPendingTransactionsProvider(month)).value ??
+          const <TransactionTileUiModel>[];
+
   return service.watchTransactions(month).map((items) {
-    final uiItems = items.map(mapper.toTile).toList();
+    final uiItems = [
+      ...items.map(mapper.toTile),
+      ...pending,
+    ];
     return groupTransactionsByDay(uiItems);
   });
 }

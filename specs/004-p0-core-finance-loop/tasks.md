@@ -163,6 +163,37 @@
 > - T039 **未做** `countLimit`（列保持可空），与 spec 的「v1 只让用户面对一条结束规则」一致。
 > - 入口按计划放在「更多」页，与账户/分类管理同级（`/more/recurring` + 顶层 `/recurring_management` 双注册）。
 
+> **设计反转（2026-09-22，后续一轮，330 项测试通过，analyze 零问题）**：上面的独立周期页与表单 sheet
+> **已删除**。用户的要求是「把新增周期账单迁移进交易表单，并在账本主列表里把周期性账单区分展示」——
+> 同一件事散在两个页面上（在表单里记房租、再另开一页说「这笔每月都有」）是主要摩擦点。改为：
+> - **T038/T039/T040/T042 作废**：删掉 `recurring_list_screen.dart`、`recurring_series_form_sheet.dart`、
+>   `recurring_view_state.dart` 及其两个测试文件，以及 `/more/recurring`、`/recurring_management`
+>   路由与「更多」页入口。`RecurringViewModel` 收缩为**只有三个写动作**（`createSeries` /
+>   `postInstance` / `skipInstance` / `deactivateSeries`），不再持有状态——实例经
+>   `ledgerMonthlyTransactionsProvider` 进列表。
+> - **创建并入表单**：交易表单（非转账、仅新建）多一行「重复」（不重复 / 每天 / 每周 / 每月 / 每年，
+>   `interval` 固定 1）。保存时**先记账、后建系列**，`startDate` 取所选日期的下一次发生，因此那一笔与
+>   系列的首个实例不会描述同一个周期。记账成功而建系列失败**不回滚**——两个聚合，那笔账本身合法，
+>   失败以 SnackBar 的 `repeatSetupFailed` 报出。
+> - **待入账行进账本列表**：`TransactionTileUiModel.isPending` + 同一个 `TransactionTile`（降透明度
+>   0.55、标题前置时钟图标、副标题加「待入账」标签），点开是 `PendingBillSheet`（记入需确认 / 跳过不确认 /
+>   停用需确认）。**不新增第二种 UI 模型**，否则日分组、时间轴、搜索三处都要写第二遍。
+> - **待入账不进余额、不进月度合计、不进搜索**：它只在展示层出现。搜索读 `transactions_view`，实例在
+>   `scheduled_transactions_view`，两者结构上不相交（因此这一条**没有**写测试——构造一个必然为真的断言
+>   等于不测）；它变成真实交易的唯一路径仍是 `ConvertScheduledToPostedCommand`。
+> - **E3**：删掉 16 个随之失效的 ARB 键（`recurringTitle` / `dueSection` / `seriesSection` /
+>   `noDueInstances` / `noRecurringSeries` / `newRecurringSeries` / `seriesDescriptionHint` /
+>   `seriesFrequency` / `seriesInterval*` / `seriesStartDate` / `seriesEndDate*` / `everyFrequency` /
+>   `everyNthFrequency` / `seriesEndsOn`），四份 ARB 保持 170 键对等；仍在用的
+>   `frequency*` / `postInstance*` / `skipInstance` / `deactivateSeries*` 保留。
+
+> **物化策略改为滚动窗口（同上）**：原 `execute({int months = 12})` 一次铺满未来 12 个月，换成
+> **90 天窗口、夹在 [3, 12]**——填满窗口；不足 3 个继续向后取到 3 个（上限再放 3 年）；任何时候不超过
+> 12 个。于是每月→3、每周→12、每年→3、每日→12，不需要按频率写规则。既有的两条约束原样保留：
+> `before:` 必须传给生成器，且 `before >= start` 要短路（见上一段 T037 的记录）。
+> 新增 `recurring_materialization_test.dart`（12 项）钉住四种频率的数量、远未来下限、幂等、补足、
+> 跳过不复活、限时保护、停用，以及解析出的 kind/category。
+
 ---
 
 ## Phase 6: User Story 3 - 检索、基础筛选与 CSV 导出（P3）
@@ -252,8 +283,9 @@
 | 5. 已 posted 再处理被拒且是专属码 | 同上「posting/skipping an already-posted instance…」 |
 | 6. 停用后保留既有实例、不再新增 | 同上「deactivating keeps existing instances and adds no more」 |
 | 7. 未知 status 降级不抛 | `scheduled_status_test.dart` |
-| — 待办列表与确认框的交互 | `recurring_list_screen_test.dart`（7 项） |
-| — 真实设备上的启动补课 | **手工，未验**（但 `main.dart` 的调用已在真实进程里跑过一次，见启动验证） |
+| — 待入账行的呈现与记入/跳过/停用 | `pending_bill_test.dart`（7 项：降透明度 + 时钟 + 标签、与分类标签并存、记入需确认、取消不记、跳过不确认、停用需确认、失败码本地化） |
+| — 表单里「重复」行与保存顺序 | `transaction_form_repeat_test.dart`（6 项：新建可重复且默认不重复、转账无此行、编辑无此行、先记账后建系列且 `startDate` 是下一次发生、不重复时只记账、建系列失败不丢已记的账） |
+| — 真实设备上的启动补课 | **已验**，见下方「物化策略实测」（真库 + 真进程，四种频率逐一核对） |
 
 ### US3 检索与导出
 
@@ -300,6 +332,26 @@ Seeding default categories and accounts via the event stream...
 `PRAGMA integrity_check` 也通过，因此 `stageRestore` 会**接受**它——用户会在自己当前账本已被替换之后，
 才遇到上面那个崩溃。已补上第四道校验（用真实 DAO 读一次事件表），并加了对应的拒绝测试；
 该测试经过**变异验证**：去掉这次读，它会以 `Expected: Failure, Actual: Success` 失败。
+
+### 物化策略实测（2026-09-22，滚动窗口版）
+
+单元测试用「本地零点」作为系列起点，而启动路径读的是库里存的时刻，两者未必等价——所以这一轮
+把四种频率**放进真实进程 + 真实数据库**里各跑一遍（`XDG_DATA_HOME` 指向临时目录，库由应用自己
+seed，系列用 SQL 直接插入 `recurring_series`）：
+
+| 频率 | 实例数 | 覆盖范围 | 结论 |
+|---|---|---|---|
+| MONTHLY | 3 | 2026-09-22 → 2026-11-22 | 窗口内恰好三个 |
+| WEEKLY | 12 | — | 窗口内 ~13，被上限截断 |
+| DAILY | 12 | — | 窗口内 90，被上限截断 |
+| YEARLY | 3 | 2026-09-22 → 2028-09-22 | 窗口内没有，下限向后取满 |
+
+连续两次启动的实例 **id 集合完全相同**（幂等），启动到写完实例 **< 1 秒**（上一轮 37 秒缺陷的守卫）。
+
+> 过程中的一个坑，值得记下：手工插系列时 `start_date` 一度按**毫秒**写入，而 drift 存的是**秒**，
+> 于是应用把它读成公元 58,695 年。这暴露了该状态下的行为与直觉不符（远未来起点只落 1 个实例，
+> 而非下限的 3 个）——但**该状态在 UI 上不可达**（表单只把 `startDate` 设为所选日期的下一次发生，
+> 最远约一年），是坏 fixture 造出来的，故不修，记录在此。
 
 ---
 

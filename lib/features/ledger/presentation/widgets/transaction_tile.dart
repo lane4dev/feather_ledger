@@ -25,7 +25,7 @@ class TransactionTile extends StatelessWidget {
     final effectiveCurrencySymbol =
         currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
 
-    return InkWell(
+    final row = InkWell(
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -137,11 +137,27 @@ class TransactionTile extends StatelessWidget {
                 children: [
                   // Title: Note if exists, else Account (transfer shows its
                   // localized label with both sides in the subtitle).
-                  Text(
-                    _title(context),
-                    style: LedgerTheme.transactionTitle(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // A pending bill gets a clock so the row announces itself
+                  // even before the muted opacity registers.
+                  Row(
+                    children: [
+                      if (transaction.isPending) ...[
+                        Icon(
+                          Icons.schedule,
+                          size: 16.0,
+                          color: LedgerTheme.transactionMeta(context).color,
+                        ),
+                        const SizedBox(width: 4.0),
+                      ],
+                      Expanded(
+                        child: Text(
+                          _title(context),
+                          style: LedgerTheme.transactionTitle(context),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Subtitle: Account (only if note was the title)
@@ -157,25 +173,36 @@ class TransactionTile extends StatelessWidget {
                     ),
 
                   // Category Tag — transfers have no category (spec US5).
-                  if (transaction.type != TransactionKind.transfer)
+                  if (transaction.type != TransactionKind.transfer ||
+                      transaction.isPending)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6.0, vertical: 2.0),
-                        decoration: BoxDecoration(
-                          color: Color(transaction.category.colorInt)
-                              .withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                        child: Text(
-                          transaction.category.name,
-                          style: LedgerTheme.denseLabel(context).copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSecondaryContainer,
-                          ),
-                        ),
+                      child: Row(
+                        children: [
+                          if (transaction.type != TransactionKind.transfer)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6.0, vertical: 2.0),
+                              decoration: BoxDecoration(
+                                color: Color(transaction.category.colorInt)
+                                    .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                              child: Text(
+                                transaction.category.name,
+                                style: LedgerTheme.denseLabel(context).copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                          if (transaction.isPending) ...[
+                            if (transaction.type != TransactionKind.transfer)
+                              const SizedBox(width: 6.0),
+                            _pendingBadge(context),
+                          ],
+                        ],
                       ),
                     ),
                 ],
@@ -198,6 +225,32 @@ class TransactionTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+
+    // A pending bill is muted as a whole rather than restyled piece by piece:
+    // one dial to turn, and it reads as "not yet" at a glance without
+    // changing any of the colours the row's meaning depends on. Posted rows
+    // — the common case — skip the extra layer entirely.
+    return transaction.isPending
+        ? Opacity(opacity: 0.55, child: row)
+        : row;
+  }
+
+  /// The "waiting to be posted" tag. Same pill shape as the category tag so
+  /// the row keeps one visual language.
+  Widget _pendingBadge(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: Text(
+        AppLocalizations.of(context)!.pendingBill,
+        style: LedgerTheme.denseLabel(context)
+            .copyWith(color: scheme.onSurfaceVariant),
       ),
     );
   }

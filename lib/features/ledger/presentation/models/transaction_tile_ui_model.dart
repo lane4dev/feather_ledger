@@ -18,6 +18,17 @@ class TransactionTileUiModel {
   final String displayAmount;
   final String displaySign;
 
+  /// A bill that has not happened yet — a recurring series' upcoming
+  /// instance, shown in the month list but not part of the ledger. It is
+  /// rendered muted and is acted on by posting or skipping, not by editing.
+  ///
+  /// [id] is the scheduled instance's id in that case, not a transaction's.
+  final bool isPending;
+
+  /// The series a pending bill belongs to, so it can be posted, skipped or
+  /// switched off from the row. Null for anything already recorded.
+  final String? seriesId;
+
   const TransactionTileUiModel({
     required this.id,
     required this.amount,
@@ -29,5 +40,7 @@ class TransactionTileUiModel {
     this.toAccount,
     required this.displayAmount,
     required this.displaySign,
+    this.isPending = false,
+    this.seriesId,
   });
 }

@@ -215,8 +215,9 @@ void main() {
     await selectKind(tester, 'Expense');
 
     expect(find.text('Add Transaction'), findsOneWidget);
-    // Category and account — still two fields, different ones.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(2));
+    // Category, account and the repeat row — a transfer has neither a
+    // category nor a repeat rule, so both extra rows appear only here.
+    expect(find.byType(LedgerSelectorField), findsNWidgets(3));
     expect(find.text('Category'), findsOneWidget);
     expect(find.text('From'), findsNothing);
     expect(find.text('To'), findsNothing);

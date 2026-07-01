@@ -6,6 +6,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
+import 'pending_bill_sheet.dart';
 import 'transaction_detail_sheet.dart';
 import '../view_model/ledger_view_model.dart';
 
@@ -50,6 +51,23 @@ class LedgerTransactionList extends ConsumerWidget {
                 groupedTransactions: grouped,
                 currencySymbol: currency,
                 onTransactionTap: (tx) {
+                  // A pending bill has no event stream and cannot be edited;
+                  // the only honest actions are to record it, skip it, or
+                  // stop the series behind it.
+                  if (tx.isPending) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useRootNavigator: true,
+                      useSafeArea: true,
+                      builder: (context) => PendingBillSheet(
+                        transaction: tx,
+                        currencySymbol: currency,
+                      ),
+                    );
+                    return;
+                  }
+
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,

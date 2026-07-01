@@ -548,11 +548,6 @@
   "@exitNow": {
     "description": "Button that closes the app so the staged restore can run"
   },
-  "recurringTitle": "Recurring bills",
-  "dueSection": "Due",
-  "noDueInstances": "Nothing due right now",
-  "seriesSection": "Series",
-  "noRecurringSeries": "No recurring bills yet",
   "postInstanceTitle": "Record this bill",
   "postInstanceConfirm": "Record this bill as a transaction?",
   "postInstance": "Post",
@@ -562,45 +557,10 @@
   "deactivateSeries": "Deactivate",
   "deactivateSeriesConfirm": "Stop this series creating new bills? Bills already created are kept.",
   "seriesDeactivated": "Series deactivated",
-  "newRecurringSeries": "New recurring bill",
-  "seriesDescriptionHint": "e.g. Rent",
-  "seriesFrequency": "Repeat",
-  "seriesInterval": "Every N periods",
-  "seriesIntervalInvalid": "Enter a whole number of 1 or more",
-  "seriesStartDate": "Starts",
-  "seriesEndDate": "Ends",
-  "seriesEndDateNone": "No end date",
   "frequencyDaily": "day",
   "frequencyWeekly": "week",
   "frequencyMonthly": "month",
   "frequencyYearly": "year",
-  "everyFrequency": "Every {unit}",
-  "@everyFrequency": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "everyNthFrequency": "Every {count} {unit}s",
-  "@everyNthFrequency": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "seriesEndsOn": "ends {date}",
-  "@seriesEndsOn": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
   "searchHint": "Search notes, categories, accounts",
   "filterTitle": "Filter",
   "filterAllKinds": "All",
@@ -611,5 +571,16 @@
   "filterApply": "Apply",
   "filterClear": "Clear",
   "exportCsv": "Export CSV",
-  "noSearchResults": "No matching transactions"
+  "noSearchResults": "No matching transactions",
+  "pendingBill": "Pending",
+  "repeat": "Repeat",
+  "repeatNever": "Does not repeat",
+  "repeatSetupFailed": "Saved. The repeat could not be set up: {error}",
+  "@repeatSetupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

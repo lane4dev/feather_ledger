@@ -22,6 +22,7 @@ import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import '../models/transaction_tile_ui_model.dart';
 
 import '../view_model/ledger_view_model.dart';
+import '../view_model/recurring_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
@@ -65,7 +66,25 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   /// The credit leg. Only a transfer has one.
   String? _toAccountId;
 
+  /// The repeat rule for a *new* income/expense, or [_repeatNever]. A series
+  /// has one account, so a transfer cannot be one (ADR-0002), and editing an
+  /// existing transaction does not touch its series — changing a rule is
+  /// "deactivate and create another".
+  String _repeat = _repeatNever;
+
+  static const _repeatNever = 'NEVER';
+  static const _repeatOptions = [
+    _repeatNever,
+    'DAILY',
+    'WEEKLY',
+    'MONTHLY',
+    'YEARLY',
+  ];
+
   bool get _isTransfer => _type == TransactionKind.transfer;
+
+  /// Whether this form can start a series at all.
+  bool get _canRepeat => !_isTransfer && widget.transaction == null;
 
   // Categories are typed by CategoryType, which has no transfer member; a
   // transfer has no category at all.
@@ -320,6 +339,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   onSaved: (value) => _note = value,
                 ),
               ),
+
+              const SizedBox(height: 8),
+
+              // 7. Repeat — turns this one entry into a series as well.
+              if (_canRepeat) _repeatRow(l10n),
+
               const SizedBox(height: 32),
               const FeatherDivider(),
               const SizedBox(height: 32),
@@ -354,6 +379,67 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       _toAccountId = null;
     });
   }
+
+  /// The repeat picker. Shaped like [_accountRow] because it is the same
+  /// gesture, but over plain frequency strings rather than entities.
+  Widget _repeatRow(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final label = _repeatLabel(l10n);
+
+    return LedgerFormRow(
+      icon: Icons.repeat,
+      child: LedgerSelectorField(
+        // A picked rule reads as the rule itself; "never" reads as the
+        // placeholder, which is what an untouched form looks like.
+        text: _repeat == _repeatNever ? l10n.repeat : label,
+        textStyle: _repeat == _repeatNever
+            ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
+            : null,
+        onTap: () async {
+          final result = await showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            builder: (context) => LedgerSelectionSheet<String>(
+              title: l10n.repeat,
+              options: _repeatOptions,
+              getLabel: (value) => value == _repeatNever
+                  ? l10n.repeatNever
+                  : _frequencyLabel(l10n, value),
+              isSelected: (value) => value == _repeat,
+              onSelected: (value) => Navigator.pop(context, value),
+            ),
+          );
+          if (result != null) setState(() => _repeat = result);
+        },
+      ),
+    );
+  }
+
+  String _repeatLabel(AppLocalizations l10n) => _repeat == _repeatNever
+      ? l10n.repeat
+      : _frequencyLabel(l10n, _repeat);
+
+  static String _frequencyLabel(AppLocalizations l10n, String frequency) =>
+      switch (frequency) {
+        'DAILY' => l10n.frequencyDaily,
+        'WEEKLY' => l10n.frequencyWeekly,
+        'YEARLY' => l10n.frequencyYearly,
+        _ => l10n.frequencyMonthly,
+      };
+
+  /// The first occurrence *after* the one being recorded — the entry the user
+  /// is making now is the current period, so the series picks up from the
+  /// next and the two never overlap.
+  static DateTime _nextOccurrence(DateTime from, String frequency) =>
+      switch (frequency) {
+        'DAILY' => DateTime(from.year, from.month, from.day + 1),
+        'WEEKLY' => DateTime(from.year, from.month, from.day + 7),
+        'YEARLY' => DateTime(from.year + 1, from.month, from.day),
+        // Calendar arithmetic, so 31 Jan rolls to 28/29 Feb rather than
+        // spilling into March.
+        _ => DateTime(from.year, from.month + 1, from.day),
+      };
 
   /// One account field, used for all three kinds: the single account of an
   /// income/expense, and each leg of a transfer.
@@ -460,6 +546,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isTransfer) {
       await _finish(_saveTransfer());
       return;
@@ -474,7 +562,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       final account = accounts?.where((a) => a.id == _accountId).firstOrNull;
 
       if (account != null && account.wouldOverdraft(_amountMinor!)) {
-        final l10n = AppLocalizations.of(context)!;
         final confirm = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -498,26 +585,78 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     }
 
     final vm = ref.read(ledgerViewModelProvider.notifier);
-    await _finish(
-      widget.transaction == null
-          ? vm.addTransaction(
-              amountMinor: _amountMinor!,
-              type: _type,
-              date: _date,
-              categoryId: _categoryId!,
-              accountId: _accountId!,
-              note: _note,
-            )
-          : vm.updateTransaction(
-              id: widget.transaction!.id,
-              amountMinor: _amountMinor!,
-              type: _type,
-              date: _date,
-              categoryId: _categoryId!,
-              accountId: _accountId!,
-              note: _note,
-            ),
-    );
+    final recorded = await (widget.transaction == null
+        ? vm.addTransaction(
+            amountMinor: _amountMinor!,
+            type: _type,
+            date: _date,
+            categoryId: _categoryId!,
+            accountId: _accountId!,
+            note: _note,
+          )
+        : vm.updateTransaction(
+            id: widget.transaction!.id,
+            amountMinor: _amountMinor!,
+            type: _type,
+            date: _date,
+            categoryId: _categoryId!,
+            accountId: _accountId!,
+            note: _note,
+          ));
+    if (!mounted) return;
+    if (recorded case Failure(:final code)) {
+      _report(code.message(l10n));
+      return;
+    }
+
+    // Only once the money is recorded. If this fails the entry stands — it is
+    // a real movement either way, and unwinding it because a schedule could
+    // not be created would destroy a correct record to tidy up a separate one.
+    final series = await _startSeriesIfRepeating();
+    if (!mounted) return;
+    if (series case Failure(:final code)) {
+      _report(l10n.repeatSetupFailed(code.message(l10n)));
+    }
+
+    context.pop();
+  }
+
+  void _report(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Turns the entry into a series as well, once the transaction is recorded.
+  ///
+  /// The order matters and the failure is deliberately not rolled back: the
+  /// money moved, and that record is legitimate on its own. A series that
+  /// could not be created is a separate problem, reported separately — see
+  /// [_finishWithSeries].
+  Future<Result<void>> _startSeriesIfRepeating() async {
+    if (!_canRepeat || _repeat == _repeatNever) return unitResult;
+
+    final categories = ref.read(categoryListProvider(_categoryType)).value;
+    final categoryName = categories
+            ?.where((c) => c.id == _categoryId)
+            .firstOrNull
+            ?.name ??
+        '';
+
+    return ref.read(recurringViewModelProvider.notifier).createSeries(
+          type: _type == TransactionKind.income
+              ? RecurringSeriesKind.income
+              : RecurringSeriesKind.expense,
+          amountMinor: _amountMinor!,
+          accountId: _accountId!,
+          categoryId: _categoryId!,
+          // A series must be named — the ledger list shows this. The note is
+          // what the user called it; failing that, the category.
+          description: (_note?.trim().isNotEmpty ?? false)
+              ? _note!.trim()
+              : categoryName,
+          frequency: _repeat,
+          startDate: _nextOccurrence(_date, _repeat),
+        );
   }
 
   /// A transfer has no category, and takes the two accounts instead.
@@ -548,9 +687,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     if (!mounted) return;
 
     if (result case Failure(:final code)) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+      _report(code.message(AppLocalizations.of(context)!));
       return;
     }
     context.pop();

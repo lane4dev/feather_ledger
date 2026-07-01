@@ -100,11 +100,14 @@ lib/shared/     跨特性的组件与扩展
 - `recurring_series` 存规则（frequency、interval、start/end、count）；`scheduled_transactions_view`
   存物化出来的实例，状态为 `scheduled | posted | skipped | failed`。两者都是 CRUD 表 —— 直接写入，
   永不重建，投影器永不触碰。
-- `ProjectRecurringEventsCommand` 用 `package:rrule` 把每个系列展开为未来 `months: 12` 的实例，
-  id 形如 `'${series.id}_${date.millisecondsSinceEpoch}'`，因此重复执行是幂等的。**`getInstances`
-  的 `before:` 必须传**：它只在 `before` / `until` / `count` / 年份 9999 处停止，改用 `.where`
-  过滤会让一个今年开始的月度系列跑 ~95,600 步才产出视野内的 ~20 个实例（实测每系列 ~37 秒，
-  而本命令跑在启动路径上）。
+- `ProjectRecurringEventsCommand` 用 `package:rrule` 按**滚动 90 天窗口、夹在 [3, 12]** 物化实例：
+  填满窗口；窗口内不足 3 个就继续向后取到 3 个（上限再放 3 年，兜住每年规则）；任何时候不物化超过 12 个。
+  于是 每月→3、每周→12、每年→3、每日→12，不需要按频率写规则。id 形如
+  `'${series.id}_${date.millisecondsSinceEpoch}'`，因此重复执行是幂等的 —— **不要改这个 id，也不要改
+  日期归一化方式**，否则每次运行都会凭空多出一整套账单。已经被用户 posted / skipped 的实例既不计数、
+  也不复活。**`getInstances` 的 `before:` 必须传**：它只在 `before` / `until` / `count` / 年份 9999
+  处停止，改用 `.where` 过滤会让一个今年开始的月度系列跑 ~95,600 步才产出视野内的 ~20 个实例（实测
+  每系列 ~37 秒，而本命令跑在启动路径上）。生成器还断言 `before >= start`，起始日晚于上界的系列必须短路。
 - `ConvertScheduledToPostedCommand` 是通往事件溯源世界的桥：一个实例变成真正的 `TransactionRecorded`，
   **并且**它的状态在同一个 append 事务里翻转。
 - 这里的金额与币种代码同样遵循最小单位规则（`amountMinor`）。
@@ -112,6 +115,14 @@ lib/shared/     跨特性的组件与扩展
   `postInstance` / `skipInstance` / `materialize` / `watchSeries` / `watchScheduled`）；
   三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者）。
 - 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
+- **周期没有自己的页面。** 规则在交易表单里设置（非转账的新建交易上有一行「重复」，`interval` 固定为 1，
+  保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生），待入账账单直接**混在账本列表里**
+  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 跳过 / 停用。`RecurringViewModel`
+  只持有这三个写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
+  曾经存在的 `/more/recurring`、`/recurring_management`、`RecurringListScreen`、
+  `RecurringSeriesFormSheet` 都已删除。
+- **待入账是「还没发生」**：它不进入余额、月度合计或搜索（搜索只读 `transactions_view`，实例不在其中），
+  只在展示层出现。它变成真实交易的唯一路径仍是 `ConvertScheduledToPostedCommand`。
 
 ## 金额约定（重要）
 
@@ -155,7 +166,7 @@ lib/shared/     跨特性的组件与扩展
 
 - **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
 - 路由只有 `/ledger/add` 与 `/ledger/edit`：kind 由表单**自己的类型选择器**决定，或（编辑时）由 `extra` 里的交易决定。**转账没有独立入口**——账本页右上角的转账按钮已移除，转账在表单里面选。不要为某个 kind 再加一个路由或快捷入口。
-- `LedgerTypeSelector` 收一个 `kinds` 列表：默认三种，周期系列表单传 `[expense, income]` —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
+- `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种；「重复」行只在非 transfer 时才渲染 —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
 - 「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。同账户同理（候选排除 + 一条兜底校验）。
 - 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支用全局显示偏好。
 - 更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`。
@@ -170,8 +181,8 @@ lib/shared/     跨特性的组件与扩展
 
 - `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（事件溯源：AccountCreated/OpeningBalanceSet/CategoryCreated × N，含 2 个内置系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
-- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management`、`/recurring_management` 是顶层路由，`/more/recurring` 与之双注册。
-- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。周期与检索各有自己的视图模型（`RecurringViewModel`、`SearchViewModel`）。
+- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由。
+- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。检索有自己的视图模型（`SearchViewModel`），`RecurringViewModel` 只剩三个写动作。
 - 偏好设置走 SharedPreferences（`PreferencesRepository`）：主题模式、语言、币种、余额可见性；另有 `exportAll`/`importAll` 供备份使用，**只针对已知的四个键**。
 
 ## 测试布局
