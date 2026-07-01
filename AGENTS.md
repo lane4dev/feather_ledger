@@ -42,7 +42,7 @@ lib/shared/     跨特性的组件与扩展
 
 特性内部：
 
-- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。**例外**：周期链路的三个命令（创建系列/停用系列/跳过实例）直接写 CRUD 豁免表、不发事件、因此也没有 `commandId`。
+- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。**例外**：周期链路的两个命令（创建系列/删除账单）直接写 CRUD 豁免表、不发事件、因此也没有 `commandId`。
 - `domain/queries/` —— 读用例，流式读取 Drift 视图。
 - `domain/services/` —— 组合命令 + 查询的门面（`LedgerService`、`AccountService`、`CategoryService`、`RecurringService`、`BackupService`、`TransactionExportService`）；UI 消费的入口。ledger 还有 `PostingContextResolver`（`domain/services/posting_context.dart`），即每个写入方都要经过的接缝：在构建聚合前校验账户/分类（ADR-0002）。
 - `domain/model/` —— 聚合根及其组成部分（`Transaction`、`Posting`）；另有 `domain/value_objects/`（含 `TransactionFilter`）、`domain/entities/`、`domain/export/`（`transaction_csv.dart`，纯函数）、`domain/projections/`（投影器接口，实现放在 `data/projections/`）。
@@ -111,16 +111,28 @@ lib/shared/     跨特性的组件与扩展
 - `ConvertScheduledToPostedCommand` 是通往事件溯源世界的桥：一个实例变成真正的 `TransactionRecorded`，
   **并且**它的状态在同一个 append 事务里翻转。
 - 这里的金额与币种代码同样遵循最小单位规则（`amountMinor`）。
-- `RecurringService` 是这条链路唯一的服务入口（`createSeries` / `deactivateSeries` /
-  `postInstance` / `skipInstance` / `materialize` / `watchSeries` / `watchScheduled`）；
+- `RecurringService` 是这条链路唯一的服务入口（`createSeries` / `deleteBill` /
+  `postInstance` / `materialize` / `watchSeries` / `watchScheduled`）；
   三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者）。
 - 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
 - **周期没有自己的页面。** 规则在交易表单里设置（非转账的新建交易上有一行「重复」，`interval` 固定为 1，
   保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生），待入账账单直接**混在账本列表里**
-  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 跳过 / 停用。`RecurringViewModel`
-  只持有这三个写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
+  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 删除。`RecurringViewModel`
+  只持有这两个写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
   曾经存在的 `/more/recurring`、`/recurring_management`、`RecurringListScreen`、
   `RecurringSeriesFormSheet` 都已删除。
+- **删除有三个作用域**（`DeleteRecurringBillCommand`），区别不在「删掉哪一行」而在**对系列做了什么**——
+  因为账单是由规则重新推导出来的，只删行的话下次物化会让它原样长回来：
+  - `thisOnly` 把实例置为 `skipped`。那个状态就是**物化拒绝复活的墓碑**，规则继续走，被删的那一期不会
+    再出现。
+  - `thisAndFollowing` 把系列的 `endDate` 设到**该账单的前一天**（`until` 是闭区间，同一天会让它当场
+    长回来），再硬删从该日起的 `scheduled` 实例。已入账的实例不动 —— 那笔钱真的动了。
+  - `all` 删掉系列本身连同它全部实例行。**已入账的交易不受影响**：它们是 `TransactionRecorded` 事件、
+    自成一体的账，跟着消失的只是包在它们外面的排期外壳。
+  - 三个作用域都不写事件、不动钱，所以也没有 `commandId`。删除一个**已入账**的实例会被拒
+    （`scheduledAlreadyPosted`）—— 那是冲正，是另一件事、另一个入口。
+  - 曾经的「停用」与「跳过」已被这三个作用域吸收：跳过的语义就是 `thisOnly`，停用的语义就是
+    `thisAndFollowing` 少删几行，两个入口并存等于同一件事说两遍。
 - **待入账是「还没发生」**：它不进入余额、月度合计或搜索（搜索只读 `transactions_view`，实例不在其中），
   只在展示层出现。它变成真实交易的唯一路径仍是 `ConvertScheduledToPostedCommand`。
 

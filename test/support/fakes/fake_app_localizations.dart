@@ -474,20 +474,27 @@ class FakeAppLocalizations implements AppLocalizations {
   String get instancePosted => 'Bill recorded';
 
   @override
-  String get skipInstance => 'Skip';
+  String get deleteRecurringTitle => 'Delete recurring bill';
 
   @override
-  String get instanceSkipped => 'Bill skipped';
+  String get deleteScopeThisOnly => 'Only this bill';
 
   @override
-  String get deactivateSeries => 'Deactivate';
+  String get deleteScopeThisAndFollowing => 'This and following bills';
 
   @override
-  String get deactivateSeriesConfirm =>
-      'Stop this series creating new bills? Bills already created are kept.';
+  String get deleteScopeAll => 'All bills';
 
   @override
-  String get seriesDeactivated => 'Series deactivated';
+  String get deleteScopeAllHint => 'Bills already recorded are kept';
+
+  @override
+  String get billDeleted => 'Bill deleted';
+
+
+
+
+
 
 
 

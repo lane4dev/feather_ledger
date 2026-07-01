@@ -9,6 +9,7 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
@@ -134,35 +135,58 @@ void main() {
       expect(viewModel.posted, isEmpty);
     });
 
-    testWidgets('skips without asking', (tester) async {
+    testWidgets('deleting offers all three scopes, narrowest first',
+        (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Skip'));
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
-      // Skipping writes no event and moves no money, so there is nothing to
-      // warn about.
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(viewModel.skipped, ['sched_1']);
+      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('This and following bills'), findsOneWidget);
+      expect(find.text('All bills'), findsOneWidget);
+      expect(find.text('Bills already recorded are kept'), findsOneWidget,
+          reason: 'the widest scope is the one that needs reassuring');
+      expect(viewModel.deleted, isEmpty,
+          reason: 'nothing happens until the dialog is confirmed');
     });
 
-    testWidgets('stops the series only after confirming', (tester) async {
+    testWidgets('deleting applies the chosen scope', (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Deactivate'));
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('already created are kept'), findsOneWidget);
-      expect(viewModel.deactivated, isEmpty);
-
-      // Scoped to the dialog: the sheet behind it has a "Deactivate" button
-      // of its own.
-      await tester.tap(find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextButton, 'Deactivate'),
-      ));
+      await tester.tap(find.text('This and following bills'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
       await tester.pumpAndSettle();
 
-      expect(viewModel.deactivated, ['series_1']);
+      expect(viewModel.deleted, [('sched_1', RecurringDeleteScope.thisAndFollowing)]);
+    });
+
+    testWidgets('the narrowest scope is the one preselected', (tester) async {
+      await pumpSheet(tester);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      // Confirm without touching the radios: it must not take more than the
+      // bill that was opened.
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.deleted, [('sched_1', RecurringDeleteScope.thisOnly)]);
+    });
+
+    testWidgets('cancelling the dialog deletes nothing', (tester) async {
+      await pumpSheet(tester);
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.deleted, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
     });
 
     testWidgets('reports a rejection with its localized message',
@@ -170,7 +194,9 @@ void main() {
       viewModel.failure = LedgerErrorCode.scheduledAlreadyPosted;
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Skip'));
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(find.text('This scheduled transaction was already posted'),
@@ -181,8 +207,7 @@ void main() {
 
 class _RecordingRecurringViewModel extends RecurringViewModel {
   final List<String> posted = [];
-  final List<String> skipped = [];
-  final List<String> deactivated = [];
+  final List<(String, RecurringDeleteScope)> deleted = [];
   LedgerErrorCode? failure;
 
   @override
@@ -196,17 +221,12 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
   }
 
   @override
-  Future<Result<void>> skipInstance(String scheduledId) async {
+  Future<Result<void>> deleteBill(
+    String scheduledId, {
+    required RecurringDeleteScope scope,
+  }) async {
     if (failure != null) return Failure(failure!, 'rejected');
-    skipped.add(scheduledId);
-    return unitResult;
-  }
-
-  @override
-  Future<Result<void>> deactivateSeries(String seriesId,
-      {required DateTime endDate}) async {
-    if (failure != null) return Failure(failure!, 'rejected');
-    deactivated.add(seriesId);
+    deleted.add((scheduledId, scope));
     return unitResult;
   }
 }

@@ -452,19 +452,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instancePosted => '已记入';
 
   @override
-  String get skipInstance => '跳过';
+  String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get instanceSkipped => '已跳过';
+  String get deleteScopeThisOnly => '仅删除该项记录';
 
   @override
-  String get deactivateSeries => '停用';
+  String get deleteScopeThisAndFollowing => '删除该项记录和后续记录';
 
   @override
-  String get deactivateSeriesConfirm => '停止这条规则产生新的账单？已生成的账单会保留。';
+  String get deleteScopeAll => '删除所有记录';
 
   @override
-  String get seriesDeactivated => '规则已停用';
+  String get deleteScopeAllHint => '已经入账的记录会保留';
+
+  @override
+  String get billDeleted => '账单已删除';
 
   @override
   String get frequencyDaily => '天';
@@ -974,19 +977,22 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get instancePosted => '已记入';
 
   @override
-  String get skipInstance => '跳过';
+  String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get instanceSkipped => '已跳过';
+  String get deleteScopeThisOnly => '仅删除该项记录';
 
   @override
-  String get deactivateSeries => '停用';
+  String get deleteScopeThisAndFollowing => '删除该项记录和后续记录';
 
   @override
-  String get deactivateSeriesConfirm => '停止这条规则产生新的账单？已生成的账单会保留。';
+  String get deleteScopeAll => '删除所有记录';
 
   @override
-  String get seriesDeactivated => '规则已停用';
+  String get deleteScopeAllHint => '已经入账的记录会保留';
+
+  @override
+  String get billDeleted => '账单已删除';
 
   @override
   String get frequencyDaily => '天';
@@ -1496,19 +1502,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get instancePosted => '已記入';
 
   @override
-  String get skipInstance => '跳過';
+  String get deleteRecurringTitle => '刪除週期帳單';
 
   @override
-  String get instanceSkipped => '已跳過';
+  String get deleteScopeThisOnly => '僅刪除該項記錄';
 
   @override
-  String get deactivateSeries => '停用';
+  String get deleteScopeThisAndFollowing => '刪除該項記錄和後續記錄';
 
   @override
-  String get deactivateSeriesConfirm => '停止這條規則產生新的帳單？已產生的帳單會保留。';
+  String get deleteScopeAll => '刪除所有記錄';
 
   @override
-  String get seriesDeactivated => '規則已停用';
+  String get deleteScopeAllHint => '已經入帳的記錄會保留';
+
+  @override
+  String get billDeleted => '帳單已刪除';
 
   @override
   String get frequencyDaily => '天';

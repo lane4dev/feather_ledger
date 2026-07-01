@@ -977,35 +977,41 @@ abstract class AppLocalizations {
   /// **'Bill recorded'**
   String get instancePosted;
 
-  /// No description provided for @skipInstance.
+  /// No description provided for @deleteRecurringTitle.
   ///
   /// In en, this message translates to:
-  /// **'Skip'**
-  String get skipInstance;
+  /// **'Delete recurring bill'**
+  String get deleteRecurringTitle;
 
-  /// No description provided for @instanceSkipped.
+  /// No description provided for @deleteScopeThisOnly.
   ///
   /// In en, this message translates to:
-  /// **'Bill skipped'**
-  String get instanceSkipped;
+  /// **'Only this bill'**
+  String get deleteScopeThisOnly;
 
-  /// No description provided for @deactivateSeries.
+  /// No description provided for @deleteScopeThisAndFollowing.
   ///
   /// In en, this message translates to:
-  /// **'Deactivate'**
-  String get deactivateSeries;
+  /// **'This and following bills'**
+  String get deleteScopeThisAndFollowing;
 
-  /// No description provided for @deactivateSeriesConfirm.
+  /// No description provided for @deleteScopeAll.
   ///
   /// In en, this message translates to:
-  /// **'Stop this series creating new bills? Bills already created are kept.'**
-  String get deactivateSeriesConfirm;
+  /// **'All bills'**
+  String get deleteScopeAll;
 
-  /// No description provided for @seriesDeactivated.
+  /// No description provided for @deleteScopeAllHint.
   ///
   /// In en, this message translates to:
-  /// **'Series deactivated'**
-  String get seriesDeactivated;
+  /// **'Bills already recorded are kept'**
+  String get deleteScopeAllHint;
+
+  /// No description provided for @billDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill deleted'**
+  String get billDeleted;
 
   /// No description provided for @frequencyDaily.
   ///

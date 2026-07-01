@@ -44,6 +44,29 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     return into(recurringSeries).insertOnConflictUpdate(entry);
   }
 
+  /// Deletes instance rows of one series.
+  ///
+  /// [from] keeps the instances at or after that date, [status] keeps one
+  /// storage-encoded status. The two filters together say "the pending bills
+  /// from here on"; passing neither deletes every row of the series, which is
+  /// what removing the series itself needs. Which status counts as pending is
+  /// the caller's policy — this table accessor does not know the enum.
+  Future<int> deleteScheduledForSeries(
+    String seriesId, {
+    DateTime? from,
+    String? status,
+  }) {
+    final query = delete(scheduledTransactionsView)
+      ..where((t) => t.seriesId.equals(seriesId));
+    if (from != null) query.where((t) => t.date.isBiggerOrEqualValue(from));
+    if (status != null) query.where((t) => t.status.equals(status));
+    return query.go();
+  }
+
+  Future<int> deleteSeries(String seriesId) {
+    return (delete(recurringSeries)..where((t) => t.id.equals(seriesId))).go();
+  }
+
   Stream<List<ScheduledTransactionViewRow>> watchAllScheduled() {
     return select(scheduledTransactionsView).watch();
   }

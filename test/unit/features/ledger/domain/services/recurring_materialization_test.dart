@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
@@ -39,9 +40,6 @@ void main() {
       type: type,
     );
   }
-
-  Future<String> seriesId() async =>
-      (await harness.db.recurringDao.getAllSeries()).single.id;
 
   /// Creates a series and returns how many instances it now has.
   ///
@@ -152,17 +150,19 @@ void main() {
     expect(await pending(), hasLength(3), reason: 'the floor is restored');
   });
 
-  test('a skipped instance is neither resurrected nor counted', () async {
+  test('a bill deleted on its own is neither resurrected nor counted',
+      () async {
     await createSeries(frequency: 'MONTHLY', startInDays: 5);
     final first = (await pending()).first;
 
-    await harness.recurringService.skipInstance(first.id);
+    await harness.recurringService
+        .deleteBill(first.id, scope: RecurringDeleteScope.thisOnly);
     await harness.recurringService.materialize();
 
     final rows = await harness.db.recurringDao.watchAllScheduled().first;
-    final skipped = rows.where((r) => r.id == first.id).toList();
-    expect(skipped, hasLength(1), reason: 'not duplicated');
-    expect(skipped.single.status, 'skipped',
+    final deleted = rows.where((r) => r.id == first.id).toList();
+    expect(deleted, hasLength(1), reason: 'not duplicated');
+    expect(deleted.single.status, 'skipped',
         reason: 'the user\'s decision stands; it is not pending again');
   });
 
@@ -206,22 +206,23 @@ void main() {
     expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
   });
 
-  test('a deactivated series gains no new instances', () async {
+  test('a series deleted from here on gains no new instances', () async {
     await createSeries(frequency: 'MONTHLY', startInDays: 5);
-    final before = (await harness.db.recurringDao.watchAllScheduled().first)
-        .map((r) => r.id)
-        .toSet();
+    final cut = (await pending()).first;
 
     await harness.recurringService
-        .deactivateSeries(await seriesId(), endDate: DateTime.now());
-    await harness.recurringService.materialize();
-
-    final after = (await harness.db.recurringDao.watchAllScheduled().first)
+        .deleteBill(cut.id, scope: RecurringDeleteScope.thisAndFollowing);
+    final afterDelete = (await harness.db.recurringDao.watchAllScheduled().first)
         .map((r) => r.id)
         .toSet();
-    expect(after.difference(before), isEmpty);
-    expect(before.difference(after), isEmpty,
-        reason: 'deactivation keeps what already exists');
+
+    await harness.recurringService.materialize();
+
+    final afterRoll = (await harness.db.recurringDao.watchAllScheduled().first)
+        .map((r) => r.id)
+        .toSet();
+    expect(afterRoll, afterDelete,
+        reason: 'the rule is ended, so rolling the window adds nothing back');
   });
 
   test('the projected instances carry a resolved kind and category', () async {

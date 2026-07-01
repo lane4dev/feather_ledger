@@ -49,6 +49,23 @@ class RecurringRepositoryImpl implements RecurringRepository {
     return _recurringDao.watchAllScheduled().asyncMap(_toEntities);
   }
 
+  @override
+  Future<void> deletePendingFrom(String seriesId, DateTime from) {
+    return _recurringDao.deleteScheduledForSeries(
+      seriesId,
+      from: from,
+      status: ScheduledTransactionStatus.scheduled.toStorage(),
+    );
+  }
+
+  @override
+  Future<void> deleteSeriesWithInstances(String seriesId) async {
+    // Instances first: they reference the series, so the parent has to
+    // outlive them while they go.
+    await _recurringDao.deleteScheduledForSeries(seriesId);
+    await _recurringDao.deleteSeries(seriesId);
+  }
+
   /// Groups the instances by series before resolving, because a series'
   /// description, category and account are the same for every one of its
   /// instances. Resolving per row would repeat the same three lookups N

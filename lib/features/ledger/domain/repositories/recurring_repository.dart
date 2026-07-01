@@ -30,4 +30,17 @@ abstract class RecurringRepository {
   /// Inserts or updates a series (spec 004, US2). `recurring_series` is
   /// CRUD-exempt — this writes the table directly and emits no event.
   Future<void> saveSeries(RecurringSeriesCompanion entry);
+
+  /// Deletes the pending instances of one series at or after [from].
+  ///
+  /// Bills already recorded are real movements, and bills already skipped are
+  /// tombstones materialization respects; neither is "pending", and deleting
+  /// either would be a lie about what happened.
+  Future<void> deletePendingFrom(String seriesId, DateTime from);
+
+  /// Deletes a series and every instance row belonging to it.
+  ///
+  /// Recorded *transactions* are not instance rows and are not touched — they
+  /// survive as ordinary ledger entries.
+  Future<void> deleteSeriesWithInstances(String seriesId);
 }

@@ -5,9 +5,8 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/deactivate_recurring_series_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/skip_scheduled_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 
@@ -22,16 +21,14 @@ part 'recurring_service.g.dart';
 /// through here, so a unit test wires one service rather than five commands.
 class RecurringService {
   final CreateRecurringSeriesCommand _createSeries;
-  final DeactivateRecurringSeriesCommand _deactivateSeries;
-  final SkipScheduledTransactionCommand _skipInstance;
+  final DeleteRecurringBillCommand _deleteBill;
   final ConvertScheduledToPostedCommand _postInstance;
   final ProjectRecurringEventsCommand _projectInstances;
   final WatchScheduledTransactionsQuery _watchScheduled;
 
   RecurringService(
     this._createSeries,
-    this._deactivateSeries,
-    this._skipInstance,
+    this._deleteBill,
     this._postInstance,
     this._projectInstances,
     this._watchScheduled,
@@ -70,9 +67,14 @@ class RecurringService {
     });
   }
 
-  Future<Result<void>> deactivateSeries(String seriesId,
-      {required DateTime endDate}) {
-    return guard(() => _deactivateSeries.execute(seriesId, endDate: endDate));
+  /// Deletes pending bills, at one of the three scopes. Writes no event and
+  /// moves no money; see [DeleteRecurringBillCommand] for what each scope
+  /// does to the series behind them.
+  Future<Result<void>> deleteBill(
+    String scheduledId, {
+    required RecurringDeleteScope scope,
+  }) {
+    return guard(() => _deleteBill.execute(scheduledId, scope: scope));
   }
 
   /// Posts a due instance into the ledger: one `TransactionRecorded`, with the
@@ -86,11 +88,6 @@ class RecurringService {
         commandId: commandId ?? const Uuid().v4()));
   }
 
-  /// Skips a due instance. Writes no event and moves no money.
-  Future<Result<void>> skipInstance(String scheduledId) {
-    return guard(() => _skipInstance.execute(scheduledId));
-  }
-
   /// Rolls the 90-day window forward for every series. Idempotent, so it is
   /// safe on every launch and after every series creation.
   Future<void> materialize() => _projectInstances.execute();
@@ -100,8 +97,7 @@ class RecurringService {
 RecurringService recurringService(Ref ref) {
   return RecurringService(
     ref.watch(createRecurringSeriesCommandProvider),
-    ref.watch(deactivateRecurringSeriesCommandProvider),
-    ref.watch(skipScheduledTransactionCommandProvider),
+    ref.watch(deleteRecurringBillCommandProvider),
     ref.watch(convertScheduledToPostedCommandProvider),
     ref.watch(projectRecurringEventsCommandProvider),
     ref.watch(watchScheduledTransactionsQueryProvider),

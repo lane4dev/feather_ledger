@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
+import '../../domain/commands/delete_recurring_bill_command.dart';
 import '../../domain/services/recurring_service.dart';
 
 part 'recurring_view_model.g.dart';
@@ -44,16 +45,13 @@ class RecurringViewModel extends _$RecurringViewModel {
   Future<Result<void>> postInstance(String scheduledId) =>
       ref.read(recurringServiceProvider).postInstance(scheduledId);
 
-  /// Marks a pending bill as skipped. Moves no money and writes no event.
-  Future<Result<void>> skipInstance(String scheduledId) =>
-      ref.read(recurringServiceProvider).skipInstance(scheduledId);
-
-  /// Stops a series producing further bills. Bills already created are kept.
-  Future<Result<void>> deactivateSeries(
-    String seriesId, {
-    required DateTime endDate,
+  /// Deletes a pending bill at one of the three scopes. Moves no money and
+  /// writes no event.
+  Future<Result<void>> deleteBill(
+    String scheduledId, {
+    required RecurringDeleteScope scope,
   }) =>
       ref
           .read(recurringServiceProvider)
-          .deactivateSeries(seriesId, endDate: endDate);
+          .deleteBill(scheduledId, scope: scope);
 }
