@@ -14,6 +14,10 @@ abstract class RecurringRepository {
   /// Returns a [RecurringSeriesRow] or null if not found.
   Future<RecurringSeriesRow?> getSeries(String id);
 
+  /// Every instance of one series, whatever its status. Materialization reads
+  /// this once per series rather than probing per candidate date.
+  Future<List<ScheduledTransactionViewRow>> scheduledForSeries(String seriesId);
+
   /// Inserts or updates a scheduled transaction.
   /// Takes a [ScheduledTransactionsViewCompanion] entry.
   Future<void> insertOrUpdateScheduled(
@@ -26,9 +30,4 @@ abstract class RecurringRepository {
   /// Inserts or updates a series (spec 004, US2). `recurring_series` is
   /// CRUD-exempt — this writes the table directly and emits no event.
   Future<void> saveSeries(RecurringSeriesCompanion entry);
-
-  /// Watches the series themselves, not their instances (spec 004, US2).
-  ///
-  /// A series with no materialized instances yet must still be listed.
-  Stream<List<RecurringTransactionSeriesEntity>> watchAllSeries();
 }

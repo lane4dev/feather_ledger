@@ -23,6 +23,18 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// Every instance of one series, whatever its status.
+  ///
+  /// Materialization needs the whole set at once: it walks the rule's
+  /// candidate dates and has to know, per date, whether an instance already
+  /// exists and whether the user has already decided about it.
+  Future<List<ScheduledTransactionViewRow>> scheduledForSeries(
+      String seriesId) {
+    return (select(scheduledTransactionsView)
+          ..where((t) => t.seriesId.equals(seriesId)))
+        .get();
+  }
+
   Future<void> insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion entry) {
     return into(scheduledTransactionsView).insertOnConflictUpdate(entry);
@@ -35,13 +47,4 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
   Stream<List<ScheduledTransactionViewRow>> watchAllScheduled() {
     return select(scheduledTransactionsView).watch();
   }
-
-  /// Watches the series themselves, not their instances.
-  ///
-  /// Needed because a series can produce zero scheduled rows — an `endDate`
-  /// at or before its `startDate`, or one created before its first instance
-  /// materializes — and would otherwise be invisible, including in the moment
-  /// right after it is created.
-  Stream<List<RecurringSeriesRow>> watchAllSeries() =>
-      select(recurringSeries).watch();
 }

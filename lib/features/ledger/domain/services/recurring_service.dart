@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/deactivate_recurring_series_command.dart';
@@ -28,7 +27,6 @@ class RecurringService {
   final ConvertScheduledToPostedCommand _postInstance;
   final ProjectRecurringEventsCommand _projectInstances;
   final WatchScheduledTransactionsQuery _watchScheduled;
-  final RecurringRepository _recurringRepository;
 
   RecurringService(
     this._createSeries,
@@ -37,14 +35,10 @@ class RecurringService {
     this._postInstance,
     this._projectInstances,
     this._watchScheduled,
-    this._recurringRepository,
   );
 
   Stream<List<ScheduledTransactionEntity>> watchScheduled() =>
       _watchScheduled.execute();
-
-  Stream<List<RecurringTransactionSeriesEntity>> watchSeries() =>
-      _recurringRepository.watchAllSeries();
 
   /// Creates a series and immediately materializes it, so a new series shows
   /// up as pending instances instead of only after the next launch.
@@ -97,10 +91,8 @@ class RecurringService {
     return guard(() => _skipInstance.execute(scheduledId));
   }
 
-  /// Materializes instances due within the projection horizon. Idempotent —
-  /// safe to run on every launch and after every series creation.
-  // ponytail: one point-query per instance; fetch the existing id set in a
-  // single select if series counts ever grow past a handful.
+  /// Rolls the 90-day window forward for every series. Idempotent, so it is
+  /// safe on every launch and after every series creation.
   Future<void> materialize() => _projectInstances.execute();
 }
 
@@ -113,6 +105,5 @@ RecurringService recurringService(Ref ref) {
     ref.watch(convertScheduledToPostedCommandProvider),
     ref.watch(projectRecurringEventsCommandProvider),
     ref.watch(watchScheduledTransactionsQueryProvider),
-    ref.watch(recurringRepositoryProvider),
   );
 }

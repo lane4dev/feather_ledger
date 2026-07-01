@@ -91,6 +91,14 @@ class ScheduledTransactionEntity {
   final String? transactionId;
   final RecurringTransactionSeriesEntity? recurringTransactionSeries;
 
+  /// Resolved from the series so a pending bill can be rendered as a row in
+  /// the ledger list — the same shape a posted transaction arrives in.
+  /// Null when the series' category or account has since been removed, which
+  /// the list treats as "render without that detail" rather than failing.
+  final TransactionKind? kind;
+  final CategoryEntity? category;
+  final AccountEntity? account;
+
   const ScheduledTransactionEntity({
     required this.id,
     required this.seriesId,
@@ -99,6 +107,9 @@ class ScheduledTransactionEntity {
     this.status = ScheduledTransactionStatus.scheduled,
     this.transactionId,
     this.recurringTransactionSeries,
+    this.kind,
+    this.category,
+    this.account,
   });
 
   ScheduledTransactionEntity copyWith({
@@ -109,6 +120,9 @@ class ScheduledTransactionEntity {
     ScheduledTransactionStatus? status,
     String? transactionId,
     RecurringTransactionSeriesEntity? recurringTransactionSeries,
+    TransactionKind? kind,
+    CategoryEntity? category,
+    AccountEntity? account,
   }) {
     return ScheduledTransactionEntity(
       id: id ?? this.id,
@@ -119,6 +133,9 @@ class ScheduledTransactionEntity {
       transactionId: transactionId ?? this.transactionId,
       recurringTransactionSeries:
           recurringTransactionSeries ?? this.recurringTransactionSeries,
+      kind: kind ?? this.kind,
+      category: category ?? this.category,
+      account: account ?? this.account,
     );
   }
 }

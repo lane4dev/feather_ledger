@@ -8,34 +8,37 @@ part of 'recurring_view_model.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Recurring bills (spec 004, US2).
+/// The write actions for recurring bills (spec 004, US2).
 ///
-/// Shapes follow [LedgerViewModel]: keep-alive, one subscription per stream,
-/// disposed together, and every write routed through the service so the
-/// screen never touches a command.
+/// There is no state here: the bills themselves reach the screen through
+/// `ledgerMonthlyTransactionsProvider`, which merges them into the month
+/// list, and the series list is gone. What is left is the three things a
+/// person can *do* to a pending bill.
 
 @ProviderFor(RecurringViewModel)
 final recurringViewModelProvider = RecurringViewModelProvider._();
 
-/// Recurring bills (spec 004, US2).
+/// The write actions for recurring bills (spec 004, US2).
 ///
-/// Shapes follow [LedgerViewModel]: keep-alive, one subscription per stream,
-/// disposed together, and every write routed through the service so the
-/// screen never touches a command.
+/// There is no state here: the bills themselves reach the screen through
+/// `ledgerMonthlyTransactionsProvider`, which merges them into the month
+/// list, and the series list is gone. What is left is the three things a
+/// person can *do* to a pending bill.
 final class RecurringViewModelProvider
-    extends $NotifierProvider<RecurringViewModel, RecurringViewState> {
-  /// Recurring bills (spec 004, US2).
+    extends $NotifierProvider<RecurringViewModel, void> {
+  /// The write actions for recurring bills (spec 004, US2).
   ///
-  /// Shapes follow [LedgerViewModel]: keep-alive, one subscription per stream,
-  /// disposed together, and every write routed through the service so the
-  /// screen never touches a command.
+  /// There is no state here: the bills themselves reach the screen through
+  /// `ledgerMonthlyTransactionsProvider`, which merges them into the month
+  /// list, and the series list is gone. What is left is the three things a
+  /// person can *do* to a pending bill.
   RecurringViewModelProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'recurringViewModelProvider',
-          isAutoDispose: false,
+          isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -48,34 +51,32 @@ final class RecurringViewModelProvider
   RecurringViewModel create() => RecurringViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(RecurringViewState value) {
+  Override overrideWithValue(void value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<RecurringViewState>(value),
+      providerOverride: $SyncValueProvider<void>(value),
     );
   }
 }
 
 String _$recurringViewModelHash() =>
-    r'2e83804df7dfe95781ac945f64e1a3297caf742f';
+    r'ffd02ab1c0e1095081db42cce727376316469d79';
 
-/// Recurring bills (spec 004, US2).
+/// The write actions for recurring bills (spec 004, US2).
 ///
-/// Shapes follow [LedgerViewModel]: keep-alive, one subscription per stream,
-/// disposed together, and every write routed through the service so the
-/// screen never touches a command.
+/// There is no state here: the bills themselves reach the screen through
+/// `ledgerMonthlyTransactionsProvider`, which merges them into the month
+/// list, and the series list is gone. What is left is the three things a
+/// person can *do* to a pending bill.
 
-abstract class _$RecurringViewModel extends $Notifier<RecurringViewState> {
-  RecurringViewState build();
+abstract class _$RecurringViewModel extends $Notifier<void> {
+  void build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<RecurringViewState, RecurringViewState>;
+    final ref = this.ref as $Ref<void, void>;
     final element = ref.element as $ClassProviderElement<
-        AnyNotifier<RecurringViewState, RecurringViewState>,
-        RecurringViewState,
-        Object?,
-        Object?>;
+        AnyNotifier<void, void>, void, Object?, Object?>;
     return element.handleCreate(ref, build);
   }
 }

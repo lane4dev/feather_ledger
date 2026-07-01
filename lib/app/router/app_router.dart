@@ -5,7 +5,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
-import 'package:feather_ledger/features/ledger/presentation/screens/recurring_list_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
@@ -95,11 +94,6 @@ GoRouter goRouter(Ref ref) {
                       builder: (context, state) =>
                           const CategoryManagementScreen(),
                     ),
-                    GoRoute(
-                      path: 'recurring',
-                      builder: (context, state) =>
-                          const RecurringListScreen(),
-                    ),
                   ]),
             ],
           ),
@@ -115,11 +109,6 @@ GoRouter goRouter(Ref ref) {
         path: '/categories_management',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const CategoryManagementScreen(),
-      ),
-      GoRoute(
-        path: '/recurring_management',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const RecurringListScreen(),
       ),
     ],
   );

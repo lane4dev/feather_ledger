@@ -1,7 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
+import 'package:feather_ledger/core/data/database/daos/categories_dao.dart';
 import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
 
@@ -11,8 +16,11 @@ part 'recurring_repository.g.dart';
 
 class RecurringRepositoryImpl implements RecurringRepository {
   final RecurringDao _recurringDao;
+  final CategoriesDao _categoriesDao;
+  final AccountDao _accountsDao;
 
-  RecurringRepositoryImpl(this._recurringDao);
+  RecurringRepositoryImpl(this._recurringDao, this._categoriesDao,
+      this._accountsDao);
 
   @override
   Future<ScheduledTransactionViewRow?> getScheduled(String id) {
@@ -25,6 +33,12 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<List<ScheduledTransactionViewRow>> scheduledForSeries(
+      String seriesId) {
+    return _recurringDao.scheduledForSeries(seriesId);
+  }
+
+  @override
   Future<void> insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion entry) {
     return _recurringDao.insertOrUpdateScheduled(entry);
@@ -32,39 +46,71 @@ class RecurringRepositoryImpl implements RecurringRepository {
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchAllScheduled() {
-    return _recurringDao.watchAllScheduled().asyncMap((rows) async {
-      final entities = <ScheduledTransactionEntity>[];
-      for (final row in rows) {
-        final seriesRow = await _recurringDao.getSeries(row.seriesId);
-        if (seriesRow != null) {
-          entities.add(
-            ScheduledTransactionEntity(
-              id: row.id,
-              seriesId: row.seriesId,
-              date: row.date,
-              amountMinor: row.amountMinor,
-              status: decodeScheduledStatus(row.status),
-              transactionId: row.transactionId,
-              recurringTransactionSeries: RecurringTransactionSeriesEntity(
-                id: seriesRow.id,
-                description: seriesRow.description,
-                startDate: seriesRow.startDate,
-                endDate: seriesRow.endDate,
-                amountMinor: seriesRow.amountMinor,
-                categoryId: seriesRow.categoryId,
-                accountId: seriesRow.accountId,
-                type: seriesRow.type,
-                frequency: seriesRow.frequency,
-                interval: seriesRow.interval,
-                limit: seriesRow.countLimit,
-              ),
-            ),
-          );
-        }
-      }
-      return entities;
-    });
+    return _recurringDao.watchAllScheduled().asyncMap(_toEntities);
   }
+
+  /// Groups the instances by series before resolving, because a series'
+  /// description, category and account are the same for every one of its
+  /// instances. Resolving per row would repeat the same three lookups N
+  /// times for N upcoming bills of one series.
+  Future<List<ScheduledTransactionEntity>> _toEntities(
+      List<ScheduledTransactionViewRow> rows) async {
+    final grouped = <String, List<ScheduledTransactionViewRow>>{};
+    for (final row in rows) {
+      grouped.putIfAbsent(row.seriesId, () => []).add(row);
+    }
+
+    final entities = <ScheduledTransactionEntity>[];
+    for (final entry in grouped.entries) {
+      final seriesRow = await _recurringDao.getSeries(entry.key);
+      // An instance whose series is gone is dropped rather than rendered
+      // half-described — there is nothing to show for it.
+      if (seriesRow == null) continue;
+
+      final series = _toSeriesEntity(seriesRow);
+      // Archived categories and accounts still resolve: a pending bill
+      // outlives the account it was set up against, and hiding it would
+      // hide money the user expects to move.
+      final category = await _categoriesDao.getCategoryById(seriesRow.categoryId);
+      final account = await _accountsDao.getAccountById(seriesRow.accountId);
+
+      for (final row in entry.value) {
+        entities.add(
+          ScheduledTransactionEntity(
+            id: row.id,
+            seriesId: row.seriesId,
+            date: row.date,
+            amountMinor: row.amountMinor,
+            status: decodeScheduledStatus(row.status),
+            transactionId: row.transactionId,
+            recurringTransactionSeries: series,
+            kind: seriesRow.type.toTransactionKind,
+            category: category == null ? null : _toCategoryEntity(category),
+            account: account == null ? null : _toAccountEntity(account),
+          ),
+        );
+      }
+    }
+    return entities;
+  }
+
+  CategoryEntity _toCategoryEntity(CategoryViewRow row) => CategoryEntity(
+        id: row.id,
+        name: row.name,
+        iconKey: row.iconKey,
+        colorInt: row.colorInt,
+        type: row.type,
+      );
+
+  AccountEntity _toAccountEntity(AccountViewRow row) => AccountEntity(
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        currencyCode: row.currencyCode,
+        balanceMinor: row.balanceMinor,
+        archived: row.archived,
+        lastUpdatedEventId: row.lastUpdatedEventId,
+      );
 
   @override
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
@@ -74,13 +120,6 @@ class RecurringRepositoryImpl implements RecurringRepository {
   @override
   Future<void> saveSeries(RecurringSeriesCompanion entry) {
     return _recurringDao.saveSeries(entry);
-  }
-
-  @override
-  Stream<List<RecurringTransactionSeriesEntity>> watchAllSeries() {
-    return _recurringDao.watchAllSeries().map(
-          (rows) => rows.map(_toSeriesEntity).toList(),
-        );
   }
 
   RecurringTransactionSeriesEntity _toSeriesEntity(RecurringSeriesRow row) =>
@@ -102,5 +141,9 @@ class RecurringRepositoryImpl implements RecurringRepository {
 @riverpod
 RecurringRepository recurringRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
-  return RecurringRepositoryImpl(RecurringDao(db));
+  return RecurringRepositoryImpl(
+    RecurringDao(db),
+    CategoriesDao(db),
+    AccountDao(db),
+  );
 }

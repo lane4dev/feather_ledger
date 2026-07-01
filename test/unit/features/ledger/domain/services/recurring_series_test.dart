@@ -169,11 +169,10 @@ void main() {
     expect(second.length, first.length, reason: 'no duplicates');
   });
 
-  test('a series with no materialized instances is still listed', () async {
-    // The reason watchAllSeries exists. Starting beyond the projection
-    // horizon means zero scheduled rows, and a view built only from
-    // instances would show the user nothing at all — including immediately
-    // after they created it.
+  test('even a far-future series gets its floor of instances', () async {
+    // Every valid series now has at least one instance, because the floor
+    // reaches past the window. That is why nothing needs to list series
+    // separately to keep an instance-less one visible.
     await seed();
     final result = await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
@@ -187,8 +186,7 @@ void main() {
     );
     expect(result, isA<Success<void>>());
 
-    expect(await scheduledIds(), isEmpty);
-    expect((await harness.recurringService.watchSeries().first), hasLength(1));
+    expect(await scheduledIds(), hasLength(3));
   });
 
   test('a category of the wrong kind is refused at creation', () async {
@@ -347,18 +345,18 @@ void main() {
         reason: 'deactivation must not delete existing instances');
   });
 
-  test('a deactivated series survives a round-trip through the projection',
-      () async {
+  test('deactivation leaves the rest of the rule intact', () async {
     await seed();
     await createMonthly();
     await harness.recurringService
         .deactivateSeries((await seriesRow()).id, endDate: DateTime(2026, 3, 1));
 
-    final series = await harness.recurringService.watchSeries().first;
+    final series = await seriesRow();
 
-    expect(series, hasLength(1));
-    expect(series.single.endDate, DateTime(2026, 3, 1));
-    expect(series.single.frequency, 'MONTHLY');
+    expect(series.endDate, DateTime(2026, 3, 1));
+    expect(series.frequency, 'MONTHLY');
+    expect(series.interval, 1);
+    expect(series.amountMinor, 50000);
   });
 
   test('an income series posts a credit', () async {

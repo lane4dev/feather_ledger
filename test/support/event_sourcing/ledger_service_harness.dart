@@ -88,7 +88,8 @@ class LedgerServiceHarness {
     categoryRepository = CategoryRepositoryImpl(db.categoriesDao);
     ledgerRepository =
         LedgerRepositoryImpl(db.transactionsDao, db.recurringDao);
-    recurringRepository = RecurringRepositoryImpl(db.recurringDao);
+    recurringRepository = RecurringRepositoryImpl(
+        db.recurringDao, db.categoriesDao, db.accountDao);
 
     final contextResolver =
         PostingContextResolver(accountRepository, categoryRepository);
@@ -102,7 +103,6 @@ class LedgerServiceHarness {
           eventStore, projector, recurringRepository, contextResolver),
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),
-      recurringRepository,
     );
     ledgerService = LedgerService(
       recordCommand,

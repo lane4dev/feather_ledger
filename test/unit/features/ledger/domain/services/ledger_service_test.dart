@@ -57,7 +57,8 @@ void main() {
     eventStore = DriftEventStore(database, ledgerEventRegistry);
     accountRepository = AccountRepositoryImpl(database.accountDao);
     categoryRepository = CategoryRepositoryImpl(database.categoriesDao);
-    recurringRepository = RecurringRepositoryImpl(database.recurringDao);
+    recurringRepository = RecurringRepositoryImpl(
+        database.recurringDao, database.categoriesDao, database.accountDao);
 
     final projector = LedgerProjectorImpl(database);
     final contextResolver =
@@ -83,7 +84,6 @@ void main() {
       convertScheduledCommand,
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),
-      recurringRepository,
     );
 
     service = LedgerService(
