@@ -12,6 +12,7 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart'
 import '../../domain/commands/delete_recurring_bill_command.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../view_model/recurring_view_model.dart';
+import 'ledger_delete_menu.dart';
 import 'ledger_detail_row.dart';
 import 'ledger_sheet_handle.dart';
 
@@ -19,7 +20,8 @@ import 'ledger_sheet_handle.dart';
 ///
 /// Deliberately not the transaction detail sheet: a pending bill has no event
 /// stream to show and cannot be edited — the only honest actions are to record
-/// it or delete it.
+/// it or delete it. Recording is the bottom button; deleting sits in the
+/// top-right overflow menu, matching the sheet a recorded transaction gets.
 class PendingBillSheet extends ConsumerWidget {
   const PendingBillSheet({
     super.key,
@@ -56,6 +58,10 @@ class PendingBillSheet extends ConsumerWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: l10n.cancel,
               ),
+              const Spacer(),
+              // Deleting is an overflow action, in the same corner and the
+              // same shape as on a recorded transaction's sheet.
+              LedgerDeleteMenu(onDelete: () => _delete(context, ref, l10n)),
             ],
           ),
           Text(
@@ -98,11 +104,6 @@ class PendingBillSheet extends ConsumerWidget {
           FilledButton(
             onPressed: () => _post(context, ref, l10n),
             child: Text(l10n.postInstance),
-          ),
-          SizedBox(height: context.spacing.sm),
-          OutlinedButton(
-            onPressed: () => _delete(context, ref, l10n),
-            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -243,6 +244,11 @@ class _DeleteScopeDialogState extends State<_DeleteScopeDialog> {
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, _scope),
+          // The same error colour a recorded transaction's delete confirms
+          // with: one destructive affordance across both sheets.
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.error,
+          ),
           child: Text(l10n.delete),
         ),
       ],

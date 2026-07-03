@@ -13,6 +13,7 @@ import '../../domain/events/ledger_events.dart';
 import '../../domain/queries/get_transaction_history_query.dart';
 import '../models/transaction_tile_ui_model.dart';
 
+import 'ledger_delete_menu.dart';
 import 'ledger_detail_row.dart';
 import 'ledger_sheet_handle.dart';
 
@@ -75,35 +76,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                 onPressed: onEdit,
                 tooltip: l10n.edit,
               ),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    onDelete?.call();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.delete_outline,
-                          color: Theme.of(context).colorScheme.error,
-                          size: 20,
-                        ),
-                        SizedBox(width: context.spacing.sm),
-                        Text(
-                          l10n.delete,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              LedgerDeleteMenu(onDelete: () => onDelete?.call()),
             ],
           ),
           SizedBox(height: context.spacing.sm),

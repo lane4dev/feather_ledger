@@ -117,7 +117,9 @@ lib/shared/     跨特性的组件与扩展
 - 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
 - **周期没有自己的页面。** 规则在交易表单里设置（非转账的新建交易上有一行「重复」，`interval` 固定为 1，
   保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生），待入账账单直接**混在账本列表里**
-  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 删除。`RecurringViewModel`
+  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 删除。删除放在底部抽屉**右上角的
+  溢出菜单**里，与已入账交易的详情抽屉**共用同一个 `LedgerDeleteMenu`** —— 同一个手势、同一个角落、
+  同一个错误色，两者的删除入口因此不会各自漂移。`RecurringViewModel`
   只持有这两个写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
   曾经存在的 `/more/recurring`、`/recurring_management`、`RecurringListScreen`、
   `RecurringSeriesFormSheet` 都已删除。

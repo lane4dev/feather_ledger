@@ -18,9 +18,8 @@ import 'package:feather_ledger/features/ledger/presentation/widgets/transaction_
 /// Upcoming recurring bills in the ledger list (spec 004, US2 / C4).
 ///
 /// The row must read as "not yet" without being confused for a real
-/// transaction, and the actions it offers must be the three honest ones —
-/// there is no event stream behind a pending bill, so editing it is not
-/// among them.
+/// transaction, and the actions it offers must be the honest ones — there is
+/// no event stream behind a pending bill, so editing it is not among them.
 void main() {
   const cash = AccountEntity(
     id: 'acc_cash',
@@ -109,6 +108,15 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    /// Delete lives in the top-right overflow menu, so reaching the scope
+    /// dialog is two taps: the menu, then the item.
+    Future<void> openDeleteDialog(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('records a bill only after confirming', (tester) async {
       await pumpSheet(tester);
 
@@ -139,8 +147,7 @@ void main() {
         (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+      await openDeleteDialog(tester);
 
       expect(find.text('Only this bill'), findsOneWidget);
       expect(find.text('This and following bills'), findsOneWidget);
@@ -154,8 +161,7 @@ void main() {
     testWidgets('deleting applies the chosen scope', (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+      await openDeleteDialog(tester);
       await tester.tap(find.text('This and following bills'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Delete'));
@@ -167,8 +173,7 @@ void main() {
     testWidgets('the narrowest scope is the one preselected', (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+      await openDeleteDialog(tester);
       // Confirm without touching the radios: it must not take more than the
       // bill that was opened.
       await tester.tap(find.widgetWithText(TextButton, 'Delete'));
@@ -180,8 +185,7 @@ void main() {
     testWidgets('cancelling the dialog deletes nothing', (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+      await openDeleteDialog(tester);
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pumpAndSettle();
 
@@ -194,8 +198,7 @@ void main() {
       viewModel.failure = LedgerErrorCode.scheduledAlreadyPosted;
       await pumpSheet(tester);
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+      await openDeleteDialog(tester);
       await tester.tap(find.widgetWithText(TextButton, 'Delete'));
       await tester.pumpAndSettle();
 
