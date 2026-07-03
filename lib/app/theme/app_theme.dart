@@ -130,6 +130,11 @@ class AppTheme {
         fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
   );
 
+  static const dialogTheme = DialogThemeData(
+    insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    constraints: BoxConstraints(minWidth: 360, maxWidth: 560),
+  );
+
   static final lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
@@ -141,6 +146,7 @@ class AppTheme {
       spacing,
       _semanticsLight,
     ],
+    dialogTheme: dialogTheme,
   );
 
   static final darkTheme = ThemeData(
@@ -154,6 +160,7 @@ class AppTheme {
       spacing,
       _semanticsDark,
     ],
+    dialogTheme: dialogTheme,
   );
 }
 
