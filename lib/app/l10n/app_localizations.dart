@@ -1010,7 +1010,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeThisOnly.
   ///
   /// In en, this message translates to:
-  /// **'Only this bill'**
+  /// **'This bill'**
   String get scopeThisOnly;
 
   /// No description provided for @scopeDialogTitle.

@@ -557,7 +557,7 @@
   "postInstance": "Post",
   "instancePosted": "Bill recorded",
   "deleteRecurringTitle": "Delete recurring bill",
-  "scopeThisOnly": "Only this bill",
+  "scopeThisOnly": "This bill",
   "scopeDialogTitle": "Apply to",
   "scopeThisOnlyUnavailable": "Category, account and note belong to the whole rule",
   "scopeThisAndFollowing": "This and following bills",

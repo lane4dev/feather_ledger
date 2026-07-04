@@ -491,7 +491,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get deleteRecurringTitle => 'Delete recurring bill';
 
   @override
-  String get scopeThisOnly => 'Only this bill';
+  String get scopeThisOnly => 'This bill';
 
   @override
   String get scopeDialogTitle => 'Apply to';

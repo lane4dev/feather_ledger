@@ -246,7 +246,7 @@ void main() {
       await save(tester);
 
       expect(find.text('Apply to'), findsOneWidget);
-      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('This bill'), findsOneWidget);
       expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);
       expect(viewModel.updated, isEmpty,
@@ -312,11 +312,11 @@ void main() {
 
       // The option is still listed — a missing one reads as a bug — but it
       // cannot be chosen, and the dialog says why.
-      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('This bill'), findsOneWidget);
       expect(
         tester
             .widget<RadioListTile<RecurringScope>>(
-              find.widgetWithText(RadioListTile<RecurringScope>, 'Only this bill'),
+              find.widgetWithText(RadioListTile<RecurringScope>, 'This bill'),
             )
             .enabled,
         isFalse,
@@ -331,7 +331,7 @@ void main() {
 
       await save(tester);
 
-      for (final label in ['Only this bill', 'This and following bills', 'All bills']) {
+      for (final label in ['This bill', 'This and following bills', 'All bills']) {
         expect(
           tester
               .widget<RadioListTile<RecurringScope>>(

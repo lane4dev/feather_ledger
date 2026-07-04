@@ -149,7 +149,7 @@ void main() {
 
       await openDeleteDialog(tester);
 
-      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('This bill'), findsOneWidget);
       expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);
       expect(find.text('Bills already recorded are kept'), findsOneWidget,

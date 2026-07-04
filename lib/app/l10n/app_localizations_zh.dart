@@ -467,7 +467,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get scopeThisOnly => '仅删除该项记录';
+  String get scopeThisOnly => '该项记录';
 
   @override
   String get scopeDialogTitle => '应用范围';
@@ -476,10 +476,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
 
   @override
-  String get scopeThisAndFollowing => '删除该项记录和后续记录';
+  String get scopeThisAndFollowing => '该项记录和后续记录';
 
   @override
-  String get scopeAll => '删除所有记录';
+  String get scopeAll => '所有记录';
 
   @override
   String get scopeAllHint => '已经入账的记录会保留';
@@ -1010,7 +1010,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get scopeThisOnly => '仅删除该项记录';
+  String get scopeThisOnly => '该项记录';
 
   @override
   String get scopeDialogTitle => '应用范围';
@@ -1019,10 +1019,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
 
   @override
-  String get scopeThisAndFollowing => '删除该项记录和后续记录';
+  String get scopeThisAndFollowing => '该项记录和后续记录';
 
   @override
-  String get scopeAll => '删除所有记录';
+  String get scopeAll => '所有记录';
 
   @override
   String get scopeAllHint => '已经入账的记录会保留';
@@ -1553,7 +1553,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get deleteRecurringTitle => '刪除週期帳單';
 
   @override
-  String get scopeThisOnly => '僅刪除該項記錄';
+  String get scopeThisOnly => '該項記錄';
 
   @override
   String get scopeDialogTitle => '應用範圍';
@@ -1562,10 +1562,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get scopeThisOnlyUnavailable => '分類、帳戶和備註屬於整條規則';
 
   @override
-  String get scopeThisAndFollowing => '刪除該項記錄和後續記錄';
+  String get scopeThisAndFollowing => '該項記錄和後續記錄';
 
   @override
-  String get scopeAll => '刪除所有記錄';
+  String get scopeAll => '所有記錄';
 
   @override
   String get scopeAllHint => '已經入帳的記錄會保留';
