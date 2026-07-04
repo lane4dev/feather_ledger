@@ -381,10 +381,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editRecurringTitle => 'Edit recurring bill';
 
   @override
-  String get editOneBillHint =>
-      'Only this bill. The category and account belong to the whole rule.';
-
-  @override
   String get nextStep => 'Next';
 
   @override
@@ -488,6 +484,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scopeThisOnly => 'Only this bill';
+
+  @override
+  String get scopeDialogTitle => 'Apply to';
+
+  @override
+  String get scopeThisOnlyUnavailable =>
+      'Category, account and note belong to the whole rule';
 
   @override
   String get scopeThisAndFollowing => 'This and following bills';

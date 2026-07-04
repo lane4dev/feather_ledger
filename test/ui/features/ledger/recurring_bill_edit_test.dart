@@ -17,15 +17,18 @@ import 'package:feather_ledger/features/ledger/presentation/models/transaction_t
 import 'package:feather_ledger/features/ledger/presentation/screens/recurring_bill_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 
 /// Editing an upcoming recurring bill (spec 004, US2).
 ///
-/// The scope is asked for *before* the form, because it decides which fields
-/// can exist: an instance row carries a date and an amount, and a category or
-/// account has nowhere to live on it. The tests below are mostly about that
-/// correspondence — the form must not offer what the chosen scope cannot keep.
+/// The form opens straight from the pencil and asks how far the change
+/// reaches when it is saved. The interesting part is the disagreement that
+/// creates: a bill's date and amount live on the instance row, while its
+/// category, account and note live on the series — so an edit that touches
+/// those cannot be applied to a single bill, and the dialog has to say so
+/// rather than accept the edit and drop half of it.
 void main() {
   const cash = AccountEntity(
     id: 'acc_cash',
@@ -40,6 +43,13 @@ void main() {
     id: 'cat_rent',
     name: 'Rent',
     iconKey: '1',
+    colorInt: 0xFF000000,
+    type: CategoryType.expense,
+  );
+  const food = CategoryEntity(
+    id: 'cat_food',
+    name: 'Food',
+    iconKey: '2',
     colorInt: 0xFF000000,
     type: CategoryType.expense,
   );
@@ -109,7 +119,7 @@ void main() {
             accountListProvider.overrideWith((ref) => Stream.value(const [cash])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
-                  type == CategoryType.expense ? const [rent] : const []),
+                  type == CategoryType.expense ? const [rent, food] : const []),
             ),
           ],
           child: MaterialApp.router(
@@ -140,55 +150,24 @@ void main() {
           reason: 'deleting one bill is what skipping used to be');
     });
 
-    testWidgets('the dialog names the action and defaults to the narrowest',
+    testWidgets('the pencil opens the form directly, with no dialog first',
         (tester) async {
       await pumpSheet(tester);
 
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit recurring bill'), findsOneWidget);
-      expect(find.text('Only this bill'), findsOneWidget);
-      expect(find.text('This and following bills'), findsOneWidget);
-      expect(find.text('All bills'), findsOneWidget);
-    });
-
-    testWidgets('carries the chosen scope to the form', (tester) async {
-      await pumpSheet(tester);
-
-      await tester.tap(find.byIcon(Icons.edit_outlined));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('This and following bills'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Next'));
-      await tester.pumpAndSettle();
-
-      expect(viewModel.updated, isEmpty,
-          reason: 'choosing a scope edits nothing on its own');
-      final (bill, scope) = pushed as (TransactionTileUiModel, RecurringScope);
-      expect(bill.id, 'sched_1');
-      expect(scope, RecurringScope.thisAndFollowing,
-          reason: 'the form is opened for the scope that was chosen');
-    });
-
-    testWidgets('cancelling the dialog opens no form', (tester) async {
-      await pumpSheet(tester);
-
-      await tester.tap(find.byIcon(Icons.edit_outlined));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing,
+          reason: 'how far it reaches is a question about a finished edit');
       expect(viewModel.updated, isEmpty);
-      expect(pushed, isNull, reason: 'no form was opened');
+      expect((pushed as TransactionTileUiModel).id, 'sched_1');
     });
   });
 
-  group('the form offers what the scope can keep', () {
+  group('the form, and the reach asked for at save', () {
     /// The form is a route in the app, and it pops itself on success — so the
     /// test needs a router underneath it, not just a MaterialApp.
-    Future<void> pumpForm(WidgetTester tester, RecurringScope scope) async {
+    Future<void> pumpForm(WidgetTester tester) async {
       final router = GoRouter(
         initialLocation: '/ledger/edit-bill',
         routes: [
@@ -198,10 +177,8 @@ void main() {
             routes: [
               GoRoute(
                 path: 'edit-bill',
-                builder: (_, __) => RecurringBillFormScreen(
-                  transaction: tile,
-                  scope: scope,
-                ),
+                builder: (_, __) =>
+                    RecurringBillFormScreen(transaction: tile),
               ),
             ],
           ),
@@ -215,7 +192,7 @@ void main() {
             accountListProvider.overrideWith((ref) => Stream.value(const [cash])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
-                  type == CategoryType.expense ? const [rent] : const []),
+                  type == CategoryType.expense ? const [rent, food] : const []),
             ),
           ],
           child: MaterialApp.router(
@@ -234,41 +211,57 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('one bill only: amount and date, no category or account',
-        (tester) async {
-      await pumpForm(tester, RecurringScope.thisOnly);
+    Future<void> save(WidgetTester tester) async {
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+    }
 
-      expect(find.text('Only this bill'), findsOneWidget,
-          reason: 'the form says which scope it is applying');
-      expect(find.byType(LedgerSelectorField), findsNothing,
-          reason: 'a single row has nowhere to keep a category or account');
-      expect(find.textContaining('belong to the whole rule'), findsOneWidget);
-      expect(find.text('Save'), findsOneWidget);
-    });
-
-    testWidgets('the series scopes offer category, account and note',
-        (tester) async {
-      await pumpForm(tester, RecurringScope.all);
-
-      expect(find.text('All bills'), findsOneWidget);
-      expect(find.byType(LedgerSelectorField), findsNWidgets(2));
-      expect(find.text('Rent'), findsWidgets);
-      expect(find.text('Cash'), findsWidgets);
-    });
-
-    testWidgets('saving sends the scope, the amount and the date',
-        (tester) async {
-      await pumpForm(tester, RecurringScope.thisAndFollowing);
-
+    Future<void> enterAmount(WidgetTester tester, String amount) async {
       await tester.enterText(
         find.descendant(
           of: find.byType(LedgerAmountInput),
           matching: find.byType(TextFormField),
         ),
-        '6000.00',
+        amount,
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Save'));
+    }
+
+    testWidgets('offers every field, because the scope is not known yet',
+        (tester) async {
+      await pumpForm(tester);
+
+      // Nothing is decided about the reach until Save, so nothing may be
+      // hidden on the strength of a decision that has not been made.
+      expect(find.byType(LedgerSelectorField), findsNWidgets(2),
+          reason: 'category and account');
+      expect(find.text('Rent'), findsWidgets);
+      expect(find.text('Cash'), findsWidgets);
+      expect(find.text('Save'), findsOneWidget);
+    });
+
+    testWidgets('saving asks how far the edit reaches', (tester) async {
+      await pumpForm(tester);
+
+      await save(tester);
+
+      expect(find.text('Apply to'), findsOneWidget);
+      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('This and following bills'), findsOneWidget);
+      expect(find.text('All bills'), findsOneWidget);
+      expect(viewModel.updated, isEmpty,
+          reason: 'nothing is written until the reach is chosen');
+    });
+
+    testWidgets('the chosen reach and the new amount are what get sent',
+        (tester) async {
+      await pumpForm(tester);
+      await enterAmount(tester, '6000.00');
+
+      await save(tester);
+      await tester.tap(find.text('This and following bills'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Save'));
       await tester.pumpAndSettle();
 
       expect(viewModel.updated, hasLength(1));
@@ -278,16 +271,90 @@ void main() {
       expect(call.$3, 600000);
     });
 
+    testWidgets('the narrowest reach is preselected', (tester) async {
+      await pumpForm(tester);
+
+      await save(tester);
+      await tester.tap(find.widgetWithText(TextButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.updated.single.$2, RecurringScope.thisOnly,
+          reason: 'confirming without choosing must not reach further');
+    });
+
+    testWidgets('cancelling the dialog saves nothing', (tester) async {
+      await pumpForm(tester);
+
+      await save(tester);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.updated, isEmpty);
+    });
+
+    testWidgets(
+        'changing the category rules out "only this bill" rather than '
+        'dropping the change', (tester) async {
+      await pumpForm(tester);
+
+      // Change something only the series can hold.
+      await tester.tap(find.byType(LedgerSelectorField).first);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(LedgerSelectionSheet<CategoryEntity>),
+          matching: find.text('Food'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await save(tester);
+
+      // The option is still listed — a missing one reads as a bug — but it
+      // cannot be chosen, and the dialog says why.
+      expect(find.text('Only this bill'), findsOneWidget);
+      expect(
+        tester
+            .widget<RadioListTile<RecurringScope>>(
+              find.widgetWithText(RadioListTile<RecurringScope>, 'Only this bill'),
+            )
+            .enabled,
+        isFalse,
+      );
+      expect(find.textContaining('belong to the whole rule'), findsOneWidget);
+    });
+
+    testWidgets('with only the amount touched, every reach stays available',
+        (tester) async {
+      await pumpForm(tester);
+      await enterAmount(tester, '6000.00');
+
+      await save(tester);
+
+      for (final label in ['Only this bill', 'This and following bills', 'All bills']) {
+        expect(
+          tester
+              .widget<RadioListTile<RecurringScope>>(
+                find.widgetWithText(RadioListTile<RecurringScope>, label),
+              )
+              .enabled,
+          isTrue,
+          reason: '$label can hold an amount',
+        );
+      }
+    });
+
     testWidgets('reports a rejection with its localized message',
         (tester) async {
       viewModel.failure = LedgerErrorCode.scheduledDateTaken;
-      await pumpForm(tester, RecurringScope.thisOnly);
+      await pumpForm(tester);
 
-      await tester.tap(find.text('Save'));
+      await save(tester);
+      await tester.tap(find.widgetWithText(TextButton, 'Save'));
       await tester.pumpAndSettle();
 
-      expect(
-          find.text('This series already has a bill on that date'), findsOneWidget);
+      expect(find.text('This series already has a bill on that date'),
+          findsOneWidget);
     });
   });
 }

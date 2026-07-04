@@ -368,9 +368,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editRecurringTitle => '编辑周期账单';
 
   @override
-  String get editOneBillHint => '只改这一笔。分类与账户属于整条规则。';
-
-  @override
   String get nextStep => '下一步';
 
   @override
@@ -471,6 +468,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scopeThisOnly => '仅删除该项记录';
+
+  @override
+  String get scopeDialogTitle => '应用范围';
+
+  @override
+  String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '删除该项记录和后续记录';
@@ -908,9 +911,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get editRecurringTitle => '编辑周期账单';
 
   @override
-  String get editOneBillHint => '只改这一笔。分类与账户属于整条规则。';
-
-  @override
   String get nextStep => '下一步';
 
   @override
@@ -1011,6 +1011,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get scopeThisOnly => '仅删除该项记录';
+
+  @override
+  String get scopeDialogTitle => '应用范围';
+
+  @override
+  String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '删除该项记录和后续记录';
@@ -1448,9 +1454,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get editRecurringTitle => '編輯週期帳單';
 
   @override
-  String get editOneBillHint => '只改這一筆。分類與帳戶屬於整條規則。';
-
-  @override
   String get nextStep => '下一步';
 
   @override
@@ -1551,6 +1554,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get scopeThisOnly => '僅刪除該項記錄';
+
+  @override
+  String get scopeDialogTitle => '應用範圍';
+
+  @override
+  String get scopeThisOnlyUnavailable => '分類、帳戶和備註屬於整條規則';
 
   @override
   String get scopeThisAndFollowing => '刪除該項記錄和後續記錄';

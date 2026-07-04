@@ -22,24 +22,23 @@ import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
+import '../widgets/recurring_scope_dialog.dart';
 
 /// Edits one upcoming recurring bill (spec 004, US2).
 ///
-/// **What this form offers depends on the scope it was opened with.** A bill's
-/// date and amount live on the instance row; its category, account and
-/// description live on the series and are resolved when read. So a change to a
-/// single occurrence has nowhere to put a category, and offering the field
-/// would mean either lying to the user or writing it to every other bill. The
-/// scope dialog is asked first for exactly that reason.
+/// The form shows every field and asks how far the change reaches *when it is
+/// saved*. One field does not survive every answer: a bill's date and amount
+/// live on the instance row, while its category, account and description live
+/// on the series. So a change to those three cannot be applied to a single
+/// occurrence — and the dialog says so by refusing that scope, rather than
+/// accepting the edit and quietly dropping half of it.
 class RecurringBillFormScreen extends ConsumerStatefulWidget {
   const RecurringBillFormScreen({
     super.key,
     required this.transaction,
-    required this.scope,
   });
 
   final TransactionTileUiModel transaction;
-  final RecurringScope scope;
 
   @override
   ConsumerState<RecurringBillFormScreen> createState() =>
@@ -56,9 +55,12 @@ class _RecurringBillFormScreenState
   String? _accountId;
   late final TextEditingController _note;
 
-  /// Category, account and description belong to the rule, so they are off
-  /// the table for a single occurrence.
-  bool get _editsSeries => widget.scope != RecurringScope.thisOnly;
+  /// Whether the user changed something only the series can hold. If they
+  /// did, "only this bill" stops being an answer this edit can have.
+  bool get _changedSeriesFields =>
+      _categoryId != widget.transaction.category.id ||
+      _accountId != widget.transaction.account.id ||
+      _note.text.trim() != (widget.transaction.note ?? '').trim();
 
   @override
   void initState() {
@@ -101,13 +103,6 @@ class _RecurringBillFormScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _scopeLabel(l10n),
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: theme.hintColor),
-              ),
-              SizedBox(height: context.spacing.lg),
-
               LedgerAmountInput(
                 initialMinorUnits: _amountMinor,
                 type: widget.transaction.type,
@@ -122,31 +117,21 @@ class _RecurringBillFormScreenState
               _dateRow(l10n),
               SizedBox(height: context.spacing.sm),
 
-              if (_editsSeries) ...[
-                _categoryRow(l10n),
-                SizedBox(height: context.spacing.sm),
-                _accountRow(l10n),
-                SizedBox(height: context.spacing.sm),
-                LedgerFormRow(
-                  icon: Icons.edit_note,
-                  child: TextFormField(
-                    controller: _note,
-                    decoration: InputDecoration(
-                      hintText: l10n.note,
-                      border: InputBorder.none,
-                    ),
-                    style: theme.textTheme.bodyLarge,
+              _categoryRow(l10n),
+              SizedBox(height: context.spacing.sm),
+              _accountRow(l10n),
+              SizedBox(height: context.spacing.sm),
+              LedgerFormRow(
+                icon: Icons.edit_note,
+                child: TextFormField(
+                  controller: _note,
+                  decoration: InputDecoration(
+                    hintText: l10n.note,
+                    border: InputBorder.none,
                   ),
+                  style: theme.textTheme.bodyLarge,
                 ),
-              ] else
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: context.spacing.sm),
-                  child: Text(
-                    l10n.editOneBillHint,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.hintColor),
-                  ),
-                ),
+              ),
 
               SizedBox(height: context.spacing.xl),
               FilledButton(
@@ -286,11 +271,26 @@ class _RecurringBillFormScreenState
     if (!(_formKey.currentState?.validate() ?? false)) return;
     _formKey.currentState!.save();
 
+    // Asked here, not on the way in: the question is "how far does *this*
+    // edit reach", and there is no this until the fields are filled.
+    final scope = await showDialog<RecurringScope>(
+      context: context,
+      builder: (context) => RecurringScopeDialog(
+        title: l10n.scopeDialogTitle,
+        confirmLabel: l10n.save,
+        unavailable: _changedSeriesFields
+            ? const {RecurringScope.thisOnly}
+            : const {},
+        unavailableHint: l10n.scopeThisOnlyUnavailable,
+      ),
+    );
+    if (scope == null || !mounted) return;
+
     final result = await ref
         .read(recurringViewModelProvider.notifier)
         .updateBill(
           widget.transaction.id,
-          scope: widget.scope,
+          scope: scope,
           amountMinor: _amountMinor!,
           date: _date,
           categoryId: _categoryId ?? widget.transaction.category.id,
@@ -311,10 +311,4 @@ class _RecurringBillFormScreenState
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(l10n.billUpdated)));
   }
-
-  String _scopeLabel(AppLocalizations l10n) => switch (widget.scope) {
-        RecurringScope.thisOnly => l10n.scopeThisOnly,
-        RecurringScope.thisAndFollowing => l10n.scopeThisAndFollowing,
-        RecurringScope.all => l10n.scopeAll,
-      };
 }

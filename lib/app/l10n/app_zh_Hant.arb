@@ -432,7 +432,6 @@
   "errorScheduledAlreadyPosted": "該週期交易已入帳",
   "errorScheduledDateTaken": "這條規則在那天已經有一筆帳單了",
   "editRecurringTitle": "編輯週期帳單",
-  "editOneBillHint": "只改這一筆。分類與帳戶屬於整條規則。",
   "nextStep": "下一步",
   "billUpdated": "帳單已更新",
   "@errorScheduledAlreadyPosted": {
@@ -516,6 +515,8 @@
   "instancePosted": "已記入",
   "deleteRecurringTitle": "刪除週期帳單",
   "scopeThisOnly": "僅刪除該項記錄",
+  "scopeDialogTitle": "應用範圍",
+  "scopeThisOnlyUnavailable": "分類、帳戶和備註屬於整條規則",
   "scopeThisAndFollowing": "刪除該項記錄和後續記錄",
   "scopeAll": "刪除所有記錄",
   "scopeAllHint": "已經入帳的記錄會保留",

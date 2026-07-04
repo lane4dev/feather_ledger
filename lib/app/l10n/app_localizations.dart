@@ -814,12 +814,6 @@ abstract class AppLocalizations {
   /// **'Edit recurring bill'**
   String get editRecurringTitle;
 
-  /// No description provided for @editOneBillHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Only this bill. The category and account belong to the whole rule.'**
-  String get editOneBillHint;
-
   /// No description provided for @nextStep.
   ///
   /// In en, this message translates to:
@@ -1018,6 +1012,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only this bill'**
   String get scopeThisOnly;
+
+  /// No description provided for @scopeDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to'**
+  String get scopeDialogTitle;
+
+  /// No description provided for @scopeThisOnlyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Category, account and note belong to the whole rule'**
+  String get scopeThisOnlyUnavailable;
 
   /// No description provided for @scopeThisAndFollowing.
   ///

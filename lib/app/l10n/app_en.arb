@@ -436,7 +436,6 @@
   "errorScheduledAlreadyPosted": "This scheduled transaction was already posted",
   "errorScheduledDateTaken": "This series already has a bill on that date",
   "editRecurringTitle": "Edit recurring bill",
-  "editOneBillHint": "Only this bill. The category and account belong to the whole rule.",
   "nextStep": "Next",
   "billUpdated": "Bill updated",
   "@errorScheduledAlreadyPosted": {
@@ -559,6 +558,8 @@
   "instancePosted": "Bill recorded",
   "deleteRecurringTitle": "Delete recurring bill",
   "scopeThisOnly": "Only this bill",
+  "scopeDialogTitle": "Apply to",
+  "scopeThisOnlyUnavailable": "Category, account and note belong to the whole rule",
   "scopeThisAndFollowing": "This and following bills",
   "scopeAll": "All bills",
   "scopeAllHint": "Bills already recorded are kept",

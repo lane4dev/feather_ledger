@@ -18,6 +18,7 @@ import '../view_model/recurring_view_model.dart';
 import 'ledger_delete_menu.dart';
 import 'ledger_detail_row.dart';
 import 'ledger_sheet_handle.dart';
+import 'recurring_scope_dialog.dart';
 
 /// What you can do with an upcoming recurring bill (spec 004, US2).
 ///
@@ -66,7 +67,7 @@ class PendingBillSheet extends ConsumerWidget {
               // them: the pencil beside the overflow menu.
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _edit(context, ref, l10n),
+                onPressed: () => _edit(context),
                 tooltip: l10n.edit,
               ),
               LedgerDeleteMenu(onDelete: () => _delete(context, ref, l10n)),
@@ -162,8 +163,7 @@ class PendingBillSheet extends ConsumerWidget {
   ) async {
     final scope = await showDialog<RecurringScope>(
       context: context,
-      builder: (context) => _ScopeDialog(
-        l10n: l10n,
+      builder: (context) => RecurringScopeDialog(
         title: l10n.deleteRecurringTitle,
         confirmLabel: l10n.delete,
         destructive: true,
@@ -181,31 +181,18 @@ class PendingBillSheet extends ConsumerWidget {
     );
   }
 
-  /// Editing asks the same question, and for a harder reason: the scope
-  /// decides which fields the form can even offer, because a single instance
-  /// row has nowhere to keep a category or an account.
-  Future<void> _edit(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) async {
-    final scope = await showDialog<RecurringScope>(
-      context: context,
-      builder: (context) => _ScopeDialog(
-        l10n: l10n,
-        title: l10n.editRecurringTitle,
-        confirmLabel: l10n.nextStep,
-      ),
-    );
-    if (scope == null || !context.mounted) return;
-
+  /// Editing opens the form straight away. How far the change reaches is
+  /// asked when it is saved, because that is when there is something to reach
+  /// with — and because a field the chosen scope cannot keep only becomes a
+  /// question once the user has touched it.
+  void _edit(BuildContext context) {
     // Read the router first: the sheet is about to leave the tree, so its
     // context is no longer something to navigate from.
     final router = GoRouter.of(context);
     Navigator.of(context).pop(); // the sheet, so the form is not stacked on it
     // Not awaited: this sheet is gone, and what the form does next is
     // the form's business.
-    unawaited(router.push('/ledger/edit-bill', extra: (transaction, scope)));
+    unawaited(router.push('/ledger/edit-bill', extra: transaction));
   }
 
   /// Runs a write, reports it, and closes the sheet on success — the one
@@ -232,88 +219,4 @@ class PendingBillSheet extends ConsumerWidget {
   static String _formatDate(DateTime date) => '${date.year}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
-}
-
-/// Picks how far an edit or a delete reaches. Pops the chosen
-/// [RecurringScope], or null when cancelled.
-///
-/// Both actions ask the same question with the same three answers — they name
-/// how much of the series is affected, which is the one thing the user knows
-/// and the row does not.
-class _ScopeDialog extends StatefulWidget {
-  const _ScopeDialog({
-    required this.l10n,
-    required this.title,
-    required this.confirmLabel,
-    this.destructive = false,
-  });
-
-  final AppLocalizations l10n;
-  final String title;
-  final String confirmLabel;
-  final bool destructive;
-
-  @override
-  State<_ScopeDialog> createState() => _ScopeDialogState();
-}
-
-class _ScopeDialogState extends State<_ScopeDialog> {
-  // The narrowest scope is the default: it is the only one that cannot take
-  // a bill the user did not mean to touch.
-  RecurringScope _scope = RecurringScope.thisOnly;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = widget.l10n;
-
-    return AlertDialog(
-      title: Text(widget.title),
-      content: RadioGroup<RecurringScope>(
-        groupValue: _scope,
-        onChanged: (value) => setState(() => _scope = value!),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final scope in RecurringScope.values)
-              RadioListTile<RecurringScope>(
-                value: scope,
-                contentPadding: EdgeInsets.zero,
-                title: Text(_label(l10n, scope)),
-                // Only the widest scope needs reassuring: it is the one that
-                // reads as "throw the whole series away".
-                subtitle: scope == RecurringScope.all
-                    ? Text(l10n.scopeAllHint)
-                    : null,
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, _scope),
-          // A destructive confirm wears the error colour a recorded
-          // transaction's delete does; "next" is not destructive and does not.
-          style: widget.destructive
-              ? TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                )
-              : null,
-          child: Text(widget.confirmLabel),
-        ),
-      ],
-    );
-  }
-
-  static String _label(AppLocalizations l10n, RecurringScope scope) =>
-      switch (scope) {
-        RecurringScope.thisOnly => l10n.scopeThisOnly,
-        RecurringScope.thisAndFollowing =>
-          l10n.scopeThisAndFollowing,
-        RecurringScope.all => l10n.scopeAll,
-      };
 }

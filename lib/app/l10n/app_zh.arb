@@ -432,7 +432,6 @@
   "errorScheduledAlreadyPosted": "该周期交易已入账",
   "errorScheduledDateTaken": "这条规则在那天已经有一笔账单了",
   "editRecurringTitle": "编辑周期账单",
-  "editOneBillHint": "只改这一笔。分类与账户属于整条规则。",
   "nextStep": "下一步",
   "billUpdated": "账单已更新",
   "@errorScheduledAlreadyPosted": {
@@ -516,6 +515,8 @@
   "instancePosted": "已记入",
   "deleteRecurringTitle": "删除周期账单",
   "scopeThisOnly": "仅删除该项记录",
+  "scopeDialogTitle": "应用范围",
+  "scopeThisOnlyUnavailable": "分类、账户和备注属于整条规则",
   "scopeThisAndFollowing": "删除该项记录和后续记录",
   "scopeAll": "删除所有记录",
   "scopeAllHint": "已经入账的记录会保留",
