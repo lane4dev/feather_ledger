@@ -60,7 +60,7 @@ final class RecurringViewModelProvider
 }
 
 String _$recurringViewModelHash() =>
-    r'd410efbbf516f80b41af336d08931311c916abac';
+    r'8b69e885eb25bd619408834bbdb0663ef7ab8671';
 
 /// The write actions for recurring bills (spec 004, US2).
 ///

@@ -117,10 +117,10 @@ lib/shared/     跨特性的组件与扩展
 - 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
 - **周期没有自己的页面。** 规则在交易表单里设置（非转账的新建交易上有一行「重复」，`interval` 固定为 1，
   保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生），待入账账单直接**混在账本列表里**
-  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 删除。删除放在底部抽屉**右上角的
-  溢出菜单**里，与已入账交易的详情抽屉**共用同一个 `LedgerDeleteMenu`** —— 同一个手势、同一个角落、
-  同一个错误色，两者的删除入口因此不会各自漂移。`RecurringViewModel`
-  只持有这两个写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
+  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 编辑 / 删除。编辑是右上角的铅笔、
+  删除是它旁边的**溢出菜单**，与已入账交易的详情抽屉**共用同一个 `LedgerDeleteMenu`** —— 同一个手势、
+  同一个角落、同一个错误色，两者的入口因此不会各自漂移。`RecurringViewModel`
+  只持有这些写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
   曾经存在的 `/more/recurring`、`/recurring_management`、`RecurringListScreen`、
   `RecurringSeriesFormSheet` 都已删除。
 - **删除有三个作用域**（`DeleteRecurringBillCommand`），区别不在「删掉哪一行」而在**对系列做了什么**——
@@ -135,8 +135,22 @@ lib/shared/     跨特性的组件与扩展
     （`scheduledAlreadyPosted`）—— 那是冲正，是另一件事、另一个入口。
   - 曾经的「停用」与「跳过」已被这三个作用域吸收：跳过的语义就是 `thisOnly`，停用的语义就是
     `thisAndFollowing` 少删几行，两个入口并存等于同一件事说两遍。
+- **编辑与删除共用同一组作用域**（`RecurringScope`：`thisOnly` / `thisAndFollowing` / `all`），
+  并且**先问作用域、再开表单**——因为作用域决定表单能有哪些字段。一行实例只存 `date` 与 `amountMinor`；
+  分类 / 账户 / 描述属于系列、读取时才解析出来。所以「仅这一项」根本没有地方放分类，
+  表单就不给它（`RecurringBillFormScreen` 按 scope 增删字段），而不是让用户填了再悄悄丢掉。
+  - `thisOnly` 改金额就地改；改日期则在新日期上新建一行、并在**原日期留一个 `skipped` 墓碑**
+    （否则规则下次物化会把它放回去）。若新日期上这条规则本来就有账单一律拒绝（`scheduledDateTaken`）——
+    否则会变成同一天两笔，其中一笔还瞒着物化。
+  - `thisAndFollowing` 是**拆分**：旧系列结束在该账单前一天，从新值起一条新系列，并把旧系列已入账的
+    日期在新系列里补成墓碑（那天的钱已经动过，不能再出一笔）。
+  - `all` 重写系列模板，并**删掉待入账行重新物化**——行的 id 编码了日期，档期一平移旧 id 就全过期，
+    而过期的 id 在物化看来就是「缺失」，会把每个日期再记一遍。
+  - 编辑**已入账**的实例同样被拒（`scheduledAlreadyPosted`）：那是冲正，另一个入口。
 - **待入账是「还没发生」**：它不进入余额、月度合计或搜索（搜索只读 `transactions_view`，实例不在其中），
   只在展示层出现。它变成真实交易的唯一路径仍是 `ConvertScheduledToPostedCommand`。
+- 实例 id 由 `scheduledInstanceId(seriesId, date)` 唯一决定（`domain/entities/ledger_entities.dart`）。
+  物化与编辑都靠它幂等 / 判重，**改它的形状等于把每一笔账单翻倍**。
 
 ## 金额约定（重要）
 

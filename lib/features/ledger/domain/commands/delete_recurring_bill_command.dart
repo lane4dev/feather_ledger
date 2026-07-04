@@ -8,19 +8,6 @@ import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.d
 
 part 'delete_recurring_bill_command.g.dart';
 
-/// How much of a series a delete takes with it (spec 004, US2).
-enum RecurringDeleteScope {
-  /// The one bill that was opened. The series carries on.
-  thisOnly,
-
-  /// This bill and every later one. Earlier bills — recorded or still
-  /// pending — are untouched.
-  thisAndFollowing,
-
-  /// The whole series. Bills already recorded stay in the ledger.
-  all,
-}
-
 /// Deletes pending recurring bills (spec 004, US2).
 ///
 /// Three scopes, and what separates them is what happens to the *series* —
@@ -28,13 +15,13 @@ enum RecurringDeleteScope {
 /// back. Materialization re-derives every instance from the rule, so a bill
 /// deleted by dropping its row alone would reappear on the next run.
 ///
-/// - [RecurringDeleteScope.thisOnly] marks the instance `skipped`. That status
+/// - [RecurringScope.thisOnly] marks the instance `skipped`. That status
 ///   is the tombstone `ProjectRecurringEventsCommand` refuses to resurrect,
 ///   which is what makes "deleted" stay deleted while the rule lives on.
-/// - [RecurringDeleteScope.thisAndFollowing] ends the series the day before
+/// - [RecurringScope.thisAndFollowing] ends the series the day before
 ///   this bill, so the rule produces nothing further, and then clears the
 ///   pending instances from here on.
-/// - [RecurringDeleteScope.all] removes the series and every instance row
+/// - [RecurringScope.all] removes the series and every instance row
 ///   belonging to it. Bills already *recorded* are untouched: those are
 ///   `TransactionRecorded` events that stand on their own, and only the
 ///   scheduling envelope around them goes.
@@ -48,7 +35,7 @@ class DeleteRecurringBillCommand {
 
   Future<void> execute(
     String scheduledId, {
-    required RecurringDeleteScope scope,
+    required RecurringScope scope,
   }) async {
     final scheduled = await _recurringRepository.getScheduled(scheduledId);
     if (scheduled == null) {
@@ -65,7 +52,7 @@ class DeleteRecurringBillCommand {
     }
 
     switch (scope) {
-      case RecurringDeleteScope.thisOnly:
+      case RecurringScope.thisOnly:
         await _recurringRepository.insertOrUpdateScheduled(
           ScheduledTransactionsViewCompanion(
             id: Value(scheduled.id),
@@ -76,9 +63,9 @@ class DeleteRecurringBillCommand {
             transactionId: Value(scheduled.transactionId),
           ),
         );
-      case RecurringDeleteScope.thisAndFollowing:
+      case RecurringScope.thisAndFollowing:
         await _truncate(scheduled);
-      case RecurringDeleteScope.all:
+      case RecurringScope.all:
         await _recurringRepository.deleteSeriesWithInstances(
             scheduled.seriesId);
     }
@@ -114,8 +101,8 @@ class DeleteRecurringBillCommand {
       ),
     );
 
-    await _recurringRepository.deletePendingFrom(
-        scheduled.seriesId, scheduled.date);
+    await _recurringRepository.deletePending(
+        scheduled.seriesId, from: scheduled.date);
   }
 
   static DateTime _dayBefore(DateTime date) =>

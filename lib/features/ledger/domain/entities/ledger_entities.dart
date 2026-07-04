@@ -9,6 +9,34 @@ enum ScheduledTransactionStatus {
   failed,
 }
 
+/// The derived id of one materialized instance.
+///
+/// Stable for a given (series, date), and that stability *is* the idempotency
+/// of materialization: a second run recomputes this id and finds the row it
+/// made instead of adding another. **Do not change the shape** — every row
+/// already in `scheduled_transactions_view` is named this way, and a row whose
+/// id no longer matches its date would be re-created alongside itself.
+String scheduledInstanceId(String seriesId, DateTime date) =>
+    '${seriesId}_${date.millisecondsSinceEpoch}';
+
+/// How far an edit or a delete reaches into a recurring series (spec 004, US2).
+///
+/// The scopes mean the same thing for both, which is why they share one enum:
+/// they name how much of the *series* the action takes with it, not which row
+/// it starts from. A bill is re-derived from its rule, so "how far" is the
+/// only question that has a stable answer.
+enum RecurringScope {
+  /// The one bill that was opened. The series carries on unchanged.
+  thisOnly,
+
+  /// This bill and every later one. Earlier bills — recorded or still
+  /// pending — are untouched.
+  thisAndFollowing,
+
+  /// The whole series. Bills already recorded are kept.
+  all,
+}
+
 /// The `scheduled_transactions_view.status` column stores the enum *name*
 /// (it is a plain TEXT column, not an intEnum). Both directions live here so
 /// a writer and a reader cannot drift apart — decoding used to have no

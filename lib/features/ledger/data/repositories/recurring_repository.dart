@@ -50,7 +50,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
-  Future<void> deletePendingFrom(String seriesId, DateTime from) {
+  Future<void> deletePending(String seriesId, {DateTime? from}) {
     return _recurringDao.deleteScheduledForSeries(
       seriesId,
       from: from,

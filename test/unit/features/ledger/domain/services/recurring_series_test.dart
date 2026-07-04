@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
@@ -284,7 +283,7 @@ void main() {
     final balanceBefore = await accountBalance();
 
     final result = await harness.recurringService
-        .deleteBill(instance.id, scope: RecurringDeleteScope.thisOnly);
+        .deleteBill(instance.id, scope: RecurringScope.thisOnly);
 
     expect(result, isA<Success<void>>());
     // The row stays, marked `skipped`: that status is the tombstone
@@ -303,7 +302,7 @@ void main() {
     final instance = await firstScheduled();
 
     await harness.recurringService
-        .deleteBill(instance.id, scope: RecurringDeleteScope.thisOnly);
+        .deleteBill(instance.id, scope: RecurringScope.thisOnly);
     await harness.recurringService.materialize();
 
     expect(await scheduledIds(), before,
@@ -319,7 +318,7 @@ void main() {
     await harness.recurringService.postInstance(instance.id);
 
     final result = await harness.recurringService
-        .deleteBill(instance.id, scope: RecurringDeleteScope.thisOnly);
+        .deleteBill(instance.id, scope: RecurringScope.thisOnly);
 
     expect(
       result,
@@ -338,7 +337,7 @@ void main() {
     );
     expect(
       await harness.recurringService
-          .deleteBill('nope', scope: RecurringDeleteScope.thisOnly),
+          .deleteBill('nope', scope: RecurringScope.thisOnly),
       isA<Failure<void>>().having(
           (f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
     );
@@ -354,7 +353,7 @@ void main() {
     final cut = pending[2];
 
     final result = await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringDeleteScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
 
     expect(result, isA<Success<void>>());
     // A day earlier, because `until` is inclusive — ending on the bill's own
@@ -380,7 +379,7 @@ void main() {
         .firstWhere((s) => s.status == ScheduledTransactionStatus.scheduled);
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringDeleteScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
 
     final afterDelete = await scheduledIds();
     await harness.recurringService.materialize();
@@ -401,7 +400,7 @@ void main() {
     final balanceAfterPost = await accountBalance();
 
     await harness.recurringService
-        .deleteBill(pending.first.id, scope: RecurringDeleteScope.thisAndFollowing);
+        .deleteBill(pending.first.id, scope: RecurringScope.thisAndFollowing);
 
     expect(await accountBalance(), balanceAfterPost,
         reason: 'a recorded bill is not a pending bill');
@@ -422,7 +421,7 @@ void main() {
     final cut = pending.first;
 
     final result = await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringDeleteScope.all);
+        .deleteBill(cut.id, scope: RecurringScope.all);
 
     expect(result, isA<Success<void>>());
     expect(await harness.db.recurringDao.getAllSeries(), isEmpty);
@@ -442,7 +441,7 @@ void main() {
         .firstWhere((s) => s.status == ScheduledTransactionStatus.scheduled);
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringDeleteScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
 
     final series = await seriesRow();
 
@@ -451,6 +450,246 @@ void main() {
     expect(series.amountMinor, 50000);
     expect(series.accountId, accountId);
     expect(series.categoryId, expenseCategoryId);
+  });
+
+  // — editing (spec 004, US2) ————————————————————————————————————————————
+
+  /// Edits [instance] at [scope]. The series-scoped fields default to the
+  /// series' own values, which is what the form sends for `thisOnly` (a single
+  /// row has nowhere to keep a category or an account).
+  Future<Result<void>> editBill(
+    ScheduledTransactionEntity instance, {
+    required RecurringScope scope,
+    int? amountMinor,
+    DateTime? date,
+    String description = 'Rent',
+  }) =>
+      harness.recurringService.updateBill(
+        instance.id,
+        scope: scope,
+        amountMinor: amountMinor ?? instance.amountMinor,
+        date: date ?? instance.date,
+        categoryId: expenseCategoryId,
+        accountId: accountId,
+        description: description,
+      );
+
+  test('editing one bill changes its amount and nothing else', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final before = await scheduledIds();
+    final events = (await harness.eventStore.readAll()).events.length;
+
+    final result = await editBill(instance,
+        scope: RecurringScope.thisOnly, amountMinor: 60000);
+
+    expect(result, isA<Success<void>>());
+    final edited = (await scheduled()).firstWhere((s) => s.id == instance.id);
+    expect(edited.amountMinor, 60000);
+    expect(await scheduledIds(), before, reason: 'no row added or removed');
+    expect((await seriesRow()).amountMinor, 50000,
+        reason: 'the rule is untouched, so the other bills keep 50000');
+    expect((await harness.eventStore.readAll()).events.length, events,
+        reason: 'editing a forecast moves no money');
+  });
+
+  test('moving one bill leaves a tombstone the window cannot refill',
+      () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final moved = DateTime(2026, 2, 15);
+
+    final result = await editBill(instance,
+        scope: RecurringScope.thisOnly, date: moved);
+    expect(result, isA<Success<void>>());
+
+    // The rule still produces the original date; a skipped row is what stops
+    // materialization from putting the bill back where it was.
+    final original = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(original!.status, 'skipped');
+
+    await harness.recurringService.materialize();
+    final onNewDate = (await scheduled()).where((s) =>
+        s.date.year == moved.year &&
+        s.date.month == moved.month &&
+        s.date.day == moved.day);
+    expect(onNewDate, hasLength(1), reason: 'the bill exists on its new day');
+    expect(onNewDate.single.amountMinor, instance.amountMinor);
+
+    // And the original day is not billed again — this is the failure that
+    // would show the user a bill they had just moved, twice.
+    final backOnOldDate = (await scheduled()).where((s) =>
+        s.status == ScheduledTransactionStatus.scheduled &&
+        s.date.year == instance.date.year &&
+        s.date.month == instance.date.month &&
+        s.date.day == instance.date.day);
+    expect(backOnOldDate, isEmpty);
+  });
+
+  test('moving a bill onto a day that already has one is refused', () async {
+    await seed();
+    await createMonthly();
+    final all = await scheduled();
+    final first = all.first;
+    final second = all[1];
+
+    // Same series, a date the rule already bills: allowing it would put two
+    // bills on one day, one of them invisible to materialization.
+    final result = await editBill(first,
+        scope: RecurringScope.thisOnly, date: second.date);
+
+    expect(
+      result,
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+    );
+  });
+
+  test('editing this and following splits the rule in two', () async {
+    await seed();
+    await createMonthly();
+    final all = await scheduled();
+    final cut = all[2];
+
+    final result = await editBill(cut,
+        scope: RecurringScope.thisAndFollowing,
+        amountMinor: 60000,
+        date: DateTime(2026, 3, 15),
+        description: 'Rent, raised');
+
+    expect(result, isA<Success<void>>());
+
+    // The old rule stops the day before the bill it lost, so it cannot bill
+    // that date again.
+    final series = await harness.db.recurringDao.getAllSeries();
+    expect(series, hasLength(2));
+    final old = series.firstWhere((s) => s.id == cut.seriesId);
+    // Relative to the cut, not a literal date: which day the cut lands on is
+    // the rule's business, and the contract is only "the day before it".
+    expect(old.endDate,
+        DateTime(cut.date.year, cut.date.month, cut.date.day - 1),
+        reason: 'the old rule ends the day before the bill it lost');
+
+    final fresh = series.firstWhere((s) => s.id != cut.seriesId);
+    expect(fresh.amountMinor, 60000);
+    expect(fresh.description, 'Rent, raised');
+    expect(fresh.startDate, DateTime(2026, 3, 15));
+
+    // Bills before the cut belong to the old rule and are untouched; bills
+    // from the cut on are the new rule's, at the new amount.
+    final after = await scheduled();
+    final kept = after.where((s) => s.id == all[0].id || s.id == all[1].id);
+    expect(kept, hasLength(2));
+    expect(kept.every((s) => s.amountMinor == 50000), isTrue);
+    final raised = after.where((s) => s.seriesId == fresh.id);
+    expect(raised, isNotEmpty);
+    expect(raised.every((s) => s.amountMinor == 60000), isTrue);
+  });
+
+  test('a split does not bill again for one already recorded', () async {
+    await seed();
+    await createMonthly();
+    final all = await scheduled();
+    // Record a later bill, then split from an earlier one: the new rule must
+    // not produce a second bill for the day that money already moved.
+    final recorded = all.last;
+    await harness.recurringService.postInstance(recorded.id);
+    final balance = await accountBalance();
+
+    await editBill(all.first,
+        scope: RecurringScope.thisAndFollowing, amountMinor: 60000);
+
+    final clash = (await scheduled()).where((s) =>
+        s.seriesId != all.first.seriesId &&
+        s.date.year == recorded.date.year &&
+        s.date.month == recorded.date.month &&
+        s.date.day == recorded.date.day);
+    expect(clash, hasLength(1));
+    expect(clash.single.status, ScheduledTransactionStatus.skipped,
+        reason: 'a tombstone, not a bill');
+    expect(await accountBalance(), balance,
+        reason: 'the recorded movement is untouched');
+  });
+
+  test('editing all rewrites the rule and rebuilds the pending bills',
+      () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+
+    final result = await editBill(instance,
+        scope: RecurringScope.all, amountMinor: 60000);
+
+    expect(result, isA<Success<void>>());
+    final series = await seriesRow();
+    expect(series.amountMinor, 60000);
+    expect(series.startDate, DateTime(2026, 1, 1), reason: 'date unchanged');
+
+    final pending = (await scheduled())
+        .where((s) => s.status == ScheduledTransactionStatus.scheduled);
+    expect(pending, isNotEmpty);
+    expect(pending.every((s) => s.amountMinor == 60000), isTrue,
+        reason: 'every pending bill picked up the new amount');
+  });
+
+  test('editing all moves the whole schedule when the date moves', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+
+    // The rent came on the 1st; it now comes on the 4th — every month.
+    final result = await editBill(instance,
+        scope: RecurringScope.all, date: DateTime(2026, 1, 4));
+
+    expect(result, isA<Success<void>>());
+    expect((await seriesRow()).startDate, DateTime(2026, 1, 4));
+
+    final pending = (await scheduled())
+        .where((s) => s.status == ScheduledTransactionStatus.scheduled)
+        .toList();
+    expect(pending, isNotEmpty);
+    expect(pending.every((s) => s.date.day == 4), isTrue,
+        reason: 'the day of the month moved for every bill');
+  });
+
+  test('editing all leaves recorded bills alone', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final other = (await scheduled())[1];
+    await harness.recurringService.postInstance(other.id);
+    final balance = await accountBalance();
+    final events = (await harness.eventStore.readAll()).events.length;
+
+    await editBill(instance,
+        scope: RecurringScope.all, amountMinor: 60000);
+
+    expect(await accountBalance(), balance);
+    expect((await harness.eventStore.readAll()).events.length, events);
+    expect((await harness.db.recurringDao.getScheduled(other.id))!.status,
+        'posted');
+    expect(
+        (await harness.db.recurringDao.getScheduled(other.id))!.amountMinor,
+        50000,
+        reason: 'what was recorded stays what was recorded');
+  });
+
+  test('editing an already-recorded bill is refused', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    await harness.recurringService.postInstance(instance.id);
+
+    final result = await editBill(instance,
+        scope: RecurringScope.thisOnly, amountMinor: 60000);
+
+    expect(
+      result,
+      isA<Failure<void>>().having((f) => f.code, 'code',
+          LedgerErrorCode.scheduledAlreadyPosted),
+    );
   });
 
   test('an income series posts a credit', () async {

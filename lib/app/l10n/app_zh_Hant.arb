@@ -430,6 +430,11 @@
     "description": "Localized ledger error code message (spec 004)"
   },
   "errorScheduledAlreadyPosted": "該週期交易已入帳",
+  "errorScheduledDateTaken": "這條規則在那天已經有一筆帳單了",
+  "editRecurringTitle": "編輯週期帳單",
+  "editOneBillHint": "只改這一筆。分類與帳戶屬於整條規則。",
+  "nextStep": "下一步",
+  "billUpdated": "帳單已更新",
   "@errorScheduledAlreadyPosted": {
     "description": "Localized ledger error code message (spec 004)"
   },
@@ -510,10 +515,10 @@
   "postInstance": "記入",
   "instancePosted": "已記入",
   "deleteRecurringTitle": "刪除週期帳單",
-  "deleteScopeThisOnly": "僅刪除該項記錄",
-  "deleteScopeThisAndFollowing": "刪除該項記錄和後續記錄",
-  "deleteScopeAll": "刪除所有記錄",
-  "deleteScopeAllHint": "已經入帳的記錄會保留",
+  "scopeThisOnly": "僅刪除該項記錄",
+  "scopeThisAndFollowing": "刪除該項記錄和後續記錄",
+  "scopeAll": "刪除所有記錄",
+  "scopeAllHint": "已經入帳的記錄會保留",
   "billDeleted": "帳單已刪除",
   "frequencyDaily": "天",
   "frequencyWeekly": "週",

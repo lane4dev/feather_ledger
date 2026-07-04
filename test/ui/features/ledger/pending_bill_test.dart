@@ -9,7 +9,7 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
@@ -167,7 +167,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Delete'));
       await tester.pumpAndSettle();
 
-      expect(viewModel.deleted, [('sched_1', RecurringDeleteScope.thisAndFollowing)]);
+      expect(viewModel.deleted, [('sched_1', RecurringScope.thisAndFollowing)]);
     });
 
     testWidgets('the narrowest scope is the one preselected', (tester) async {
@@ -179,7 +179,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Delete'));
       await tester.pumpAndSettle();
 
-      expect(viewModel.deleted, [('sched_1', RecurringDeleteScope.thisOnly)]);
+      expect(viewModel.deleted, [('sched_1', RecurringScope.thisOnly)]);
     });
 
     testWidgets('cancelling the dialog deletes nothing', (tester) async {
@@ -210,7 +210,7 @@ void main() {
 
 class _RecordingRecurringViewModel extends RecurringViewModel {
   final List<String> posted = [];
-  final List<(String, RecurringDeleteScope)> deleted = [];
+  final List<(String, RecurringScope)> deleted = [];
   LedgerErrorCode? failure;
 
   @override
@@ -226,7 +226,7 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
   @override
   Future<Result<void>> deleteBill(
     String scheduledId, {
-    required RecurringDeleteScope scope,
+    required RecurringScope scope,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     deleted.add((scheduledId, scope));

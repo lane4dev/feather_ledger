@@ -18,6 +18,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
@@ -79,6 +80,7 @@ void main() {
     recurringService = RecurringService(
       CreateRecurringSeriesCommand(recurringRepository, contextResolver),
       DeleteRecurringBillCommand(recurringRepository),
+      UpdateRecurringBillCommand(recurringRepository, contextResolver),
       convertScheduledCommand,
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),

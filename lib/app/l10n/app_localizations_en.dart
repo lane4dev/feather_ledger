@@ -374,6 +374,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'This scheduled transaction was already posted';
 
   @override
+  String get errorScheduledDateTaken =>
+      'This series already has a bill on that date';
+
+  @override
+  String get editRecurringTitle => 'Edit recurring bill';
+
+  @override
+  String get editOneBillHint =>
+      'Only this bill. The category and account belong to the whole rule.';
+
+  @override
+  String get nextStep => 'Next';
+
+  @override
+  String get billUpdated => 'Bill updated';
+
+  @override
   String get errorUnknownEvent => 'Something went wrong. Please try again.';
 
   @override
@@ -470,16 +487,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteRecurringTitle => 'Delete recurring bill';
 
   @override
-  String get deleteScopeThisOnly => 'Only this bill';
+  String get scopeThisOnly => 'Only this bill';
 
   @override
-  String get deleteScopeThisAndFollowing => 'This and following bills';
+  String get scopeThisAndFollowing => 'This and following bills';
 
   @override
-  String get deleteScopeAll => 'All bills';
+  String get scopeAll => 'All bills';
 
   @override
-  String get deleteScopeAllHint => 'Bills already recorded are kept';
+  String get scopeAllHint => 'Bills already recorded are kept';
 
   @override
   String get billDeleted => 'Bill deleted';

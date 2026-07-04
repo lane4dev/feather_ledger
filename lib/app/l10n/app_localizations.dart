@@ -802,6 +802,36 @@ abstract class AppLocalizations {
   /// **'This scheduled transaction was already posted'**
   String get errorScheduledAlreadyPosted;
 
+  /// No description provided for @errorScheduledDateTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'This series already has a bill on that date'**
+  String get errorScheduledDateTaken;
+
+  /// No description provided for @editRecurringTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recurring bill'**
+  String get editRecurringTitle;
+
+  /// No description provided for @editOneBillHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only this bill. The category and account belong to the whole rule.'**
+  String get editOneBillHint;
+
+  /// No description provided for @nextStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextStep;
+
+  /// No description provided for @billUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill updated'**
+  String get billUpdated;
+
   /// Localized ledger error code message (spec 004)
   ///
   /// In en, this message translates to:
@@ -983,29 +1013,29 @@ abstract class AppLocalizations {
   /// **'Delete recurring bill'**
   String get deleteRecurringTitle;
 
-  /// No description provided for @deleteScopeThisOnly.
+  /// No description provided for @scopeThisOnly.
   ///
   /// In en, this message translates to:
   /// **'Only this bill'**
-  String get deleteScopeThisOnly;
+  String get scopeThisOnly;
 
-  /// No description provided for @deleteScopeThisAndFollowing.
+  /// No description provided for @scopeThisAndFollowing.
   ///
   /// In en, this message translates to:
   /// **'This and following bills'**
-  String get deleteScopeThisAndFollowing;
+  String get scopeThisAndFollowing;
 
-  /// No description provided for @deleteScopeAll.
+  /// No description provided for @scopeAll.
   ///
   /// In en, this message translates to:
   /// **'All bills'**
-  String get deleteScopeAll;
+  String get scopeAll;
 
-  /// No description provided for @deleteScopeAllHint.
+  /// No description provided for @scopeAllHint.
   ///
   /// In en, this message translates to:
   /// **'Bills already recorded are kept'**
-  String get deleteScopeAllHint;
+  String get scopeAllHint;
 
   /// No description provided for @billDeleted.
   ///

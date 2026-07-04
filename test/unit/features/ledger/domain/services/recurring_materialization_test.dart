@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
@@ -156,7 +155,7 @@ void main() {
     final first = (await pending()).first;
 
     await harness.recurringService
-        .deleteBill(first.id, scope: RecurringDeleteScope.thisOnly);
+        .deleteBill(first.id, scope: RecurringScope.thisOnly);
     await harness.recurringService.materialize();
 
     final rows = await harness.db.recurringDao.watchAllScheduled().first;
@@ -211,7 +210,7 @@ void main() {
     final cut = (await pending()).first;
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringDeleteScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
     final afterDelete = (await harness.db.recurringDao.watchAllScheduled().first)
         .map((r) => r.id)
         .toSet();

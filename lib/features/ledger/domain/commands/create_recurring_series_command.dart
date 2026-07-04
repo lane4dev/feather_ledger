@@ -64,7 +64,7 @@ class CreateRecurringSeriesCommand {
     await _recurringRepository.saveSeries(
       RecurringSeriesCompanion.insert(
         id: id,
-        rrule: _rruleText(
+        rrule: rruleText(
           frequency: normalizedFrequency,
           interval: interval,
           endDate: endDate,
@@ -88,7 +88,7 @@ class CreateRecurringSeriesCommand {
   /// discrete columns — so this exists for a future import/export consumer.
   // ponytail: rrule and the discrete columns encode the same schedule;
   // converge on rrule if a second consumer ever appears.
-  static String _rruleText({
+  static String rruleText({
     required String frequency,
     required int interval,
     DateTime? endDate,

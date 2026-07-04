@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -9,7 +12,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
-import '../../domain/commands/delete_recurring_bill_command.dart';
+import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../view_model/recurring_view_model.dart';
 import 'ledger_delete_menu.dart';
@@ -19,9 +22,9 @@ import 'ledger_sheet_handle.dart';
 /// What you can do with an upcoming recurring bill (spec 004, US2).
 ///
 /// Deliberately not the transaction detail sheet: a pending bill has no event
-/// stream to show and cannot be edited — the only honest actions are to record
-/// it or delete it. Recording is the bottom button; deleting sits in the
-/// top-right overflow menu, matching the sheet a recorded transaction gets.
+/// stream to show. What it can do is be recorded, edited, or deleted —
+/// recording is the bottom button, and the other two sit where a recorded
+/// transaction's sheet puts them, the pencil and the overflow menu.
 class PendingBillSheet extends ConsumerWidget {
   const PendingBillSheet({
     super.key,
@@ -59,8 +62,13 @@ class PendingBillSheet extends ConsumerWidget {
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
-              // Deleting is an overflow action, in the same corner and the
-              // same shape as on a recorded transaction's sheet.
+              // Edit and delete sit where a recorded transaction's sheet puts
+              // them: the pencil beside the overflow menu.
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => _edit(context, ref, l10n),
+                tooltip: l10n.edit,
+              ),
               LedgerDeleteMenu(onDelete: () => _delete(context, ref, l10n)),
             ],
           ),
@@ -152,9 +160,14 @@ class PendingBillSheet extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    final scope = await showDialog<RecurringDeleteScope>(
+    final scope = await showDialog<RecurringScope>(
       context: context,
-      builder: (context) => _DeleteScopeDialog(l10n: l10n),
+      builder: (context) => _ScopeDialog(
+        l10n: l10n,
+        title: l10n.deleteRecurringTitle,
+        confirmLabel: l10n.delete,
+        destructive: true,
+      ),
     );
     if (scope == null || !context.mounted) return;
 
@@ -166,6 +179,33 @@ class PendingBillSheet extends ConsumerWidget {
           .deleteBill(transaction.id, scope: scope),
       success: l10n.billDeleted,
     );
+  }
+
+  /// Editing asks the same question, and for a harder reason: the scope
+  /// decides which fields the form can even offer, because a single instance
+  /// row has nowhere to keep a category or an account.
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final scope = await showDialog<RecurringScope>(
+      context: context,
+      builder: (context) => _ScopeDialog(
+        l10n: l10n,
+        title: l10n.editRecurringTitle,
+        confirmLabel: l10n.nextStep,
+      ),
+    );
+    if (scope == null || !context.mounted) return;
+
+    // Read the router first: the sheet is about to leave the tree, so its
+    // context is no longer something to navigate from.
+    final router = GoRouter.of(context);
+    Navigator.of(context).pop(); // the sheet, so the form is not stacked on it
+    // Not awaited: this sheet is gone, and what the form does next is
+    // the form's business.
+    unawaited(router.push('/ledger/edit-bill', extra: (transaction, scope)));
   }
 
   /// Runs a write, reports it, and closes the sheet on success — the one
@@ -194,44 +234,56 @@ class PendingBillSheet extends ConsumerWidget {
       '${date.day.toString().padLeft(2, '0')}';
 }
 
-/// Picks how far a delete reaches. Pops the chosen [RecurringDeleteScope], or
-/// null when cancelled.
-class _DeleteScopeDialog extends StatefulWidget {
-  const _DeleteScopeDialog({required this.l10n});
+/// Picks how far an edit or a delete reaches. Pops the chosen
+/// [RecurringScope], or null when cancelled.
+///
+/// Both actions ask the same question with the same three answers — they name
+/// how much of the series is affected, which is the one thing the user knows
+/// and the row does not.
+class _ScopeDialog extends StatefulWidget {
+  const _ScopeDialog({
+    required this.l10n,
+    required this.title,
+    required this.confirmLabel,
+    this.destructive = false,
+  });
 
   final AppLocalizations l10n;
+  final String title;
+  final String confirmLabel;
+  final bool destructive;
 
   @override
-  State<_DeleteScopeDialog> createState() => _DeleteScopeDialogState();
+  State<_ScopeDialog> createState() => _ScopeDialogState();
 }
 
-class _DeleteScopeDialogState extends State<_DeleteScopeDialog> {
+class _ScopeDialogState extends State<_ScopeDialog> {
   // The narrowest scope is the default: it is the only one that cannot take
   // a bill the user did not mean to touch.
-  RecurringDeleteScope _scope = RecurringDeleteScope.thisOnly;
+  RecurringScope _scope = RecurringScope.thisOnly;
 
   @override
   Widget build(BuildContext context) {
     final l10n = widget.l10n;
 
     return AlertDialog(
-      title: Text(l10n.deleteRecurringTitle),
-      content: RadioGroup<RecurringDeleteScope>(
+      title: Text(widget.title),
+      content: RadioGroup<RecurringScope>(
         groupValue: _scope,
         onChanged: (value) => setState(() => _scope = value!),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final scope in RecurringDeleteScope.values)
-              RadioListTile<RecurringDeleteScope>(
+            for (final scope in RecurringScope.values)
+              RadioListTile<RecurringScope>(
                 value: scope,
                 contentPadding: EdgeInsets.zero,
                 title: Text(_label(l10n, scope)),
                 // Only the widest scope needs reassuring: it is the one that
                 // reads as "throw the whole series away".
-                subtitle: scope == RecurringDeleteScope.all
-                    ? Text(l10n.deleteScopeAllHint)
+                subtitle: scope == RecurringScope.all
+                    ? Text(l10n.scopeAllHint)
                     : null,
               ),
           ],
@@ -244,22 +296,24 @@ class _DeleteScopeDialogState extends State<_DeleteScopeDialog> {
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, _scope),
-          // The same error colour a recorded transaction's delete confirms
-          // with: one destructive affordance across both sheets.
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
-          ),
-          child: Text(l10n.delete),
+          // A destructive confirm wears the error colour a recorded
+          // transaction's delete does; "next" is not destructive and does not.
+          style: widget.destructive
+              ? TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                )
+              : null,
+          child: Text(widget.confirmLabel),
         ),
       ],
     );
   }
 
-  static String _label(AppLocalizations l10n, RecurringDeleteScope scope) =>
+  static String _label(AppLocalizations l10n, RecurringScope scope) =>
       switch (scope) {
-        RecurringDeleteScope.thisOnly => l10n.deleteScopeThisOnly,
-        RecurringDeleteScope.thisAndFollowing =>
-          l10n.deleteScopeThisAndFollowing,
-        RecurringDeleteScope.all => l10n.deleteScopeAll,
+        RecurringScope.thisOnly => l10n.scopeThisOnly,
+        RecurringScope.thisAndFollowing =>
+          l10n.scopeThisAndFollowing,
+        RecurringScope.all => l10n.scopeAll,
       };
 }

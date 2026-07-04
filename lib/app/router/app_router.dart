@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/presentation/screens/recurring_bill_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
@@ -56,6 +58,21 @@ GoRouter goRouter(Ref ref) {
                     builder: (context, state) => TransactionFormScreen(
                       transaction: state.extra as TransactionTileUiModel?,
                     ),
+                  ),
+                  // A bill waiting to be recorded is edited on its own route,
+                  // not through the transaction form: it has no event stream
+                  // and its reach is a scope the caller already chose.
+                  GoRoute(
+                    path: 'edit-bill',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) {
+                      final (bill, scope) = state.extra
+                          as (TransactionTileUiModel, RecurringScope);
+                      return RecurringBillFormScreen(
+                        transaction: bill,
+                        scope: scope,
+                      );
+                    },
                   ),
                 ],
               ),

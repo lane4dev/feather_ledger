@@ -31,12 +31,13 @@ abstract class RecurringRepository {
   /// CRUD-exempt — this writes the table directly and emits no event.
   Future<void> saveSeries(RecurringSeriesCompanion entry);
 
-  /// Deletes the pending instances of one series at or after [from].
+  /// Deletes the pending instances of one series, at or after [from] when
+  /// given and all of them when not.
   ///
   /// Bills already recorded are real movements, and bills already skipped are
   /// tombstones materialization respects; neither is "pending", and deleting
   /// either would be a lie about what happened.
-  Future<void> deletePendingFrom(String seriesId, DateTime from);
+  Future<void> deletePending(String seriesId, {DateTime? from});
 
   /// Deletes a series and every instance row belonging to it.
   ///

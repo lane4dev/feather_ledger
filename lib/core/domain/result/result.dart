@@ -24,6 +24,7 @@ enum LedgerErrorCode {
   transactionNotFound,
   transactionAlreadyReversed,
   scheduledAlreadyPosted,
+  scheduledDateTaken,
   systemCategoryProtected,
   unknownEvent,
 }

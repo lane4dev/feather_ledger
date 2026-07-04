@@ -430,6 +430,11 @@
     "description": "Localized ledger error code message (spec 004)"
   },
   "errorScheduledAlreadyPosted": "该周期交易已入账",
+  "errorScheduledDateTaken": "这条规则在那天已经有一笔账单了",
+  "editRecurringTitle": "编辑周期账单",
+  "editOneBillHint": "只改这一笔。分类与账户属于整条规则。",
+  "nextStep": "下一步",
+  "billUpdated": "账单已更新",
   "@errorScheduledAlreadyPosted": {
     "description": "Localized ledger error code message (spec 004)"
   },
@@ -510,10 +515,10 @@
   "postInstance": "记入",
   "instancePosted": "已记入",
   "deleteRecurringTitle": "删除周期账单",
-  "deleteScopeThisOnly": "仅删除该项记录",
-  "deleteScopeThisAndFollowing": "删除该项记录和后续记录",
-  "deleteScopeAll": "删除所有记录",
-  "deleteScopeAllHint": "已经入账的记录会保留",
+  "scopeThisOnly": "仅删除该项记录",
+  "scopeThisAndFollowing": "删除该项记录和后续记录",
+  "scopeAll": "删除所有记录",
+  "scopeAllHint": "已经入账的记录会保留",
   "billDeleted": "账单已删除",
   "frequencyDaily": "天",
   "frequencyWeekly": "周",

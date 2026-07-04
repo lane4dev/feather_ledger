@@ -7,6 +7,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 
@@ -22,6 +23,7 @@ part 'recurring_service.g.dart';
 class RecurringService {
   final CreateRecurringSeriesCommand _createSeries;
   final DeleteRecurringBillCommand _deleteBill;
+  final UpdateRecurringBillCommand _updateBill;
   final ConvertScheduledToPostedCommand _postInstance;
   final ProjectRecurringEventsCommand _projectInstances;
   final WatchScheduledTransactionsQuery _watchScheduled;
@@ -29,6 +31,7 @@ class RecurringService {
   RecurringService(
     this._createSeries,
     this._deleteBill,
+    this._updateBill,
     this._postInstance,
     this._projectInstances,
     this._watchScheduled,
@@ -72,9 +75,40 @@ class RecurringService {
   /// does to the series behind them.
   Future<Result<void>> deleteBill(
     String scheduledId, {
-    required RecurringDeleteScope scope,
+    required RecurringScope scope,
   }) {
     return guard(() => _deleteBill.execute(scheduledId, scope: scope));
+  }
+
+  /// Edits a pending bill at one of the three scopes, then rolls the window
+  /// so the bills it changed exist. Moves no money: a bill already recorded
+  /// is a movement with its own event, and this never touches one.
+  ///
+  /// [categoryId], [accountId] and [description] are read only by the series
+  /// scopes — a single instance row has nowhere to keep them.
+  Future<Result<void>> updateBill(
+    String scheduledId, {
+    required RecurringScope scope,
+    required int amountMinor,
+    required DateTime date,
+    required String categoryId,
+    required String accountId,
+    required String description,
+  }) {
+    return guard(() async {
+      await _updateBill.execute(
+        scheduledId,
+        scope: scope,
+        amountMinor: amountMinor,
+        date: date,
+        categoryId: categoryId,
+        accountId: accountId,
+        description: description,
+      );
+      // The series scopes drop rows and expect them back at their new dates;
+      // materialization is what puts them there.
+      await materialize();
+    });
   }
 
   /// Posts a due instance into the ledger: one `TransactionRecorded`, with the
@@ -98,6 +132,7 @@ RecurringService recurringService(Ref ref) {
   return RecurringService(
     ref.watch(createRecurringSeriesCommandProvider),
     ref.watch(deleteRecurringBillCommandProvider),
+    ref.watch(updateRecurringBillCommandProvider),
     ref.watch(convertScheduledToPostedCommandProvider),
     ref.watch(projectRecurringEventsCommandProvider),
     ref.watch(watchScheduledTransactionsQueryProvider),

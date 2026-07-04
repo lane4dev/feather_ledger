@@ -362,6 +362,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorScheduledAlreadyPosted => '该周期交易已入账';
 
   @override
+  String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
+
+  @override
+  String get editRecurringTitle => '编辑周期账单';
+
+  @override
+  String get editOneBillHint => '只改这一笔。分类与账户属于整条规则。';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get billUpdated => '账单已更新';
+
+  @override
   String get errorUnknownEvent => '出了点问题，请重试。';
 
   @override
@@ -455,16 +470,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get deleteScopeThisOnly => '仅删除该项记录';
+  String get scopeThisOnly => '仅删除该项记录';
 
   @override
-  String get deleteScopeThisAndFollowing => '删除该项记录和后续记录';
+  String get scopeThisAndFollowing => '删除该项记录和后续记录';
 
   @override
-  String get deleteScopeAll => '删除所有记录';
+  String get scopeAll => '删除所有记录';
 
   @override
-  String get deleteScopeAllHint => '已经入账的记录会保留';
+  String get scopeAllHint => '已经入账的记录会保留';
 
   @override
   String get billDeleted => '账单已删除';
@@ -887,6 +902,21 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errorScheduledAlreadyPosted => '该周期交易已入账';
 
   @override
+  String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
+
+  @override
+  String get editRecurringTitle => '编辑周期账单';
+
+  @override
+  String get editOneBillHint => '只改这一笔。分类与账户属于整条规则。';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get billUpdated => '账单已更新';
+
+  @override
   String get errorUnknownEvent => '出了点问题，请重试。';
 
   @override
@@ -980,16 +1010,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get deleteScopeThisOnly => '仅删除该项记录';
+  String get scopeThisOnly => '仅删除该项记录';
 
   @override
-  String get deleteScopeThisAndFollowing => '删除该项记录和后续记录';
+  String get scopeThisAndFollowing => '删除该项记录和后续记录';
 
   @override
-  String get deleteScopeAll => '删除所有记录';
+  String get scopeAll => '删除所有记录';
 
   @override
-  String get deleteScopeAllHint => '已经入账的记录会保留';
+  String get scopeAllHint => '已经入账的记录会保留';
 
   @override
   String get billDeleted => '账单已删除';
@@ -1412,6 +1442,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get errorScheduledAlreadyPosted => '該週期交易已入帳';
 
   @override
+  String get errorScheduledDateTaken => '這條規則在那天已經有一筆帳單了';
+
+  @override
+  String get editRecurringTitle => '編輯週期帳單';
+
+  @override
+  String get editOneBillHint => '只改這一筆。分類與帳戶屬於整條規則。';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get billUpdated => '帳單已更新';
+
+  @override
   String get errorUnknownEvent => '出了點問題，請重試。';
 
   @override
@@ -1505,16 +1550,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get deleteRecurringTitle => '刪除週期帳單';
 
   @override
-  String get deleteScopeThisOnly => '僅刪除該項記錄';
+  String get scopeThisOnly => '僅刪除該項記錄';
 
   @override
-  String get deleteScopeThisAndFollowing => '刪除該項記錄和後續記錄';
+  String get scopeThisAndFollowing => '刪除該項記錄和後續記錄';
 
   @override
-  String get deleteScopeAll => '刪除所有記錄';
+  String get scopeAll => '刪除所有記錄';
 
   @override
-  String get deleteScopeAllHint => '已經入帳的記錄會保留';
+  String get scopeAllHint => '已經入帳的記錄會保留';
 
   @override
   String get billDeleted => '帳單已刪除';

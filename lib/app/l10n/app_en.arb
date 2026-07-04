@@ -434,6 +434,11 @@
     "description": "Localized ledger error code message (spec 004)"
   },
   "errorScheduledAlreadyPosted": "This scheduled transaction was already posted",
+  "errorScheduledDateTaken": "This series already has a bill on that date",
+  "editRecurringTitle": "Edit recurring bill",
+  "editOneBillHint": "Only this bill. The category and account belong to the whole rule.",
+  "nextStep": "Next",
+  "billUpdated": "Bill updated",
   "@errorScheduledAlreadyPosted": {
     "description": "Localized ledger error code message (spec 004)"
   },
@@ -553,10 +558,10 @@
   "postInstance": "Post",
   "instancePosted": "Bill recorded",
   "deleteRecurringTitle": "Delete recurring bill",
-  "deleteScopeThisOnly": "Only this bill",
-  "deleteScopeThisAndFollowing": "This and following bills",
-  "deleteScopeAll": "All bills",
-  "deleteScopeAllHint": "Bills already recorded are kept",
+  "scopeThisOnly": "Only this bill",
+  "scopeThisAndFollowing": "This and following bills",
+  "scopeAll": "All bills",
+  "scopeAllHint": "Bills already recorded are kept",
   "billDeleted": "Bill deleted",
   "frequencyDaily": "day",
   "frequencyWeekly": "week",

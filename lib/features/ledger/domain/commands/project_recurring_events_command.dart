@@ -146,7 +146,7 @@ class ProjectRecurringEventsCommand {
     for (final date in candidates) {
       if (kept >= budget) break;
 
-      final id = '${series.id}_${date.millisecondsSinceEpoch}';
+      final id = scheduledInstanceId(series.id, date);
       final status = existing[id];
 
       if (status == null) {

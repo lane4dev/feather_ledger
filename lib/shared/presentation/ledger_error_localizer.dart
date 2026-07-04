@@ -33,6 +33,7 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
           l10n.errorTransactionAlreadyReversed,
         LedgerErrorCode.scheduledAlreadyPosted =>
           l10n.errorScheduledAlreadyPosted,
+        LedgerErrorCode.scheduledDateTaken => l10n.errorScheduledDateTaken,
         LedgerErrorCode.unknownEvent => l10n.errorUnknownEvent,
       };
 }
