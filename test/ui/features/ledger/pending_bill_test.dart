@@ -149,6 +149,9 @@ void main() {
 
       await openDeleteDialog(tester);
 
+      // The title carries the verb; the options only name the reach, because
+      // the same three labels serve editing.
+      expect(find.text('Delete recurring bill'), findsOneWidget);
       expect(find.text('This bill'), findsOneWidget);
       expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);
