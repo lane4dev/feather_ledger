@@ -470,7 +470,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scopeThisOnly => '该项记录';
 
   @override
-  String get scopeDialogTitle => '应用范围';
+  String get saveRecurringTitle => '保存周期账单';
 
   @override
   String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
@@ -1013,7 +1013,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get scopeThisOnly => '该项记录';
 
   @override
-  String get scopeDialogTitle => '应用范围';
+  String get saveRecurringTitle => '保存周期账单';
 
   @override
   String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
@@ -1556,7 +1556,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get scopeThisOnly => '該項記錄';
 
   @override
-  String get scopeDialogTitle => '應用範圍';
+  String get saveRecurringTitle => '保存週期帳單';
 
   @override
   String get scopeThisOnlyUnavailable => '分類、帳戶和備註屬於整條規則';

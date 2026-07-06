@@ -486,7 +486,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scopeThisOnly => 'This bill';
 
   @override
-  String get scopeDialogTitle => 'Apply to';
+  String get saveRecurringTitle => 'Save recurring bill';
 
   @override
   String get scopeThisOnlyUnavailable =>

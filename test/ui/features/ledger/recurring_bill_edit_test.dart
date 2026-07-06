@@ -245,7 +245,7 @@ void main() {
 
       await save(tester);
 
-      expect(find.text('Apply to'), findsOneWidget);
+      expect(find.text('Save recurring bill'), findsOneWidget);
       expect(find.text('This bill'), findsOneWidget);
       expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);

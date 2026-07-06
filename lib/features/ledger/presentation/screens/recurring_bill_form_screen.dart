@@ -276,7 +276,7 @@ class _RecurringBillFormScreenState
     final scope = await showDialog<RecurringScope>(
       context: context,
       builder: (context) => RecurringScopeDialog(
-        title: l10n.scopeDialogTitle,
+        title: l10n.saveRecurringTitle,
         confirmLabel: l10n.save,
         unavailable: _changedSeriesFields
             ? const {RecurringScope.thisOnly}

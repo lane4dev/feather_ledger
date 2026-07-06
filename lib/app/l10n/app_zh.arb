@@ -515,7 +515,7 @@
   "instancePosted": "已记入",
   "deleteRecurringTitle": "删除周期账单",
   "scopeThisOnly": "该项记录",
-  "scopeDialogTitle": "应用范围",
+  "saveRecurringTitle": "保存周期账单",
   "scopeThisOnlyUnavailable": "分类、账户和备注属于整条规则",
   "scopeThisAndFollowing": "该项记录和后续记录",
   "scopeAll": "所有记录",

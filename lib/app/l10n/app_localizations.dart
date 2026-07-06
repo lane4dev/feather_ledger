@@ -1013,11 +1013,11 @@ abstract class AppLocalizations {
   /// **'This bill'**
   String get scopeThisOnly;
 
-  /// No description provided for @scopeDialogTitle.
+  /// No description provided for @saveRecurringTitle.
   ///
   /// In en, this message translates to:
-  /// **'Apply to'**
-  String get scopeDialogTitle;
+  /// **'Save recurring bill'**
+  String get saveRecurringTitle;
 
   /// No description provided for @scopeThisOnlyUnavailable.
   ///
