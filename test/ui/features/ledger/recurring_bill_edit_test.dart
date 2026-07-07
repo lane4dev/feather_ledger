@@ -280,7 +280,7 @@ void main() {
       }
     });
 
-    testWidgets('the options are closer together than list tiles',
+    testWidgets('the options sit 16 apart, not the tile\'s two-line height',
         (tester) async {
       await pumpForm(tester);
       await save(tester);
@@ -292,9 +292,9 @@ void main() {
 
       // A default ListTile reserves two-line height for every option; these
       // are one line each with a hint only on the last.
-      // Two xs of row padding, and nothing else: the radio's box is the
+      // Two sm of row padding, and nothing else: the radio's box is the
       // label's line height, so it adds no slack of its own.
-      expect(gap, lessThan(12), reason: 'measured gap between options: $gap');
+      expect(gap, closeTo(16, 1), reason: 'measured gap between options: $gap');
     });
 
     testWidgets('the chosen reach and the new amount are what get sent',

@@ -139,7 +139,9 @@ class _ScopeOption extends StatelessWidget {
       // its own tap target away: the 48dp is the row, not the glyph.
       onTap: enabled ? () => onSelect(scope) : null,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: context.spacing.xs),
+        // Two of these end up between consecutive options, since each row
+        // carries its own half: sm + sm = the 16 they sit apart by.
+        padding: EdgeInsets.symmetric(vertical: context.spacing.sm),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
