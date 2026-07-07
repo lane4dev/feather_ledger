@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 
@@ -48,6 +49,10 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
 
     return AlertDialog(
       title: Text(widget.title),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: context.spacing.lg,
+        vertical: context.spacing.md,
+      ),
       content: RadioGroup<RecurringScope>(
         groupValue: _scope,
         onChanged: (value) => setState(() => _scope = value!),
@@ -56,12 +61,12 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (final scope in RecurringScope.values)
-              RadioListTile<RecurringScope>(
-                value: scope,
+              _ScopeOption(
+                scope: scope,
+                label: _label(l10n, scope),
+                hint: _hint(l10n, scope),
                 enabled: !widget.unavailable.contains(scope),
-                contentPadding: EdgeInsets.zero,
-                title: Text(_label(l10n, scope)),
-                subtitle: _subtitle(l10n, scope),
+                onSelect: (value) => setState(() => _scope = value),
               ),
           ],
         ),
@@ -86,15 +91,11 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
     );
   }
 
-  Widget? _subtitle(AppLocalizations l10n, RecurringScope scope) {
-    if (widget.unavailable.contains(scope)) {
-      return widget.unavailableHint == null
-          ? null
-          : Text(widget.unavailableHint!);
-    }
+  String? _hint(AppLocalizations l10n, RecurringScope scope) {
+    if (widget.unavailable.contains(scope)) return widget.unavailableHint;
     // Only the widest scope needs reassuring: it is the one that reads as
     // "throw the whole series away".
-    if (scope == RecurringScope.all) return Text(l10n.scopeAllHint);
+    if (scope == RecurringScope.all) return l10n.scopeAllHint;
     return null;
   }
 
@@ -104,4 +105,78 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
         RecurringScope.thisAndFollowing => l10n.scopeThisAndFollowing,
         RecurringScope.all => l10n.scopeAll,
       };
+}
+
+/// One choice: its radio sits on the same line as its label, with any hint
+/// tucked underneath.
+///
+/// Hand-built rather than a `RadioListTile`, for two reasons that are both
+/// visible: a tile centres its leading against the whole title-plus-subtitle
+/// block, so the radio floats between the lines instead of sitting on the
+/// first one; and a tile's height is sized for a two-line row whether or not
+/// there is a second line, which is most of the gap between these options.
+class _ScopeOption extends StatelessWidget {
+  const _ScopeOption({
+    required this.scope,
+    required this.label,
+    required this.hint,
+    required this.enabled,
+    required this.onSelect,
+  });
+
+  final RecurringScope scope;
+  final String label;
+  final String? hint;
+  final bool enabled;
+  final ValueChanged<RecurringScope> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      // The whole row is the target, which is why the radio below can shrink
+      // its own tap target away: the 48dp is the row, not the glyph.
+      onTap: enabled ? () => onSelect(scope) : null,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: context.spacing.xs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Radio<RecurringScope>(
+              value: scope,
+              enabled: enabled,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              // The glyph's box is 40 against a 24 label line, and the 16 it
+              // has spare is empty row under the label rather than space the
+              // eye reads as a gap. Compacting it to the line is what closes
+              // the distance between options.
+              visualDensity: const VisualDensity(vertical: -4),
+            ),
+            SizedBox(width: context.spacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: enabled ? null : theme.disabledColor,
+                    ),
+                  ),
+                  if (hint != null)
+                    Text(
+                      hint!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

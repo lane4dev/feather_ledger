@@ -72,6 +72,12 @@ void main() {
 
   setUp(() => viewModel = _RecordingRecurringViewModel());
 
+  /// The radio for [scope], found by what it selects rather than by where it
+  /// sits — where it sits is one of the things under test.
+  Radio<RecurringScope> radioFor(WidgetTester tester, RecurringScope scope) =>
+      tester
+          .widgetList<Radio<RecurringScope>>(find.byType(Radio<RecurringScope>))
+          .firstWhere((radio) => radio.value == scope);
 
 
   group('the sheet asks how far the edit reaches', () {
@@ -253,6 +259,44 @@ void main() {
           reason: 'nothing is written until the reach is chosen');
     });
 
+    testWidgets('each radio sits on its own label line', (tester) async {
+      await pumpForm(tester);
+      await save(tester);
+
+      for (final label in ['This bill', 'This and following bills', 'All bills']) {
+        final radio = find.byType(Radio<RecurringScope>);
+        final index = ['This bill', 'This and following bills', 'All bills']
+            .indexOf(label);
+        // The radio is not centred against the whole title-plus-hint block:
+        // its middle lands on the label's line, not between the two.
+        final radioMiddle =
+            tester.getCenter(radio.at(index)).dy;
+        final labelTop = tester.getTopLeft(find.text(label)).dy;
+        final labelBottom = tester.getBottomLeft(find.text(label)).dy;
+        expect(radioMiddle, greaterThanOrEqualTo(labelTop - 1),
+            reason: '$label: the radio is above its label');
+        expect(radioMiddle, lessThanOrEqualTo(labelBottom + 1),
+            reason: '$label: the radio is below its label');
+      }
+    });
+
+    testWidgets('the options are closer together than list tiles',
+        (tester) async {
+      await pumpForm(tester);
+      await save(tester);
+
+      final firstBottom = tester.getBottomLeft(find.text('This bill')).dy;
+      final secondTop =
+          tester.getTopLeft(find.text('This and following bills')).dy;
+      final gap = secondTop - firstBottom;
+
+      // A default ListTile reserves two-line height for every option; these
+      // are one line each with a hint only on the last.
+      // Two xs of row padding, and nothing else: the radio's box is the
+      // label's line height, so it adds no slack of its own.
+      expect(gap, lessThan(12), reason: 'measured gap between options: $gap');
+    });
+
     testWidgets('the chosen reach and the new amount are what get sent',
         (tester) async {
       await pumpForm(tester);
@@ -313,14 +357,7 @@ void main() {
       // The option is still listed — a missing one reads as a bug — but it
       // cannot be chosen, and the dialog says why.
       expect(find.text('This bill'), findsOneWidget);
-      expect(
-        tester
-            .widget<RadioListTile<RecurringScope>>(
-              find.widgetWithText(RadioListTile<RecurringScope>, 'This bill'),
-            )
-            .enabled,
-        isFalse,
-      );
+      expect(radioFor(tester, RecurringScope.thisOnly).enabled, isFalse);
       expect(find.textContaining('belong to the whole rule'), findsOneWidget);
     });
 
@@ -331,16 +368,9 @@ void main() {
 
       await save(tester);
 
-      for (final label in ['This bill', 'This and following bills', 'All bills']) {
-        expect(
-          tester
-              .widget<RadioListTile<RecurringScope>>(
-                find.widgetWithText(RadioListTile<RecurringScope>, label),
-              )
-              .enabled,
-          isTrue,
-          reason: '$label can hold an amount',
-        );
+      for (final scope in RecurringScope.values) {
+        expect(radioFor(tester, scope).enabled, isTrue,
+            reason: '$scope can hold an amount');
       }
     });
 
