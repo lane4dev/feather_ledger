@@ -53,11 +53,17 @@ class TransactionUiMapper {
     required AccountEntity account,
   }) {
     final kind = e.kind ?? TransactionKind.expense;
+    // Positive, like [toTile]'s: the sign lives in `displaySign`, and the
+    // kind is what decides which sign that is. Taken here rather than trusted
+    // from the writer — a series amount is positive by convention
+    // (`CreateRecurringSeriesCommand` rejects anything else), but the column
+    // is a plain int and a row from any other source would otherwise render
+    // as "- $-500.00".
+    final amount = e.amountMinor.abs();
 
     return TransactionTileUiModel(
       id: e.id,
-      // Positive, like [toTile]'s: the sign lives in `displaySign`.
-      amount: e.amountMinor,
+      amount: amount,
       type: kind,
       date: e.date,
       // The series' description is what the user named this bill; a pending
@@ -65,7 +71,7 @@ class TransactionUiMapper {
       note: e.recurringTransactionSeries?.description,
       category: category,
       account: account,
-      displayAmount: formatMinor(e.amountMinor),
+      displayAmount: formatMinor(amount),
       displaySign: kind == TransactionKind.income ? '+' : '-',
       isPending: true,
       seriesId: e.seriesId,

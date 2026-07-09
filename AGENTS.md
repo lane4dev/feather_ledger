@@ -157,9 +157,22 @@ lib/shared/     跨特性的组件与扩展
 
 ## 金额约定（重要）
 
-数据库行与事件一律使用有符号的整数最小单位（支出为负、收入为正），端到端一致 —— 包括预约/周期实体
-（`amountMinor`）。唯一的 double 桥接点是表现层输入边界的 `Money.fromDouble`；格式化一律走
-`formatMinor`。
+一律是**最小单位整型**，端到端一致。真正的分界不是「有没有符号」，而是**哪一层带符号**：
+
+- **事件与 posting 表**：金额**恒为正**，符号由 `PostingDirection` 承载 —— `TransactionRecorded`
+  的 payload 存的是一组 posting（各带 direction），不是带符号的总额。
+- **交易实体与余额投影**：仓储装配出的 `TransactionEntity.amount` 带符号（支出为负、收入为正）；
+  `accounts_view.balanceMinor`、月度快照同样带符号。
+- **周期 / 预约实体**：`recurring_series.amount_minor` 与 `scheduled_transactions_view.amount_minor`
+  **恒为正**，kind 由 `type` 列承载 —— `CreateRecurringSeriesCommand` 直接拒绝 ≤0。
+  ⚠️ 本节原先声称「包括预约/周期实体」也带符号，与代码相反；`TransactionUiMapper.toPendingTile`
+  当时据此依赖「写入方保证为正」而没取绝对值，一行负值就渲染成 `- -500.00`。两处现已对齐，
+  mapper 的两个方向都取绝对值（有单测按这条钉住）。
+- **唯一的 double 桥接点是表现层输入边界的 `Money.fromDouble`**（经 `parseMinor`）。格式化一律走
+  `formatMinor`（int → 两位小数字符串）。UI 拿到的是 int 或已格式化的字符串，不是 double 金额；
+  唯一的例外是图表几何（`report_breakdown_view` 给 fl_chart 的 `toDouble()`）。
+- **UI 行上的金额不带符号**：`TransactionTileUiModel.amount` 恒为正，「+ / −」由 `displaySign` 承载、
+  由 kind 决定（转账为空串）。符号不是数字的属性，是种类的属性。
 
 ## 失败处理
 
