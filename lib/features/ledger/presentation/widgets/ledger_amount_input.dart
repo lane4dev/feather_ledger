@@ -6,6 +6,13 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/money_format.dart';
 
+/// The amount field — and the one place in the presentation layer where an
+/// amount legitimately crosses between its two forms.
+///
+/// It is seeded with the decimal text and hands back minor units
+/// ([parseMinor] → `Money.fromDouble`), which is the input boundary AGENTS
+/// names as the only double bridge. Everywhere else, converting belongs to the
+/// mapper or model that feeds the widget, not to the widget.
 class LedgerAmountInput extends StatelessWidget {
   final int? initialMinorUnits;
   final TransactionKind type;

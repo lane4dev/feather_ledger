@@ -260,3 +260,53 @@ final class MonthlyTotalsProvider extends $FunctionalProvider<
 }
 
 String _$monthlyTotalsHash() => r'3eadd0c7763ec38256da3781be69c4a794c6f89d';
+
+/// The same totals, written out where the currency is known.
+
+@ProviderFor(monthlySummary)
+final monthlySummaryProvider = MonthlySummaryProvider._();
+
+/// The same totals, written out where the currency is known.
+
+final class MonthlySummaryProvider extends $FunctionalProvider<
+        AsyncValue<MonthlySummaryUiModel>,
+        AsyncValue<MonthlySummaryUiModel>,
+        AsyncValue<MonthlySummaryUiModel>>
+    with $Provider<AsyncValue<MonthlySummaryUiModel>> {
+  /// The same totals, written out where the currency is known.
+  MonthlySummaryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'monthlySummaryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$monthlySummaryHash();
+
+  @$internal
+  @override
+  $ProviderElement<AsyncValue<MonthlySummaryUiModel>> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AsyncValue<MonthlySummaryUiModel> create(Ref ref) {
+    return monthlySummary(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<MonthlySummaryUiModel> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<AsyncValue<MonthlySummaryUiModel>>(value),
+    );
+  }
+}
+
+String _$monthlySummaryHash() => r'b03c03a499cb080b1c5b1d9ac3563bfb047a68cf';

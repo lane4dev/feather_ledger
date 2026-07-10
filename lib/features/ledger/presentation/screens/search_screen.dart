@@ -11,7 +11,6 @@ import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import '../../domain/value_objects/transaction_filter.dart';
 import '../models/transaction_tile_ui_model.dart';
-import '../view_model/ledger_view_model.dart';
 import '../view_model/search_view_model.dart';
 import '../widgets/ledger_skeleton.dart';
 import '../widgets/ledger_timeline.dart';
@@ -78,11 +77,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           }
           // The ledger's own day grouping and timeline widget, so a result
           // renders exactly as it does in the month list.
-          final grouped = groupTransactionsByDay(results.tiles);
           return CustomScrollView(
             slivers: [
               LedgerTimeline(
-                groupedTransactions: grouped,
+                days: results.days,
                 currencySymbol: currency,
                 onTransactionTap: _showDetail,
               ),

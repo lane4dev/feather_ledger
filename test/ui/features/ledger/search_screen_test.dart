@@ -13,6 +13,7 @@ import 'package:feather_ledger/core/presentation/providers/account_providers.dar
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/value_objects/transaction_filter.dart';
+import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_group.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/search_view_model.dart';
@@ -29,6 +30,15 @@ void main() {
 
   setUp(() => viewModel = _FakeSearchViewModel());
 
+  /// The screen renders `days`, which the real provider builds from the same
+  /// rows — so a fixture states its rows once and this keeps the two shapes
+  /// from drifting.
+  SearchResults resultsOf(List<TransactionTileUiModel> tiles) => SearchResults(
+        entities: const [],
+        tiles: tiles,
+        days: LedgerDayGroup.group(tiles, currencySymbol: r'$'),
+      );
+
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -36,7 +46,7 @@ void main() {
           searchViewModelProvider.overrideWith(() => viewModel),
           searchResultsProvider.overrideWith((ref) => viewModel.results),
           currencyControllerProvider.overrideWith(_FixedCurrency.new),
-          accountListProvider.overrideWith((ref) => const Stream.empty()),
+          accountUiListProvider.overrideWithValue(const AsyncData([])),
           categoryListProvider.overrideWith(
               (ref, type) => const Stream.empty()),
         ],
@@ -58,7 +68,7 @@ void main() {
 
   testWidgets('renders matching transactions', (tester) async {
     viewModel.results = Stream.value(
-      SearchResults(entities: [], tiles: [_tile(amount: -1234)]),
+      resultsOf([_tile(amount: -1234)]),
     );
     await pumpScreen(tester);
 
@@ -71,7 +81,7 @@ void main() {
 
   testWidgets('an empty result says so', (tester) async {
     viewModel.results = Stream.value(
-      const SearchResults(entities: [], tiles: []),
+      resultsOf(const []),
     );
     await pumpScreen(tester);
 
@@ -83,7 +93,7 @@ void main() {
     // Exporting an empty file, or one that disagrees with the screen, would
     // be worse than offering no button.
     viewModel.results = Stream.value(
-      const SearchResults(entities: [], tiles: []),
+      resultsOf(const []),
     );
     await pumpScreen(tester);
 
@@ -96,7 +106,7 @@ void main() {
   testWidgets('export is enabled and exports exactly what is shown',
       (tester) async {
     viewModel.results = Stream.value(
-      SearchResults(entities: [], tiles: [_tile(amount: -1234)]),
+      resultsOf([_tile(amount: -1234)]),
     );
     await pumpScreen(tester);
 
@@ -109,7 +119,7 @@ void main() {
 
   testWidgets('typing updates the filter', (tester) async {
     viewModel.results =
-        Stream.value(const SearchResults(entities: [], tiles: []));
+        Stream.value(resultsOf(const []));
     await pumpScreen(tester);
 
     await tester.enterText(
@@ -124,7 +134,7 @@ void main() {
   testWidgets('exporting a rejected write reports the localized message',
       (tester) async {
     viewModel.results = Stream.value(
-      SearchResults(entities: [], tiles: [_tile(amount: -1234)]),
+      resultsOf([_tile(amount: -1234)]),
     );
     viewModel.exportFailure = LedgerErrorCode.unknownEvent;
     await pumpScreen(tester);
@@ -169,8 +179,11 @@ class _FixedCurrency extends CurrencyController {
 }
 
 class _FakeSearchViewModel extends SearchViewModel {
-  Stream<SearchResults> results =
-      Stream.value(const SearchResults(entities: [], tiles: []));
+  Stream<SearchResults> results = Stream.value(const SearchResults(
+        entities: [],
+        tiles: [],
+        days: [],
+      ));
   LedgerErrorCode? exportFailure;
 
   final List<String> queries = [];

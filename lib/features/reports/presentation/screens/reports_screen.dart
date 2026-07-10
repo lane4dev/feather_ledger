@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 
@@ -23,14 +20,10 @@ class ReportsScreen extends ConsumerWidget {
     final heatmapAsync = ref.watch(heatmapDataProvider);
     final incomeAsync = ref.watch(incomeChartDataProvider);
     final expenseAsync = ref.watch(expenseChartDataProvider);
-    final totalsAsync = ref.watch(monthlyTotalsProvider);
+    final totalsAsync = ref.watch(monthlySummaryProvider);
 
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-
-    final currencyKey = ref.watch(currencyControllerProvider).value ??
-        AppCurrencies.supportedCurrencyCodes.first;
-    final currencySymbol = AppCurrencies.getSymbol(currencyKey);
 
     final spacing = context.spacing;
 
@@ -76,20 +69,17 @@ class ReportsScreen extends ConsumerWidget {
                 children: [
                   _TotalsColumn(
                     label: l10n.income,
-                    amountMinor: totals.incomeMinor,
-                    currencySymbol: currencySymbol,
+                    displayAmount: totals.displayIncome,
                     color: context.colors.income,
                   ),
                   _TotalsColumn(
                     label: l10n.expense,
-                    amountMinor: totals.expenseMinor,
-                    currencySymbol: currencySymbol,
+                    displayAmount: totals.displayExpense,
                     color: context.colors.expense,
                   ),
                   _TotalsColumn(
                     label: l10n.totalBalance,
-                    amountMinor: totals.balanceMinor,
-                    currencySymbol: currencySymbol,
+                    displayAmount: totals.displayBalance,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ],
@@ -125,14 +115,15 @@ class ReportsScreen extends ConsumerWidget {
 
 class _TotalsColumn extends StatelessWidget {
   final String label;
-  final int amountMinor;
-  final String currencySymbol;
+
+  /// Written out, symbol and all — the screen is not the side that knows what
+  /// an amount is.
+  final String displayAmount;
   final Color color;
 
   const _TotalsColumn({
     required this.label,
-    required this.amountMinor,
-    required this.currencySymbol,
+    required this.displayAmount,
     required this.color,
   });
 
@@ -141,7 +132,7 @@ class _TotalsColumn extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '$currencySymbol${formatMinor(amountMinor.abs())}',
+          displayAmount,
           style: Theme.of(context)
               .textTheme
               .titleMedium

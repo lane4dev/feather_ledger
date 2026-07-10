@@ -169,10 +169,20 @@ lib/shared/     跨特性的组件与扩展
   当时据此依赖「写入方保证为正」而没取绝对值，一行负值就渲染成 `- -500.00`。两处现已对齐，
   mapper 的两个方向都取绝对值（有单测按这条钉住）。
 - **唯一的 double 桥接点是表现层输入边界的 `Money.fromDouble`**（经 `parseMinor`）。格式化一律走
-  `formatMinor`（int → 两位小数字符串）。UI 拿到的是 int 或已格式化的字符串，不是 double 金额；
-  唯一的例外是图表几何（`report_breakdown_view` 给 fl_chart 的 `toDouble()`）。
+  `formatMinor`（int → 两位小数字符串）。
+- **转换发生在投喂层，不在组件里。** 组件拿到的是**已写好的字符串**（或它无需转换的 int）。因此
+  `formatMinor` / `.abs()` / `.toDouble()` 只允许出现在 `presentation/models/` 与
+  `presentation/mappers/` —— 以及两个**输入边界**组件：`LedgerAmountInput` 与
+  `account_form_sheet` 的余额框。这两个是可编辑字段，用十进制文本作初值、用 `parseMinor` 读回，
+  是同一枚硬币的两面，属于 AGENTS 已承认的输入桥接，不是漏网的展示转换。
+  做这件事的模型/映射器：`LedgerDayGroup`（每日收支合计）、`MonthlySummaryUiModel`（月度三个头条数字，
+  ledger 与 reports 共用）、`ReportBreakdownMapper`（排序 / Top-5 / 「其他」桶 / 占比）、
+  `AccountUiModel`（账户余额，ledger 选择器与 settings 管理页共用）、`TransactionUiMapper`。
+  **一个组件里出现 `formatMinor`，就是该问「这个转换该属于谁」的信号。**
 - **UI 行上的金额不带符号**：`TransactionTileUiModel.amount` 恒为正，「+ / −」由 `displaySign` 承载、
   由 kind 决定（转账为空串）。符号不是数字的属性，是种类的属性。
+  唯一的例外是**余额**：透支的账户余额可以真的是负数，那是关于钱的事实，不是方向约定，所以
+  `MonthlySummaryUiModel.displayBalance` 保留负号。
 
 ## 失败处理
 

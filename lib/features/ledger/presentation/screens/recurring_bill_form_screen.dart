@@ -6,11 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
@@ -212,12 +212,13 @@ class _RecurringBillFormScreenState
 
     return LedgerFormRow(
       icon: Icons.account_balance_wallet_outlined,
-      child: ref.watch(accountListProvider).when(
+      child: ref.watch(accountUiListProvider).when(
             data: (accounts) {
-              final selected =
-                  accounts.where((a) => a.id == _accountId).firstOrNull;
+              final selected = accounts
+                  .where((a) => a.account.id == _accountId)
+                  .firstOrNull;
               return LedgerSelectorField(
-                text: selected?.name ?? l10n.account,
+                text: selected?.account.name ?? l10n.account,
                 textStyle: selected == null
                     ? theme.textTheme.bodyLarge
                         ?.copyWith(color: theme.hintColor)
@@ -227,12 +228,12 @@ class _RecurringBillFormScreenState
                     context: context,
                     isScrollControlled: true,
                     useSafeArea: true,
-                    builder: (context) => LedgerSelectionSheet<AccountEntity>(
+                    builder: (context) => LedgerSelectionSheet<AccountUiModel>(
                       title: l10n.account,
                       options: accounts,
-                      getLabel: (a) => a.name,
-                      isSelected: (a) => a.id == _accountId,
-                      onSelected: (a) => Navigator.pop(context, a.id),
+                      getLabel: (a) => a.account.name,
+                      isSelected: (a) => a.account.id == _accountId,
+                      onSelected: (a) => Navigator.pop(context, a.account.id),
                       onManageTap: () => context.push('/accounts_management'),
                       manageButtonText: l10n.manageAccounts,
                     ),

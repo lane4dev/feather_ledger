@@ -4,19 +4,20 @@ import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 
-import '../../domain/queries/watch_monthly_snapshot_query.dart';
+import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import '../theme/ledger_theme.dart';
 
 class LedgerHeader extends StatelessWidget {
   final DateTime selectedDate;
-  final AsyncValue<MonthlySnapshotTotals> summaryAsync;
+
+  /// Already written out — see [MonthlySummaryUiModel]. Without that this
+  /// widget would be formatting money, which is the currency's business and
+  /// not the header's.
+  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
   final ValueChanged<DateTime>? onMonthChanged;
   final VoidCallback? onMonthTap;
-  final String? currencySymbol;
 
   const LedgerHeader({
     super.key,
@@ -24,14 +25,10 @@ class LedgerHeader extends StatelessWidget {
     required this.summaryAsync,
     this.onMonthChanged,
     this.onMonthTap,
-    this.currencySymbol,
   });
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbol =
-        this.currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
-
     // Expanded State
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -60,7 +57,6 @@ class LedgerHeader extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8.0),
             child: _BalanceSummary(
               summaryAsync: summaryAsync,
-              currency: currencySymbol,
             ),
           ),
         ],
@@ -71,14 +67,12 @@ class LedgerHeader extends StatelessWidget {
 
 class LedgerHeaderCompact extends ConsumerWidget {
   final DateTime selectedDate;
-  final AsyncValue<MonthlySnapshotTotals> summaryAsync;
-  final String? currencySymbol;
+  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
 
   const LedgerHeaderCompact({
     super.key,
     required this.selectedDate,
     required this.summaryAsync,
-    this.currencySymbol,
   });
 
   @override
@@ -86,9 +80,6 @@ class LedgerHeaderCompact extends ConsumerWidget {
     final locale = Localizations.localeOf(context).toString();
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
-
-    final currencySymbol =
-        this.currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
 
     return Row(
       children: [
@@ -99,9 +90,7 @@ class LedgerHeaderCompact extends ConsumerWidget {
         SizedBox(width: context.spacing.md),
         summaryAsync.when(
           data: (summary) => Text(
-            showBalance
-                ? '$currencySymbol${formatMinor(summary.balanceMinor)}'
-                : '******',
+            showBalance ? summary.displayBalance : '******',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -168,13 +157,9 @@ class _MonthSwitcher extends StatelessWidget {
 }
 
 class _BalanceSummary extends ConsumerWidget {
-  final AsyncValue<MonthlySnapshotTotals> summaryAsync;
-  final String currency;
+  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
 
-  const _BalanceSummary({
-    required this.summaryAsync,
-    required this.currency,
-  });
+  const _BalanceSummary({required this.summaryAsync});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -225,9 +210,7 @@ class _BalanceSummary extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  showBalance
-                      ? '$currency${formatMinor(summary.balanceMinor)}'
-                      : '******',
+                  showBalance ? summary.displayBalance : '******',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
@@ -242,18 +225,16 @@ class _BalanceSummary extends ConsumerWidget {
               children: [
                 _IncomeExpenseCompact(
                   label: l10n.income,
-                  amountMinor: summary.incomeMinor.abs(),
+                  displayAmount: summary.displayIncome,
                   color: context.colors.income,
-                  currency: currency,
                   icon: Icons.arrow_downward_rounded,
                   showBalance: showBalance,
                 ),
                 const SizedBox(height: 8),
                 _IncomeExpenseCompact(
                   label: l10n.expense,
-                  amountMinor: summary.expenseMinor.abs(),
+                  displayAmount: summary.displayExpense,
                   color: context.colors.expense,
-                  currency: currency,
                   icon: Icons.arrow_upward_rounded,
                   showBalance: showBalance,
                 ),
@@ -302,17 +283,17 @@ class _BalanceSummary extends ConsumerWidget {
 
 class _IncomeExpenseCompact extends StatelessWidget {
   final String label;
-  final int amountMinor;
+
+  /// Written out, symbol and all.
+  final String displayAmount;
   final Color color;
-  final String currency;
   final IconData icon;
   final bool showBalance;
 
   const _IncomeExpenseCompact({
     required this.label,
-    required this.amountMinor,
+    required this.displayAmount,
     required this.color,
-    required this.currency,
     required this.icon,
     required this.showBalance,
   });
@@ -340,7 +321,7 @@ class _IncomeExpenseCompact extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              showBalance ? '$currency${formatMinor(amountMinor)}' : '******',
+              showBalance ? displayAmount : '******',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,

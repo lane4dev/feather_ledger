@@ -157,7 +157,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                   child: LedgerHeaderCompact(
                     selectedDate: selectedDate,
                     summaryAsync: summaryAsync,
-                    currencySymbol: currency,
                   ),
                 ),
                 // Expanded Content (FlexibleSpace)
@@ -166,7 +165,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                     child: LedgerHeader(
                       selectedDate: selectedDate,
                       summaryAsync: summaryAsync,
-                      currencySymbol: currency,
                       onMonthChanged: _goToMonth,
                       onMonthTap: () => _onMonthTap(selectedDate),
                     ),

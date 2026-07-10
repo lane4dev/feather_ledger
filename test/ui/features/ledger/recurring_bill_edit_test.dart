@@ -11,6 +11,7 @@ import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
@@ -122,7 +123,8 @@ void main() {
         ProviderScope(
           overrides: [
             recurringViewModelProvider.overrideWith(() => viewModel),
-            accountListProvider.overrideWith((ref) => Stream.value(const [cash])),
+            accountUiListProvider.overrideWithValue(
+              AsyncData([AccountUiModel.of(cash)])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
                   type == CategoryType.expense ? const [rent, food] : const []),
@@ -195,7 +197,8 @@ void main() {
         ProviderScope(
           overrides: [
             recurringViewModelProvider.overrideWith(() => viewModel),
-            accountListProvider.overrideWith((ref) => Stream.value(const [cash])),
+            accountUiListProvider.overrideWithValue(
+              AsyncData([AccountUiModel.of(cash)])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
                   type == CategoryType.expense ? const [rent, food] : const []),

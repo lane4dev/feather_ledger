@@ -137,34 +137,46 @@ final class MonthlyPendingTransactionsFamily extends $Family
 
 /// The month's ledger rows: what happened, then what is coming.
 ///
-/// Pending bills are merged into the same day-grouped map so a bill dated the
+/// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
 /// Within a day the posted rows stay first — the list reads as history and
 /// then as forecast.
+///
+/// The grouping and each day's totals are built here rather than in the
+/// timeline, which is the only place that knows the display currency without
+/// being told.
 
 @ProviderFor(ledgerMonthlyTransactions)
 final ledgerMonthlyTransactionsProvider = LedgerMonthlyTransactionsFamily._();
 
 /// The month's ledger rows: what happened, then what is coming.
 ///
-/// Pending bills are merged into the same day-grouped map so a bill dated the
+/// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
 /// Within a day the posted rows stay first — the list reads as history and
 /// then as forecast.
+///
+/// The grouping and each day's totals are built here rather than in the
+/// timeline, which is the only place that knows the display currency without
+/// being told.
 
 final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
-        AsyncValue<Map<DateTime, List<TransactionTileUiModel>>>,
-        Map<DateTime, List<TransactionTileUiModel>>,
-        Stream<Map<DateTime, List<TransactionTileUiModel>>>>
+        AsyncValue<List<LedgerDayGroup>>,
+        List<LedgerDayGroup>,
+        Stream<List<LedgerDayGroup>>>
     with
-        $FutureModifier<Map<DateTime, List<TransactionTileUiModel>>>,
-        $StreamProvider<Map<DateTime, List<TransactionTileUiModel>>> {
+        $FutureModifier<List<LedgerDayGroup>>,
+        $StreamProvider<List<LedgerDayGroup>> {
   /// The month's ledger rows: what happened, then what is coming.
   ///
-  /// Pending bills are merged into the same day-grouped map so a bill dated the
+  /// Pending bills are merged into the same day grouping so a bill dated the
   /// 1st sits under the 1st, beside whatever real transactions share that day.
   /// Within a day the posted rows stay first — the list reads as history and
   /// then as forecast.
+  ///
+  /// The grouping and each day's totals are built here rather than in the
+  /// timeline, which is the only place that knows the display currency without
+  /// being told.
   LedgerMonthlyTransactionsProvider._(
       {required LedgerMonthlyTransactionsFamily super.from,
       required DateTime super.argument})
@@ -188,12 +200,12 @@ final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
 
   @$internal
   @override
-  $StreamProviderElement<Map<DateTime, List<TransactionTileUiModel>>>
-      $createElement($ProviderPointer pointer) =>
-          $StreamProviderElement(pointer);
+  $StreamProviderElement<List<LedgerDayGroup>> $createElement(
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
   @override
-  Stream<Map<DateTime, List<TransactionTileUiModel>>> create(Ref ref) {
+  Stream<List<LedgerDayGroup>> create(Ref ref) {
     final argument = this.argument as DateTime;
     return ledgerMonthlyTransactions(
       ref,
@@ -214,19 +226,21 @@ final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
 }
 
 String _$ledgerMonthlyTransactionsHash() =>
-    r'49143c27ef3125c63a8a6c0b096d6de81068e1cb';
+    r'0c120c820b286762c95fa4439334af0a294e46a1';
 
 /// The month's ledger rows: what happened, then what is coming.
 ///
-/// Pending bills are merged into the same day-grouped map so a bill dated the
+/// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
 /// Within a day the posted rows stay first — the list reads as history and
 /// then as forecast.
+///
+/// The grouping and each day's totals are built here rather than in the
+/// timeline, which is the only place that knows the display currency without
+/// being told.
 
 final class LedgerMonthlyTransactionsFamily extends $Family
-    with
-        $FunctionalFamilyOverride<
-            Stream<Map<DateTime, List<TransactionTileUiModel>>>, DateTime> {
+    with $FunctionalFamilyOverride<Stream<List<LedgerDayGroup>>, DateTime> {
   LedgerMonthlyTransactionsFamily._()
       : super(
           retry: null,
@@ -238,10 +252,14 @@ final class LedgerMonthlyTransactionsFamily extends $Family
 
   /// The month's ledger rows: what happened, then what is coming.
   ///
-  /// Pending bills are merged into the same day-grouped map so a bill dated the
+  /// Pending bills are merged into the same day grouping so a bill dated the
   /// 1st sits under the 1st, beside whatever real transactions share that day.
   /// Within a day the posted rows stay first — the list reads as history and
   /// then as forecast.
+  ///
+  /// The grouping and each day's totals are built here rather than in the
+  /// timeline, which is the only place that knows the display currency without
+  /// being told.
 
   LedgerMonthlyTransactionsProvider call(
     DateTime month,
@@ -251,6 +269,64 @@ final class LedgerMonthlyTransactionsFamily extends $Family
   @override
   String toString() => r'ledgerMonthlyTransactionsProvider';
 }
+
+/// The symbol the ledger writes next to an amount.
+///
+/// A provider rather than a constant so the timeline does not have to thread
+/// it down: everything that needs it reads it here, at the layer that is
+/// already converting the amounts it belongs to.
+
+@ProviderFor(displayCurrencySymbol)
+final displayCurrencySymbolProvider = DisplayCurrencySymbolProvider._();
+
+/// The symbol the ledger writes next to an amount.
+///
+/// A provider rather than a constant so the timeline does not have to thread
+/// it down: everything that needs it reads it here, at the layer that is
+/// already converting the amounts it belongs to.
+
+final class DisplayCurrencySymbolProvider
+    extends $FunctionalProvider<String, String, String> with $Provider<String> {
+  /// The symbol the ledger writes next to an amount.
+  ///
+  /// A provider rather than a constant so the timeline does not have to thread
+  /// it down: everything that needs it reads it here, at the layer that is
+  /// already converting the amounts it belongs to.
+  DisplayCurrencySymbolProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'displayCurrencySymbolProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$displayCurrencySymbolHash();
+
+  @$internal
+  @override
+  $ProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String create(Ref ref) {
+    return displayCurrencySymbol(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String>(value),
+    );
+  }
+}
+
+String _$displayCurrencySymbolHash() =>
+    r'c58c301953a859767b23dfd342ce44faee7698ca';
 
 @ProviderFor(LedgerViewModel)
 final ledgerViewModelProvider = LedgerViewModelProvider._();
@@ -284,7 +360,7 @@ final class LedgerViewModelProvider
   }
 }
 
-String _$ledgerViewModelHash() => r'8db85a524c3acd72774078426af7ca250ec0e7ce';
+String _$ledgerViewModelHash() => r'4ef41aaf4ada56af868a90f06b69f79229159157';
 
 abstract class _$LedgerViewModel extends $Notifier<LedgerViewState> {
   LedgerViewState build();

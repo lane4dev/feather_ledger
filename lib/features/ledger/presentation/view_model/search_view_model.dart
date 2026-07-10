@@ -7,7 +7,9 @@ import '../../domain/queries/search_transactions_query.dart';
 import '../../domain/services/transaction_export_service.dart';
 import '../../domain/value_objects/transaction_filter.dart';
 import '../mappers/transaction_ui_mapper.dart';
+import '../models/ledger_day_group.dart';
 import '../models/transaction_tile_ui_model.dart';
+import 'ledger_view_model.dart';
 
 part 'search_view_model.g.dart';
 
@@ -48,7 +50,16 @@ class SearchResults {
   final List<TransactionEntity> entities;
   final List<TransactionTileUiModel> tiles;
 
-  const SearchResults({required this.entities, required this.tiles});
+  /// The same rows, grouped by day with each day's totals written out — the
+  /// shape the timeline renders, built here so the screen has nothing to
+  /// compute.
+  final List<LedgerDayGroup> days;
+
+  const SearchResults({
+    required this.entities,
+    required this.tiles,
+    required this.days,
+  });
 
   bool get isEmpty => tiles.isEmpty;
 }
@@ -58,10 +69,14 @@ Stream<SearchResults> searchResults(Ref ref) {
   final filter = ref.watch(searchViewModelProvider);
   const mapper = TransactionUiMapper();
 
-  return ref.watch(searchTransactionsQueryProvider).execute(filter).map(
-        (rows) => SearchResults(
-          entities: rows,
-          tiles: rows.map(mapper.toTile).toList(),
-        ),
-      );
+  final symbol = ref.watch(displayCurrencySymbolProvider);
+
+  return ref.watch(searchTransactionsQueryProvider).execute(filter).map((rows) {
+    final tiles = rows.map(mapper.toTile).toList();
+    return SearchResults(
+      entities: rows,
+      tiles: tiles,
+      days: LedgerDayGroup.group(tiles, currencySymbol: symbol),
+    );
+  });
 }

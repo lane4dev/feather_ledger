@@ -11,6 +11,7 @@ import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
@@ -91,7 +92,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          accountListProvider.overrideWith((ref) => Stream.value(const [cash])),
+          accountUiListProvider.overrideWithValue(
+              AsyncData([AccountUiModel.of(cash)])),
           categoryListProvider.overrideWith(
             (ref, type) =>
                 Stream.value(type == CategoryType.expense ? const [rent] : const []),
@@ -121,7 +123,7 @@ void main() {
   }
 
   Finder inSheet(String text) => find.descendant(
-        of: find.byType(LedgerSelectionSheet<AccountEntity>),
+        of: find.byType(LedgerSelectionSheet<AccountUiModel>),
         matching: find.text(text),
       );
 

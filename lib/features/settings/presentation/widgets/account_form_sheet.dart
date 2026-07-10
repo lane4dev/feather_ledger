@@ -103,6 +103,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   children: [
                     // Balance Input (Hero) - Left Aligned
                     TextFormField(
+                      // The same input boundary as the ledger's amount
+                      // field: seeded with the decimal text, read back with
+                      // [parseMinor].
                       initialValue: _balanceMinor == 0 && !isEditing
                           ? null
                           : formatMinor(_balanceMinor),

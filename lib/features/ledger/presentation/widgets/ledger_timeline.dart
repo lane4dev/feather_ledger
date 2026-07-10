@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/sliver_clip_rect.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 
+import '../models/ledger_day_group.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../theme/ledger_theme.dart';
 
@@ -15,14 +14,16 @@ import 'time_anchor.dart';
 import 'transaction_tile.dart';
 
 class LedgerTimeline extends StatelessWidget {
-  final Map<DateTime, List<TransactionTileUiModel>> groupedTransactions;
+  /// Already grouped, already totalled, already written out — see
+  /// [LedgerDayGroup]. This widget decides only how a day looks.
+  final List<LedgerDayGroup> days;
   final String? currencySymbol;
 
   final Function(TransactionTileUiModel)? onTransactionTap;
 
   const LedgerTimeline({
     super.key,
-    required this.groupedTransactions,
+    required this.days,
     this.currencySymbol,
     this.onTransactionTap,
   });
@@ -35,45 +36,32 @@ class LedgerTimeline extends StatelessWidget {
     // We wrap everything in a SliverMainAxisGroup so it acts as a single sliver unit
     // This allows us to use it inside the CustomScrollView's slivers list cleanly.
     return SliverMainAxisGroup(
-      slivers: groupedTransactions.entries.map((entry) {
-        final date = entry.key;
-        final transactions = entry.value;
-        return _DayGroup(
-          date: date,
-          transactions: transactions,
-          currencySymbol: effectiveCurrencySymbol,
-          onTransactionTap: onTransactionTap,
-        );
-      }).toList(),
+      slivers: days
+          .map((day) => _DayGroup(
+                day: day,
+                currencySymbol: effectiveCurrencySymbol,
+                onTransactionTap: onTransactionTap,
+              ))
+          .toList(),
     );
   }
 }
 
 class _DayGroup extends StatelessWidget {
-  final DateTime date;
-  final List<TransactionTileUiModel> transactions;
+  final LedgerDayGroup day;
   final String currencySymbol;
   final Function(TransactionTileUiModel)? onTransactionTap;
 
   const _DayGroup({
-    required this.date,
-    required this.transactions,
+    required this.day,
     required this.currencySymbol,
     this.onTransactionTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Calculate daily totals
-    var totalIncomeMinor = 0;
-    var totalExpenseMinor = 0;
-    for (var tx in transactions) {
-      if (tx.type == TransactionKind.income) {
-        totalIncomeMinor += tx.amount.abs();
-      } else if (tx.type == TransactionKind.expense) {
-        totalExpenseMinor += tx.amount.abs();
-      }
-    }
+    final date = day.date;
+    final transactions = day.transactions;
 
     return SliverClipRect(
       sliver: SliverMainAxisGroup(
@@ -94,9 +82,8 @@ class _DayGroup extends StatelessWidget {
             itemBuilder: (context, index) {
               if (index == transactions.length) {
                 return _DailySummary(
-                  incomeMinor: totalIncomeMinor,
-                  expenseMinor: totalExpenseMinor,
-                  currencySymbol: currencySymbol,
+                  displayIncome: day.displayIncome,
+                  displayExpense: day.displayExpense,
                 );
               }
 
@@ -168,16 +155,12 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
+/// The day's totals, in the strings the model already wrote.
 class _DailySummary extends StatelessWidget {
-  final int incomeMinor;
-  final int expenseMinor;
-  final String currencySymbol;
+  final String? displayIncome;
+  final String? displayExpense;
 
-  const _DailySummary({
-    required this.incomeMinor,
-    required this.expenseMinor,
-    required this.currencySymbol,
-  });
+  const _DailySummary({this.displayIncome, this.displayExpense});
 
   @override
   Widget build(BuildContext context) {
@@ -201,13 +184,13 @@ class _DailySummary extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 // Income
-                if (incomeMinor > 0) ...[
+                if (displayIncome != null) ...[
                   Text(
                     '${l10n.income}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
-                    '$currencySymbol${formatMinor(incomeMinor)}',
+                    displayIncome!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.colors.income,
                           fontWeight: FontWeight.bold,
@@ -215,14 +198,14 @@ class _DailySummary extends StatelessWidget {
                   ),
                 ],
                 // Expense
-                if (expenseMinor > 0) ...[
+                if (displayExpense != null) ...[
                   SizedBox(width: context.spacing.md),
                   Text(
                     '${l10n.expense}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
-                    '$currencySymbol${formatMinor(expenseMinor)}',
+                    displayExpense!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.colors.expense,
                           fontWeight: FontWeight.bold,

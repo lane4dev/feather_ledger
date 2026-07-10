@@ -40,15 +40,15 @@ class LedgerTransactionList extends ConsumerWidget {
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           ),
           transactionsAsync.when(
-            data: (grouped) {
-              if (grouped.isEmpty) {
+            data: (days) {
+              if (days.isEmpty) {
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: LedgerEmpty(),
                 );
               }
               return LedgerTimeline(
-                groupedTransactions: grouped,
+                days: days,
                 currencySymbol: currency,
                 onTransactionTap: (tx) {
                   // A pending bill has no event stream and cannot be edited;

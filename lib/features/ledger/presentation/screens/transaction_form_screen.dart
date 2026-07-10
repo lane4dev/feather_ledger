@@ -9,14 +9,13 @@ import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import '../models/transaction_tile_ui_model.dart';
@@ -115,7 +114,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoryListProvider(_categoryType));
-    final accountsAsync = ref.watch(accountListProvider);
+    final accountsAsync = ref.watch(accountUiListProvider);
     final currencyKey = ref.watch(currencyControllerProvider).value ??
         AppCurrencies.supportedCurrencyCodes.first;
 
@@ -127,11 +126,13 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     // Pickers only offer non-archived accounts (spec 003, US3); history and
     // balances retain archived rows.
     final activeAccounts =
-        (accountsAsync.value ?? const <AccountEntity>[])
-            .where((a) => !a.archived)
+        (accountsAsync.value ?? const <AccountUiModel>[])
+            .where((a) => !a.account.archived)
             .toList();
-    final fromAccount =
-        activeAccounts.where((a) => a.id == _accountId).firstOrNull;
+    final fromAccount = activeAccounts
+        .where((a) => a.account.id == _accountId)
+        .firstOrNull
+        ?.account;
 
     // A transfer's legs are in the from-account's currency, so the amount is
     // labelled with that rather than the global display preference. The two
@@ -146,10 +147,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     // are narrowed rather than letting the pair be chosen and refused. The
     // list is empty until a source is picked, which is also the honest answer.
     final toAccountOptions = activeAccounts
-        .where((a) => a.id != _accountId)
+        .where((a) => a.account.id != _accountId)
         .where((a) =>
             fromAccount == null ||
-            a.currencyCode == fromAccount.currencyCode)
+            a.account.currencyCode == fromAccount.currencyCode)
         .toList();
 
     return Scaffold(
@@ -447,7 +448,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     required Key fieldKey,
     required IconData icon,
     required String placeholder,
-    required List<AccountEntity> options,
+    required List<AccountUiModel> options,
     required String? selectedId,
     required ValueChanged<String> onSelected,
     FormFieldValidator<String>? extraValidator,
@@ -465,10 +466,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           return extraValidator?.call(value);
         },
         builder: (state) {
-          final selected =
-              options.where((a) => a.id == state.value).firstOrNull;
+          final selected = options
+              .where((a) => a.account.id == state.value)
+              .firstOrNull;
           return LedgerSelectorField(
-            text: selected?.name ?? placeholder,
+            text: selected?.account.name ?? placeholder,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
@@ -478,17 +480,17 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 context: context,
                 isScrollControlled: true,
                 useSafeArea: true,
-                builder: (context) => LedgerSelectionSheet<AccountEntity>(
+                builder: (context) => LedgerSelectionSheet<AccountUiModel>(
                   title: placeholder,
                   options: options,
-                  getLabel: (a) => a.name,
+                  getLabel: (a) => a.account.name,
                   // Each account's own currency, not the global display
                   // preference: with transfers in this form the two legs can
                   // be read side by side, and a shared symbol would mislabel
-                  // one of them whenever the accounts differ.
+                  // one of them whenever the accounts differ. The model has
+                  // already applied that rule.
                   getTrailing: (context, a) => Text(
-                    '${AppCurrencies.getSymbol(a.currencyCode)}'
-                    '${formatMinor(a.balanceMinor)}',
+                    a.displayBalance,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   getLeading: (context, a) => CircleAvatar(
@@ -496,10 +498,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         Theme.of(context).colorScheme.secondaryContainer,
                     foregroundColor:
                         Theme.of(context).colorScheme.onSecondaryContainer,
-                    child: Icon(a.type.icon),
+                    child: Icon(a.account.type.icon),
                   ),
-                  isSelected: (a) => a.id == state.value,
-                  onSelected: (a) => Navigator.pop(context, a.id),
+                  isSelected: (a) => a.account.id == state.value,
+                  onSelected: (a) => Navigator.pop(context, a.account.id),
                   onManageTap: () => context.push('/accounts_management'),
                   manageButtonText: l10n.manageAccounts,
                 ),

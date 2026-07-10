@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../../domain/entities/reports_entities.dart';
+import '../models/report_breakdown_ui_model.dart';
 
 class ReportBreakdownView extends ConsumerStatefulWidget {
   final AsyncValue<List<ReportCategoryTotal>> dataAsync;
@@ -39,9 +38,8 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // Formatting boundary (spec 003, US9/T065): pie values are doubles for
-    // fl_chart; display strings go through formatMinor + the currency
-    // setting — no business calculation happens here.
+    // This widget draws. The sorting, the others bucket and every amount's
+    // written form were done above it — see [ReportBreakdownMapper].
     final currencyKey = ref.watch(currencyControllerProvider).value ??
         AppCurrencies.supportedCurrencyCodes.first;
     final currencySymbol = AppCurrencies.getSymbol(currencyKey);
@@ -51,29 +49,12 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
           return Center(child: Text(widget.emptyMessage));
         }
 
-        final sorted = List<ReportCategoryTotal>.from(data)
-          ..sort((a, b) => b.totalMinor.compareTo(a.totalMinor));
-
-        final processedData = <ReportCategoryTotal>[];
-        if (sorted.length <= 5) {
-          processedData.addAll(sorted);
-        } else {
-          processedData.addAll(sorted.take(5));
-          final otherTotal =
-              sorted.skip(5).fold(0, (sum, item) => sum + item.totalMinor);
-          processedData.add(ReportCategoryTotal(
-            category: CategoryEntity(
-              id: 'others',
-              name: l10n.others,
-              iconKey: '57564',
-              colorInt: Colors.grey.toARGB32(),
-              type: sorted.first.category.type,
-            ),
-            totalMinor: otherTotal,
-          ));
-        }
-
-        final totalSum = data.fold(0, (sum, item) => sum + item.totalMinor);
+        final processedData = const ReportBreakdownMapper().toItems(
+          data,
+          currencySymbol: currencySymbol,
+          othersLabel: l10n.others,
+          othersColorInt: Colors.grey.toARGB32(),
+        );
 
         return Column(
           children: [
@@ -105,15 +86,12 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                     final index = entry.key;
                     final item = entry.value;
                     final isTouched = index == touchedIndex;
-                    final percentage = totalSum > 0
-                        ? (item.totalMinor / totalSum * 100)
-                        : 0.0;
-                    final color = _getTonalColor(Color(item.category.colorInt));
+                    final color = _getTonalColor(Color(item.colorInt));
 
                     return PieChartSectionData(
-                      color: isTouched ? Color(item.category.colorInt) : color,
-                      value: item.totalMinor.toDouble(),
-                      title: '${percentage.toStringAsFixed(0)}%',
+                      color: isTouched ? Color(item.colorInt) : color,
+                      value: item.chartValue,
+                      title: item.displayShare,
                       radius: isTouched ? 55 : 45,
                       titleStyle:
                           Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -168,16 +146,15 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                             height: 12,
                             decoration: BoxDecoration(
                               color: isTouched
-                                  ? Color(item.category.colorInt)
-                                  : _getTonalColor(
-                                      Color(item.category.colorInt)),
+                                  ? Color(item.colorInt)
+                                  : _getTonalColor(Color(item.colorInt)),
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              item.category.name,
+                              item.label,
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -192,7 +169,7 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            '$currencySymbol${formatMinor(item.totalMinor)}',
+                            item.displayTotal,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium

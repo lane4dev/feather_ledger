@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/queries/watch_monthly_snapshot_query.dart';
+import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import '../../domain/value_objects/account_balance.dart';
 
 class LedgerViewState {
   final DateTime selectedDate;
-  final AsyncValue<MonthlySnapshotTotals> summary;
+  /// Already written out — the state carries what the screen prints, not the
+  /// numbers it would have to convert.
+  final AsyncValue<MonthlySummaryUiModel> summary;
   final Map<String, AsyncValue<AccountBalance>> accountBalances;
 
   const LedgerViewState({
@@ -25,7 +27,7 @@ class LedgerViewState {
 
   LedgerViewState copyWith({
     DateTime? selectedDate,
-    AsyncValue<MonthlySnapshotTotals>? summary,
+    AsyncValue<MonthlySummaryUiModel>? summary,
     Map<String, AsyncValue<AccountBalance>>? accountBalances,
   }) {
     return LedgerViewState(

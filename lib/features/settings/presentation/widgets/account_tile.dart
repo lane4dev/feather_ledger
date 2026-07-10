@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 
-import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 
 class AccountTile extends StatelessWidget {
-  final AccountEntity account;
+  final AccountUiModel account;
   final VoidCallback? onTap;
-  final String currencySymbol;
 
   const AccountTile({
     super.key,
     required this.account,
     this.onTap,
-    this.currencySymbol = '\$',
   });
 
   @override
@@ -22,15 +19,15 @@ class AccountTile extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
-        child: Icon(account.type.icon),
+        child: Icon(account.account.type.icon),
       ),
-      title: Text(account.name),
+      title: Text(account.account.name),
       subtitle: Text(
-        account.type.localizedLabel(context),
+        account.account.type.localizedLabel(context),
         style: Theme.of(context).textTheme.bodySmall,
       ),
       trailing: Text(
-        '$currencySymbol${formatMinor(account.balanceMinor)}',
+        account.displayBalance,
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       onTap: onTap,

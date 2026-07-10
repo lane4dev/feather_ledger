@@ -2,16 +2,17 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../domain/entities/ledger_entities.dart';
-import '../../domain/queries/watch_monthly_snapshot_query.dart';
 import '../../domain/services/ledger_service.dart';
 
 import '../mappers/transaction_ui_mapper.dart';
+import '../models/ledger_day_group.dart';
+import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import '../models/transaction_tile_ui_model.dart';
 
 import 'ledger_view_state.dart';
@@ -59,17 +60,22 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
 
 /// The month's ledger rows: what happened, then what is coming.
 ///
-/// Pending bills are merged into the same day-grouped map so a bill dated the
+/// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
 /// Within a day the posted rows stay first — the list reads as history and
 /// then as forecast.
+///
+/// The grouping and each day's totals are built here rather than in the
+/// timeline, which is the only place that knows the display currency without
+/// being told.
 @riverpod
-Stream<Map<DateTime, List<TransactionTileUiModel>>> ledgerMonthlyTransactions(
+Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   Ref ref,
   DateTime month,
 ) {
   final service = ref.watch(ledgerServiceProvider);
   const mapper = TransactionUiMapper();
+  final symbol = ref.watch(displayCurrencySymbolProvider);
 
   // Watching this rebuilds the provider when the pending set changes. Each
   // rebuild re-runs the month query, which at personal-ledger scale is
@@ -83,24 +89,28 @@ Stream<Map<DateTime, List<TransactionTileUiModel>>> ledgerMonthlyTransactions(
       ...items.map(mapper.toTile),
       ...pending,
     ];
-    return groupTransactionsByDay(uiItems);
+    return LedgerDayGroup.group(uiItems, currencySymbol: symbol);
   });
 }
 
-Map<DateTime, List<TransactionTileUiModel>> groupTransactionsByDay(
-  List<TransactionTileUiModel> transactions,
-) {
-  final grouped = <DateTime, List<TransactionTileUiModel>>{};
-  for (final tx in transactions) {
-    final dateKey = DateTime(tx.date.year, tx.date.month, tx.date.day);
-    grouped.putIfAbsent(dateKey, () => []).add(tx);
-  }
-  return grouped;
+/// The symbol the ledger writes next to an amount.
+///
+/// A provider rather than a constant so the timeline does not have to thread
+/// it down: everything that needs it reads it here, at the layer that is
+/// already converting the amounts it belongs to.
+@riverpod
+String displayCurrencySymbol(Ref ref) => displayCurrencySymbolOf(ref);
+
+/// The same answer without a subscription, for a place that is already
+/// watching something else and only needs the symbol once.
+String displayCurrencySymbolOf(Ref ref) {
+  final code = ref.read(currencyControllerProvider).value;
+  return AppCurrencies.getSymbol(code ?? AppCurrencies.defaultCurrency.code);
 }
 
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
-  StreamSubscription<MonthlySnapshotTotals>? _summarySub;
+  StreamSubscription<MonthlySummaryUiModel>? _summarySub;
 
   @override
   LedgerViewState build() {
@@ -252,6 +262,13 @@ class LedgerViewModel extends _$LedgerViewModel {
               currencyCode: ref.read(currencyControllerProvider).value ??
                   AppCurrencies.defaultCurrency.code,
             )
+            // Converted once, on the way in, where the currency is in hand.
+            .map((totals) => MonthlySummaryUiModel.of(
+                  balanceMinor: totals.balanceMinor,
+                  incomeMinor: totals.incomeMinor,
+                  expenseMinor: totals.expenseMinor,
+                  currencySymbol: displayCurrencySymbolOf(ref),
+                ))
             .listen(
       (summary) {
         state = state.copyWith(summary: AsyncData(summary));
