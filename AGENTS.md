@@ -183,6 +183,14 @@ lib/shared/     跨特性的组件与扩展
   由 kind 决定（转账为空串）。符号不是数字的属性，是种类的属性。
   唯一的例外是**余额**：透支的账户余额可以真的是负数，那是关于钱的事实，不是方向约定，所以
   `MonthlySummaryUiModel.displayBalance` 保留负号。
+- **带符号的金额，负号在货币符号外面**：`- $12.34`，不是 `$-12.34`。所以有符号要落进文本时用
+  **`formatMinorWithSymbol(minor, symbol)`**，不要自己把符号与 `formatMinor` 拼起来 ——
+  `formatMinor` 会把负号写在数字前，一旦有人在前面加了货币符号，负号就夹在两者中间了。
+  会走到这条路的是三类**真的可以为负**的金额：透支的账户余额（`AccountUiModel`）、月度余额
+  （`MonthlySummaryUiModel`）、支出分类合计（`ReportBreakdownMapper` —— 分类合计存的是带符号的
+  posting 影响，支出为负）。而收入/支出这类**方向由标签承载**的金额一律取正值，不出现负号。
+  只有一处例外并且是刻意的：`account_form_sheet` 的余额**输入框**，其内容必须能被 `parseMinor` 解析，
+  所以符号只能留在数字里、货币符号作为 `prefixText` 装饰（渲染成 `$ -12.34`）。输入框不是展示位。
 
 ## 失败处理
 

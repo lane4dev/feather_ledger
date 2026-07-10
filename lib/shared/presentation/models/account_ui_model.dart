@@ -10,7 +10,8 @@ import 'package:feather_ledger/shared/presentation/money_format.dart';
 class AccountUiModel {
   final AccountEntity account;
 
-  /// Ready to print, currency symbol included.
+  /// Ready to print, currency symbol included. A credit card's balance is
+  /// negative, and reads `- $12.34`.
   final String displayBalance;
 
   const AccountUiModel({
@@ -23,7 +24,9 @@ class AccountUiModel {
   /// accounts at once could not use one symbol for all of them anyway.
   factory AccountUiModel.of(AccountEntity account) => AccountUiModel(
         account: account,
-        displayBalance: '${AppCurrencies.getSymbol(account.currencyCode)}'
-            '${formatMinor(account.balanceMinor)}',
+        displayBalance: formatMinorWithSymbol(
+          account.balanceMinor,
+          AppCurrencies.getSymbol(account.currencyCode),
+        ),
       );
 }

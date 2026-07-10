@@ -78,7 +78,7 @@ class ReportBreakdownMapper {
           label: row.label,
           colorInt: row.colorInt,
           chartValue: row.totalMinor.toDouble(),
-          displayTotal: '$currencySymbol${formatMinor(row.totalMinor)}',
+          displayTotal: formatMinorWithSymbol(row.totalMinor, currencySymbol),
           displayShare: whole > 0
               ? '${(row.totalMinor / whole * 100).toStringAsFixed(0)}%'
               : '',

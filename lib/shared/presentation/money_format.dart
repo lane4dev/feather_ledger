@@ -8,7 +8,23 @@ library;
 import 'package:feather_ledger/core/domain/money/money.dart';
 
 /// Formats int minor units for display, e.g. `1234` → `"12.34"`.
+///
+/// **The minus belongs to the digits, not to the amount in a currency.** A
+/// caller that puts a symbol in front of this gets `$-12.34`, which reads as a
+/// symbol and then a negative number rather than a negative amount — use
+/// [formatMinorWithSymbol] wherever there is a symbol to place.
 String formatMinor(int minorUnits) => (minorUnits / 100).toStringAsFixed(2);
+
+/// A signed amount with its currency, e.g. `- $12.34`.
+///
+/// The sign goes **outside** the symbol: `- $12.34`, never `$-12.34`. Every
+/// amount that can legitimately be negative — an overdrawn balance, a credit
+/// card's debt, an expense category's total — reads this way, and a positive
+/// one is left alone rather than given a `+` it never had.
+String formatMinorWithSymbol(int minorUnits, String currencySymbol) =>
+    minorUnits < 0
+        ? '- $currencySymbol${formatMinor(-minorUnits)}'
+        : '$currencySymbol${formatMinor(minorUnits)}';
 
 /// Parses validated user input (at most 2 decimals) into int minor units,
 /// via the sanctioned [Money.fromDouble] bridge.
