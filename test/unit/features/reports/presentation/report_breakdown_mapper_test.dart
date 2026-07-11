@@ -32,11 +32,37 @@ void main() {
         othersColorInt: 0xFF888888,
       );
 
-  test('sorts by size and writes each total out', () {
+  test('the biggest category leads', () {
+    // Categories arrive as magnitudes, so "descending" is biggest first. Fed
+    // signed expense totals this sorted the other way round, which put the
+    // smallest slice at the head of the pie and cut the wrong end of the list.
     final result = items([total('Small', 1000), total('Big', 900000)]);
 
     expect(result.map((i) => i.label), ['Big', 'Small']);
     expect(result.first.displayTotal, r'$9000.00');
+  });
+
+  test('a slice is never negative, because a pie cannot draw one', () {
+    final result = items([total('Food', 5000), total('Rent', 90000)]);
+
+    expect(result.every((i) => i.chartValue > 0), isTrue);
+    expect(result.every((i) => !i.displayTotal.contains('-')), isTrue);
+  });
+
+  test('the five kept are the five biggest', () {
+    final result = items([
+      total('A', 700),
+      total('B', 600),
+      total('C', 500),
+      total('D', 400),
+      total('E', 300),
+      total('F', 200),
+      total('G', 100),
+    ]);
+
+    expect(result.take(5).map((i) => i.label), ['A', 'B', 'C', 'D', 'E']);
+    expect(result.last.label, 'Others',
+        reason: 'the two smallest were folded, not the two biggest');
   });
 
   test('folds everything past the fifth into one bucket', () {

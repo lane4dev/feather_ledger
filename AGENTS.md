@@ -59,8 +59,14 @@ lib/shared/     跨特性的组件与扩展
   （`settings_screen.dart` → `features/ledger/data/projections/ledger_rebuild_service.dart`）
   —— 除 `main.dart` 这一组合根之外，唯一被认可的跨特性 data 层依赖。
 - **reports** —— 没有 `commands/`、`queries/` 或 `services/`；provider 直接读
-  `data/repositories/reports_repository.dart`，且 `report_breakdown_view.dart` 在组件内自己做排序 /
-  Top-5 截断 / “Other” 分桶聚合。
+  `data/repositories/reports_repository.dart`。排序 / Top-5 截断 / 「其他」分桶聚合**曾经**在
+  `report_breakdown_view.dart` 组件内做，现已收到 `ReportBreakdownMapper`
+  （`presentation/models/`）—— 那个桶是一次求和，图表原本在做金额算术来给自己写标签。
+- **reports 的分类合计是量值，不是净值**：`watchCategoryBreakdown` 按 kind 过滤后按分类聚合，
+  每个 posting 取 `postingSignedImpact(...).abs()`。饼图答的是「这一类花了多少」，不是「净流向了哪边」，
+  而且饼图根本画不了负扇区。**这里曾经存带符号的影响**，于是支出报表按降序排负数 ⇒ 最小的排最前、
+  Top-5 截错了那一头；现在合计恒为正，降序即「最大的在前」。热度图不同：它按天展示**净**流量，
+  依然带符号。
 - 新特性一律照 **ledger** 的形态来。
 
 ## 领域模型

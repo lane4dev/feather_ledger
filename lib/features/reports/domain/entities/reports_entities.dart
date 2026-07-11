@@ -2,8 +2,9 @@ import 'package:feather_ledger/core/domain/entities/category.dart';
 
 /// One category bucket of the monthly pie breakdown (spec 003, US9/T064).
 /// [category] carries the transaction row's write-time snapshot — archived
-/// categories keep showing in history. [totalMinor] is the signed posting
-/// impact in int minor units (expense negative).
+/// categories keep showing in history. [totalMinor] is how much moved in that
+/// category, in int minor units, **always positive**: the bucket is a
+/// magnitude and the kind decides which breakdown it appears in.
 class ReportCategoryTotal {
   final CategoryEntity category;
   final int totalMinor;

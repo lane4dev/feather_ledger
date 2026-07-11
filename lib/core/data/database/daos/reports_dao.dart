@@ -18,7 +18,11 @@ class ReportCategoryRow {
   final String name;
   final String iconKey;
   final String colorHex;
-  final int totalMinor; // signed posting impact
+  /// How much moved in this category, as a **magnitude**. A breakdown answers
+  /// "how much on food", not "which way did it net" — and a chart cannot draw
+  /// a negative slice. The sign is already implied by which breakdown this is:
+  /// the query filters to one kind.
+  final int totalMinor;
 
   ReportCategoryRow({
     required this.categoryId,
@@ -121,7 +125,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           iconKey: tx.categoryIcon ?? existing?.iconKey ?? '',
           colorHex: tx.categoryColorInt ?? existing?.colorHex ?? 'ff000000',
           totalMinor:
-              (existing?.totalMinor ?? 0) + postingSignedImpact(posting),
+              (existing?.totalMinor ?? 0) + postingSignedImpact(posting).abs(),
         );
       }
       return grouped.values.toList();

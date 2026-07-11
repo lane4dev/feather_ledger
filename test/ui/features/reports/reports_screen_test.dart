@@ -35,7 +35,7 @@ class _FakeReportsRepository implements ReportsRepository {
             colorInt: 0xFFFF0000,
             type: CategoryType.expense,
           ),
-          totalMinor: -5000,
+          totalMinor: 5000,
         ),
       ]);
 

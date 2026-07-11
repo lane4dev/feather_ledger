@@ -186,7 +186,8 @@ void main() {
           reason: 'write-time snapshot, not the live (renamed) row');
       expect(result.first.category.iconKey, 'restaurant');
       expect(result.first.category.colorInt, 0xFFFF0000);
-      expect(result.first.totalMinor, -50000);
+      expect(result.first.totalMinor, 50000,
+          reason: 'magnitude: the breakdown says how much, not which way');
     });
 
     test('excludes transfers', () async {
@@ -218,7 +219,7 @@ void main() {
       final result = await future;
       expect(result, hasLength(1),
           reason: 'transfers carry no category and never enter the pie');
-      expect(result.first.totalMinor, -30000);
+      expect(result.first.totalMinor, 30000);
     });
 
     test('excludes reversed rows', () async {
@@ -246,7 +247,7 @@ void main() {
           .watchCategoryBreakdown(month, CategoryType.expense)
           .first;
       expect(result, hasLength(1));
-      expect(result.first.totalMinor, -20000);
+      expect(result.first.totalMinor, 20000);
     });
   });
 
