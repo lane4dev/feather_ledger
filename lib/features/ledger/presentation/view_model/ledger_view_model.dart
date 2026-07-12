@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
@@ -93,20 +94,38 @@ Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   });
 }
 
-/// The symbol the ledger writes next to an amount.
+/// The currency this ledger is actually in.
+///
+/// **Not the same question as the display preference.** Every account is
+/// created in whatever the preference was at the time, and there is no FX
+/// conversion anywhere, so a preference that has since moved on describes a
+/// currency the accounts are not in. Filtering the header's totals by it then
+/// matches nothing and the ledger reports zeroes while holding money — which
+/// is what happened on a zh-locale install, where the seeded USD accounts met
+/// a preference resolved to CNY.
+///
+/// So: the accounts decide, and a ledger with one currency (the normal case,
+/// since the form forces the current one) reports that currency whatever the
+/// preference says. A genuinely mixed ledger has no single answer without FX,
+/// so it falls back to the preference and reports that part of itself.
+@riverpod
+String ledgerCurrency(Ref ref) {
+  final accounts = ref.watch(accountListProvider).value ?? const [];
+  final codes = accounts.map((a) => a.currencyCode).toSet();
+  if (codes.length == 1) return codes.single;
+  return ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+}
+
+/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
 /// it down: everything that needs it reads it here, at the layer that is
 /// already converting the amounts it belongs to.
 @riverpod
-String displayCurrencySymbol(Ref ref) => displayCurrencySymbolOf(ref);
-
-/// The same answer without a subscription, for a place that is already
-/// watching something else and only needs the symbol once.
-String displayCurrencySymbolOf(Ref ref) {
-  final code = ref.read(currencyControllerProvider).value;
-  return AppCurrencies.getSymbol(code ?? AppCurrencies.defaultCurrency.code);
-}
+String displayCurrencySymbol(Ref ref) =>
+    AppCurrencies.getSymbol(ref.watch(ledgerCurrencyProvider));
 
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
@@ -259,15 +278,17 @@ class LedgerViewModel extends _$LedgerViewModel {
             .read(ledgerServiceProvider)
             .watchMonthlySnapshot(
               datetime,
-              currencyCode: ref.read(currencyControllerProvider).value ??
-                  AppCurrencies.defaultCurrency.code,
+              currencyCode: ref.read(ledgerCurrencyProvider),
             )
             // Converted once, on the way in, where the currency is in hand.
             .map((totals) => MonthlySummaryUiModel.of(
                   balanceMinor: totals.balanceMinor,
                   incomeMinor: totals.incomeMinor,
                   expenseMinor: totals.expenseMinor,
-                  currencySymbol: displayCurrencySymbolOf(ref),
+                  // The currency the totals came back in, not the preference:
+                  // the two can disagree, and the money is the one that is
+                  // right.
+                  currencySymbol: AppCurrencies.getSymbol(totals.currencyCode),
                 ))
             .listen(
       (summary) {

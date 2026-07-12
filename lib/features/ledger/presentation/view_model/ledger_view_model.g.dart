@@ -270,7 +270,92 @@ final class LedgerMonthlyTransactionsFamily extends $Family
   String toString() => r'ledgerMonthlyTransactionsProvider';
 }
 
-/// The symbol the ledger writes next to an amount.
+/// The currency this ledger is actually in.
+///
+/// **Not the same question as the display preference.** Every account is
+/// created in whatever the preference was at the time, and there is no FX
+/// conversion anywhere, so a preference that has since moved on describes a
+/// currency the accounts are not in. Filtering the header's totals by it then
+/// matches nothing and the ledger reports zeroes while holding money — which
+/// is what happened on a zh-locale install, where the seeded USD accounts met
+/// a preference resolved to CNY.
+///
+/// So: the accounts decide, and a ledger with one currency (the normal case,
+/// since the form forces the current one) reports that currency whatever the
+/// preference says. A genuinely mixed ledger has no single answer without FX,
+/// so it falls back to the preference and reports that part of itself.
+
+@ProviderFor(ledgerCurrency)
+final ledgerCurrencyProvider = LedgerCurrencyProvider._();
+
+/// The currency this ledger is actually in.
+///
+/// **Not the same question as the display preference.** Every account is
+/// created in whatever the preference was at the time, and there is no FX
+/// conversion anywhere, so a preference that has since moved on describes a
+/// currency the accounts are not in. Filtering the header's totals by it then
+/// matches nothing and the ledger reports zeroes while holding money — which
+/// is what happened on a zh-locale install, where the seeded USD accounts met
+/// a preference resolved to CNY.
+///
+/// So: the accounts decide, and a ledger with one currency (the normal case,
+/// since the form forces the current one) reports that currency whatever the
+/// preference says. A genuinely mixed ledger has no single answer without FX,
+/// so it falls back to the preference and reports that part of itself.
+
+final class LedgerCurrencyProvider
+    extends $FunctionalProvider<String, String, String> with $Provider<String> {
+  /// The currency this ledger is actually in.
+  ///
+  /// **Not the same question as the display preference.** Every account is
+  /// created in whatever the preference was at the time, and there is no FX
+  /// conversion anywhere, so a preference that has since moved on describes a
+  /// currency the accounts are not in. Filtering the header's totals by it then
+  /// matches nothing and the ledger reports zeroes while holding money — which
+  /// is what happened on a zh-locale install, where the seeded USD accounts met
+  /// a preference resolved to CNY.
+  ///
+  /// So: the accounts decide, and a ledger with one currency (the normal case,
+  /// since the form forces the current one) reports that currency whatever the
+  /// preference says. A genuinely mixed ledger has no single answer without FX,
+  /// so it falls back to the preference and reports that part of itself.
+  LedgerCurrencyProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'ledgerCurrencyProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$ledgerCurrencyHash();
+
+  @$internal
+  @override
+  $ProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String create(Ref ref) {
+    return ledgerCurrency(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String>(value),
+    );
+  }
+}
+
+String _$ledgerCurrencyHash() => r'3a22e7d96f9d5a77c831d03e2d1bf4d61d216328';
+
+/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
 /// it down: everything that needs it reads it here, at the layer that is
@@ -279,7 +364,8 @@ final class LedgerMonthlyTransactionsFamily extends $Family
 @ProviderFor(displayCurrencySymbol)
 final displayCurrencySymbolProvider = DisplayCurrencySymbolProvider._();
 
-/// The symbol the ledger writes next to an amount.
+/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
 /// it down: everything that needs it reads it here, at the layer that is
@@ -287,7 +373,8 @@ final displayCurrencySymbolProvider = DisplayCurrencySymbolProvider._();
 
 final class DisplayCurrencySymbolProvider
     extends $FunctionalProvider<String, String, String> with $Provider<String> {
-  /// The symbol the ledger writes next to an amount.
+  /// The symbol the ledger writes next to an amount — the ledger's own currency,
+  /// for the same reason [ledgerCurrency] exists.
   ///
   /// A provider rather than a constant so the timeline does not have to thread
   /// it down: everything that needs it reads it here, at the layer that is
@@ -326,7 +413,7 @@ final class DisplayCurrencySymbolProvider
 }
 
 String _$displayCurrencySymbolHash() =>
-    r'c58c301953a859767b23dfd342ce44faee7698ca';
+    r'345dfe9a085bdcca305f7cd671d18431d36f721b';
 
 @ProviderFor(LedgerViewModel)
 final ledgerViewModelProvider = LedgerViewModelProvider._();
@@ -360,7 +447,7 @@ final class LedgerViewModelProvider
   }
 }
 
-String _$ledgerViewModelHash() => r'4ef41aaf4ada56af868a90f06b69f79229159157';
+String _$ledgerViewModelHash() => r'12c56fff4ab0b6a3d193f5114455183266a82af4';
 
 abstract class _$LedgerViewModel extends $Notifier<LedgerViewState> {
   LedgerViewState build();

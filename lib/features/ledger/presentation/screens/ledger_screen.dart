@@ -63,11 +63,11 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   }
 
   void _onScroll() {
-    // Threshold: expanded height - toolbar height
-    const threshold = _kExpandedHeight - kToolbarHeight;
-    // With NestedScrollView, the outer controller monitors the header expansion.
-    final isCollapsed =
-        _scrollController.hasClients && _scrollController.offset > threshold;
+    // With NestedScrollView, the outer controller monitors the header
+    // expansion — and its offset stops exactly where the header is done
+    // collapsing, which is why that boundary is a named function.
+    final isCollapsed = _scrollController.hasClients &&
+        isHeaderCollapsed(_scrollController.offset, _kExpandedHeight);
 
     if (isCollapsed != _isCollapsed) {
       setState(() {
@@ -150,24 +150,20 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                     onPressed: () => context.push('/ledger/search'),
                   ),
                 ],
-                // Collapsed Content (Title)
-                title: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: _isCollapsed ? 1.0 : 0.0,
-                  child: LedgerHeaderCompact(
-                    selectedDate: selectedDate,
-                    summaryAsync: summaryAsync,
-                  ),
+                // The month sits here, in the toolbar, so it shares a centre
+                // line with the search action; once collapsed the balance
+                // joins it. See [LedgerAppBarTitle].
+                title: LedgerAppBarTitle(
+                  selectedDate: selectedDate,
+                  summaryAsync: summaryAsync,
+                  collapsed: _isCollapsed,
+                  onMonthChanged: _goToMonth,
+                  onMonthTap: () => _onMonthTap(selectedDate),
                 ),
                 // Expanded Content (FlexibleSpace)
                 flexibleSpace: FlexibleSpaceBar(
                   background: SafeArea(
-                    child: LedgerHeader(
-                      selectedDate: selectedDate,
-                      summaryAsync: summaryAsync,
-                      onMonthChanged: _goToMonth,
-                      onMonthTap: () => _onMonthTap(selectedDate),
-                    ),
+                    child: LedgerHeader(summaryAsync: summaryAsync),
                   ),
                 ),
               ),

@@ -9,27 +9,29 @@ import 'package:feather_ledger/core/presentation/providers/balance_visibility_pr
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import '../theme/ledger_theme.dart';
 
-class LedgerHeader extends StatelessWidget {
-  final DateTime selectedDate;
+/// The expanded part of the header: the month's figures.
+///
+/// The month itself is not here — it sits in the app bar's title slot, on the
+/// search action's line, so this is only the card.
+/// Whether the header has finished collapsing at [offset].
+///
+/// The comparison is the whole story here: a pinned [SliverAppBar]'s scroll
+/// extent is exactly `expandedHeight - kToolbarHeight`, so the outer
+/// controller's offset *stops* at that value. `>` never fires, and the
+/// collapsed bar stays empty.
+bool isHeaderCollapsed(double offset, double expandedHeight) =>
+    offset >= expandedHeight - kToolbarHeight;
 
+class LedgerHeader extends StatelessWidget {
   /// Already written out — see [MonthlySummaryUiModel]. Without that this
   /// widget would be formatting money, which is the currency's business and
   /// not the header's.
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
-  final ValueChanged<DateTime>? onMonthChanged;
-  final VoidCallback? onMonthTap;
 
-  const LedgerHeader({
-    super.key,
-    required this.selectedDate,
-    required this.summaryAsync,
-    this.onMonthChanged,
-    this.onMonthTap,
-  });
+  const LedgerHeader({super.key, required this.summaryAsync});
 
   @override
   Widget build(BuildContext context) {
-    // Expanded State
     return Padding(
       padding: EdgeInsets.fromLTRB(
           context.spacing.md, 0, context.spacing.md, context.spacing.md),
@@ -37,85 +39,103 @@ class LedgerHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Month Switcher - Still aligned with list content
-          Row(
-            children: [
-              const SizedBox(
-                  width: LedgerTheme.colAnchorWidth -
-                      16), // Adjusted for outer padding
-              Expanded(
-                child: _MonthSwitcher(
-                  selectedDate: selectedDate,
-                  onChanged: onMonthChanged,
-                  onTap: onMonthTap,
-                ),
-              ),
-            ],
-          ),
           // Balance Summary - Full Width
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _BalanceSummary(
-              summaryAsync: summaryAsync,
-            ),
-          ),
+          _BalanceSummary(summaryAsync: summaryAsync),
         ],
       ),
     );
   }
 }
 
-class LedgerHeaderCompact extends ConsumerWidget {
+/// The app bar's title: the month, and once the bar has collapsed, the balance
+/// beside it.
+///
+/// The month lives up here rather than down in the expanded area so it shares
+/// the toolbar's centre line with the search action — the two are one row of
+/// controls. Collapsed, the steppers give way to plain text so the balance
+/// fits next to it.
+class LedgerAppBarTitle extends StatelessWidget {
   final DateTime selectedDate;
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+  final bool collapsed;
+  final ValueChanged<DateTime>? onMonthChanged;
+  final VoidCallback? onMonthTap;
 
-  const LedgerHeaderCompact({
+  const LedgerAppBarTitle({
     super.key,
     required this.selectedDate,
     required this.summaryAsync,
+    required this.collapsed,
+    this.onMonthChanged,
+    this.onMonthTap,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
-    final showBalance =
-        ref.watch(balanceVisibilityControllerProvider).value ?? true;
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          DateFormat.yMMM(locale).format(selectedDate),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        SizedBox(width: context.spacing.md),
-        summaryAsync.when(
-          data: (summary) => Text(
-            showBalance ? summary.displayBalance : '******',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+        if (collapsed)
+          Text(
+            DateFormat.yMMM(locale).format(selectedDate),
+            style: Theme.of(context).textTheme.titleMedium,
+          )
+        else
+          LedgerMonthSwitcher(
+            selectedDate: selectedDate,
+            onChanged: onMonthChanged,
+            onTap: onMonthTap,
           ),
-          loading: () => Container(
-            width: 60,
-            height: 16,
-            decoration: BoxDecoration(
-              color: LedgerTheme.skeletonFill(context),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          error: (_, __) => const SizedBox(),
-        ),
+        if (collapsed) ...[
+          SizedBox(width: context.spacing.md),
+          LedgerCompactBalance(summaryAsync: summaryAsync),
+        ],
       ],
     );
   }
 }
 
-class _MonthSwitcher extends StatelessWidget {
+/// The balance as it reads in the collapsed bar — masked when the user has
+/// hidden balances, which is the same rule the card below follows.
+class LedgerCompactBalance extends ConsumerWidget {
+  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+
+  const LedgerCompactBalance({super.key, required this.summaryAsync});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showBalance =
+        ref.watch(balanceVisibilityControllerProvider).value ?? true;
+
+    return summaryAsync.when(
+      data: (summary) => Text(
+        showBalance ? summary.displayBalance : '******',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+      ),
+      loading: () => Container(
+        width: 60,
+        height: 16,
+        decoration: BoxDecoration(
+          color: LedgerTheme.skeletonFill(context),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      error: (_, __) => const SizedBox(),
+    );
+  }
+}
+
+class LedgerMonthSwitcher extends StatelessWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime>? onChanged;
   final VoidCallback? onTap;
 
-  const _MonthSwitcher({
+  const LedgerMonthSwitcher({
+    super.key,
     required this.selectedDate,
     this.onChanged,
     this.onTap,
