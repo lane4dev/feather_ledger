@@ -1,20 +1,24 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
 import 'package:feather_ledger/core/data/database/daos/monthly_snapshot_dao.dart';
 
 part 'watch_monthly_snapshot_query.g.dart';
 
-/// Monthly totals read from the snapshot projection (spec 003, US7/T054).
+/// A month's three headline figures, read from the snapshot projection
+/// (spec 003, US7/T054).
 ///
-/// Income/expense are the signed snapshot aggregates of the selected month
-/// (expense negative). balanceMinor is the sum of the account projections —
-/// the *current* balance, which includes future-dated postings by
-/// definition (spec US4: 记了就算); a historical month's header balance is
-/// therefore today's balance, not that month's closing.
-/// A monthly projection total for exactly one currency. This query always
-/// filters by [currencyCode]; the app intentionally has no FX conversion.
+/// All three describe **the selected month**, and that is the point: income
+/// and expense are the month's aggregates, and the balance is the month's
+/// *closing* balance, the end of the opening→closing chain the projector
+/// maintains. [balanceMinor] used to be the live `accounts_view` total
+/// instead, which meant the big number beside a past month's income and
+/// expense was today's money — and that it disagreed with the reports screen,
+/// which reads the same three figures off the same projection.
+///
+/// Signed throughout, like the projection (expense negative; a closing
+/// balance can be below zero). A monthly total for exactly one currency: the
+/// app intentionally has no FX conversion.
 class MonthlySnapshotTotals {
   final String currencyCode;
   final int incomeMinor;
@@ -29,30 +33,37 @@ class MonthlySnapshotTotals {
   });
 }
 
-/// Streams the header totals for a month. Re-emits on account changes —
-/// every balance event touches an account row, so the snapshots are
-/// re-read on every relevant write.
+/// Streams the header totals for a month.
+///
+/// Watches the month's snapshot rows rather than the accounts: the projector
+/// rewrites them inside the same transaction as every append that affects
+/// them, so they are both the trigger and the source.
 class WatchMonthlySnapshotQuery {
   final MonthlySnapshotDao _snapshotDao;
-  final AccountDao _accountDao;
 
-  WatchMonthlySnapshotQuery(this._snapshotDao, this._accountDao);
+  WatchMonthlySnapshotQuery(this._snapshotDao);
 
-  Stream<MonthlySnapshotTotals> execute(DateTime month,
-      {String currencyCode = 'USD'}) {
-    return _accountDao.watchAllAccounts().asyncMap((accounts) async {
-      final rows = await _snapshotDao.getAllForMonth(month.year, month.month);
-      final currencyRows = rows
-          .where((row) => row.currencyCode == currencyCode)
-          .toList(growable: false);
-      final currencyAccounts = accounts
-          .where((account) => account.currencyCode == currencyCode);
+  /// [currencyCode] is required: a default would silently filter a ledger in
+  /// some other currency down to zeroes.
+  Stream<MonthlySnapshotTotals> execute(
+    DateTime month, {
+    required String currencyCode,
+  }) {
+    return _snapshotDao.watchAllForMonth(month.year, month.month).map((rows) {
+      var income = 0;
+      var expense = 0;
+      var closing = 0;
+      for (final row in rows) {
+        if (row.currencyCode != currencyCode) continue;
+        income += row.incomeMinor;
+        expense += row.expenseMinor;
+        closing += row.closingBalanceMinor;
+      }
       return MonthlySnapshotTotals(
         currencyCode: currencyCode,
-        incomeMinor: currencyRows.fold<int>(0, (sum, row) => sum + row.incomeMinor),
-        expenseMinor: currencyRows.fold<int>(0, (sum, row) => sum + row.expenseMinor),
-        balanceMinor: currencyAccounts.fold<int>(
-            0, (sum, account) => sum + account.balanceMinor),
+        incomeMinor: income,
+        expenseMinor: expense,
+        balanceMinor: closing,
       );
     });
   }
@@ -61,5 +72,5 @@ class WatchMonthlySnapshotQuery {
 @riverpod
 WatchMonthlySnapshotQuery watchMonthlySnapshotQuery(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
-  return WatchMonthlySnapshotQuery(db.monthlySnapshotDao, db.accountDao);
+  return WatchMonthlySnapshotQuery(db.monthlySnapshotDao);
 }

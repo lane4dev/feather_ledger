@@ -39,7 +39,7 @@ class LedgerService {
   }
 
   Stream<MonthlySnapshotTotals> watchMonthlySnapshot(DateTime month,
-      {String currencyCode = 'USD'}) {
+      {required String currencyCode}) {
     return _watchMonthlySnapshotQuery.execute(month, currencyCode: currencyCode);
   }
 

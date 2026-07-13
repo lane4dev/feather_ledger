@@ -51,4 +51,4 @@ final class WatchMonthlySnapshotQueryProvider extends $FunctionalProvider<
 }
 
 String _$watchMonthlySnapshotQueryHash() =>
-    r'bcd45038d9615dee57031e1d7335b4ba981d40ae';
+    r'3ff9855e32a678fe765690e382b3f5e3f72771d3';

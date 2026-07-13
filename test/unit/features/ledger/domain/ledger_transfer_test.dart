@@ -152,7 +152,7 @@ void main() {
       );
 
       final summary = await harness.ledgerService
-          .watchMonthlySnapshot(DateTime(2026, 1))
+          .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'USD')
           .first;
       expect(summary.expenseMinor, -3000,
           reason: 'kind == transfer is the single exclusion criterion');
@@ -216,7 +216,7 @@ void main() {
 
       expect(result, isA<Success<void>>());
       final summary = await harness.ledgerService
-          .watchMonthlySnapshot(DateTime(2026, 1))
+          .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'USD')
           .first;
       expect(summary.expenseMinor, 0,
           reason: '还款不重复计支出（风险 #4）');

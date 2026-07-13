@@ -255,7 +255,9 @@ lib/shared/     跨特性的组件与扩展
   全 0。zh 语言环境下尤其必然：`seeder.dart` 用 `defaultCurrency`（USD）建账户，而
   `CurrencyController` 按系统 locale 解析出 CNY。
 - 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由。
-- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。月度收入/支出合计来自 `monthly_account_balance_snapshots`；顶部的 `balanceMinor` 则折叠实时的 `accounts_view` 投影。检索有自己的视图模型（`SearchViewModel`），`RecurringViewModel` 只剩三个写动作。
+- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。月度三个头条数字（收入 / 支出 / **期末余额**）全部来自 `monthly_account_balance_snapshots`，
+与报表页同源同义 —— 头部的 `balanceMinor` 取的是该月快照的 `closingBalanceMinor`，**不是**实时的
+`accounts_view` 汇总（那曾让一个过去月份的「总余额」显示成今天的钱，且与报表页对不上）。检索有自己的视图模型（`SearchViewModel`），`RecurringViewModel` 只剩三个写动作。
 - 偏好设置走 SharedPreferences（`PreferencesRepository`）：主题模式、语言、币种、余额可见性；另有 `exportAll`/`importAll` 供备份使用，**只针对已知的四个键**。
 
 ## 测试布局

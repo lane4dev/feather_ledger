@@ -123,7 +123,7 @@ void main() {
 
     // The header totals read the same snapshot projection.
     final totals = await harness.ledgerService
-        .watchMonthlySnapshot(DateTime(m1.$1, m1.$2))
+        .watchMonthlySnapshot(DateTime(m1.$1, m1.$2), currencyCode: 'USD')
         .first;
     expect(totals.expenseMinor, -5000);
     expect(totals.incomeMinor, 0);
@@ -193,7 +193,7 @@ void main() {
     expect(cash.netChangeMinor, 50000);
 
     final totals = await harness.ledgerService
-        .watchMonthlySnapshot(DateTime(2026, 1))
+        .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'USD')
         .first;
     expect(totals.incomeMinor, 0);
     expect(totals.expenseMinor, 0,
@@ -266,5 +266,43 @@ void main() {
     jan = await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.eventSequenceFrom, anchorGsn);
     expect(jan.eventSequenceTo, eventsAfter.last.globalSequenceNumber);
+  });
+
+  test('every headline figure belongs to the month it is shown for', () async {
+    // The bug this replaced: the balance came from the live accounts, so a
+    // past month showed today's money beside that month's income and expense —
+    // and disagreed with the reports screen, which reads all three off this
+    // same projection.
+    await seedCashAndFood();
+    await harness.accountService.createAccount(
+      commandId: 'cmd_open',
+      name: 'Bank',
+      type: AccountType.bank,
+      initialBalanceMinor: 100000,
+      currencyCode: 'USD',
+    );
+
+    await recordExpense(30000, commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
+    await recordExpense(20000, commandId: 'cmd_feb', date: DateTime(2026, 2, 10));
+
+    final balances = <int>[];
+    for (final month in [DateTime(2026, 1), DateTime(2026, 2)]) {
+      final header = await harness.ledgerService
+          .watchMonthlySnapshot(month, currencyCode: 'USD')
+          .first;
+      final reports = await harness.db.reportsDao
+          .watchMonthlyTotals(month, currencyCode: 'USD')
+          .first;
+
+      expect(header.incomeMinor, reports.incomeMinor,
+          reason: 'the two screens call these the same numbers');
+      expect(header.expenseMinor, reports.expenseMinor);
+      expect(header.balanceMinor, reports.balanceMinor);
+
+      balances.add(header.balanceMinor);
+    }
+
+    expect(balances.first, isNot(balances.last),
+        reason: 'a closing balance is the month\'s, so it moves with it');
   });
 }

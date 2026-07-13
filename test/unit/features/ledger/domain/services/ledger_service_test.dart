@@ -72,7 +72,7 @@ void main() {
         eventStore, projector, recurringRepository, contextResolver);
     watchTransactionsQuery = WatchTransactionsQuery(repository);
     watchMonthlySnapshotQuery =
-        WatchMonthlySnapshotQuery(database.monthlySnapshotDao, database.accountDao);
+        WatchMonthlySnapshotQuery(database.monthlySnapshotDao);
     getAccountBalanceQuery = GetAccountBalanceQuery(accountRepository);
 
     // Recurring bills moved to their own service (spec 004, US2); the ledger
@@ -215,7 +215,7 @@ void main() {
           accountId: accountId,
         );
 
-        final stream = service.watchMonthlySnapshot(month);
+        final stream = service.watchMonthlySnapshot(month, currencyCode: 'USD');
         await expectLater(
           stream,
           emits(
