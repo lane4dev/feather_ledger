@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -21,27 +22,27 @@ class MoreScreen extends ConsumerWidget {
         children: [
           // Configuration & Management
           ListTile(
-            leading: const Icon(Icons.settings),
+            leading: const Icon(LucideIcons.settings),
             title: Text(l10n.settings),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
               context.go('/more/settings');
             },
           ),
           const FeatherDivider(),
           ListTile(
-            leading: const Icon(Icons.account_balance_wallet),
+            leading: const Icon(LucideIcons.wallet),
             title: Text(l10n.accounts),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
               context.go('/more/accounts');
             },
           ),
           const FeatherDivider(),
           ListTile(
-            leading: const Icon(Icons.category),
+            leading: const Icon(LucideIcons.shapes),
             title: Text(l10n.categories),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
               context.go('/more/categories');
             },
@@ -52,9 +53,9 @@ class MoreScreen extends ConsumerWidget {
 
           // Support & Info
           ListTile(
-            leading: const Icon(Icons.feedback),
+            leading: const Icon(LucideIcons.messageSquare),
             title: Text(l10n.feedback),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(l10n.featureNotAvailable)),
@@ -63,9 +64,9 @@ class MoreScreen extends ConsumerWidget {
           ),
           const FeatherDivider(),
           ListTile(
-            leading: const Icon(Icons.info),
+            leading: const Icon(LucideIcons.info),
             title: Text(l10n.about),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
               context.go('/more/about');
             },

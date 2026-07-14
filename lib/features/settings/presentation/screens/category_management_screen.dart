@@ -5,6 +5,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../widgets/category_form_sheet.dart';
 import '../widgets/category_tile.dart';
@@ -40,6 +41,11 @@ class _CategoryManagementScreenState
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        ),
         title: Text(l10n.categories), // Ensure l10n has this key or fallback
         bottom: TabBar(
           controller: _tabController,
@@ -63,7 +69,7 @@ class _CategoryManagementScreenState
               : CategoryType.income; // Removed prefix
           _showCategorySheet(context, null, type);
         },
-        child: const Icon(Icons.add),
+        child: const Icon(LucideIcons.plus),
       ),
     );
   }

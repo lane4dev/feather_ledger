@@ -19,6 +19,7 @@ import 'package:feather_ledger/core/presentation/providers/locale_provider.dart'
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'package:feather_ledger/features/settings/domain/services/backup_service.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 part 'settings_screen.g.dart';
 
@@ -40,10 +41,10 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // Theme
           ListTile(
-            leading: const Icon(Icons.brightness_6),
+            leading: const Icon(LucideIcons.sunMedium),
             title: Text(l10n.theme),
             subtitle: Text(_getThemeLabel(themeAsync.value, l10n)),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () =>
                 _showThemeDialog(context, ref, themeAsync.value, l10n),
           ),
@@ -51,12 +52,12 @@ class SettingsScreen extends ConsumerWidget {
 
           // Language
           ListTile(
-            leading: const Icon(Icons.language),
+            leading: const Icon(LucideIcons.languages),
             title: Text(l10n.language),
             // Show the actual language name. If null (system), resolve the current active locale.
             subtitle:
                 Text(_getLocaleLabel(context, localeAsync.value, l10n)),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () => _showLanguageDialog(
                 context, ref, localeAsync.value, l10n),
           ),
@@ -64,14 +65,14 @@ class SettingsScreen extends ConsumerWidget {
 
           // Currency
           ListTile(
-            leading: const Icon(Icons.attach_money),
+            leading: const Icon(LucideIcons.circleDollarSign),
             title: Text(l10n.currencySymbol),
             subtitle: Text(currencyAsync.when(
               data: (key) => AppCurrencies.getName(key, l10n),
               loading: () => l10n.loading,
               error: (_, __) => '',
             )),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(LucideIcons.chevronRight),
             onTap: () => _showCurrencyDialog(
                 context, ref, currencyAsync.value, l10n),
           ),
@@ -79,14 +80,14 @@ class SettingsScreen extends ConsumerWidget {
 
           // Data portability (spec 004, US4).
           ListTile(
-            leading: const Icon(Icons.backup_outlined),
+            leading: const Icon(LucideIcons.databaseBackup),
             title: Text(l10n.backupNow),
             subtitle: Text(l10n.backupNowHint),
             onTap: () => _createBackup(context, ref, l10n),
           ),
           const FeatherDivider(),
           ListTile(
-            leading: const Icon(Icons.restore),
+            leading: const Icon(LucideIcons.history),
             title: Text(l10n.restoreFromBackup),
             subtitle: Text(l10n.restoreFromBackupHint),
             onTap: () => _restoreFromBackup(context, ref, l10n),
@@ -97,7 +98,7 @@ class SettingsScreen extends ConsumerWidget {
           // replays the full event history into the projections. Hidden
           // behind a long-press so no regular user flow can touch it.
           ListTile(
-            leading: const Icon(Icons.construction),
+            leading: const Icon(LucideIcons.hardHat),
             title: Text(l10n.rebuildProjections),
             subtitle: Text(l10n.rebuildProjectionsHint),
             onLongPress: () => _confirmRebuild(context, ref, l10n),
@@ -420,7 +421,7 @@ class _DialogOption<T> extends StatelessWidget {
             ),
             if (isSelected)
               Icon(
-                Icons.check,
+                LucideIcons.check,
                 color: Theme.of(context).colorScheme.primary,
                 size: 20,
               ),

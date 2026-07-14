@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// The overflow menu at the top right of a ledger bottom sheet, holding the
 /// one destructive action a sheet offers.
@@ -21,7 +22,7 @@ class LedgerDeleteMenu extends StatelessWidget {
     final error = Theme.of(context).colorScheme.error;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
+      icon: const Icon(LucideIcons.ellipsisVertical),
       onSelected: (value) {
         if (value == 'delete') onDelete();
       },
@@ -30,7 +31,7 @@ class LedgerDeleteMenu extends StatelessWidget {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_outline, color: error, size: 20),
+              Icon(LucideIcons.trash2, color: error, size: 20),
               SizedBox(width: context.spacing.sm),
               Text(l10n.delete, style: TextStyle(color: error)),
             ],

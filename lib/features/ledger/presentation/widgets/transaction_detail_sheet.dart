@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/app/theme/category_tokens.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/events/ledger_events.dart';
 import '../../domain/queries/get_transaction_history_query.dart';
@@ -66,13 +68,13 @@ class TransactionDetailSheet extends ConsumerWidget {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(LucideIcons.x),
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(LucideIcons.squarePen),
                 onPressed: onEdit,
                 tooltip: l10n.edit,
               ),
@@ -104,10 +106,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                       Color(transaction.category.colorInt).withValues(alpha: 0.2),
                   foregroundColor: Color(transaction.category.colorInt),
                   child: Icon(
-                    IconData(
-                      int.tryParse(transaction.category.iconKey) ?? 0xe574,
-                      fontFamily: 'MaterialIcons',
-                    ),
+                    CategoryTokens.iconFor(transaction.category.iconKey),
                     size: 20,
                   ),
                 ),

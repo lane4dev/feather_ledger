@@ -4,6 +4,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 import '../theme/ledger_theme.dart';
@@ -143,7 +144,7 @@ class TransactionTile extends StatelessWidget {
                     children: [
                       if (transaction.isPending) ...[
                         Icon(
-                          Icons.schedule,
+                          LucideIcons.clock,
                           size: 16.0,
                           color: LedgerTheme.transactionMeta(context).color,
                         ),

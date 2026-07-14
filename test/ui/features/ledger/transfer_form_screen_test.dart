@@ -20,6 +20,7 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_vi
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Transfers in the shared transaction form (spec 004, US1 / T016).
 ///
@@ -378,8 +379,8 @@ void main() {
     expect(find.byType(LedgerSelectorField), findsNWidgets(2));
     expect(find.text('Cash'), findsOneWidget);
     expect(find.text('Bank'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
+    expect(find.byIcon(LucideIcons.arrowUp), findsOneWidget);
+    expect(find.byIcon(LucideIcons.arrowDown), findsOneWidget);
 
     await tester.enterText(
       find.descendant(

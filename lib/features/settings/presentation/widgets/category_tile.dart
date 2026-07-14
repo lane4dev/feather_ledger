@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/app/theme/category_tokens.dart';
 
 class CategoryTile extends StatelessWidget {
   final CategoryEntity category;
@@ -15,12 +16,7 @@ class CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Color(category.colorInt);
-    // fallback icon: 0xe574 is usually an 'add' or generic circle in material icons if not found,
-    // but here we just ensure we parse safely.
-    final iconData = IconData(
-      int.tryParse(category.iconKey) ?? 0xe574,
-      fontFamily: 'MaterialIcons',
-    );
+    final iconData = CategoryTokens.iconFor(category.iconKey);
 
     return ListTile(
       leading: CircleAvatar(

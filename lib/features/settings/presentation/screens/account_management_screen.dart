@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../widgets/account_form_sheet.dart';
 import '../widgets/account_tile.dart';
@@ -18,6 +19,11 @@ class AccountManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        ),
         title: Text(l10n.accountsTitle),
       ),
       body: accountsAsync.when(
@@ -41,7 +47,7 @@ class AccountManagementScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAccountSheet(context, null),
-        child: const Icon(Icons.add),
+        child: const Icon(LucideIcons.plus),
       ),
     );
   }

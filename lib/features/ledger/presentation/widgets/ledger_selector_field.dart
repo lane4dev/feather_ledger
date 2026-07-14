@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class LedgerSelectorField extends StatelessWidget {
   final String text;
@@ -33,7 +34,7 @@ class LedgerSelectorField extends StatelessWidget {
                   style: textStyle ?? theme.textTheme.bodyLarge,
                 ),
                 const Spacer(),
-                Icon(Icons.chevron_right, color: theme.hintColor),
+                Icon(LucideIcons.chevronRight, color: theme.hintColor),
               ],
             ),
           ),

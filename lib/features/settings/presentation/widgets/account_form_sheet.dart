@@ -17,6 +17,7 @@ import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:uuid/uuid.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final AccountEntity? account;
@@ -78,14 +79,14 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(LucideIcons.x),
                 onPressed: () => context.pop(),
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
               if (isEditing)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(LucideIcons.trash2),
                   color: colorScheme.error,
                   onPressed: _deleteAccount,
                   tooltip: l10n.delete,
@@ -202,7 +203,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
                     // Name Input
                     _FormRow(
-                      icon: Icons.label_outline,
+                      icon: LucideIcons.tag,
                       child: TextFormField(
                         initialValue: _name,
                         decoration: InputDecoration(

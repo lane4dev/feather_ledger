@@ -15,7 +15,14 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// Per-view projection code version. Bump when projector logic changes in
 /// a way that requires a rebuild of existing data; the value is written
 /// into each view's rows by the rebuild.
-const int ledgerProjectionVersion = 1;
+/// Bumped when projector code changes what a persisted view should contain.
+///
+/// 2: category icons moved from Material code points to Lucide ones, so both
+/// `categories_view.icon_key` and the write-time snapshot in
+/// `transactions_view.category_icon` have to be re-derived — through the
+/// `CategoryCreated` upcaster, which is why a rebuild lands on the new
+/// vocabulary rather than replaying the old one.
+const int ledgerProjectionVersion = 2;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the

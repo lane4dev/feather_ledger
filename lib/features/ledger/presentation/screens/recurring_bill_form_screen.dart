@@ -14,6 +14,7 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -88,7 +89,7 @@ class _RecurringBillFormScreenState
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(LucideIcons.x),
           onPressed: () => context.pop(),
         ),
         title: Text(l10n.editRecurringTitle),
@@ -122,7 +123,7 @@ class _RecurringBillFormScreenState
               _accountRow(l10n),
               SizedBox(height: context.spacing.sm),
               LedgerFormRow(
-                icon: Icons.edit_note,
+                icon: LucideIcons.notebookPen,
                 child: TextFormField(
                   controller: _note,
                   decoration: InputDecoration(
@@ -148,7 +149,7 @@ class _RecurringBillFormScreenState
   Widget _dateRow(AppLocalizations l10n) {
     final locale = Localizations.localeOf(context).toString();
     return LedgerFormRow(
-      icon: Icons.event,
+      icon: LucideIcons.calendar,
       child: InkWell(
         onTap: _pickDate,
         borderRadius: BorderRadius.circular(4),
@@ -170,7 +171,7 @@ class _RecurringBillFormScreenState
         : CategoryType.expense;
 
     return LedgerFormRow(
-      icon: Icons.grid_view_outlined,
+      icon: LucideIcons.layoutGrid,
       child: ref.watch(categoryListProvider(categoryType)).when(
             data: (categories) {
               final selected =
@@ -211,7 +212,7 @@ class _RecurringBillFormScreenState
     final theme = Theme.of(context);
 
     return LedgerFormRow(
-      icon: Icons.account_balance_wallet_outlined,
+      icon: LucideIcons.wallet,
       child: ref.watch(accountUiListProvider).when(
             data: (accounts) {
               final selected = accounts

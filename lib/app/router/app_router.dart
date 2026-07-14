@@ -15,6 +15,7 @@ import 'package:feather_ledger/features/settings/presentation/screens/settings_s
 import 'package:feather_ledger/features/settings/presentation/screens/about_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/account_management_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/category_management_screen.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 part 'app_router.g.dart';
 
@@ -182,15 +183,15 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
           },
           destinations: [
             NavigationDestination(
-              icon: const Icon(Icons.book),
+              icon: const Icon(LucideIcons.book),
               label: l10n.ledgerTitle,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.pie_chart),
+              icon: const Icon(LucideIcons.pieChart),
               label: l10n.reports,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.more_horiz),
+              icon: const Icon(LucideIcons.ellipsis),
               label: l10n.more,
             ),
           ],

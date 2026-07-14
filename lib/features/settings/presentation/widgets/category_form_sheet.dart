@@ -13,6 +13,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/settings/domain/services/category_service.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final CategoryEntity? category;
@@ -74,14 +75,14 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(LucideIcons.x),
                 onPressed: () => context.pop(),
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
               if (isEditing)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(LucideIcons.trash2),
                   color: colorScheme.error,
                   onPressed: _deleteCategory,
                   tooltip: l10n.delete,

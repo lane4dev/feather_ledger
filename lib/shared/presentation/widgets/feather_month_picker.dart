@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// A premium, minimalist month picker displayed as a modal dialog.
 ///
@@ -101,7 +102,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                           curve: Curves.easeInOut,
                         )
                     : null,
-                icon: const Icon(Icons.chevron_left),
+                icon: const Icon(LucideIcons.chevronLeft),
                 tooltip: l10n.previousYear,
               ),
               Text(
@@ -117,7 +118,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                           curve: Curves.easeInOut,
                         )
                     : null,
-                icon: const Icon(Icons.chevron_right),
+                icon: const Icon(LucideIcons.chevronRight),
                 tooltip: l10n.nextYear,
               ),
             ],

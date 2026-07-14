@@ -9,6 +9,7 @@ import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/value_objects/transaction_filter.dart';
 import 'ledger_form_row.dart';
@@ -70,7 +71,7 @@ class _TransactionFilterSheetState
 
             // Kind
             LedgerFormRow(
-              icon: Icons.swap_vert,
+              icon: LucideIcons.arrowUpDown,
               child: _ChipRow<TransactionKind?>(
                 values: const [
                   null,
@@ -91,7 +92,7 @@ class _TransactionFilterSheetState
 
             // Account
             LedgerFormRow(
-              icon: Icons.account_balance_wallet_outlined,
+              icon: LucideIcons.wallet,
               child: accountsAsync.when(
                 data: (accounts) => _EntityPicker<AccountEntity>(
                   fieldKey: ValueKey('filter-account-$_accountId'),
@@ -109,7 +110,7 @@ class _TransactionFilterSheetState
 
             // Category
             LedgerFormRow(
-              icon: Icons.grid_view_outlined,
+              icon: LucideIcons.layoutGrid,
               child: _EntityPicker<CategoryEntity>(
                 fieldKey: ValueKey('filter-category-$_categoryId'),
                 placeholder: l10n.filterAnyCategory,
@@ -123,7 +124,7 @@ class _TransactionFilterSheetState
 
             // Date range
             LedgerFormRow(
-              icon: Icons.date_range,
+              icon: LucideIcons.calendarRange,
               child: InkWell(
                 onTap: _pickRange,
                 child: Padding(
@@ -292,7 +293,7 @@ class _EntityPicker<T> extends StatelessWidget {
         ),
         if (selected != null)
           IconButton(
-            icon: const Icon(Icons.clear),
+            icon: const Icon(LucideIcons.x),
             onPressed: onClear,
             tooltip: placeholder,
           ),

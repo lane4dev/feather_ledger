@@ -91,10 +91,24 @@ void main() {
       };
 
       expect(events.map((e) => e.eventType).toSet(), expectedNames);
-      for (final e in events) {
-        expect(e.toJson()['schemaVersion'], 1,
-            reason: '${e.eventType} must embed schemaVersion');
-      }
+      // Spelled out rather than "all == 1": the point is that every payload
+      // embeds a version, and that a payload only moves when what its fields
+      // *mean* changes — which CategoryCreated's did when the app's icons
+      // moved from Material to Lucide (v1 named a Material code point).
+      expect(
+        {for (final e in events) e.eventType: e.toJson()['schemaVersion']},
+        {
+          'TransactionRecorded': 1,
+          'TransactionReversed': 1,
+          'AccountCreated': 1,
+          'AccountRenamed': 1,
+          'AccountArchived': 1,
+          'CategoryCreated': 2,
+          'CategoryRenamed': 1,
+          'CategoryArchived': 1,
+          'OpeningBalanceSet': 1,
+        },
+      );
     });
 
     test('AccountCreated payload carries no initial balance', () {

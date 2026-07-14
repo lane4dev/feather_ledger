@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:feather_ledger/app/theme/category_tokens.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
@@ -17,6 +18,7 @@ import 'package:feather_ledger/core/presentation/providers/category_providers.da
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 
@@ -157,7 +159,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(LucideIcons.x),
           onPressed: () => context.pop(),
         ),
         title: Text(_title(l10n)),
@@ -192,7 +194,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 3. Date & Time
               LedgerFormRow(
-                icon: Icons.access_time,
+                icon: LucideIcons.clock,
                 child: InkWell(
                   onTap: _pickDateTime,
                   borderRadius: BorderRadius.circular(4),
@@ -221,7 +223,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               // 4. Category — income and expense only.
               if (!_isTransfer)
                 LedgerFormRow(
-                  icon: Icons.grid_view_outlined,
+                  icon: LucideIcons.layoutGrid,
                   child: categoriesAsync.when(
                     data: (categories) {
                       final filtered = categories
@@ -253,10 +255,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                   title: l10n.category,
                                   options: filtered,
                                   getLabel: (c) => c.name,
-                                  getIcon: (c) => IconData(
-                                    int.tryParse(c.iconKey) ?? 0xe574,
-                                    fontFamily: 'MaterialIcons',
-                                  ),
+                                  getIcon: (c) =>
+                                      CategoryTokens.iconFor(c.iconKey),
                                   getColor: (c) => Color(c.colorInt),
                                   isSelected: (c) => c.id == state.value,
                                   onSelected: (c) =>
@@ -287,8 +287,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               _accountRow(
                 fieldKey: ValueKey('account-$_type'),
                 icon: _isTransfer
-                    ? Icons.arrow_upward
-                    : Icons.account_balance_wallet_outlined,
+                    ? LucideIcons.arrowUp
+                    : LucideIcons.wallet,
                 // A transfer's debit leg is its "from" side, and saying so is
                 // the whole point of the screen — the same labels the detail
                 // sheet uses.
@@ -307,7 +307,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 const SizedBox(height: 8),
                 _accountRow(
                   fieldKey: ValueKey('to-account-$_accountId'),
-                  icon: Icons.arrow_downward,
+                  icon: LucideIcons.arrowDown,
                   placeholder: l10n.transferTo,
                   options: toAccountOptions,
                   selectedId: _toAccountId,
@@ -326,7 +326,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               // 6. Note
               LedgerFormRow(
-                icon: Icons.notes,
+                icon: LucideIcons.stickyNote,
                 child: TextFormField(
                   initialValue: _note,
                   decoration: InputDecoration(
@@ -388,7 +388,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final label = _repeatLabel(l10n);
 
     return LedgerFormRow(
-      icon: Icons.repeat,
+      icon: LucideIcons.repeat,
       child: LedgerSelectorField(
         // A picked rule reads as the rule itself; "never" reads as the
         // placeholder, which is what an untouched form looks like.

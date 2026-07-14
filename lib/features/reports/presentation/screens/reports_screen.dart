@@ -6,6 +6,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../providers/reports_providers.dart';
 import '../widgets/report_breakdown_tabs.dart';
@@ -32,7 +33,7 @@ class ReportsScreen extends ConsumerWidget {
         title: Text(l10n.reports),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(LucideIcons.calendarDays),
             onPressed: () {
               FeatherMonthPicker.show(
                 context,

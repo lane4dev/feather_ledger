@@ -17,6 +17,7 @@ import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_gr
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/search_view_model.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// The search screen (spec 004, US3 / T054).
 ///
@@ -98,7 +99,7 @@ void main() {
     await pumpScreen(tester);
 
     final button = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.ios_share),
+      find.widgetWithIcon(IconButton, LucideIcons.share2),
     );
     expect(button.onPressed, isNull);
   });
@@ -110,7 +111,7 @@ void main() {
     );
     await pumpScreen(tester);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.ios_share));
+    await tester.tap(find.widgetWithIcon(IconButton, LucideIcons.share2));
     await tester.pumpAndSettle();
 
     expect(viewModel.exported, hasLength(1),
@@ -139,7 +140,7 @@ void main() {
     viewModel.exportFailure = LedgerErrorCode.unknownEvent;
     await pumpScreen(tester);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.ios_share));
+    await tester.tap(find.widgetWithIcon(IconButton, LucideIcons.share2));
     await tester.pumpAndSettle();
 
     expect(find.text('Something went wrong. Please try again.'),

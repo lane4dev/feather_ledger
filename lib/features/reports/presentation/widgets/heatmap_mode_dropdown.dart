@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../providers/reports_providers.dart';
 
@@ -16,7 +17,7 @@ class HeatmapModeDropdown extends ConsumerWidget {
     return DropdownButton<HeatmapMode>(
       value: mode,
       underline: const SizedBox(),
-      icon: const Icon(Icons.arrow_drop_down),
+      icon: const Icon(LucideIcons.chevronDown),
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.primary,
           ),

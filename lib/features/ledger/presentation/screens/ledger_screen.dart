@@ -7,6 +7,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
@@ -145,7 +146,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 // it needs no separate entry point here.
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.search),
+                    icon: const Icon(LucideIcons.search),
                     tooltip: l10n.searchHint,
                     onPressed: () => context.push('/ledger/search'),
                   ),
@@ -194,7 +195,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         onPressed: () {
           context.push('/ledger/add');
         },
-        child: const Icon(Icons.add),
+        child: const Icon(LucideIcons.plus),
       ),
     );
   }

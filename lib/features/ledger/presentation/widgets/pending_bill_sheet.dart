@@ -11,6 +11,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -58,7 +59,7 @@ class PendingBillSheet extends ConsumerWidget {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(LucideIcons.x),
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: l10n.cancel,
               ),
@@ -66,7 +67,7 @@ class PendingBillSheet extends ConsumerWidget {
               // Edit and delete sit where a recorded transaction's sheet puts
               // them: the pencil beside the overflow menu.
               IconButton(
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(LucideIcons.squarePen),
                 onPressed: () => _edit(context),
                 tooltip: l10n.edit,
               ),

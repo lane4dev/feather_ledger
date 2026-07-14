@@ -220,9 +220,16 @@ lib/shared/     跨特性的组件与扩展
   `denseLabel`、骨架屏填充色……）是 `features/ledger/presentation/theme/ledger_theme.dart` 里的
   `LedgerTheme` 辅助方法，它们从 `Theme.of(context).textTheme.*` 出发，只叠加字重/颜色 —— 新的字号放
   在那里，不要内联在组件里。
+- **全部图标用 `lucide_icons_flutter`**（`LucideIcons.*`）。框架自己画的图标（日期/时间选择器的
+  外观、`DropdownButton` 的箭头、`Checkbox`/`Radio` 字形）改不了，除非替换掉那些组件本身；**AppBar 的
+  返回箭头属于这一类** —— 默认那个是 Material，所以每个可返回的页面都要显式给 `leading`。
 - 用户可选的分类颜色与图标是**数据，不是令牌**：`CategoryTokens`
   （`lib/app/theme/category_tokens.dart`）是调色板 + 图标码点集合，`defaultColor` /
   `defaultIcons.first` 是新分类的默认值。
+- **分类图标是持久化数据，换字体就是换数据**：图标码点存在 `iconKey` 里（事件 payload、`categories_view`
+  与 `transactions_view` 的写入时快照都有一份）。`category_tokens.dart` 的 `_palette` 是
+  **(v1 存的, v2 存的)** 配对表——既是当前调色板，也是 upcaster 的翻译表，一份数据两个用途，
+  所以不会各自漂移。渲染只经 `CategoryTokens.iconFor(iconKey)`，它也是唯一知道图标字体名的地方。
 - 本地化：ARB 文件在 `lib/app/l10n/`，模板是 `app_en.arb`。共有**四个**：`en`、`zh_Hans`、`zh_Hant`，
   以及一个不带 script 的 `zh` 基础文件 —— 只要存在带 script 的语言，`flutter gen-l10n`
   就**要求**它作为回退（内容镜像简体，需保持同步）。新增键要加进全部四个文件，然后跑
@@ -289,7 +296,11 @@ lib/shared/     跨特性的组件与扩展
 - **余额只在投影路径内计算。** 如果某个组件或查询在做余额算术，那段逻辑应该属于投影器或月度快照投影器。
 - **改动事件 payload 或新增事件类型**意味着要动 `register_ledger_events.dart` 里的注册表，并遵守
   constitution VII：一旦发布，payload 变更就要升 `schemaVersion` 并附带 upcaster，而已发布的
-  `eventType` 永不改名。
+  `eventType` 永不改名。**首例就是 `CategoryCreated` v1→v2**（图标从 Material 码点换成 Lucide 码点）
+  —— 一个字段的*含义*变了就得升版本，upcaster 负责读旧值。同时把 `ledgerProjectionVersion` 升到 2：
+  视图是从事件重建的，**只改投影不改事件会被下一次重建冲掉**，而版本号过期正是启动时触发重建的开关。
+  `categories_view.icon_key` 与 `transactions_view.category_icon` 两处都要重新推导，实测迁移路径见
+  `test/unit/features/ledger/data/category_icon_migration_test.dart`。
 - 加了 Riverpod/Drift/json 注解后跑 `dart run build_runner build -d`；改了 ARB 后跑 `flutter gen-l10n`。
 
 ## 常用命令

@@ -8,6 +8,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/value_objects/transaction_filter.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -46,6 +47,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed: () => context.pop(),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        ),
         title: AppTextField(
           controller: _queryController,
           hintText: l10n.searchHint,
@@ -55,13 +61,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         actions: [
           IconButton(
             icon: Icon(filter.isNotEmpty
-                ? Icons.filter_alt
-                : Icons.filter_alt_outlined),
+                ? LucideIcons.filter
+                : LucideIcons.filter),
             tooltip: l10n.filterTitle,
             onPressed: () => _openFilterSheet(filter),
           ),
           IconButton(
-            icon: const Icon(Icons.ios_share),
+            icon: const Icon(LucideIcons.share2),
             tooltip: l10n.exportCsv,
             // Exporting what is on screen: with nothing found there is
             // nothing to export, and a file that disagrees with the list

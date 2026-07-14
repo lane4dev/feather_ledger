@@ -21,6 +21,7 @@ import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amoun
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Editing an upcoming recurring bill (spec 004, US2).
 ///
@@ -152,8 +153,8 @@ void main() {
         (tester) async {
       await pumpSheet(tester);
 
-      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      expect(find.byIcon(LucideIcons.squarePen), findsOneWidget);
+      expect(find.byIcon(LucideIcons.ellipsisVertical), findsOneWidget);
       expect(find.text('Skip'), findsNothing,
           reason: 'deleting one bill is what skipping used to be');
     });
@@ -162,7 +163,7 @@ void main() {
         (tester) async {
       await pumpSheet(tester);
 
-      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.tap(find.byIcon(LucideIcons.squarePen));
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsNothing,

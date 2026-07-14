@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'ledger_sheet_handle.dart';
 
 class LedgerSelectionSheet<T> extends StatelessWidget {
@@ -86,7 +87,7 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                     trailing: getTrailing != null
                         ? getTrailing!(context, option)
                         : (selected
-                            ? Icon(Icons.check,
+                            ? Icon(LucideIcons.check,
                                 color: Theme.of(context).colorScheme.primary)
                             : null),
                     onTap: () => onSelected(option),
@@ -105,7 +106,7 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                       Navigator.pop(context); // Close the current sheet
                       onManageTap!(); // Execute the manage action
                     },
-                    icon: const Icon(Icons.settings),
+                    icon: const Icon(LucideIcons.settings),
                     label: Text(manageButtonText!),
                   ),
                 ),

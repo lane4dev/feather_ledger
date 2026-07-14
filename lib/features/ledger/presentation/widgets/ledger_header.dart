@@ -7,6 +7,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/ledger_theme.dart';
 
 /// The expanded part of the header: the month's figures.
@@ -147,7 +148,7 @@ class LedgerMonthSwitcher extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(LucideIcons.chevronLeft),
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
@@ -165,7 +166,7 @@ class LedgerMonthSwitcher extends StatelessWidget {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right),
+          icon: const Icon(LucideIcons.chevronRight),
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
@@ -220,8 +221,8 @@ class _BalanceSummary extends ConsumerWidget {
                           .toggle(),
                       child: Icon(
                         showBalance
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+                            ? LucideIcons.eye
+                            : LucideIcons.eyeOff,
                         size: 14,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -247,7 +248,7 @@ class _BalanceSummary extends ConsumerWidget {
                   label: l10n.income,
                   displayAmount: summary.displayIncome,
                   color: context.colors.income,
-                  icon: Icons.arrow_downward_rounded,
+                  icon: LucideIcons.arrowDown,
                   showBalance: showBalance,
                 ),
                 const SizedBox(height: 8),
@@ -255,7 +256,7 @@ class _BalanceSummary extends ConsumerWidget {
                   label: l10n.expense,
                   displayAmount: summary.displayExpense,
                   color: context.colors.expense,
-                  icon: Icons.arrow_upward_rounded,
+                  icon: LucideIcons.arrowUp,
                   showBalance: showBalance,
                 ),
               ],

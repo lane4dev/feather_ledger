@@ -14,6 +14,7 @@ import 'package:feather_ledger/features/ledger/presentation/models/transaction_t
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/transaction_tile.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Upcoming recurring bills in the ledger list (spec 004, US2 / C4).
 ///
@@ -73,14 +74,14 @@ void main() {
       final opacity = tester.widget<Opacity>(find.byType(Opacity));
       expect(opacity.opacity, lessThan(1.0));
       // Announces itself twice: a clock on the title and a tag on the row.
-      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(find.byIcon(LucideIcons.clock), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
 
       await tester.pumpWidget(wrap(TransactionTile(transaction: tile(isPending: false))));
 
       expect(find.byType(Opacity), findsNothing,
           reason: 'a posted row pays for no extra layer');
-      expect(find.byIcon(Icons.schedule), findsNothing);
+      expect(find.byIcon(LucideIcons.clock), findsNothing);
       expect(find.text('Pending'), findsNothing);
     });
 
@@ -111,7 +112,7 @@ void main() {
     /// Delete lives in the top-right overflow menu, so reaching the scope
     /// dialog is two taps: the menu, then the item.
     Future<void> openDeleteDialog(WidgetTester tester) async {
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();

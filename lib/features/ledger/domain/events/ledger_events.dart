@@ -214,6 +214,13 @@ class AccountArchived implements LedgerEventPayload {
 
 /// — Category stream ———————————————————————————————————————————————
 
+/// A category was created.
+///
+/// **v2 changed what [iconKey] means.** v1 stored a Material Icons code point;
+/// v2 stores a Lucide one, because the app's icons moved to that set. The
+/// field is still an opaque string of digits to everything that only stores
+/// and compares it; only the renderer and the palette care which font it names.
+/// An upcaster translates v1 payloads — see `register_ledger_events.dart`.
 class CategoryCreated implements LedgerEventPayload {
   final String categoryId;
   final String name;
@@ -241,7 +248,7 @@ class CategoryCreated implements LedgerEventPayload {
 
   @override
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'categoryId': categoryId,
         'name': name,
         'iconKey': iconKey,

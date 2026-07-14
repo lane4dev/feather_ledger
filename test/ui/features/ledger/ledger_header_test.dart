@@ -8,6 +8,7 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_header.dart';
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// The ledger's app bar (spec 004).
 ///
@@ -44,7 +45,7 @@ void main() {
                   title: child,
                   actions: [
                     IconButton(
-                      icon: const Icon(Icons.search),
+                      icon: const Icon(LucideIcons.search),
                       onPressed: () {},
                     ),
                   ],
@@ -75,7 +76,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final monthCentre = tester.getCenter(find.text('November 2026')).dy;
-      final searchCentre = tester.getCenter(find.byIcon(Icons.search)).dy;
+      final searchCentre = tester.getCenter(find.byIcon(LucideIcons.search)).dy;
 
       expect((monthCentre - searchCentre).abs(), lessThan(1.0),
           reason: 'they are one row of controls, so they line up');
@@ -89,8 +90,8 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byIcon(LucideIcons.chevronLeft), findsOneWidget);
+      expect(find.byIcon(LucideIcons.chevronRight), findsOneWidget);
     });
   });
 
@@ -127,8 +128,8 @@ void main() {
         (tester) async {
       await pump(tester);
 
-      expect(find.byIcon(Icons.chevron_left), findsNothing);
-      expect(find.byIcon(Icons.chevron_right), findsNothing);
+      expect(find.byIcon(LucideIcons.chevronLeft), findsNothing);
+      expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
     });
   });
 }

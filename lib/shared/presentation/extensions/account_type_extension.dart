@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 extension AccountTypeUi on AccountType {
   IconData get icon {
     switch (this) {
       case AccountType.cash:
-        return Icons.money;
+        return LucideIcons.banknote;
       case AccountType.bank:
-        return Icons.account_balance;
+        return LucideIcons.landmark;
       case AccountType.credit:
-        return Icons.credit_card;
+        return LucideIcons.creditCard;
       case AccountType.other:
-        return Icons.account_balance_wallet;
+        return LucideIcons.wallet;
     }
   }
 
