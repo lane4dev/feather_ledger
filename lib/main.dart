@@ -18,7 +18,6 @@ import 'core/presentation/providers/locale_provider.dart';
 import 'features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'features/ledger/domain/services/recurring_service.dart';
-import 'features/settings/domain/services/account_service.dart';
 import 'features/settings/domain/services/category_service.dart';
 
 void setupEdgeToEdge() async {
@@ -74,7 +73,6 @@ void main() async {
   final l10n = await AppLocalizations.delegate.load(seedLocale);
   await seedDatabase(
     eventStore: container.read(driftEventStoreProvider),
-    accountService: container.read(accountServiceProvider),
     categoryService: container.read(categoryServiceProvider),
     l10n: l10n,
   );

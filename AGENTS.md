@@ -254,13 +254,14 @@ lib/shared/     跨特性的组件与扩展
 
 ## 应用流程
 
-- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（事件溯源：AccountCreated/OpeningBalanceSet/CategoryCreated × N，含 2 个内置系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
+- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（**只播分类**：CategoryCreated × 17，含 2 个固定 id/systemCode 的反冲正系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
+  **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。唯一的两条系统分类由 seeder 建，`AccountService.adjustAccountBalance` 按 `systemCode` 查它们。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
 - **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时
   就是它，混合时才回退到偏好），头部与列表的货币符号都跟它走。原因是**账户在建的时候跟随当时的偏好，
   而偏好之后会变，且全程没有汇率换算** —— 按偏好去过滤总额，会把全部账户滤掉，于是账本明明有钱却显示
-  全 0。zh 语言环境下尤其必然：`seeder.dart` 用 `defaultCurrency`（USD）建账户，而
-  `CurrencyController` 按系统 locale 解析出 CNY。
+  全 0（zh 语言环境下尤其容易：账户建的时候跟随偏好，`CurrencyController` 之后按系统 locale 解析出
+  另一个币种）。
 - 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由。
 - 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。月度三个头条数字（收入 / 支出 / **期末余额**）全部来自 `monthly_account_balance_snapshots`，
 与报表页同源同义 —— 头部的 `balanceMinor` 取的是该月快照的 `closingBalanceMinor`，**不是**实时的

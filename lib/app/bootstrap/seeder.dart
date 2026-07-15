@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
 
@@ -9,13 +8,17 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
-import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/features/settings/domain/services/category_service.dart';
 
-/// Seeds a fresh install through the standard write path (spec 003,
-/// US3/T030): default categories (incl. the two built-in reversal system
-/// categories with fixed ids/systemCode) plus Cash and Bank accounts with
-/// the Bank opening balance (100000 minor = 1000.00).
+/// Seeds a fresh install with the built-in category set through the standard
+/// write path (spec 003, US3/T030): 15 default categories plus the two
+/// built-in reversal system categories with fixed ids/systemCode.
+///
+/// **Categories only — no accounts, no transactions.** The categories are a
+/// vocabulary the user fills with their own money; an account is that money,
+/// and there is none of it yet. A seeded Cash / Bank Card pair (the Bank one
+/// carrying 1000.00) put somebody else's opening balance on the home page, in
+/// whatever currency happened to be the global default at seed time.
 ///
 /// Idempotency condition is an **empty event store** — a store with any
 /// event (even with empty projections) is not re-seeded; the data is meant
@@ -23,13 +26,12 @@ import 'package:feather_ledger/features/settings/domain/services/category_servic
 /// stream.
 Future<void> seedDatabase({
   required EventStore eventStore,
-  required AccountService accountService,
   required CategoryService categoryService,
   required AppLocalizations l10n,
 }) async {
   if (await eventStore.readMaxGlobalSequenceNumber() != null) return;
 
-  debugPrint('Seeding default categories and accounts via the event stream...');
+  debugPrint('Seeding default categories via the event stream...');
   const defaultColors = CategoryTokens.defaultColors;
   final defaultIcons = CategoryTokens.defaultIcons;
 
@@ -157,23 +159,6 @@ Future<void> seedDatabase({
     systemCode: CategoryConstants.reversalIncomeCode,
   ));
 
-  // Seed-time currency: fresh install has no preference yet, so the global
-  // default applies.
-  final currencyCode = AppCurrencies.defaultCurrency.code;
-  await _requireSuccess(accountService.createAccount(
-    commandId: 'seed-account-cash',
-    name: l10n.accountCash,
-    type: AccountType.cash,
-    initialBalanceMinor: 0,
-    currencyCode: currencyCode,
-  ));
-  await _requireSuccess(accountService.createAccount(
-    commandId: 'seed-account-bank',
-    name: l10n.accountBankCard,
-    type: AccountType.bank,
-    initialBalanceMinor: 100000, // 1000.00
-    currencyCode: currencyCode,
-  ));
 }
 
 Future<void> _requireSuccess(Future<Result<void>> result) async {
