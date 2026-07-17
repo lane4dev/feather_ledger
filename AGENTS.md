@@ -251,6 +251,7 @@ lib/shared/     跨特性的组件与扩展
 - 暂存区标志是**文件**（`restore/PENDING`）而非 SharedPreferences 键：它必须早于任何 provider 存在时可读，而且恢复本身会覆盖偏好。
 - 替换时**必须删除陈旧的 `-wal`/`-shm`/`-journal`**：旧库留下的 `-wal` 会被重放进恢复后的库，静默损坏。
 - 校验在写 PENDING **之前**全部完成：容器 format/formatVersion、库的 schemaVersion（读 SQLite 头，不打开文件——打开会跑迁移并改写待校验的那份副本）、`PRAGMA integrity_check`、以及**用真实 DAO 读一次事件表**。最后一项不可省：一个事件溯源迁移**之前**的库 user_version 同样是 1、integrity_check 同样通过，但本 build 根本读不了它。
+- **`android:allowBackup="false"` 是刻意的，不是模板残留**：清单不写这一行时默认是 `true`，于是 Android 会把整个 `files/`（含 `db.sqlite`，即全部账本）备份进 Google Drive，**卸载重装时原样倒回来** —— 看起来像「卸载没用」或「播种又跑了一遍」，实际两者都没发生，是系统还原了一个非空事件存储（`firstInstallTime` 是新的，库里的交易却是旧的，这就是判据）。账本的自有备份是 `.flbackup`（用户显式导出、显式恢复），不该再有一份用户没点过头的云端副本。iOS 侧同类问题需要给容器加 `NSURLIsExcludedFromBackupKey`，尚未处理。
 
 ## 应用流程
 
