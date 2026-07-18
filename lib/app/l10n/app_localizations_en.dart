@@ -287,7 +287,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryGifts => 'Gifts';
 
   @override
-  String get categoryReversalExpense => 'Reversal';
+  String get categoryReversalExpense => 'Balance correction';
 
   @override
   String get categorySalary => 'Salary';
@@ -305,7 +305,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryInvestmentReturns => 'Investment Returns';
 
   @override
-  String get categoryReversalIncome => 'Reversal';
+  String get categoryReversalIncome => 'Balance correction';
 
   @override
   String get accountCash => 'Cash';

@@ -640,10 +640,10 @@ abstract class AppLocalizations {
   /// **'Gifts'**
   String get categoryGifts;
 
-  /// System category name: Reversal (Expense)
+  /// System category name: Balance correction (Expense)
   ///
   /// In en, this message translates to:
-  /// **'Reversal'**
+  /// **'Balance correction'**
   String get categoryReversalExpense;
 
   /// No description provided for @categorySalary.
@@ -676,10 +676,10 @@ abstract class AppLocalizations {
   /// **'Investment Returns'**
   String get categoryInvestmentReturns;
 
-  /// System category name: Reversal (Income)
+  /// System category name: Balance correction (Income)
   ///
   /// In en, this message translates to:
-  /// **'Reversal'**
+  /// **'Balance correction'**
   String get categoryReversalIncome;
 
   /// No description provided for @accountCash.

@@ -341,9 +341,9 @@
   "@categoryGifts": {
     "description": "默认分类名称：礼物"
   },
-  "categoryReversalExpense": "冲正",
+  "categoryReversalExpense": "余额更正",
   "@categoryReversalExpense": {
-    "description": "系统分类名称：冲正 (支出)"
+    "description": "系统分类名称：余额更正 (支出)"
   },
   "categorySalary": "薪水",
   "categoryBonus": "奖金",
@@ -359,9 +359,9 @@
   "@categoryInvestmentReturns": {
     "description": "默认分类名称：投资收益"
   },
-  "categoryReversalIncome": "冲正",
+  "categoryReversalIncome": "余额更正",
   "@categoryReversalIncome": {
-    "description": "系统分类名称：冲正 (收入)"
+    "description": "系统分类名称：余额更正 (收入)"
   },
   "accountCash": "现金",
   "accountBankCard": "银行卡",

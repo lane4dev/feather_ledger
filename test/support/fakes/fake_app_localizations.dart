@@ -425,13 +425,13 @@ class FakeAppLocalizations implements AppLocalizations {
   String get categoryInvestmentReturns => 'Investment Returns';
 
   @override
-  String get categoryReversalExpense => 'Reversal';
+  String get categoryReversalExpense => 'Balance correction';
 
   @override
   String get categoryPartTimeJob => 'Part-Time Job';
 
   @override
-  String get categoryReversalIncome => 'Reversal';
+  String get categoryReversalIncome => 'Balance correction';
 
   // Backup and restore (spec 004, US4). The message mirrors the real ARB's
   // shape so a test asserting on it sees the same interpolation.

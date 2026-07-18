@@ -281,7 +281,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryGifts => '礼物';
 
   @override
-  String get categoryReversalExpense => '冲正';
+  String get categoryReversalExpense => '余额更正';
 
   @override
   String get categorySalary => '薪水';
@@ -299,7 +299,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryInvestmentReturns => '投资收益';
 
   @override
-  String get categoryReversalIncome => '冲正';
+  String get categoryReversalIncome => '余额更正';
 
   @override
   String get accountCash => '现金';
@@ -824,7 +824,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get categoryGifts => '礼物';
 
   @override
-  String get categoryReversalExpense => '冲正';
+  String get categoryReversalExpense => '余额更正';
 
   @override
   String get categorySalary => '薪水';
@@ -842,7 +842,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get categoryInvestmentReturns => '投资收益';
 
   @override
-  String get categoryReversalIncome => '冲正';
+  String get categoryReversalIncome => '余额更正';
 
   @override
   String get accountCash => '现金';
@@ -1367,7 +1367,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get categoryGifts => '禮物';
 
   @override
-  String get categoryReversalExpense => '沖正';
+  String get categoryReversalExpense => '餘額更正';
 
   @override
   String get categorySalary => '薪資';
@@ -1385,7 +1385,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get categoryInvestmentReturns => '投資收益';
 
   @override
-  String get categoryReversalIncome => '沖正';
+  String get categoryReversalIncome => '餘額更正';
 
   @override
   String get accountCash => '現金';

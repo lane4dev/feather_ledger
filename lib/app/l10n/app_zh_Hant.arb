@@ -341,9 +341,9 @@
   "@categoryGifts": {
     "description": "預設分類名稱：禮物"
   },
-  "categoryReversalExpense": "沖正",
+  "categoryReversalExpense": "餘額更正",
   "@categoryReversalExpense": {
-    "description": "系統分類名稱：沖正 (支出)"
+    "description": "系統分類名稱：餘額更正 (支出)"
   },
   "categorySalary": "薪資",
   "categoryBonus": "獎金",
@@ -359,9 +359,9 @@
   "@categoryInvestmentReturns": {
     "description": "預設分類名稱：投資收益"
   },
-  "categoryReversalIncome": "沖正",
+  "categoryReversalIncome": "餘額更正",
   "@categoryReversalIncome": {
-    "description": "系統分類名稱：沖正 (收入)"
+    "description": "系統分類名稱：餘額更正 (收入)"
   },
   "accountCash": "現金",
   "accountBankCard": "銀行卡",

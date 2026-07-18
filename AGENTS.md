@@ -257,6 +257,7 @@ lib/shared/     跨特性的组件与扩展
 
 - `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（**只播分类**：CategoryCreated × 17，含 2 个固定 id/systemCode 的反冲正系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
   **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。唯一的两条系统分类由 seeder 建，`AccountService.adjustAccountBalance` 按 `systemCode` 查它们。
+  **系统分类的标识符与显示名刻意不同名**：显示名是「余额更正」（en: `Balance correction`），而 `CategoryConstants.reversal*Code`、`reversal*Id` 与持久化的 `systemCode` 一律不动 —— 显示名给人看、随时可改，`systemCode` 是上面那条查询的键，改了就查不到。另注意分类名是**播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
 - **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时
   就是它，混合时才回退到偏好），头部与列表的货币符号都跟它走。原因是**账户在建的时候跟随当时的偏好，

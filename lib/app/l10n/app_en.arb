@@ -341,9 +341,9 @@
   "@categoryGifts": {
     "description": "Default category name: Gifts"
   },
-  "categoryReversalExpense": "Reversal",
+  "categoryReversalExpense": "Balance correction",
   "@categoryReversalExpense": {
-    "description": "System category name: Reversal (Expense)"
+    "description": "System category name: Balance correction (Expense)"
   },
   "categorySalary": "Salary",
   "categoryBonus": "Bonus",
@@ -359,9 +359,9 @@
   "@categoryInvestmentReturns": {
     "description": "Default category name: Investment Returns"
   },
-  "categoryReversalIncome": "Reversal",
+  "categoryReversalIncome": "Balance correction",
   "@categoryReversalIncome": {
-    "description": "System category name: Reversal (Income)"
+    "description": "System category name: Balance correction (Income)"
   },
   "accountCash": "Cash",
   "accountBankCard": "Bank Card",
