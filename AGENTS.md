@@ -98,6 +98,7 @@ lib/shared/     跨特性的组件与扩展
 - `LedgerProjectorImpl` 是唯一的投影写入方；每次 append 都在同一个数据库事务里驱动它。余额计算全部位于投影路径内部，由两个协作者分担：投影器维护 `accounts_view.balanceMinor`，`MonthlySnapshotProjectorImpl` 从锚点月份起按账户重算各月收入/支出/转账与期初、期末余额。投影路径之外任何地方都不重算余额。
 - `LedgerRebuildService` 在一个事务内从事件存储重建五个事件溯源视图（启动时若某视图的 projectionVersion 过期就执行；设置页有长按开发者入口）。过期判定只覆盖带 `projectionVersion` 列的四个视图 —— `transaction_postings_view` 没有该列，它的过期只能经由 `transactions_view` 间接发现。未知事件类型硬失败，并报出事件 id。
 - 更正 = `TransactionReversed(correction)` + `TransactionRecorded`，成对出现在一个命令/一个事务里；UI 删除是 `TransactionReversed(userDeleted)`。被冲销的行对读模型隐藏；审计链留在事件存储中。
+- **新建账户时的「期初余额」也是一笔更正交易**（`AccountService.createAccount`）：`CreateAccountCommand` 只发 `AccountCreated`，账户永远从 0 开始；非零起始余额接着以 `TransactionRecorded` 落账，走与「改余额」完全相同的路径（同一个系统分类、`note` 由调用方本地化传入，`commandId` 用 `'$commandId-opening'` 派生以便整对重试去重），因此会出现在账本里、也会计入当月收入/支出合计 —— 这是刻意的：账本对「这笔钱哪来的」只有一个答案。两个副作用要知道：其一，起始余额从此**计入当月收入**而不是期初；其二，`OpeningBalanceSet` 不再有生产者，但事件类型、注册表与投影分支**全部保留**（旧事件流仍需重放），`abs()` 那条老毛病（负的期初被记成正的）也随之消失 —— 符号现在由 kind 承载。
 
 ## 周期与预约交易
 
@@ -256,7 +257,7 @@ lib/shared/     跨特性的组件与扩展
 ## 应用流程
 
 - `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（**只播分类**：CategoryCreated × 17，含 2 个固定 id/systemCode 的反冲正系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
-  **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。唯一的两条系统分类由 seeder 建，`AccountService.adjustAccountBalance` 按 `systemCode` 查它们。
+  **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。唯一的两条系统分类由 seeder 建：`AccountService` 的 `adjustAccountBalance` 与 `createAccount`（非零起始余额）都按 `systemCode` 查它们，查不到就拒绝，不会就地造一个 —— 缺了它意味着这个事件流早于那次播种。
   **系统分类的标识符与显示名刻意不同名**：显示名是「余额更正」（en: `Balance correction`），而 `CategoryConstants.reversal*Code`、`reversal*Id` 与持久化的 `systemCode` 一律不动 —— 显示名给人看、随时可改，`systemCode` 是上面那条查询的键，改了就查不到。另注意分类名是**播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
 - **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时

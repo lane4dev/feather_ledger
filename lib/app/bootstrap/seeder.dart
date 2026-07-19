@@ -158,7 +158,6 @@ Future<void> seedDatabase({
     type: CategoryType.income,
     systemCode: CategoryConstants.reversalIncomeCode,
   ));
-
 }
 
 Future<void> _requireSuccess(Future<Result<void>> result) async {

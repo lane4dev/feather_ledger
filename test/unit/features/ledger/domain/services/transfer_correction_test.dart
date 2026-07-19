@@ -22,7 +22,13 @@ void main() {
 
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   test('a transfer edit reverses the original and records the replacement',
@@ -246,8 +252,13 @@ void main() {
 
 /// Seeds Cash (1000.00 opening) and Bank (0) — both USD, so transfers between
 /// them are legal.
+///
+/// A funded account is a correction transaction, so this brings the system
+/// categories the shared `setUp` seeds — two tests here build their own
+/// harness rather than use that one.
 Future<({String cash, String bank})> _seedTwoAccounts(
     LedgerServiceHarness harness) async {
+  await harness.seedSystemCategories();
   await harness.accountService.createAccount(
     commandId: 'cmd_seed_cash',
     name: 'Cash',
@@ -284,7 +295,7 @@ Future<void> _seedCategory(
 
 /// The seeded category's id (there is exactly one in these fixtures).
 Future<String> _onlyCategoryId(LedgerServiceHarness harness) async =>
-    (await harness.db.categoriesDao.getAllCategories()).single.id;
+    await harness.userCategoryId();
 
 Future<String> _recordTransfer(
   LedgerServiceHarness harness, {

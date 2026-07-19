@@ -326,12 +326,16 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
       } else {
         final currencyKey = ref.read(currencyControllerProvider).value ??
             AppCurrencies.defaultCurrency.code;
+        final l10n = AppLocalizations.of(context)!;
         result = await service.createAccount(
           commandId: const Uuid().v4(),
           name: _name,
           type: _selectedType,
           initialBalanceMinor: _balanceMinor,
           currencyCode: currencyKey,
+          // A new account's whole balance is the difference from nothing, and
+          // the row says so rather than looking like income.
+          initialBalanceNote: l10n.accountInitialBalanceNote,
         );
       }
 

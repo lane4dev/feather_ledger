@@ -11,7 +11,13 @@ import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   late String cashId;
@@ -35,7 +41,7 @@ void main() {
     cashId = (await harness.db.accountDao.getAllAccounts())
         .firstWhere((a) => a.name == 'Cash')
         .id;
-    foodId = (await harness.db.categoriesDao.getAllCategories()).single.id;
+    foodId = await harness.userCategoryId();
   }
 
   Future<void> recordExpense(
@@ -72,13 +78,17 @@ void main() {
         .firstWhere((a) => a.name == 'Bank')
         .id;
 
-    // The creation month's row is anchored by OpeningBalanceSet.
+    // The creation month opens at zero and the starting balance lands as a
+    // correction transaction dated today — money the user typed is a row in
+    // the ledger, not an opening-balance event. The closing balance is the
+    // same 1000.00 either way; what moved is which line carries it.
     var row = await harness.db.monthlySnapshotDao
         .getForAccount(bankId, m0.$1, m0.$2);
     expect(row, isNotNull);
-    expect(row!.openingBalanceMinor, 100000);
+    expect(row!.openingBalanceMinor, 0);
+    expect(row.incomeMinor, 100000);
+    expect(row.netChangeMinor, 100000);
     expect(row.closingBalanceMinor, 100000);
-    expect(row.netChangeMinor, 0);
     expect(row.isClosed, false);
 
     await harness.categoryService.createCategory(
@@ -89,7 +99,7 @@ void main() {
       type: CategoryType.expense,
     );
     final foodBankId =
-        (await harness.db.categoriesDao.getAllCategories()).single.id;
+        await harness.userCategoryId();
     await harness.ledgerService.addTransaction(
       commandId: 'cmd_expense_m0',
       amountMinor: 3000,
@@ -101,11 +111,12 @@ void main() {
 
     row = await harness.db.monthlySnapshotDao
         .getForAccount(bankId, m0.$1, m0.$2);
-    expect(row!.openingBalanceMinor, 100000);
-    expect(row.netChangeMinor, -3000);
+    expect(row!.openingBalanceMinor, 0);
+    expect(row.netChangeMinor, 97000);
     expect(row.expenseMinor, -3000);
     expect(row.closingBalanceMinor, 97000);
-    expect(row.transactionCount, 1);
+    expect(row.transactionCount, 2,
+        reason: 'the opening correction and the expense');
 
     // Next month: opening = previous closing.
     await harness.ledgerService.addTransaction(
@@ -138,7 +149,7 @@ void main() {
     final jan = await harness.db.monthlySnapshotDao
         .getForAccount(cashId, 2026, 1);
     expect(jan!.openingBalanceMinor, 0,
-        reason: 'no OpeningBalanceSet → anchor opening is 0');
+        reason: 'Cash carries no starting balance → anchor opening is 0');
     expect(jan.closingBalanceMinor, -3000);
     expect(jan.transactionCount, 1);
 

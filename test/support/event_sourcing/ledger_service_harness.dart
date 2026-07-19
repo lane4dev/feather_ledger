@@ -4,6 +4,8 @@ import 'package:feather_ledger/app/bootstrap/register_ledger_events.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/data/repositories/category_repository.dart';
+import 'package:feather_ledger/app/theme/category_tokens.dart';
+import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
@@ -132,6 +134,41 @@ class LedgerServiceHarness {
       categoryRepository,
     );
   }
+
+  /// Seeds the two system categories a balance correction is filed under.
+  ///
+  /// Production gets them from `seedDatabase` at bootstrap; a harness-built
+  /// ledger starts empty, so a test that opens an account with a starting
+  /// balance — or adjusts one afterwards — asks for them here. Appearance
+  /// mirrors the seed so a rendered fixture looks like production.
+  Future<void> seedSystemCategories() async {
+    await categoryService.createCategory(
+      commandId: 'seed-category-reversal-expense',
+      categoryId: CategoryConstants.reversalExpenseId,
+      name: 'Balance correction',
+      iconKey: '${CategoryTokens.defaultIcons[30]}',
+      colorInt: CategoryTokens.defaultColors[16].toARGB32(),
+      type: CategoryType.expense,
+      systemCode: CategoryConstants.reversalExpenseCode,
+    );
+    await categoryService.createCategory(
+      commandId: 'seed-category-reversal-income',
+      categoryId: CategoryConstants.reversalIncomeId,
+      name: 'Balance correction',
+      iconKey: '${CategoryTokens.defaultIcons[31]}',
+      colorInt: CategoryTokens.defaultColors[17].toARGB32(),
+      type: CategoryType.income,
+      systemCode: CategoryConstants.reversalIncomeCode,
+    );
+  }
+
+  /// The category a fixture created — the system categories
+  /// [seedSystemCategories] adds are not it, so this stays the obvious
+  /// `.single` even now that the table is never otherwise empty.
+  Future<String> userCategoryId() async =>
+      (await db.categoriesDao.getAllCategories())
+          .firstWhere((c) => c.systemCode == null)
+          .id;
 
   /// Seeds an account through the standard write path (US3/T030-style).
   Future<void> seedAccount({

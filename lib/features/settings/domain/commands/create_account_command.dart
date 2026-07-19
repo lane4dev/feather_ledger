@@ -11,21 +11,31 @@ import 'package:feather_ledger/features/ledger/domain/projections/ledger_project
 
 part 'create_account_command.g.dart';
 
-/// Creates an account via `AccountCreated` (+ `OpeningBalanceSet` when the
-/// initial balance is non-zero), projected in the same append transaction
-/// (spec 003, US3/T027). The currency defaults to the global setting —
-/// callers pass the effective currency code.
+/// Creates an account via `AccountCreated`, projected in the same append
+/// transaction (spec 003, US3/T027). The currency defaults to the global
+/// setting — callers pass the effective currency code.
+///
+/// **The account starts empty, always.** A starting balance is not an
+/// [OpeningBalanceSet] here any more: [AccountService.createAccount] records
+/// it as an ordinary correction transaction instead, so the money shows up in
+/// the ledger and reads exactly like every later adjustment of the same
+/// account. Money that existed nowhere but a balance column was the older
+/// shape, and it was indistinguishable from money appearing from nowhere.
+/// (`OpeningBalanceSet` remains in the catalog and still projects — streams
+/// written before this carry it.)
+///
+/// Returns the new account's id so the caller can write against it in the
+/// same breath.
 class CreateAccountCommand {
   final EventStore _eventStore;
   final LedgerProjector _projector;
 
   CreateAccountCommand(this._eventStore, this._projector);
 
-  Future<void> execute({
+  Future<String> execute({
     required String commandId,
     required String name,
     required AccountType type,
-    required int initialBalanceMinor,
     required String currencyCode,
   }) async {
     final accountId = const Uuid().v4();
@@ -36,32 +46,20 @@ class CreateAccountCommand {
       currencyCode: currencyCode,
     );
 
-    final envelopes = <EventEnvelope>[
-      envelopeFor(
-        created,
-        aggregateType: AggregateType.account,
-        streamVersion: 0,
-        commandId: commandId,
-        eventId: const Uuid().v4(),
-      ),
-      if (initialBalanceMinor != 0)
+    await _eventStore.append(
+      <EventEnvelope>[
         envelopeFor(
-          OpeningBalanceSet(
-            accountId: accountId,
-            amountMinor: initialBalanceMinor,
-            currencyCode: currencyCode,
-          ),
+          created,
           aggregateType: AggregateType.account,
-          streamVersion: 1,
+          streamVersion: 0,
           commandId: commandId,
           eventId: const Uuid().v4(),
         ),
-    ];
-
-    await _eventStore.append(
-      envelopes,
+      ],
       options: AppendOptions(apply: _projector.applyAll),
     );
+
+    return accountId;
   }
 }
 

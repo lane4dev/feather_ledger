@@ -212,6 +212,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Account balance adjustment';
 
   @override
+  String get accountInitialBalanceNote => 'Difference';
+
+  @override
   String get accountBalanceAdjustmentNotes =>
       'Automated adjustment for account balance change.';
 

@@ -19,8 +19,9 @@ void main() {
   late LedgerServiceHarness harness;
   late LedgerRebuildService rebuildService;
 
-  setUp(() {
+  setUp(() async {
     harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
     rebuildService =
         LedgerRebuildService(harness.db, harness.eventStore, harness.projector);
   });

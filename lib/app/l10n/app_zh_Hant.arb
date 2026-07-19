@@ -260,6 +260,10 @@
   "@accountBalanceAdjustmentDescription": {
     "description": "帳戶餘額自動調整交易的描述"
   },
+  "accountInitialBalanceNote": "差額",
+  "@accountInitialBalanceNote": {
+    "description": "新建帳戶的期初餘額交易的備註"
+  },
   "accountBalanceAdjustmentNotes": "因帳戶餘額變更自動調整。",
   "@accountBalanceAdjustmentNotes": {
     "description": "帳戶餘額自動調整交易的備註"

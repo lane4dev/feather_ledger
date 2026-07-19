@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
@@ -11,7 +12,13 @@ import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   Future<List<dynamic>> allEvents() async =>
@@ -29,51 +36,61 @@ void main() {
       );
 
       expect(result, isA<Success<void>>());
-      final events = await allEvents();
-      expect(events, hasLength(1));
-      expect(events.single.eventType, 'AccountCreated');
+      final created = (await allEvents())
+          .where((e) => e.commandId == 'cmd_create_zero')
+          .toList();
+      expect(created, hasLength(1));
+      expect(created.single.eventType, 'AccountCreated');
 
-      final created = AccountCreated.fromJson(events.single.payloadJson);
-      expect(created.name, 'Wallet');
-      expect(created.type, AccountType.cash);
-      expect(created.currencyCode, 'USD');
+      final payload = AccountCreated.fromJson(created.single.payloadJson);
+      expect(payload.name, 'Wallet');
+      expect(payload.type, AccountType.cash);
+      expect(payload.currencyCode, 'USD');
 
       final account =
-          await harness.db.accountDao.getAccountById(created.accountId);
+          await harness.db.accountDao.getAccountById(payload.accountId);
       expect(account, isNotNull);
       expect(account!.balanceMinor, 0);
       expect(account.archived, isFalse);
       expect(account.lastUpdatedEventId, greaterThan(0));
+      expect(
+          await harness.ledgerService.watchTransactions(DateTime.now()).first,
+          isEmpty,
+          reason: 'an account opened empty records nothing to correct');
     });
 
-    test('non-zero initial balance adds OpeningBalanceSet in one batch',
+    test('a starting balance is recorded as a correction transaction',
         () async {
+      // Money the user types at creation is money: it shows up in the ledger
+      // under the system category, with the note saying it is the difference.
       final result = await harness.accountService.createAccount(
         commandId: 'cmd_create_savings',
         name: 'Savings',
         type: AccountType.bank,
         initialBalanceMinor: 200000,
         currencyCode: 'USD',
+        initialBalanceNote: 'Difference',
       );
 
       expect(result, isA<Success<void>>());
-      final events = await allEvents();
-      expect(events.map((e) => e.eventType).toList(),
-          ['AccountCreated', 'OpeningBalanceSet']);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      expect(account.balanceMinor, 200000);
 
-      final created = AccountCreated.fromJson(events.first.payloadJson);
-      final opening =
-          OpeningBalanceSet.fromJson(events.last.payloadJson);
-      expect(opening.accountId, created.accountId);
-      expect(opening.amountMinor, 200000);
-
-      final account =
-          await harness.db.accountDao.getAccountById(created.accountId);
-      expect(account!.balanceMinor, 200000);
+      final transactions = await harness.ledgerService
+          .watchTransactions(DateTime.now())
+          .first;
+      expect(transactions, hasLength(1));
+      final correction = transactions.single;
+      expect(correction.type, TransactionKind.income);
+      expect(correction.amount, 200000);
+      expect(correction.note, 'Difference');
+      expect(correction.category.id, CategoryConstants.reversalIncomeId);
+      expect(correction.account.id, account.id);
     });
 
-    test('negative initial balance is applied as the absolute opening',
-        () async {
+    test('a negative starting balance is an expense, sign and all', () async {
+      // The retired OpeningBalanceSet path stored the absolute value, so an
+      // overdraft opened at +500.00. As a transaction the sign survives.
       await harness.accountService.createAccount(
         commandId: 'cmd_create_overdraft',
         name: 'Overdraft',
@@ -82,14 +99,38 @@ void main() {
         currencyCode: 'USD',
       );
 
-      final events = await allEvents();
-      final opening = OpeningBalanceSet.fromJson(events.last.payloadJson);
-      expect(opening.amountMinor, -50000);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      expect(account.balanceMinor, -50000);
 
-      final account =
-          await harness.db.accountDao.getAccountById(opening.accountId);
-      expect(account!.balanceMinor, 50000,
-          reason: 'projector sets the balance to the absolute value');
+      final transactions = await harness.ledgerService
+          .watchTransactions(DateTime.now())
+          .first;
+      expect(transactions.single.type, TransactionKind.expense);
+      expect(transactions.single.category.id,
+          CategoryConstants.reversalExpenseId);
+    });
+
+    test('a ledger without the system categories rejects before writing',
+        () async {
+      // A harness built here has none: `setUp` only seeds the shared one.
+      final bare = LedgerServiceHarness();
+      addTearDown(bare.close);
+
+      final result = await bare.accountService.createAccount(
+        commandId: 'cmd_bare',
+        name: 'Cash',
+        type: AccountType.cash,
+        initialBalanceMinor: 1000,
+        currencyCode: 'USD',
+      );
+
+      expect(
+        result,
+        isA<Failure<void>>()
+            .having((f) => f.code, 'code', LedgerErrorCode.categoryNotFound),
+      );
+      expect(await bare.db.accountDao.getAllAccounts(), isEmpty,
+          reason: 'the category resolves before the account is created');
     });
 
     test('duplicate commandId short-circuits — no second account', () async {
@@ -109,7 +150,13 @@ void main() {
       );
 
       expect(result, isA<Failure<void>>());
-      expect(await allEvents(), hasLength(2));
+      expect(
+        (await allEvents())
+            .where((e) => e.commandId.startsWith('cmd_dup'))
+            .map((e) => e.eventType),
+        ['AccountCreated', 'TransactionRecorded'],
+        reason: 'the retry appends nothing, and does not double the balance',
+      );
       expect(await harness.db.accountDao.getAllAccounts(), hasLength(1));
     });
   });
@@ -123,8 +170,9 @@ void main() {
         initialBalanceMinor: 0,
         currencyCode: 'USD',
       );
-      final created = AccountCreated.fromJson(
-          (await allEvents()).single.payloadJson);
+      final created = AccountCreated.fromJson((await allEvents())
+          .firstWhere((e) => e.commandId == 'cmd_create')
+          .payloadJson);
 
       final result = await harness.accountService.renameAccount(
         commandId: 'cmd_rename',
@@ -157,7 +205,10 @@ void main() {
         isA<Failure<void>>()
             .having((f) => f.code, 'code', LedgerErrorCode.accountNotFound),
       );
-      expect(await allEvents(), isEmpty);
+      expect(
+        (await allEvents()).where((e) => e.commandId.startsWith('cmd_rename')),
+        isEmpty,
+      );
     });
   });
 
@@ -170,8 +221,9 @@ void main() {
         initialBalanceMinor: 0,
         currencyCode: 'USD',
       );
-      final created = AccountCreated.fromJson(
-          (await allEvents()).single.payloadJson);
+      final created = AccountCreated.fromJson((await allEvents())
+          .firstWhere((e) => e.commandId == 'cmd_create')
+          .payloadJson);
 
       final result = await harness.accountService.archiveAccount(
         commandId: 'cmd_archive',

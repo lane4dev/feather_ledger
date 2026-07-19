@@ -28,8 +28,9 @@ void main() {
   late MockSharedPreferences mockPrefs;
   late PreferencesRepository preferences;
 
-  setUp(() {
+  setUp(() async {
     harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
     supportDir = Directory.systemTemp.createTempSync('feather_backup_test');
     mockPrefs = MockSharedPreferences();
     preferences = PreferencesRepositoryImpl(mockPrefs);
@@ -68,7 +69,7 @@ void main() {
     final accountId =
         (await harness.db.accountDao.getAllAccounts()).single.id;
     final categoryId =
-        (await harness.db.categoriesDao.getAllCategories()).single.id;
+        await harness.userCategoryId();
     await harness.ledgerService.addTransaction(
       commandId: 'cmd_expense',
       amountMinor: 5000,

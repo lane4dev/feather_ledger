@@ -425,6 +425,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get categoryInvestmentReturns => 'Investment Returns';
 
   @override
+  String get accountInitialBalanceNote => 'Difference';
+
+  @override
   String get categoryReversalExpense => 'Balance correction';
 
   @override

@@ -12,7 +12,13 @@ import '../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   Future<(String, String)> seedTwoAccounts({
@@ -58,7 +64,8 @@ void main() {
     );
     final account = (await harness.db.accountDao.getAllAccounts())
         .firstWhere((a) => a.name == 'Cash');
-    final category = (await harness.db.categoriesDao.getAllCategories()).single;
+    final category = (await harness.db.categoriesDao.getAllCategories())
+        .firstWhere((c) => c.systemCode == null);
     return (account.id, category.id);
   }
 
@@ -193,10 +200,14 @@ void main() {
         isA<Failure<void>>()
             .having((f) => f.code, 'code', LedgerErrorCode.currencyMismatch),
       );
-      // Nothing appended, no balances moved.
+      // Nothing appended by the rejected transfer, no balances moved. (The
+      // fixture's own account-opening correction is a recorded transaction
+      // too, so this asks about *this* command rather than counting types.)
       final events = (await harness.eventStore.readAll()).events;
-      expect(events.where((e) => e.eventType == 'TransactionRecorded'),
-          isEmpty);
+      expect(
+        events.where((e) => e.commandId == 'cmd_cross_currency'),
+        isEmpty,
+      );
       final from = await harness.db.accountDao.getAccountById(fromId);
       expect(from!.balanceMinor, 100000);
     });

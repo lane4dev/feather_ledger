@@ -17,7 +17,13 @@ import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   late String accountId;

@@ -15,7 +15,13 @@ import '../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   late String cashId;
@@ -108,7 +114,7 @@ void main() {
       type: CategoryType.expense,
     );
     final categoryId =
-        (await harness.db.categoriesDao.getAllCategories()).single.id;
+        await harness.userCategoryId();
 
     await harness.ledgerService.addTransfer(
       commandId: 'transfer',
@@ -130,7 +136,9 @@ void main() {
         .watchTransactionsFiltered(TransactionFilter.empty)
         .first;
 
-    expect(all, hasLength(2));
+    // The transfer, the expense, and the correction that opened Cash with
+    // its 1000.00.
+    expect(all, hasLength(3));
   });
 
   test('the filter value object survives the round trip', () async {

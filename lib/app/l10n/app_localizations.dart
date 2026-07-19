@@ -496,6 +496,12 @@ abstract class AppLocalizations {
   /// **'Account balance adjustment'**
   String get accountBalanceAdjustmentDescription;
 
+  /// Note on the transaction recording a new account's starting balance
+  ///
+  /// In en, this message translates to:
+  /// **'Difference'**
+  String get accountInitialBalanceNote;
+
   /// Notes for automated account balance adjustment transaction
   ///
   /// In en, this message translates to:

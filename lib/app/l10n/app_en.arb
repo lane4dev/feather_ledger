@@ -260,6 +260,10 @@
   "@accountBalanceAdjustmentDescription": {
     "description": "Description for automated account balance adjustment transaction"
   },
+  "accountInitialBalanceNote": "Difference",
+  "@accountInitialBalanceNote": {
+    "description": "Note on the transaction recording a new account's starting balance"
+  },
   "accountBalanceAdjustmentNotes": "Automated adjustment for account balance change.",
   "@accountBalanceAdjustmentNotes": {
     "description": "Notes for automated account balance adjustment transaction"

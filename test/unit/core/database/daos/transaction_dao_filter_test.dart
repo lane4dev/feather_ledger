@@ -14,7 +14,13 @@ import '../../../../support/event_sourcing/ledger_service_harness.dart';
 void main() {
   late LedgerServiceHarness harness;
 
-  setUp(() => harness = LedgerServiceHarness());
+  // The correction path files under the seeded system categories; a
+  // harness ledger starts empty, so it asks for them the way bootstrap
+  // does.
+  setUp(() async {
+    harness = LedgerServiceHarness();
+    await harness.seedSystemCategories();
+  });
   tearDown(() => harness.close());
 
   late String cashId;
@@ -285,7 +291,10 @@ void main() {
         .watchTransactionsFiltered()
         .first;
 
-    expect(rows, hasLength(2));
+    // The two expenses, plus the correction that opened Cash with its
+    // 1000.00 — a starting balance is a transaction like any other, and it
+    // is the newest row here.
+    expect(rows, hasLength(3));
     expect(
       rows.first.transaction.occurredAt.isAfter(
           rows.last.transaction.occurredAt),

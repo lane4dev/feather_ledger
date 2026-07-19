@@ -209,6 +209,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountBalanceAdjustmentDescription => '账户余额调整';
 
   @override
+  String get accountInitialBalanceNote => '差额';
+
+  @override
   String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
 
   @override
@@ -752,6 +755,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accountBalanceAdjustmentDescription => '账户余额调整';
 
   @override
+  String get accountInitialBalanceNote => '差额';
+
+  @override
   String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
 
   @override
@@ -1293,6 +1299,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get accountBalanceAdjustmentDescription => '帳戶餘額調整';
+
+  @override
+  String get accountInitialBalanceNote => '差額';
 
   @override
   String get accountBalanceAdjustmentNotes => '因帳戶餘額變更自動調整。';
