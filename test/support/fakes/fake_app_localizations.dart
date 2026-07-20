@@ -439,6 +439,9 @@ class FakeAppLocalizations implements AppLocalizations {
   // Backup and restore (spec 004, US4). The message mirrors the real ARB's
   // shape so a test asserting on it sees the same interpolation.
   @override
+  String get backupFileTypeLabel => 'Feather Ledger backup';
+
+  @override
   String get backupNow => 'Back up now';
 
   @override

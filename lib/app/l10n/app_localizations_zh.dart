@@ -422,6 +422,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nextYear => '下一年';
 
   @override
+  String get backupFileTypeLabel => '轻羽账本 备份';
+
+  @override
   String get backupNow => '立即备份';
 
   @override
@@ -968,6 +971,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get nextYear => '下一年';
 
   @override
+  String get backupFileTypeLabel => '轻羽账本 备份';
+
+  @override
   String get backupNow => '立即备份';
 
   @override
@@ -1512,6 +1518,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get nextYear => '下一年';
+
+  @override
+  String get backupFileTypeLabel => '輕羽帳本 備份';
 
   @override
   String get backupNow => '立即備份';

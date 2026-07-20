@@ -235,6 +235,11 @@ lib/shared/     跨特性的组件与扩展
   以及一个不带 script 的 `zh` 基础文件 —— 只要存在带 script 的语言，`flutter gen-l10n`
   就**要求**它作为回退（内容镜像简体，需保持同步）。新增键要加进全部四个文件，然后跑
   `flutter gen-l10n`；永远不要手改 `app_localizations*.dart`。
+  **ARB 触不到的两处用户可见文案**：一是 Android 启动器名，在
+  `android/app/src/main/res/values{,-zh-rCN,-zh-rTW}/strings.xml`，必须与 `appTitle` 保持一致
+  （少了 `-zh-rTW`，繁體设备会在桌面上看到英文名）；二是平台文件选择器的类型标签，由调用方把
+  `l10n` 文案传进去（provider 没有 context）。iOS 侧（`CFBundleDisplayName` + 尚未存在的
+  `.lproj/InfoPlist.strings`）**没有做**。
 - `AppLanguages.supportedLocales`（`lib/app/config/app_languages.dart`）是可选语言集合；偏好里存的是
   完整 language tag，因此简体 / 繁體重启后仍保留。不要把它退回成只存 `languageCode`。
 

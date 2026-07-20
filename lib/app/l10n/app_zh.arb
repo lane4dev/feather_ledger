@@ -490,6 +490,10 @@
   "previousYear": "上一年",
   "nextYear": "下一年",
   "errorInvalidTransactionShape": "交易无效，未保存",
+  "backupFileTypeLabel": "轻羽账本 备份",
+  "@backupFileTypeLabel": {
+    "description": "打开备份文件对话框时，文件类型筛选器的标签"
+  },
   "backupNow": "立即备份",
   "backupNowHint": "把整个账本导出为一个文件",
   "restoreFromBackup": "从备份恢复",

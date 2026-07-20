@@ -105,9 +105,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                         backgroundColor:
                             Color(_colorInt).withValues(alpha: 0.2),
                         foregroundColor: Color(_colorInt),
+                        // Through the one place that knows the icon font: a
+                        // stored key is a Lucide code point since the
+                        // migration, and naming MaterialIcons here drew the
+                        // wrong glyph (or threw on an unparseable key).
                         child: Icon(
-                          IconData(int.parse(_iconKey),
-                              fontFamily: 'MaterialIcons'),
+                          CategoryTokens.iconFor(_iconKey),
                           size: 32,
                         ),
                       ),
@@ -194,7 +197,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
-                                IconData(iconCode, fontFamily: 'MaterialIcons'),
+                                CategoryTokens.iconFor('$iconCode'),
                                 color: isSelected
                                     ? colorScheme.onPrimaryContainer
                                     : colorScheme.onSurface,

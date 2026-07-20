@@ -138,7 +138,8 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    final picked = await ref.read(backupFilePickerProvider)();
+    final picked =
+        await ref.read(backupFilePickerProvider)(l10n.backupFileTypeLabel);
     if (picked == null || !context.mounted) return;
 
     final service = await ref.read(backupServiceProvider.future);
@@ -365,13 +366,16 @@ class SettingsScreen extends ConsumerWidget {
 ///
 /// A provider rather than a direct [openFile] call so a widget test can drive
 /// the whole restore flow without a platform channel.
-typedef BackupFilePicker = Future<File?> Function();
+typedef BackupFilePicker = Future<File?> Function(String typeLabel);
 
 @riverpod
-BackupFilePicker backupFilePicker(Ref ref) => () async {
+BackupFilePicker backupFilePicker(Ref ref) => (String typeLabel) async {
       final picked = await openFile(
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'Feather Ledger backup', extensions: ['flbackup']),
+        acceptedTypeGroups: [
+          // The label is what the platform file dialog shows for the filter,
+          // so it is a localized string the caller hands in — a provider has
+          // no context to read one from.
+          XTypeGroup(label: typeLabel, extensions: const ['flbackup']),
         ],
       );
       return picked == null ? null : File(picked.path);

@@ -131,7 +131,10 @@ class FeatherLedgerApp extends ConsumerWidget {
     final localeAsync = ref.watch(localeControllerProvider);
 
     return MaterialApp.router(
-      title: 'Feather Ledger',
+      // The task-switcher label is user-facing — it reads 轻羽账本 in Chinese,
+      // not the English product name, so it comes from the same key the About
+      // screen uses rather than a literal.
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeAsync.value ?? ThemeMode.system,

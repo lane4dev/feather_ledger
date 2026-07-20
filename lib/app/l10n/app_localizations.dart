@@ -922,6 +922,12 @@ abstract class AppLocalizations {
   /// **'Next Year'**
   String get nextYear;
 
+  /// File type label for the .flbackup filter in the platform file dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Feather Ledger backup'**
+  String get backupFileTypeLabel;
+
   /// Settings entry that exports the ledger (spec 004, US4)
   ///
   /// In en, this message translates to:

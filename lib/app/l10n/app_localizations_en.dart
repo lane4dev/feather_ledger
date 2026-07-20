@@ -437,6 +437,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextYear => 'Next Year';
 
   @override
+  String get backupFileTypeLabel => 'Feather Ledger backup';
+
+  @override
   String get backupNow => 'Back up now';
 
   @override

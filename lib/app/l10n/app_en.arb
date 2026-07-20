@@ -505,6 +505,10 @@
   "@nextYear": {
     "description": "Tooltip for the month picker's next-year button"
   },
+  "backupFileTypeLabel": "Feather Ledger backup",
+  "@backupFileTypeLabel": {
+    "description": "File type label for the .flbackup filter in the platform file dialog"
+  },
   "backupNow": "Back up now",
   "@backupNow": {
     "description": "Settings entry that exports the ledger (spec 004, US4)"

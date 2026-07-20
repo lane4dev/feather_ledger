@@ -52,7 +52,7 @@ void main() {
       ProviderScope(
         overrides: [
           backupServiceProvider.overrideWith((ref) => service),
-          backupFilePickerProvider.overrideWithValue(() async => pickedFile),
+          backupFilePickerProvider.overrideWithValue((_) async => pickedFile),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
