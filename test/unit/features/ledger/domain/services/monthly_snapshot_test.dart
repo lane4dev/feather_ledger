@@ -132,7 +132,9 @@ void main() {
     expect(row!.openingBalanceMinor, 97000);
     expect(row.closingBalanceMinor, 92000);
 
-    // The header totals read the same snapshot projection.
+    // The header's three figures: income and expense are this month's, the
+    // balance is the live accounts total — the same 92000 the account row
+    // holds, read whatever month is on screen.
     final totals = await harness.ledgerService
         .watchMonthlySnapshot(DateTime(m1.$1, m1.$2), currencyCode: 'USD')
         .first;
@@ -140,6 +142,13 @@ void main() {
     expect(totals.incomeMinor, 0);
     expect(totals.balanceMinor, 92000,
         reason: 'current balance includes the future-dated posting');
+
+    final previous = await harness.ledgerService
+        .watchMonthlySnapshot(DateTime(m0.$1, m0.$2), currencyCode: 'USD')
+        .first;
+    expect(previous.balanceMinor, 92000,
+        reason: 'the balance is not a month figure — it does not move with '
+            'the month, while the month\'s own closing balance does (97000)');
   });
 
   test('empty months materialize with zero net between events', () async {
@@ -279,11 +288,13 @@ void main() {
     expect(jan.eventSequenceTo, eventsAfter.last.globalSequenceNumber);
   });
 
-  test('every headline figure belongs to the month it is shown for', () async {
-    // The bug this replaced: the balance came from the live accounts, so a
-    // past month showed today's money beside that month's income and expense —
-    // and disagreed with the reports screen, which reads all three off this
-    // same projection.
+  test('the month owns income and expense; the balance is the ledger\'s', () async {
+    // Two screens, one projection, three figures — but only two of them are
+    // the month's. The header's big number is labelled 总余额 and is what the
+    // accounts hold now; the reports screen shows the month's own closing
+    // balance under a label that says month-end. Reading the header's number
+    // off the month's snapshots made a future month read 0 while the accounts
+    // held money.
     await seedCashAndFood();
     await harness.accountService.createAccount(
       commandId: 'cmd_open',
@@ -296,7 +307,8 @@ void main() {
     await recordExpense(30000, commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
     await recordExpense(20000, commandId: 'cmd_feb', date: DateTime(2026, 2, 10));
 
-    final balances = <int>[];
+    final headerBalances = <int>[];
+    final reportBalances = <int>[];
     for (final month in [DateTime(2026, 1), DateTime(2026, 2)]) {
       final header = await harness.ledgerService
           .watchMonthlySnapshot(month, currencyCode: 'USD')
@@ -306,14 +318,36 @@ void main() {
           .first;
 
       expect(header.incomeMinor, reports.incomeMinor,
-          reason: 'the two screens call these the same numbers');
+          reason: 'both read the month off the same projection');
       expect(header.expenseMinor, reports.expenseMinor);
-      expect(header.balanceMinor, reports.balanceMinor);
 
-      balances.add(header.balanceMinor);
+      headerBalances.add(header.balanceMinor);
+      reportBalances.add(reports.balanceMinor);
     }
 
-    expect(balances.first, isNot(balances.last),
+    expect(headerBalances.first, headerBalances.last,
+        reason: 'the ledger\'s total is the same whichever month is on '
+            'screen — that is what makes it the ledger\'s');
+    expect(reportBalances.first, isNot(reportBalances.last),
         reason: 'a closing balance is the month\'s, so it moves with it');
+
+    // The case that made this a bug report: a month the projection has not
+    // reached holds no rows, so a closing balance read off them is 0 — while
+    // the ledger is holding money. Its total does not care.
+    final now = DateTime.now();
+    final beyond = DateTime(now.year, now.month + 2);
+    expect(
+      await harness.db.monthlySnapshotDao
+          .getAllForMonth(beyond.year, beyond.month),
+      isEmpty,
+      reason: 'no events land there, so the chain was never walked',
+    );
+    final future = await harness.ledgerService
+        .watchMonthlySnapshot(beyond, currencyCode: 'USD')
+        .first;
+    expect(future.incomeMinor, 0);
+    expect(future.expenseMinor, 0);
+    expect(future.balanceMinor, headerBalances.last,
+        reason: 'nothing has happened since, and the ledger still holds it');
   });
 }

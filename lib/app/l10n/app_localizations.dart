@@ -130,6 +130,12 @@ abstract class AppLocalizations {
   /// **'Balance'**
   String get balance;
 
+  /// The reports screen's third figure — that month's closing balance, unlike the ledger header's running total
+  ///
+  /// In en, this message translates to:
+  /// **'Month-end balance'**
+  String get monthEndBalance;
+
   /// No description provided for @totalBalance.
   ///
   /// In en, this message translates to:

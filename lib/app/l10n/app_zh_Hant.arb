@@ -20,6 +20,10 @@
   "@balance": {
     "description": "餘額標籤"
   },
+  "monthEndBalance": "期末餘額",
+  "@monthEndBalance": {
+    "description": "報表頁的第三個數字：該月期末餘額，與帳本頁頭部的當前總額不同"
+  },
   "totalBalance": "全部餘額",
   "noTransactionsThisMonth": "本月無交易記錄",
   "@noTransactionsThisMonth": {

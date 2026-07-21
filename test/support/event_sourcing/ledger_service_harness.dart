@@ -113,7 +113,7 @@ class LedgerServiceHarness {
           eventStore, projector, ledgerRepository, contextResolver),
       recurringService,
       WatchTransactionsQuery(ledgerRepository),
-      WatchMonthlySnapshotQuery(db.monthlySnapshotDao),
+      WatchMonthlySnapshotQuery(db.monthlySnapshotDao, db.accountDao),
       GetAccountBalanceQuery(accountRepository),
     );
 

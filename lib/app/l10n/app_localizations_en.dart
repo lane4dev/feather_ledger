@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get balance => 'Balance';
 
   @override
+  String get monthEndBalance => 'Month-end balance';
+
+  @override
   String get totalBalance => 'Total Balance';
 
   @override

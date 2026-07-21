@@ -20,6 +20,10 @@
   "@balance": {
     "description": "余额标签"
   },
+  "monthEndBalance": "期末余额",
+  "@monthEndBalance": {
+    "description": "报表页的第三个数字：该月期末余额，与账本页头部的当前总额不同"
+  },
   "totalBalance": "全部余额",
   "noTransactionsThisMonth": "本月无交易记录",
   "@noTransactionsThisMonth": {

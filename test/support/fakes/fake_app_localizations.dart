@@ -26,6 +26,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get totalBalance => 'Total Balance';
 
   @override
+  String get monthEndBalance => 'Month-end balance';
+
+  @override
   String get noTransactionsThisMonth => 'No transactions this month';
 
   @override

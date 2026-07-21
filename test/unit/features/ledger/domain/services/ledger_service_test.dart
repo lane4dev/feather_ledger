@@ -71,8 +71,8 @@ void main() {
     convertScheduledCommand = ConvertScheduledToPostedCommand(
         eventStore, projector, recurringRepository, contextResolver);
     watchTransactionsQuery = WatchTransactionsQuery(repository);
-    watchMonthlySnapshotQuery =
-        WatchMonthlySnapshotQuery(database.monthlySnapshotDao);
+    watchMonthlySnapshotQuery = WatchMonthlySnapshotQuery(
+        database.monthlySnapshotDao, database.accountDao);
     getAccountBalanceQuery = GetAccountBalanceQuery(accountRepository);
 
     // Recurring bills moved to their own service (spec 004, US2); the ledger

@@ -34,7 +34,9 @@ class ReportCategoryRow {
 }
 
 /// Monthly income/expense/balance read from the snapshot projection — the
-/// single source the reports share with the ledger (spec 003, US9 同源).
+/// source the reports share with the ledger for the month's income and
+/// expense (spec 003, US9). The balance here is the month's closing one; the
+/// ledger header's is the running total, which is a different question.
 class ReportMonthlyTotalsRow {
   final int incomeMinor;
   final int expenseMinor;

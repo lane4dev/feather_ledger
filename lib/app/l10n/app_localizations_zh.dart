@@ -24,6 +24,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get balance => '余额';
 
   @override
+  String get monthEndBalance => '期末余额';
+
+  @override
   String get totalBalance => '全部余额';
 
   @override
@@ -573,6 +576,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get balance => '余额';
 
   @override
+  String get monthEndBalance => '期末余额';
+
+  @override
   String get totalBalance => '全部余额';
 
   @override
@@ -1120,6 +1126,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get balance => '餘額';
+
+  @override
+  String get monthEndBalance => '期末餘額';
 
   @override
   String get totalBalance => '全部餘額';

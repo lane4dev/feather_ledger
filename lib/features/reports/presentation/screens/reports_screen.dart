@@ -62,8 +62,10 @@ class ReportsScreen extends ConsumerWidget {
             ),
             SizedBox(height: spacing.md),
 
-            // Monthly totals from the snapshot projection (spec 003, US9
-            // 同源) — same numbers the ledger header shows.
+            // The month's own figures off the snapshot projection (spec 003,
+            // US9). Income and expense are the same numbers the ledger header
+            // shows; the balance is not — the header's is the ledger's
+            // running total, this one is where the month ended.
             totalsAsync.when(
               data: (totals) => Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -79,7 +81,7 @@ class ReportsScreen extends ConsumerWidget {
                     color: context.colors.expense,
                   ),
                   _TotalsColumn(
-                    label: l10n.totalBalance,
+                    label: l10n.monthEndBalance,
                     displayAmount: totals.displayBalance,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),

@@ -20,6 +20,10 @@
   "@balance": {
     "description": "Balance label"
   },
+  "monthEndBalance": "Month-end balance",
+  "@monthEndBalance": {
+    "description": "The reports screen's third figure — that month's closing balance, unlike the ledger header's running total"
+  },
   "totalBalance": "Total Balance",
   "noTransactionsThisMonth": "No transactions this month",
   "@noTransactionsThisMonth": {

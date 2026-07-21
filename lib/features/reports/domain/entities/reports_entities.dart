@@ -15,9 +15,11 @@ class ReportCategoryTotal {
   });
 }
 
-/// Monthly totals read from the snapshot projection — the same source the
-/// ledger header uses (spec 003, US9 同源). [balanceMinor] is the month-end
-/// closing balance across accounts.
+/// Monthly totals read from the snapshot projection (spec 003, US9).
+/// [balanceMinor] is the month-end closing balance across accounts — which is
+/// this screen's figure and not the ledger header's: the header's balance is
+/// the ledger's running total, the same number whatever month is selected.
+/// Income and expense are the same on both screens.
 class ReportMonthlyTotals {
   final int incomeMinor;
   final int expenseMinor;
