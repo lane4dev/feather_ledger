@@ -87,25 +87,23 @@ GoRouter goRouter(Ref ref) {
                   path: '/more',
                   builder: (context, state) => const MoreScreen(),
                   routes: [
+                    // Both leave the shell: a page opened from the more tab is
+                    // a place of its own, not a fourth tab, and the bottom bar
+                    // has nothing to say about it while it is open.
                     GoRoute(
                       path: 'settings',
+                      parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) => const SettingsScreen(),
                     ),
                     GoRoute(
                       path: 'about',
+                      parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) => const AboutScreen(),
                     ),
-                    // Keep these for potential direct navigation within the more tab
-                    GoRoute(
-                      path: 'accounts',
-                      builder: (context, state) =>
-                          const AccountManagementScreen(),
-                    ),
-                    GoRoute(
-                      path: 'categories',
-                      builder: (context, state) =>
-                          const CategoryManagementScreen(),
-                    ),
+                    // Accounts and categories are not routed again here: the
+                    // pickers already reach them at the top-level
+                    // `/accounts_management` and `/categories_management`,
+                    // which open over the shell for the same reason.
                   ]),
             ],
           ),

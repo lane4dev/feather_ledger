@@ -124,6 +124,10 @@
   "@settings": {
     "description": "設定頁面標題"
   },
+  "settingsHint": "主題、語言與幣種",
+  "@settingsHint": {
+    "description": "「更多」頁設定項下方的說明"
+  },
   "theme": "主題",
   "@theme": {
     "description": "主題設定標籤"
@@ -200,9 +204,17 @@
   "@accounts": {
     "description": "帳戶選單項"
   },
+  "accountsHint": "帳戶與各自的餘額",
+  "@accountsHint": {
+    "description": "「更多」頁帳戶項下方的說明"
+  },
   "categories": "分類",
   "@categories": {
     "description": "分類選單項"
+  },
+  "categoriesHint": "收入與支出的分類",
+  "@categoriesHint": {
+    "description": "「更多」頁分類項下方的說明"
   },
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
@@ -296,9 +308,17 @@
   "@feedback": {
     "description": "回饋選單項"
   },
+  "feedbackHint": "告訴我們你的想法",
+  "@feedbackHint": {
+    "description": "「更多」頁回饋項下方的說明"
+  },
   "about": "關於",
   "@about": {
     "description": "關於選單項"
+  },
+  "aboutHint": "版本資訊與開源授權",
+  "@aboutHint": {
+    "description": "「更多」頁關於項下方的說明"
   },
   "openSourceLicenses": "開源許可",
   "@openSourceLicenses": {

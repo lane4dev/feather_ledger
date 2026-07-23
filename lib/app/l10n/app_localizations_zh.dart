@@ -107,6 +107,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get settingsHint => '主题、语言与币种';
+
+  @override
   String get theme => '主题';
 
   @override
@@ -164,7 +167,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accounts => '账户';
 
   @override
+  String get accountsHint => '账户与各自的余额';
+
+  @override
   String get categories => '分类';
+
+  @override
+  String get categoriesHint => '收入与支出的分类';
 
   @override
   String get dollarCurrency => '\$ (美元)';
@@ -236,7 +245,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedback => '反馈';
 
   @override
+  String get feedbackHint => '告诉我们你的想法';
+
+  @override
   String get about => '关于';
+
+  @override
+  String get aboutHint => '版本信息与开源许可';
 
   @override
   String get openSourceLicenses => '开源许可';
@@ -659,6 +674,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get settings => '设置';
 
   @override
+  String get settingsHint => '主题、语言与币种';
+
+  @override
   String get theme => '主题';
 
   @override
@@ -716,7 +734,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accounts => '账户';
 
   @override
+  String get accountsHint => '账户与各自的余额';
+
+  @override
   String get categories => '分类';
+
+  @override
+  String get categoriesHint => '收入与支出的分类';
 
   @override
   String get dollarCurrency => '\$ (美元)';
@@ -788,7 +812,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get feedback => '反馈';
 
   @override
+  String get feedbackHint => '告诉我们你的想法';
+
+  @override
   String get about => '关于';
+
+  @override
+  String get aboutHint => '版本信息与开源许可';
 
   @override
   String get openSourceLicenses => '开源许可';
@@ -1211,6 +1241,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settings => '設定';
 
   @override
+  String get settingsHint => '主題、語言與幣種';
+
+  @override
   String get theme => '主題';
 
   @override
@@ -1268,7 +1301,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get accounts => '帳戶';
 
   @override
+  String get accountsHint => '帳戶與各自的餘額';
+
+  @override
   String get categories => '分類';
+
+  @override
+  String get categoriesHint => '收入與支出的分類';
 
   @override
   String get dollarCurrency => '\$ (美元)';
@@ -1340,7 +1379,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get feedback => '回饋';
 
   @override
+  String get feedbackHint => '告訴我們你的想法';
+
+  @override
   String get about => '關於';
+
+  @override
+  String get aboutHint => '版本資訊與開源授權';
 
   @override
   String get openSourceLicenses => '開源許可';

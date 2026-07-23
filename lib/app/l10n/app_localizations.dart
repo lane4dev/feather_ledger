@@ -292,6 +292,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// Subtitle under the Settings entry in More
+  ///
+  /// In en, this message translates to:
+  /// **'Theme, language and currency'**
+  String get settingsHint;
+
   /// Theme setting label
   ///
   /// In en, this message translates to:
@@ -406,11 +412,23 @@ abstract class AppLocalizations {
   /// **'Accounts'**
   String get accounts;
 
+  /// Subtitle under the Accounts entry in More
+  ///
+  /// In en, this message translates to:
+  /// **'Your accounts and their balances'**
+  String get accountsHint;
+
   /// Categories menu item
   ///
   /// In en, this message translates to:
   /// **'Categories'**
   String get categories;
+
+  /// Subtitle under the Categories entry in More
+  ///
+  /// In en, this message translates to:
+  /// **'Income and expense categories'**
+  String get categoriesHint;
 
   /// Dollar currency option
   ///
@@ -550,11 +568,23 @@ abstract class AppLocalizations {
   /// **'Feedback'**
   String get feedback;
 
+  /// Subtitle under the Feedback entry in More
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what you think'**
+  String get feedbackHint;
+
   /// About menu item
   ///
   /// In en, this message translates to:
   /// **'About'**
   String get about;
+
+  /// Subtitle under the About entry in More
+  ///
+  /// In en, this message translates to:
+  /// **'Version details and open-source licences'**
+  String get aboutHint;
 
   /// Open Source Licenses menu item
   ///

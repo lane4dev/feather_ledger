@@ -270,7 +270,7 @@ lib/shared/     跨特性的组件与扩展
   而偏好之后会变，且全程没有汇率换算** —— 按偏好去过滤总额，会把全部账户滤掉，于是账本明明有钱却显示
   全 0（zh 语言环境下尤其容易：账户建的时候跟随偏好，`CurrencyController` 之后按系统 locale 解析出
   另一个币种）。
-- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由。
+- 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由，也是这两种管理页**唯一**的路由（`/more/accounts`、`/more/categories` 已删：选择器里已经能到，More 只是一扇并列的门）。**从 More 点开的每一项都盖在 shell 之上、不共享底部导航栏**：`/more/settings` 与 `/more/about` 带 `parentNavigatorKey: _rootNavigatorKey`（与 `/ledger/add` 同一手法），管理页走的两个顶层路由本来就是。调用一律用 `push`，让返回能回到那个 tab。每项都带一行副标题说明它打开什么（`settingsHint` …）。`test/ui/features/settings/more_screen_test.dart` 用真实 router 跑这条线，**去掉 navigator key 它会失败**（已变异验证过）。
 - 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。头部的三个头条数字里**只有两个属于该月**：收入与支出来自 `monthly_account_balance_snapshots`（与报表页同源），
 而标签写着「全部余额 / Total Balance」的那个数字**是账本当前的实时总额**（`accounts_view` 按币种求和，含已归档账户），
 **不随月份变化**。这个语义来回改过一轮，两次都被报成 bug，所以把两边的理由都记下来：

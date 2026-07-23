@@ -124,6 +124,10 @@
   "@settings": {
     "description": "Settings screen title"
   },
+  "settingsHint": "Theme, language and currency",
+  "@settingsHint": {
+    "description": "Subtitle under the Settings entry in More"
+  },
   "theme": "Theme",
   "@theme": {
     "description": "Theme setting label"
@@ -200,9 +204,17 @@
   "@accounts": {
     "description": "Accounts menu item"
   },
+  "accountsHint": "Your accounts and their balances",
+  "@accountsHint": {
+    "description": "Subtitle under the Accounts entry in More"
+  },
   "categories": "Categories",
   "@categories": {
     "description": "Categories menu item"
+  },
+  "categoriesHint": "Income and expense categories",
+  "@categoriesHint": {
+    "description": "Subtitle under the Categories entry in More"
   },
   "dollarCurrency": "$ (Dollar)",
   "@dollarCurrency": {
@@ -296,9 +308,17 @@
   "@feedback": {
     "description": "Feedback menu item"
   },
+  "feedbackHint": "Tell us what you think",
+  "@feedbackHint": {
+    "description": "Subtitle under the Feedback entry in More"
+  },
   "about": "About",
   "@about": {
     "description": "About menu item"
+  },
+  "aboutHint": "Version details and open-source licences",
+  "@aboutHint": {
+    "description": "Subtitle under the About entry in More"
   },
   "openSourceLicenses": "Open Source Licenses",
   "@openSourceLicenses": {

@@ -124,6 +124,10 @@
   "@settings": {
     "description": "设置页面标题"
   },
+  "settingsHint": "主题、语言与币种",
+  "@settingsHint": {
+    "description": "「更多」页设置项下方的说明"
+  },
   "theme": "主题",
   "@theme": {
     "description": "主题设置标签"
@@ -200,9 +204,17 @@
   "@accounts": {
     "description": "账户菜单项"
   },
+  "accountsHint": "账户与各自的余额",
+  "@accountsHint": {
+    "description": "「更多」页账户项下方的说明"
+  },
   "categories": "分类",
   "@categories": {
     "description": "分类菜单项"
+  },
+  "categoriesHint": "收入与支出的分类",
+  "@categoriesHint": {
+    "description": "「更多」页分类项下方的说明"
   },
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
@@ -296,9 +308,17 @@
   "@feedback": {
     "description": "反馈菜单项"
   },
+  "feedbackHint": "告诉我们你的想法",
+  "@feedbackHint": {
+    "description": "「更多」页反馈项下方的说明"
+  },
   "about": "关于",
   "@about": {
     "description": "关于菜单项"
+  },
+  "aboutHint": "版本信息与开源许可",
+  "@aboutHint": {
+    "description": "「更多」页关于项下方的说明"
   },
   "openSourceLicenses": "开源许可",
   "@openSourceLicenses": {

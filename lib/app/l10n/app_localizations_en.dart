@@ -108,6 +108,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get settingsHint => 'Theme, language and currency';
+
+  @override
   String get theme => 'Theme';
 
   @override
@@ -165,7 +168,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accounts => 'Accounts';
 
   @override
+  String get accountsHint => 'Your accounts and their balances';
+
+  @override
   String get categories => 'Categories';
+
+  @override
+  String get categoriesHint => 'Income and expense categories';
 
   @override
   String get dollarCurrency => '\$ (Dollar)';
@@ -242,7 +251,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedback => 'Feedback';
 
   @override
+  String get feedbackHint => 'Tell us what you think';
+
+  @override
   String get about => 'About';
+
+  @override
+  String get aboutHint => 'Version details and open-source licences';
 
   @override
   String get openSourceLicenses => 'Open Source Licenses';
