@@ -415,6 +415,180 @@ final class DisplayCurrencySymbolProvider
 String _$displayCurrencySymbolHash() =>
     r'345dfe9a085bdcca305f7cd671d18431d36f721b';
 
+/// The header's three figures for one month, in the ledger's own currency.
+///
+/// A provider rather than a subscription held by [LedgerViewModel], because
+/// **both of its inputs move and one of them arrives late.** The month moves
+/// by definition; the currency is derived from the accounts, and while they
+/// are still loading there is no ledger currency yet, so the first answer is
+/// the display preference — and before that, the built-in default.
+///
+/// A subscription that read the currency once and kept it filtered every
+/// account out the moment the ledger settled on a different one: a fresh
+/// install on a zh locale captured USD at first frame and then opened its
+/// first account in CNY, so the header read `$0.00` over a ledger holding
+/// ¥1000. Income and expense were wrong the same way, for the same reason —
+/// the snapshot rows are filtered by that code too.
+///
+/// The only thing that re-read it was changing the month, which is why
+/// swiping a month away and back appeared to fix it. `ref.watch` makes the
+/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+
+@ProviderFor(ledgerMonthlySummary)
+final ledgerMonthlySummaryProvider = LedgerMonthlySummaryFamily._();
+
+/// The header's three figures for one month, in the ledger's own currency.
+///
+/// A provider rather than a subscription held by [LedgerViewModel], because
+/// **both of its inputs move and one of them arrives late.** The month moves
+/// by definition; the currency is derived from the accounts, and while they
+/// are still loading there is no ledger currency yet, so the first answer is
+/// the display preference — and before that, the built-in default.
+///
+/// A subscription that read the currency once and kept it filtered every
+/// account out the moment the ledger settled on a different one: a fresh
+/// install on a zh locale captured USD at first frame and then opened its
+/// first account in CNY, so the header read `$0.00` over a ledger holding
+/// ¥1000. Income and expense were wrong the same way, for the same reason —
+/// the snapshot rows are filtered by that code too.
+///
+/// The only thing that re-read it was changing the month, which is why
+/// swiping a month away and back appeared to fix it. `ref.watch` makes the
+/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+
+final class LedgerMonthlySummaryProvider extends $FunctionalProvider<
+        AsyncValue<MonthlySummaryUiModel>,
+        MonthlySummaryUiModel,
+        Stream<MonthlySummaryUiModel>>
+    with
+        $FutureModifier<MonthlySummaryUiModel>,
+        $StreamProvider<MonthlySummaryUiModel> {
+  /// The header's three figures for one month, in the ledger's own currency.
+  ///
+  /// A provider rather than a subscription held by [LedgerViewModel], because
+  /// **both of its inputs move and one of them arrives late.** The month moves
+  /// by definition; the currency is derived from the accounts, and while they
+  /// are still loading there is no ledger currency yet, so the first answer is
+  /// the display preference — and before that, the built-in default.
+  ///
+  /// A subscription that read the currency once and kept it filtered every
+  /// account out the moment the ledger settled on a different one: a fresh
+  /// install on a zh locale captured USD at first frame and then opened its
+  /// first account in CNY, so the header read `$0.00` over a ledger holding
+  /// ¥1000. Income and expense were wrong the same way, for the same reason —
+  /// the snapshot rows are filtered by that code too.
+  ///
+  /// The only thing that re-read it was changing the month, which is why
+  /// swiping a month away and back appeared to fix it. `ref.watch` makes the
+  /// currency a dependency Riverpod can see, so it re-subscribes by itself.
+  LedgerMonthlySummaryProvider._(
+      {required LedgerMonthlySummaryFamily super.from,
+      required DateTime super.argument})
+      : super(
+          retry: null,
+          name: r'ledgerMonthlySummaryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$ledgerMonthlySummaryHash();
+
+  @override
+  String toString() {
+    return r'ledgerMonthlySummaryProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<MonthlySummaryUiModel> $createElement(
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<MonthlySummaryUiModel> create(Ref ref) {
+    final argument = this.argument as DateTime;
+    return ledgerMonthlySummary(
+      ref,
+      argument,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LedgerMonthlySummaryProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$ledgerMonthlySummaryHash() =>
+    r'3afe60153903b552f5366115691aa5ea606bd8ae';
+
+/// The header's three figures for one month, in the ledger's own currency.
+///
+/// A provider rather than a subscription held by [LedgerViewModel], because
+/// **both of its inputs move and one of them arrives late.** The month moves
+/// by definition; the currency is derived from the accounts, and while they
+/// are still loading there is no ledger currency yet, so the first answer is
+/// the display preference — and before that, the built-in default.
+///
+/// A subscription that read the currency once and kept it filtered every
+/// account out the moment the ledger settled on a different one: a fresh
+/// install on a zh locale captured USD at first frame and then opened its
+/// first account in CNY, so the header read `$0.00` over a ledger holding
+/// ¥1000. Income and expense were wrong the same way, for the same reason —
+/// the snapshot rows are filtered by that code too.
+///
+/// The only thing that re-read it was changing the month, which is why
+/// swiping a month away and back appeared to fix it. `ref.watch` makes the
+/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+
+final class LedgerMonthlySummaryFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<MonthlySummaryUiModel>, DateTime> {
+  LedgerMonthlySummaryFamily._()
+      : super(
+          retry: null,
+          name: r'ledgerMonthlySummaryProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// The header's three figures for one month, in the ledger's own currency.
+  ///
+  /// A provider rather than a subscription held by [LedgerViewModel], because
+  /// **both of its inputs move and one of them arrives late.** The month moves
+  /// by definition; the currency is derived from the accounts, and while they
+  /// are still loading there is no ledger currency yet, so the first answer is
+  /// the display preference — and before that, the built-in default.
+  ///
+  /// A subscription that read the currency once and kept it filtered every
+  /// account out the moment the ledger settled on a different one: a fresh
+  /// install on a zh locale captured USD at first frame and then opened its
+  /// first account in CNY, so the header read `$0.00` over a ledger holding
+  /// ¥1000. Income and expense were wrong the same way, for the same reason —
+  /// the snapshot rows are filtered by that code too.
+  ///
+  /// The only thing that re-read it was changing the month, which is why
+  /// swiping a month away and back appeared to fix it. `ref.watch` makes the
+  /// currency a dependency Riverpod can see, so it re-subscribes by itself.
+
+  LedgerMonthlySummaryProvider call(
+    DateTime month,
+  ) =>
+      LedgerMonthlySummaryProvider._(argument: month, from: this);
+
+  @override
+  String toString() => r'ledgerMonthlySummaryProvider';
+}
+
 @ProviderFor(LedgerViewModel)
 final ledgerViewModelProvider = LedgerViewModelProvider._();
 
@@ -447,7 +621,7 @@ final class LedgerViewModelProvider
   }
 }
 
-String _$ledgerViewModelHash() => r'12c56fff4ab0b6a3d193f5114455183266a82af4';
+String _$ledgerViewModelHash() => r'8ca310a4c91551413019570f07c10560eb0f594c';
 
 abstract class _$LedgerViewModel extends $Notifier<LedgerViewState> {
   LedgerViewState build();

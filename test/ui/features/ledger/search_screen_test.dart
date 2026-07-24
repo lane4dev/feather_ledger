@@ -47,6 +47,9 @@ void main() {
           searchViewModelProvider.overrideWith(() => viewModel),
           searchResultsProvider.overrideWith((ref) => viewModel.results),
           currencyControllerProvider.overrideWith(_FixedCurrency.new),
+          // The symbol on a row follows the ledger's currency, which is the
+          // accounts' — with none, it falls through to the preference above.
+          accountListProvider.overrideWithValue(const AsyncData([])),
           accountUiListProvider.overrideWithValue(const AsyncData([])),
           categoryListProvider.overrideWith(
               (ref, type) => const Stream.empty()),

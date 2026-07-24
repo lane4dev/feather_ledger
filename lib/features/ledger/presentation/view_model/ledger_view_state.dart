@@ -1,18 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import '../../domain/value_objects/account_balance.dart';
 
+/// What the ledger screen holds across tab switches: which month is on
+/// screen, and the per-account balances the picker reads.
+///
+/// The month's headline figures are *not* here. They were, as an
+/// [AsyncValue] the view model kept alive by hand — and a hand-held
+/// subscription cannot tell when one of its inputs moves. See
+/// [ledgerMonthlySummaryProvider].
 class LedgerViewState {
   final DateTime selectedDate;
-  /// Already written out — the state carries what the screen prints, not the
-  /// numbers it would have to convert.
-  final AsyncValue<MonthlySummaryUiModel> summary;
   final Map<String, AsyncValue<AccountBalance>> accountBalances;
 
   const LedgerViewState({
     required this.selectedDate,
-    required this.summary,
     required this.accountBalances,
   });
 
@@ -20,19 +22,16 @@ class LedgerViewState {
     final now = selectedDate ?? DateTime.now();
     return LedgerViewState(
       selectedDate: DateTime(now.year, now.month, now.day),
-      summary: const AsyncLoading(),
       accountBalances: const {},
     );
   }
 
   LedgerViewState copyWith({
     DateTime? selectedDate,
-    AsyncValue<MonthlySummaryUiModel>? summary,
     Map<String, AsyncValue<AccountBalance>>? accountBalances,
   }) {
     return LedgerViewState(
       selectedDate: selectedDate ?? this.selectedDate,
-      summary: summary ?? this.summary,
       accountBalances: accountBalances ?? this.accountBalances,
     );
   }

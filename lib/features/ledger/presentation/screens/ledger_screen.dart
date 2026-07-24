@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -122,13 +120,16 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   Widget build(BuildContext context) {
     final ledgerState = ref.watch(ledgerViewModelProvider);
     final selectedDate = ledgerState.selectedDate;
-    final summaryAsync = ledgerState.summary;
+    // The month's figures are the provider's business, not the view model's:
+    // both the month and the ledger's currency feed them, and only Riverpod
+    // sees both. See [ledgerMonthlySummaryProvider].
+    final summaryAsync = ref.watch(ledgerMonthlySummaryProvider(selectedDate));
 
     final l10n = AppLocalizations.of(context)!;
 
-    final currencyKey =
-        ref.watch(currencyControllerProvider).value ?? '\$';
-    final currency = AppCurrencies.getSymbol(currencyKey);
+    // The ledger's own currency, the same one the header and the day totals
+    // use — not the display preference, which the accounts may have outgrown.
+    final currency = ref.watch(displayCurrencySymbolProvider);
 
     return Scaffold(
       body: NestedScrollView(

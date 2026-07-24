@@ -266,12 +266,22 @@ lib/shared/     跨特性的组件与扩展
   **系统分类的标识符与显示名刻意不同名**：显示名是「余额更正」（en: `Balance correction`），而 `CategoryConstants.reversal*Code`、`reversal*Id` 与持久化的 `systemCode` 一律不动 —— 显示名给人看、随时可改，`systemCode` 是上面那条查询的键，改了就查不到。另注意分类名是**播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
 - **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时
-  就是它，混合时才回退到偏好），头部与列表的货币符号都跟它走。原因是**账户在建的时候跟随当时的偏好，
+  就是它，混合时才回退到偏好），头部、列表行、详情抽屉与检索页的货币符号**全部**经
+  `displayCurrencySymbolProvider` 跟它走 —— 不再有第二个答案。原因是**账户在建的时候跟随当时的偏好，
   而偏好之后会变，且全程没有汇率换算** —— 按偏好去过滤总额，会把全部账户滤掉，于是账本明明有钱却显示
   全 0（zh 语言环境下尤其容易：账户建的时候跟随偏好，`CurrencyController` 之后按系统 locale 解析出
   另一个币种）。
+  **这个答案会变，而且第一次给出来时还是错的**：账户列表还在加载时 `ledgerCurrencyProvider` 答不出
+  「账本的币种」，于是回退到偏好，再回退到内建默认 USD。所以**任何消费它的流/订阅都必须 `ref.watch`，
+  不能 `ref.read`** —— 曾经 `LedgerViewModel` 手工订阅月度合计时 `ref.read` 了一次，于是 zh 语言的
+  全新安装在第一帧抓到 USD、随后第一个账户开在 CNY，头部就对着 ¥1000 的账本读 `$0.00`（收入/支出同一
+  个码、同样为 0），**只有切换月份能救**，因为那是唯一重新读一次的地方。现在合计是
+  `ledgerMonthlySummaryProvider(month)`：月份与币种都是 `ref.watch`，Riverpod 自己重订阅。
+  它的回归测试是 `test/unit/features/ledger/presentation/ledger_summary_currency_test.dart`
+  —— 把 `watch` 改回 `read` 它会失败（已变异验证过）。
 - 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由，也是这两种管理页**唯一**的路由（`/more/accounts`、`/more/categories` 已删：选择器里已经能到，More 只是一扇并列的门）。**从 More 点开的每一项都盖在 shell 之上、不共享底部导航栏**：`/more/settings` 与 `/more/about` 带 `parentNavigatorKey: _rootNavigatorKey`（与 `/ledger/add` 同一手法），管理页走的两个顶层路由本来就是。调用一律用 `push`，让返回能回到那个 tab。每项都带一行副标题说明它打开什么（`settingsHint` …）。`test/ui/features/settings/more_screen_test.dart` 用真实 router 跑这条线，**去掉 navigator key 它会失败**（已变异验证过）。
-- 账本状态：`LedgerViewModel`（keepAlive notifier）持有选中月份、快照来源的月度合计、各账户余额；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。头部的三个头条数字里**只有两个属于该月**：收入与支出来自 `monthly_account_balance_snapshots`（与报表页同源），
+- 账本状态：`LedgerViewModel`（keepAlive notifier）只持有选中月份与各账户余额 —— **月度合计不在它手里**，
+  见上面那条；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。头部读 `ledgerMonthlySummaryProvider(month)`。三个头条数字里**只有两个属于该月**：收入与支出来自 `monthly_account_balance_snapshots`（与报表页同源），
 而标签写着「全部余额 / Total Balance」的那个数字**是账本当前的实时总额**（`accounts_view` 按币种求和，含已归档账户），
 **不随月份变化**。这个语义来回改过一轮，两次都被报成 bug，所以把两边的理由都记下来：
 把它读成「该月期末余额」时，投影链只物化到今天（或最后一个未来事件），**未来月份根本没有快照行**，
@@ -309,6 +319,11 @@ lib/shared/     跨特性的组件与扩展
 - **被冲销的行是在查询层过滤的**，不是 DAO（`watch_transactions_query.dart`）。新的 DAO 调用方会看到
   被冲销的行；要么显式过滤，要么走 query。
 - **余额只在投影路径内计算。** 如果某个组件或查询在做余额算术，那段逻辑应该属于投影器或月度快照投影器。
+- **`ref.read` 是一句承诺：「这个值不会再变」。** 用它去喂一个长命的订阅（notifier 的字段、手工
+  `listen`、缓存的流），就是在向框架隐藏一条依赖 —— Riverpod 看不见，也就永远不会失效。**派生的、
+  可能变的 provider 一律 `ref.watch`**，要的是「变了就重来」就把它写成 provider（`ref.watch` 进
+  参数），而不是在 notifier 里手搓 `StreamSubscription` + 手动重订阅。上面 `ledgerCurrencyProvider`
+  那条就是这么坏掉的：读一次，然后对着另一个币种的账户读到会话结束。
 - **改动事件 payload 或新增事件类型**意味着要动 `register_ledger_events.dart` 里的注册表，并遵守
   constitution VII：一旦发布，payload 变更就要升 `schemaVersion` 并附带 upcaster，而已发布的
   `eventType` 永不改名。**首例就是 `CategoryCreated` v1→v2**（图标从 Material 码点换成 Lucide 码点）

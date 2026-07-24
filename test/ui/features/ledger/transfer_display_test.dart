@@ -8,6 +8,7 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_transaction_history_query.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
@@ -76,6 +77,9 @@ void main() {
       ProviderScope(
         overrides: [
           currencyControllerProvider.overrideWith(_FixedCurrency.new),
+          // The sheet writes the ledger's symbol, which the accounts decide —
+          // with none, it falls through to the preference above.
+          accountListProvider.overrideWithValue(const AsyncData([])),
           getTransactionHistoryProvider(model.id).overrideWith(
             (ref) => Future<List<TransactionHistoryEntry>>.value(const []),
           ),

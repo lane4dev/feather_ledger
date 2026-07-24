@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -127,21 +126,45 @@ String ledgerCurrency(Ref ref) {
 String displayCurrencySymbol(Ref ref) =>
     AppCurrencies.getSymbol(ref.watch(ledgerCurrencyProvider));
 
+/// The header's three figures for one month, in the ledger's own currency.
+///
+/// A provider rather than a subscription held by [LedgerViewModel], because
+/// **both of its inputs move and one of them arrives late.** The month moves
+/// by definition; the currency is derived from the accounts, and while they
+/// are still loading there is no ledger currency yet, so the first answer is
+/// the display preference — and before that, the built-in default.
+///
+/// A subscription that read the currency once and kept it filtered every
+/// account out the moment the ledger settled on a different one: a fresh
+/// install on a zh locale captured USD at first frame and then opened its
+/// first account in CNY, so the header read `$0.00` over a ledger holding
+/// ¥1000. Income and expense were wrong the same way, for the same reason —
+/// the snapshot rows are filtered by that code too.
+///
+/// The only thing that re-read it was changing the month, which is why
+/// swiping a month away and back appeared to fix it. `ref.watch` makes the
+/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+@riverpod
+Stream<MonthlySummaryUiModel> ledgerMonthlySummary(Ref ref, DateTime month) {
+  final service = ref.watch(ledgerServiceProvider);
+  final currencyCode = ref.watch(ledgerCurrencyProvider);
+
+  return service.watchMonthlySnapshot(month, currencyCode: currencyCode).map(
+        (totals) => MonthlySummaryUiModel.of(
+          balanceMinor: totals.balanceMinor,
+          incomeMinor: totals.incomeMinor,
+          expenseMinor: totals.expenseMinor,
+          // The currency the totals came back in, not the preference: the two
+          // can disagree, and the money is the one that is right.
+          currencySymbol: AppCurrencies.getSymbol(totals.currencyCode),
+        ),
+      );
+}
+
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
-  StreamSubscription<MonthlySummaryUiModel>? _summarySub;
-
   @override
-  LedgerViewState build() {
-    final initial = LedgerViewState.initial();
-
-    ref.onDispose(() {
-      _summarySub?.cancel();
-    });
-
-    _subscribeSummary(initial.selectedDate);
-    return initial;
-  }
+  LedgerViewState build() => LedgerViewState.initial();
 
   void setMonth(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
@@ -150,8 +173,6 @@ class LedgerViewModel extends _$LedgerViewModel {
     state = state.copyWith(
       selectedDate: normalized,
     );
-
-    _subscribeSummary(normalized);
   }
 
   Future<void> ensureAccountBalanceLoaded(String accountId) async {
@@ -268,35 +289,5 @@ class LedgerViewModel extends _$LedgerViewModel {
     return ref
         .read(ledgerServiceProvider)
         .deleteTransaction(id, commandId: const Uuid().v4());
-  }
-
-  void _subscribeSummary(DateTime datetime) {
-    _summarySub?.cancel();
-
-    _summarySub =
-        ref
-            .read(ledgerServiceProvider)
-            .watchMonthlySnapshot(
-              datetime,
-              currencyCode: ref.read(ledgerCurrencyProvider),
-            )
-            // Converted once, on the way in, where the currency is in hand.
-            .map((totals) => MonthlySummaryUiModel.of(
-                  balanceMinor: totals.balanceMinor,
-                  incomeMinor: totals.incomeMinor,
-                  expenseMinor: totals.expenseMinor,
-                  // The currency the totals came back in, not the preference:
-                  // the two can disagree, and the money is the one that is
-                  // right.
-                  currencySymbol: AppCurrencies.getSymbol(totals.currencyCode),
-                ))
-            .listen(
-      (summary) {
-        state = state.copyWith(summary: AsyncData(summary));
-      },
-      onError: (Object error, StackTrace st) {
-        state = state.copyWith(summary: AsyncError(error, st));
-      },
-    );
   }
 }

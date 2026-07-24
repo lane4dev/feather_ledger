@@ -3,17 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/theme/category_tokens.dart';
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/events/ledger_events.dart';
 import '../../domain/queries/get_transaction_history_query.dart';
 import '../models/transaction_tile_ui_model.dart';
+import '../view_model/ledger_view_model.dart';
 
 import 'ledger_delete_menu.dart';
 import 'ledger_detail_row.dart';
@@ -37,9 +36,9 @@ class TransactionDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    final currencyKey =
-        ref.watch(currencyControllerProvider).value ?? '\$';
-    final currency = AppCurrencies.getSymbol(currencyKey);
+    // The amount below is an amount in this ledger, so it wears the ledger's
+    // symbol — the preference can name a currency the accounts are not in.
+    final currency = ref.watch(displayCurrencySymbolProvider);
 
     final locale = Localizations.localeOf(context).toString();
 

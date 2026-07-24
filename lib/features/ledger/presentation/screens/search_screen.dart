@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/value_objects/transaction_filter.dart';
 import '../models/transaction_tile_ui_model.dart';
+import '../view_model/ledger_view_model.dart';
 import '../view_model/search_view_model.dart';
 import '../widgets/ledger_skeleton.dart';
 import '../widgets/ledger_timeline.dart';
@@ -39,9 +38,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final l10n = AppLocalizations.of(context)!;
     final resultsAsync = ref.watch(searchResultsProvider);
     final filter = ref.watch(searchViewModelProvider);
-    final currencyKey =
-        ref.watch(currencyControllerProvider).value ?? '\$';
-    final currency = AppCurrencies.getSymbol(currencyKey);
+    final currency = ref.watch(displayCurrencySymbolProvider);
     final results = resultsAsync.value;
     final canExport = results != null && !results.isEmpty;
 
