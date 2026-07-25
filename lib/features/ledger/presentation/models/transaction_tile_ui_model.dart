@@ -9,7 +9,7 @@ class TransactionTileUiModel {
   final DateTime date;
   final String? note;
 
-  final CategoryEntity category;
+  final CategoryEntity? category;
   final AccountEntity account;
 
   /// Credit-side account — set only for kind=transfer (spec 003, US5/T042).
@@ -35,7 +35,7 @@ class TransactionTileUiModel {
     required this.type,
     required this.date,
     required this.note,
-    required this.category,
+    this.category,
     required this.account,
     this.toAccount,
     required this.displayAmount,

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/bootstrap/register_ledger_events.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
@@ -62,16 +63,20 @@ class LedgerProjectorImpl implements LedgerProjector {
       case 'AccountRenamed':
         await _applyAccountRenamed(envelope, AccountRenamed.fromJson(payload));
       case 'AccountArchived':
-        await _applyAccountArchived(envelope, AccountArchived.fromJson(payload));
+        await _applyAccountArchived(
+            envelope, AccountArchived.fromJson(payload));
       case 'AccountTotalsInclusionChanged':
         await _applyAccountTotalsInclusionChanged(
             envelope, AccountTotalsInclusionChanged.fromJson(payload));
       case 'CategoryCreated':
-        await _applyCategoryCreated(envelope, CategoryCreated.fromJson(payload));
+        await _applyCategoryCreated(
+            envelope, CategoryCreated.fromJson(payload));
       case 'CategoryRenamed':
-        await _applyCategoryRenamed(envelope, CategoryRenamed.fromJson(payload));
+        await _applyCategoryRenamed(
+            envelope, CategoryRenamed.fromJson(payload));
       case 'CategoryArchived':
-        await _applyCategoryArchived(envelope, CategoryArchived.fromJson(payload));
+        await _applyCategoryArchived(
+            envelope, CategoryArchived.fromJson(payload));
       case 'OpeningBalanceSet':
         final p = OpeningBalanceSet.fromJson(payload);
         await _applyOpeningBalanceSet(envelope, p);
@@ -95,8 +100,7 @@ class LedgerProjectorImpl implements LedgerProjector {
 
   /// — Account stream ————————————————————————————————————————————————
 
-  Future<void> _applyAccountCreated(
-      EventEnvelope e, AccountCreated p) async {
+  Future<void> _applyAccountCreated(EventEnvelope e, AccountCreated p) async {
     final gsn = e.globalSequenceNumber!;
     final existing = await _db.accountDao.getAccountById(p.accountId);
     if (existing != null) {
@@ -130,8 +134,7 @@ class LedgerProjectorImpl implements LedgerProjector {
     ));
   }
 
-  Future<void> _applyAccountArchived(
-      EventEnvelope e, AccountArchived p) async {
+  Future<void> _applyAccountArchived(EventEnvelope e, AccountArchived p) async {
     final gsn = e.globalSequenceNumber!;
     final existing = await _db.accountDao.getAccountById(p.accountId);
     if (existing == null) {
@@ -187,8 +190,7 @@ class LedgerProjectorImpl implements LedgerProjector {
 
   /// — Category stream ———————————————————————————————————————————————
 
-  Future<void> _applyCategoryCreated(
-      EventEnvelope e, CategoryCreated p) async {
+  Future<void> _applyCategoryCreated(EventEnvelope e, CategoryCreated p) async {
     final gsn = e.globalSequenceNumber!;
     final existing = await _db.categoriesDao.getCategoryById(p.categoryId);
     if (existing != null) {
@@ -208,8 +210,7 @@ class LedgerProjectorImpl implements LedgerProjector {
     ));
   }
 
-  Future<void> _applyCategoryRenamed(
-      EventEnvelope e, CategoryRenamed p) async {
+  Future<void> _applyCategoryRenamed(EventEnvelope e, CategoryRenamed p) async {
     final gsn = e.globalSequenceNumber!;
     final existing = await _db.categoriesDao.getCategoryById(p.categoryId);
     if (existing == null) {
@@ -245,7 +246,8 @@ class LedgerProjectorImpl implements LedgerProjector {
   Future<void> _applyTransactionRecorded(
       EventEnvelope e, TransactionRecorded p) async {
     final gsn = e.globalSequenceNumber!;
-    final existing = await _db.transactionsDao.getTransactionRow(p.transactionId);
+    final existing =
+        await _db.transactionsDao.getTransactionRow(p.transactionId);
     if (existing != null) {
       if (existing.originalEventId >= gsn) return; // already applied
       throw StateError('TransactionRecorded for existing transaction '
@@ -275,9 +277,15 @@ class LedgerProjectorImpl implements LedgerProjector {
           '(event ${e.eventId})');
     }
 
+    final kind = projectedTransactionKind(p, commandId: e.commandId);
+
     // Write-time category snapshot: history survives archival. Transfers
     // carry no category — the snapshot columns stay null.
-    final categoryId = p.postings.first.categoryId;
+    // Legacy reversal-category rows are projected as a balance purpose. They
+    // retain their source posting for replay, but must no longer surface as a
+    // category-bearing income/expense record.
+    final categoryId =
+        kind.requiresCategory ? p.postings.first.categoryId : null;
     final category = categoryId == null
         ? null
         : await _db.categoriesDao.getCategoryById(categoryId);
@@ -286,10 +294,11 @@ class LedgerProjectorImpl implements LedgerProjector {
           '$categoryId (event ${e.eventId})');
     }
 
-    await _db.transactionsDao.upsertTransaction(TransactionsViewCompanion.insert(
+    await _db.transactionsDao
+        .upsertTransaction(TransactionsViewCompanion.insert(
       transactionId: p.transactionId,
       occurredAt: p.occurredAt,
-      kind: p.kind,
+      kind: kind,
       description: p.description,
       categoryName: Value(category?.name),
       categoryIcon: Value(category?.iconKey),
@@ -307,7 +316,8 @@ class LedgerProjectorImpl implements LedgerProjector {
         throw StateError('TransactionRecorded references unknown account '
             '${posting.accountId} (event ${e.eventId})');
       }
-      await _db.transactionsDao.upsertPosting(TransactionPostingsViewCompanion.insert(
+      await _db.transactionsDao
+          .upsertPosting(TransactionPostingsViewCompanion.insert(
         // Deterministic id: rebuild (US8) replays must reproduce the
         // projection field-by-field, so no random ids here.
         id: '${p.transactionId}:$i',
@@ -347,8 +357,8 @@ class LedgerProjectorImpl implements LedgerProjector {
 
     // Undo each posting's impact on its account — the single balance
     // calculation point stays here.
-    final rows = await _db.transactionsDao
-        .getTransactionRows(p.originalTransactionId);
+    final rows =
+        await _db.transactionsDao.getTransactionRows(p.originalTransactionId);
     final affected = <String>{};
     for (final row in rows) {
       final account = row.account;
@@ -361,7 +371,8 @@ class LedgerProjectorImpl implements LedgerProjector {
       ));
     }
 
-    await _db.transactionsDao.markTransactionAsReversed(p.originalTransactionId);
+    await _db.transactionsDao
+        .markTransactionAsReversed(p.originalTransactionId);
     return affected;
   }
 
@@ -380,8 +391,9 @@ class LedgerProjectorImpl implements LedgerProjector {
     await _db.transaction(() async {
       await (_db.update(_db.accountsView)).write(const AccountsViewCompanion(
           projectionVersion: Value(ledgerProjectionVersion)));
-      await (_db.update(_db.categoriesView)).write(const CategoriesViewCompanion(
-          projectionVersion: Value(ledgerProjectionVersion)));
+      await (_db.update(_db.categoriesView)).write(
+          const CategoriesViewCompanion(
+              projectionVersion: Value(ledgerProjectionVersion)));
       await (_db.update(_db.transactionsView)).write(
           const TransactionsViewCompanion(
               projectionVersion: Value(ledgerProjectionVersion)));

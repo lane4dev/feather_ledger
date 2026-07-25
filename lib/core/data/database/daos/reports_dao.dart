@@ -18,6 +18,7 @@ class ReportCategoryRow {
   final String name;
   final String iconKey;
   final String colorHex;
+
   /// How much moved in this category, as a **magnitude**. A breakdown answers
   /// "how much on food", not "which way did it net" — and a chart cannot draw
   /// a negative slice. The sign is already implied by which breakdown this is:
@@ -92,7 +93,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       final map = <DateTime, int>{};
       for (final row in rows) {
         final tx = row.readTable(transactionsView);
-        if (tx.kind == TransactionKind.transfer) continue; // net zero
+        if (!tx.kind.contributesToIncomeExpense) continue;
         final posting = row.readTable(transactionPostingsView);
         final day = DateTime(
             tx.occurredAt.year, tx.occurredAt.month, tx.occurredAt.day);
@@ -158,8 +159,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     ])
           ..where(monthlyAccountBalanceSnapshots.year.equals(datetime.year) &
               monthlyAccountBalanceSnapshots.month.equals(datetime.month) &
-              monthlyAccountBalanceSnapshots.currencyCode
-                  .equals(currencyCode) &
+              monthlyAccountBalanceSnapshots.currencyCode.equals(currencyCode) &
               accountsView.includeInTotals.equals(true)))
         .watch()
         .map((joined) {

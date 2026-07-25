@@ -73,16 +73,14 @@ class MonthlySnapshotProjectorImpl {
         case 'AccountCreated':
           final p = AccountCreated.fromJson(_payload(row));
           if (p.accountId != accountId) break;
-          (anchorMonth, anchorGsn) =
-              _adoptAnchor(anchorMonth, anchorGsn, row.id,
-                  _monthOf(row.occurredAt));
+          (anchorMonth, anchorGsn) = _adoptAnchor(
+              anchorMonth, anchorGsn, row.id, _monthOf(row.occurredAt));
         case 'OpeningBalanceSet':
           final p = OpeningBalanceSet.fromJson(_payload(row));
           if (p.accountId != accountId) break;
           openingAmount += p.amountMinor.abs();
-          (anchorMonth, anchorGsn) =
-              _adoptAnchor(anchorMonth, anchorGsn, row.id,
-                  _monthOf(row.occurredAt));
+          (anchorMonth, anchorGsn) = _adoptAnchor(
+              anchorMonth, anchorGsn, row.id, _monthOf(row.occurredAt));
         case 'TransactionRecorded':
           final p = TransactionRecorded.fromJson(_payload(row));
           final legs = p.postings
@@ -91,9 +89,11 @@ class MonthlySnapshotProjectorImpl {
           if (legs.isEmpty) break;
           final month = _monthOf(p.occurredAt);
           originalMonthOf[p.transactionId] = month;
-          recorded
-              .putIfAbsent(month, () => [])
-              .add(_MonthEvent(row.id, p.transactionId, p.kind, legs));
+          recorded.putIfAbsent(month, () => []).add(_MonthEvent(
+              row.id,
+              p.transactionId,
+              projectedTransactionKind(p, commandId: row.commandId),
+              legs));
           (anchorMonth, anchorGsn) =
               _adoptAnchor(anchorMonth, anchorGsn, row.id, month);
         case 'TransactionReversed':
@@ -132,9 +132,8 @@ class MonthlySnapshotProjectorImpl {
     var (year, month) = anchorMonth;
     while (true) {
       final monthEvents = recorded[(year, month)] ?? const [];
-      final live = monthEvents
-          .where((e) => !reversedTxIds.contains(e.txId))
-          .toList();
+      final live =
+          monthEvents.where((e) => !reversedTxIds.contains(e.txId)).toList();
       final reversalsHere = reversalGsns[(year, month)] ?? const [];
 
       var income = 0;
@@ -157,6 +156,11 @@ class MonthlySnapshotProjectorImpl {
               } else {
                 transferOut -= posting.amountMinor;
               }
+            case TransactionKind.openingBalance:
+            case TransactionKind.balanceAdjustment:
+              // They are balance movements but neither current-period income
+              // nor expense, and have no category/budget allocation.
+              break;
           }
         }
         to = max(to, e.gsn);
@@ -191,7 +195,8 @@ class MonthlySnapshotProjectorImpl {
 
   /// Payload decoded through the upcaster, like the main projector (schema
   /// 演进: old rows may carry older schemaVersions).
-  Map<String, dynamic> _payload(LedgerEventRow row) => ledgerEventRegistry.upcast(
+  Map<String, dynamic> _payload(LedgerEventRow row) =>
+      ledgerEventRegistry.upcast(
         row.eventType,
         (jsonDecode(row.payload) as Map).cast<String, dynamic>(),
         eventId: row.eventId,
@@ -209,8 +214,8 @@ class MonthlySnapshotProjectorImpl {
 
   /// Returns the anchor (month, GSN) updated with an earlier month or a
   /// lower GSN.
-  static ((int, int), int) _adoptAnchor((int, int)? anchorMonth,
-      int? anchorGsn, int rowId, (int, int) month) {
+  static ((int, int), int) _adoptAnchor(
+      (int, int)? anchorMonth, int? anchorGsn, int rowId, (int, int) month) {
     final m = anchorMonth == null || _compare(month, anchorMonth) < 0
         ? month
         : anchorMonth;

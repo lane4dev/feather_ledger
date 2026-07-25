@@ -65,9 +65,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       List<TransactionWithDetails> rows) {
     final grouped = <String, List<TransactionWithDetails>>{};
     for (final row in rows) {
-      grouped
-          .putIfAbsent(row.transaction.transactionId, () => [])
-          .add(row);
+      grouped.putIfAbsent(row.transaction.transactionId, () => []).add(row);
     }
     return grouped.values.map(_toTransactionEntity).toList();
   }
@@ -75,20 +73,21 @@ class LedgerRepositoryImpl implements LedgerRepository {
   TransactionEntity _toTransactionEntity(List<TransactionWithDetails> rows) {
     final tx = rows.first.transaction;
     final posting = rows.first.posting;
-    final categoryType = tx.kind == TransactionKind.income
-        ? CategoryType.income
-        : CategoryType.expense;
-    final category = CategoryEntity(
-      id: posting.categoryId ?? '',
-      // Write-time snapshot (T033/T037): history renders the archived
-      // category without joining the live row. Transfers have no category.
-      name: tx.categoryName ?? '',
-      iconKey: tx.categoryIcon ?? '',
-      colorInt: tx.categoryColorInt == null
-          ? 0
-          : int.parse(tx.categoryColorInt!, radix: 16),
-      type: categoryType,
-    );
+    final category = tx.kind.requiresCategory
+        ? CategoryEntity(
+            id: posting.categoryId ?? '',
+            // Write-time snapshot (T033/T037): history renders the archived
+            // category without joining the live row.
+            name: tx.categoryName ?? '',
+            iconKey: tx.categoryIcon ?? '',
+            colorInt: tx.categoryColorInt == null
+                ? 0
+                : int.parse(tx.categoryColorInt!, radix: 16),
+            type: tx.kind == TransactionKind.income
+                ? CategoryType.income
+                : CategoryType.expense,
+          )
+        : null;
 
     AccountEntity? toAccount;
     var amount = postingSignedImpact(posting);
@@ -110,7 +109,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
     TransactionViewRow tx,
     TransactionWithDetails row,
     int amount,
-    CategoryEntity category,
+    CategoryEntity? category,
     AccountEntity? toAccount,
   ) {
     return TransactionEntity(

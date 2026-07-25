@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(2));
+      expect(database.schemaVersion, equals(3));
     });
 
     test('migrates a v1 database by adding the column, keeping its rows',

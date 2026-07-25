@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_projector.dart';
@@ -13,7 +14,7 @@ import 'package:feather_ledger/features/ledger/domain/services/posting_context.d
 
 part 'record_transaction_command.g.dart';
 
-/// Records an income/expense transaction via `TransactionRecorded`, with
+/// Records a transaction via `TransactionRecorded`, with
 /// the projector applied in the same append transaction (spec 003,
 /// US4/T035).
 ///
@@ -42,11 +43,11 @@ class RecordTransactionCommand {
     required String accountId,
     String? note,
   }) async {
-    // Describes this entry point, not the transaction: transfers have their
-    // own (ADR-0002). Past this line `kind` is provably income or expense.
-    if (kind == TransactionKind.transfer) {
-      throw const CommandRejected(LedgerErrorCode.invalidTransfer,
-          'transfers go through executeTransfer');
+    // Describes this entry point, not the transaction: transfers and balance
+    // purposes have their own category-free construction paths.
+    if (!kind.requiresCategory) {
+      throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
+          'only income and expense use execute');
     }
 
     final context = await _context.resolveForKind(
@@ -115,6 +116,81 @@ class RecordTransactionCommand {
 
     // Same account, mismatched currencies and the two-leg shape are all
     // aggregate invariants — never re-checked here.
+    transaction.validateOrThrow();
+    await _append(transaction, commandId);
+  }
+
+  /// Records a non-zero opening balance without inventing income, expense or
+  /// a category. The transaction stream remains the sole source for the
+  /// balance and ledger row.
+  Future<void> executeOpeningBalance({
+    required String commandId,
+    required int signedAmountMinor,
+    required DateTime occurredAt,
+    required String accountId,
+    String? note,
+  }) =>
+      _executeBalancePurpose(
+        commandId: commandId,
+        signedAmountMinor: signedAmountMinor,
+        occurredAt: occurredAt,
+        accountId: accountId,
+        note: note,
+        kind: TransactionKind.openingBalance,
+      );
+
+  /// Records the difference produced by a reconciliation or explicit balance
+  /// calibration. It is separate from an opening balance in the event data
+  /// and in downstream report semantics.
+  Future<void> executeBalanceAdjustment({
+    required String commandId,
+    required int signedAmountMinor,
+    required DateTime occurredAt,
+    required String accountId,
+    String? note,
+  }) =>
+      _executeBalancePurpose(
+        commandId: commandId,
+        signedAmountMinor: signedAmountMinor,
+        occurredAt: occurredAt,
+        accountId: accountId,
+        note: note,
+        kind: TransactionKind.balanceAdjustment,
+      );
+
+  Future<void> _executeBalancePurpose({
+    required String commandId,
+    required int signedAmountMinor,
+    required DateTime occurredAt,
+    required String accountId,
+    required String? note,
+    required TransactionKind kind,
+  }) async {
+    if (!kind.isBalancePurpose || signedAmountMinor == 0) {
+      throw const CommandRejected(LedgerErrorCode.invalidAmount,
+          'a balance-purpose transaction needs a non-zero signed amount');
+    }
+    final context =
+        await _context.resolveForBalancePurpose(accountId: accountId);
+    final transaction = kind == TransactionKind.openingBalance
+        ? Transaction.openingBalance(
+            transactionId: const Uuid().v4(),
+            occurredAt: occurredAt,
+            signedAmountMinor: signedAmountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            description: note ?? '',
+            notes: note,
+          )
+        : Transaction.balanceAdjustment(
+            transactionId: const Uuid().v4(),
+            occurredAt: occurredAt,
+            signedAmountMinor: signedAmountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            description: note ?? '',
+            notes: note,
+          );
     transaction.validateOrThrow();
     await _append(transaction, commandId);
   }

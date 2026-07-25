@@ -126,7 +126,6 @@ class LedgerServiceHarness {
       GetAccountByIdQuery(accountRepository),
       recordCommand,
       SetAccountTotalsInclusionCommand(eventStore, projector),
-      categoryRepository,
     );
 
     categoryService = CategoryService(

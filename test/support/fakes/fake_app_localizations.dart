@@ -60,6 +60,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get date => 'Date';
 
   @override
+  String get transactionType => 'Type';
+
+  @override
   String get category => 'Category';
 
   @override
@@ -158,7 +161,6 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get editRecurringTitle => 'Edit recurring bill';
-
 
   @override
   String get nextStep => 'Next';
@@ -503,10 +505,6 @@ class FakeAppLocalizations implements AppLocalizations {
 
   // Recurring bills (spec 004, US2).
 
-
-
-
-
   @override
   String get postInstanceTitle => 'Record this bill';
 
@@ -544,19 +542,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get billDeleted => 'Bill deleted';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
   @override
   String get frequencyDaily => 'day';
 
@@ -568,9 +553,6 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get frequencyYearly => 'year';
-
-
-
 
   // Search, filter and CSV export (spec 004, US3).
   @override

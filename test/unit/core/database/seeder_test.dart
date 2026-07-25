@@ -41,31 +41,29 @@ void main() {
       final types = events.map((e) => e.eventType).toList();
       expect(
         types.where((t) => t == 'CategoryCreated').length,
-        17,
-        reason: '10 expense + 2 system + 5 income defaults',
+        15,
+        reason:
+            '10 expense + 5 income defaults; balance purposes are not categories',
       );
       expect(types, everyElement('CategoryCreated'),
           reason: 'no accounts and no transactions are written on the way in');
     });
 
-    test('projects 17 categories incl. two fixed system categories',
+    test(
+        'projects 15 user-selectable categories without balance system categories',
         () async {
       await seed();
 
       final categories = await harness.db.categoriesDao.getAllCategories();
-      expect(categories, hasLength(17));
+      expect(categories, hasLength(15));
 
       final system = categories.where((c) => c.systemCode != null).toList();
-      expect(system, hasLength(2));
-
-      final systemIds = system.map((c) => c.id).toSet();
-      expect(systemIds, contains('00000000-0000-0000-0000-000000000001'));
-      expect(systemIds, contains('00000000-0000-0000-0000-000000000002'));
+      expect(system, isEmpty);
 
       final expense = categories.where((c) => c.type == CategoryType.expense);
       final income = categories.where((c) => c.type == CategoryType.income);
-      expect(expense.length, 11);
-      expect(income.length, 6);
+      expect(expense.length, 10);
+      expect(income.length, 5);
     });
 
     test('seeds no accounts and no transactions', () async {
@@ -85,7 +83,7 @@ void main() {
 
       final events = await allEvents();
       expect(events, hasLength(firstCount));
-      expect(await harness.db.categoriesDao.getAllCategories(), hasLength(17));
+      expect(await harness.db.categoriesDao.getAllCategories(), hasLength(15));
     });
 
     test('skips seeding when the event store is non-empty', () async {

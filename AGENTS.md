@@ -72,13 +72,21 @@ lib/shared/     跨特性的组件与扩展
 ## 领域模型
 
 - `Transaction` 是聚合根（`features/ledger/domain/model/transaction.dart`）—— 一笔资金流动，拥有它的
-  若干 `Posting`（分录）。三种 kind：`income`、`expense`、`transfer`。分录金额**永远为正**，符号由
-  `PostingDirection` 承载（credit 使账户余额增加，debit 使其减少 —— 个人记账语义，仅定义在
+  若干 `Posting`（分录）。五种 kind：`income`、`expense`、`transfer`（用户可选的三种），加
+  `openingBalance`、`balanceAdjustment`（账本自己造的两条余额用途，见 ADR-0003，**没有分类**）。
+  `TransactionKind` 的声明顺序被 Drift 按 ordinal 持久化，新值只能往后追加。分录金额**永远为正**，
+  符号由 `PostingDirection` 承载（credit 使账户余额增加，debit 使其减少 —— 个人记账语义，仅定义在
   `core/domain/enums.dart`）。
 - 聚合根有两扇门（ADR-0001）：面向意图的构造器（`Transaction.income` / `.expense` / `.transfer`）供
   写入方使用，`rehydrate` 供重放使用。**写入方一旦动用 `rehydrate`，就是在宣告它要绕过校验。**
-- `validate()` 校验形状：分录非空、金额为正、income/expense 恰好一条方向匹配的分录、transfer 是两条
-  金额相等方向相反的分录且落在**不同**账户、**同一**币种上。`validateOrThrow()` 把
+  这条规则有**一处刻意的例外**：`Transaction.openingBalance()` / `.balanceAdjustment()` 是意图构造器，
+  内部却经 `rehydrate` 装配 —— 因为它们的意图只是「一个账户 + 一个带符号金额」，而把符号翻译成
+  `PostingDirection` 正是 `rehydrate` 那扇门（它接受已成形 posting）在做的转译。所以这两个构造器
+  **不自带校验**，调用方必须自己 `validateOrThrow()`（`RecordTransactionCommand._executeBalancePurpose`
+  确实调了）。要新加这类"只是装配"的构造器，先回来看这一段。
+- `validate()` 校验形状：分录非空、金额为正、income/expense 恰好一条方向匹配的分录**且必须带分类**、
+  transfer 是两条金额相等方向相反的分录且落在**不同**账户、**同一**币种上、两种余额用途恰好一条分录
+  **且必须不带分类**（`requiresCategory` 是这条判据的唯一出处）。`validateOrThrow()` 把
   `TransactionViolation` 转成 `CommandRejected`；违规到 `LedgerErrorCode` 的映射与违规定义放在一起。
   每个写入方都在构建事件之前校验，投影器在 rehydrate 时再校验一次，以捕获损坏的事件流。
 - 关于分录**所引用之物**的事实 —— 账户存在且未归档、分类同理、分类 kind 与交易一致 —— 无法放进聚合根
@@ -102,7 +110,18 @@ lib/shared/     跨特性的组件与扩展
 - `LedgerProjectorImpl` 是唯一的投影写入方；每次 append 都在同一个数据库事务里驱动它。余额计算全部位于投影路径内部，由两个协作者分担：投影器维护 `accounts_view.balanceMinor`，`MonthlySnapshotProjectorImpl` 从锚点月份起按账户重算各月收入/支出/转账与期初、期末余额。投影路径之外任何地方都不重算余额。
 - `LedgerRebuildService` 在一个事务内从事件存储重建五个事件溯源视图（启动时若某视图的 projectionVersion 过期就执行；设置页有长按开发者入口）。过期判定只覆盖带 `projectionVersion` 列的四个视图 —— `transaction_postings_view` 没有该列，它的过期只能经由 `transactions_view` 间接发现。未知事件类型硬失败，并报出事件 id。
 - 更正 = `TransactionReversed(correction)` + `TransactionRecorded`，成对出现在一个命令/一个事务里；UI 删除是 `TransactionReversed(userDeleted)`。被冲销的行对读模型隐藏；审计链留在事件存储中。
-- **新建账户时的「期初余额」也是一笔更正交易**（`AccountService.createAccount`）：`CreateAccountCommand` 只发 `AccountCreated`，账户永远从 0 开始；非零起始余额接着以 `TransactionRecorded` 落账，走与「改余额」完全相同的路径（同一个系统分类、`note` 由调用方本地化传入，`commandId` 用 `'$commandId-opening'` 派生以便整对重试去重），因此会出现在账本里、也会计入当月收入/支出合计 —— 这是刻意的：账本对「这笔钱哪来的」只有一个答案。两个副作用要知道：其一，起始余额从此**计入当月收入**而不是期初；其二，`OpeningBalanceSet` 不再有生产者，但事件类型、注册表与投影分支**全部保留**（旧事件流仍需重放），`abs()` 那条老毛病（负的期初被记成正的）也随之消失 —— 符号现在由 kind 承载。
+- **期初余额与余额调整是两种 transaction kind，没有分类**（ADR-0003，`openingBalance` / `balanceAdjustment`）。
+  `AccountService.createAccount` 只发 `AccountCreated`，账户永远从 0 开始；非零起始余额接着以一条
+  `TransactionRecorded` 落账，`kind: openingBalance`、**不带分类**、`commandId` 用 `'$commandId-opening'`
+  派生以便整对重试去重。「改余额」走同一个形状，`kind: balanceAdjustment`。两者都
+  **出现在账本里**（用户能看到那笔钱从哪来），但**不进收入/支出、不进分类合计、不进热度图**，
+  当天小计也不算它们 —— 余额动、统计不动。这不是靠"隐藏的分类"做到的，是**没有分类**：所以
+  「账本里看得见、编辑页选不到」「用户自建同名分类」这两类问题不存在了。
+  投影侧的关键在 `MonthlySnapshotProjectorImpl`：`net` 在 kind 分桶**之前**累加（余额），
+  switch 只决定进哪个桶（统计）—— 写反了会让快照的期末余额和 `accounts_view` 对不上。
+  老记录（重构前是挂在两个固定系统分类下的普通收支）由 `projectedTransactionKind` 在**投影时**重新解释，
+  事件本身不动，详见那里的注释与 `balance_purpose_migration_test.dart`。`OpeningBalanceSet` 仍无生产者，
+  但事件类型、注册表与投影分支**全部保留**（旧事件流仍需重放）。
 
 ## 周期与预约交易
 
@@ -249,12 +268,13 @@ lib/shared/     跨特性的组件与扩展
 
 ## 数据可携带性与恢复（spec 004）
 
-- **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
+- **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账（用户能选的就这三种，账本自己造的两种余额用途只在这条表单上**以只读形式**出现）。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
 - 路由只有 `/ledger/add` 与 `/ledger/edit`：kind 由表单**自己的类型选择器**决定，或（编辑时）由 `extra` 里的交易决定。**转账没有独立入口**——账本页右上角的转账按钮已移除，转账在表单里面选。不要为某个 kind 再加一个路由或快捷入口。
-- `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种；「重复」行只在非 transfer 时才渲染 —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
+- `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种（**用户能选的只有这三种**）；「重复」行只在非 transfer 时才渲染 —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
+- **两种余额用途不是"用户能选的 kind"，所以表单不为它们渲染选择器**：编辑一条 `openingBalance` / `balanceAdjustment` 时，kind 那一行、分类那一行、账户选择器都换成只读的 `LedgerDetailRow`（账户不能改、分类不存在、"重复"也不给）。往一个只认三种的表单里塞第四种会当场炸——`SegmentedButton` 的 `selected` 必须在 `segments` 里。
 - 「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。同账户同理（候选排除 + 一条兜底校验）。
 - 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支用全局显示偏好。
-- 更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`。
+- 更正的合法路径由**原交易的 kind** 决定：transfer 原交易只能经 `executeTransfer`，收支原交易只能经 `execute`，两种余额用途另有一条。**这里的 kind 读的是投影**（`transactions_view.kind`），也就是 `projectedTransactionKind` 的解释结果，不是事件 payload 里那个——见 `ledger_events.dart` 上的注释。
 - **检索**：`TransactionFilter`（值对象，手写 `==`/`hashCode` —— Riverpod 按 `==` 去重 state）→ `TransactionsDao.watchTransactionsFiltered` → `LedgerRepository.watchTransactionsFiltered`（复用既有的 `_toTransactionEntities`，不写第二个装配器）。两个刻意之处：`isReversed` 在 **SQL** 里过滤（查询层不再过滤第二次），账户/分类筛选用子查询选出**哪些交易**合格、再返回它们的**全部** posting —— 转账因此不会被截成单腿。
 - **导出**：`transactionsToCsv` 是纯函数（RFC 4180 转义、ISO 日期、枚举名而非译名、前置 UTF-8 BOM）；`TransactionExportService` 只负责落盘与分享。导出的是**屏幕上那些行**，无结果时按钮禁用。
 - **备份**：`VACUUM INTO` 产出一致快照（不是复制文件），连同偏好与 manifest 打成一个 `.flbackup`。恢复是**替换**语义，且**只暂存不就地应用**——数据库整个运行期都被打开，替换只能发生在下次启动、任何东西读取 `db.sqlite` **之前**。
@@ -265,9 +285,10 @@ lib/shared/     跨特性的组件与扩展
 
 ## 应用流程
 
-- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（**只播分类**：CategoryCreated × 17，含 2 个固定 id/systemCode 的反冲正系统分类；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
-  **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。唯一的两条系统分类由 seeder 建：`AccountService` 的 `adjustAccountBalance` 与 `createAccount`（非零起始余额）都按 `systemCode` 查它们，查不到就拒绝，不会就地造一个 —— 缺了它意味着这个事件流早于那次播种。
-  **系统分类的标识符与显示名刻意不同名**：显示名是「余额更正」（en: `Balance correction`），而 `CategoryConstants.reversal*Code`、`reversal*Id` 与持久化的 `systemCode` 一律不动 —— 显示名给人看、随时可改，`systemCode` 是上面那条查询的键，改了就查不到。另注意分类名是**播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
+- `main.dart`：手动 `ProviderContainer` → 打开 `db.sqlite`（后台 isolate）→ `seedDatabase`（**只播分类**：CategoryCreated × 15；名称在播种时本地化；以事件存储为空为幂等条件）→ 过期则重建检查 → 周期补课（幂等，失败不阻断启动）→ 应用恢复出的偏好 → `runApp`。
+  **首次安装播的是词汇，不是钱**：分类是用户往里装自己的钱的词表，可以预置；**账户和交易不行** —— 账户是钱本身，此刻一分都还没有。曾经播过的 Cash / Bank Card（其中 Bank 带 1000.00 期初余额）会把别人的期初余额显示在主页上，币种还是播种当时的全局默认值。因此全新安装的主页是空的，记账前需要先建一个账户（选择器里有「管理账户」入口），账本页与选择器各自有对应的空态文案。
+  **播种里没有系统分类了**：余额用途有自己的 kind（ADR-0003），所以账本自己记的东西不再借用分类，seeder 也就不再预置那两条。老库里它们仍在（`categories_view` 里挂着 `systemCode`，被 `watchCategoriesByType` 从所有选择器与管理页滤掉），**没有生产者、也没有引用者**，但**不能删** —— `reversal*Id` 是 `projectedTransactionKind` 认出老记录的唯一凭据，删了会让历史上每一次余额更正重新变成收入。详见 `CategoryConstants` 上的注释。
+  **分类名是播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
 - **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时
   就是它，混合时才回退到偏好），头部、列表行、详情抽屉与检索页的货币符号**全部**经

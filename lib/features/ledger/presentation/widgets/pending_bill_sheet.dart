@@ -41,8 +41,7 @@ class PendingBillSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final currency =
-        currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
+    final currency = currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -83,6 +82,9 @@ class PendingBillSheet extends ConsumerWidget {
                 TransactionKind.income => context.colors.income,
                 TransactionKind.transfer =>
                   Theme.of(context).colorScheme.onSurface,
+                TransactionKind.openingBalance ||
+                TransactionKind.balanceAdjustment =>
+                  Theme.of(context).colorScheme.onSurface,
               },
             ),
             textAlign: TextAlign.center,
@@ -90,7 +92,6 @@ class PendingBillSheet extends ConsumerWidget {
           SizedBox(height: context.spacing.md),
           const FeatherDivider(),
           SizedBox(height: context.spacing.md),
-
           LedgerDetailRow(
             label: l10n.date,
             value: _formatDate(transaction.date),
@@ -98,7 +99,7 @@ class PendingBillSheet extends ConsumerWidget {
           SizedBox(height: context.spacing.md),
           LedgerDetailRow(
             label: l10n.category,
-            value: transaction.category.name,
+            value: transaction.category!.name,
           ),
           SizedBox(height: context.spacing.md),
           LedgerDetailRow(
@@ -109,7 +110,6 @@ class PendingBillSheet extends ConsumerWidget {
             SizedBox(height: context.spacing.md),
             LedgerDetailRow(label: l10n.note, value: transaction.note!),
           ],
-
           SizedBox(height: context.spacing.lg),
           FilledButton(
             onPressed: () => _post(context, ref, l10n),

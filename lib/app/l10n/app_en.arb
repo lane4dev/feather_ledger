@@ -257,6 +257,7 @@
     "description": "Account type field label"
   },
   "initialBalance": "Initial Balance",
+  "transactionType": "Type",
   "@initialBalance": {
     "description": "Initial balance field label"
   },

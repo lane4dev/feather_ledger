@@ -31,7 +31,10 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// together for that reason — a schema bump that changes what a projection
 /// column *means* and forgets this one restores a database that migrates
 /// cleanly and then never rebuilds, showing wrong figures with no error.
-const int ledgerProjectionVersion = 3;
+/// 4: legacy reversal-category rows are re-projected as `openingBalance` or
+/// `balanceAdjustment`, and those purposes are excluded from income/expense
+/// snapshot fields and reports while still affecting balance.
+const int ledgerProjectionVersion = 4;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the

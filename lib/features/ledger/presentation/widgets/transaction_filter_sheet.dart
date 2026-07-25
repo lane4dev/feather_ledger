@@ -46,8 +46,10 @@ class _TransactionFilterSheetState
     final accountsAsync = ref.watch(accountListProvider);
     // Both kinds: a filter is not the place to make the user remember which
     // side a category lives on.
-    final expenseCategories = ref.watch(categoryListProvider(CategoryType.expense));
-    final incomeCategories = ref.watch(categoryListProvider(CategoryType.income));
+    final expenseCategories =
+        ref.watch(categoryListProvider(CategoryType.expense));
+    final incomeCategories =
+        ref.watch(categoryListProvider(CategoryType.income));
     final categories = [
       ...expenseCategories.value ?? const <CategoryEntity>[],
       ...incomeCategories.value ?? const <CategoryEntity>[],
@@ -85,6 +87,9 @@ class _TransactionFilterSheetState
                   TransactionKind.income => l10n.income,
                   TransactionKind.expense => l10n.expense,
                   TransactionKind.transfer => l10n.transfer,
+                  TransactionKind.openingBalance => l10n.initialBalance,
+                  TransactionKind.balanceAdjustment =>
+                    l10n.accountBalanceAdjustmentDescription,
                 },
                 onSelected: (kind) => setState(() => _kind = kind),
               ),
@@ -262,8 +267,7 @@ class _EntityPicker<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selected =
-        options.where((o) => _idOf(o) == selectedId).firstOrNull;
+    final selected = options.where((o) => _idOf(o) == selectedId).firstOrNull;
 
     return Row(
       children: [
@@ -283,8 +287,7 @@ class _EntityPicker<T> extends StatelessWidget {
                   options: options,
                   getLabel: getLabel,
                   isSelected: (option) => _idOf(option) == selectedId,
-                  onSelected: (option) =>
-                      Navigator.pop(context, _idOf(option)),
+                  onSelected: (option) => Navigator.pop(context, _idOf(option)),
                 ),
               );
               if (result != null) onSelected(result);

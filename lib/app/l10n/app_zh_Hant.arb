@@ -257,6 +257,7 @@
     "description": "帳戶類型欄位標籤"
   },
   "initialBalance": "初始餘額",
+  "transactionType": "類型",
   "@initialBalance": {
     "description": "初始餘額欄位標籤"
   },

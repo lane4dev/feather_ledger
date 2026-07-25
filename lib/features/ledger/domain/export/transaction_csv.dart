@@ -31,7 +31,6 @@ String transactionsToCsv(List<TransactionEntity> rows) {
     ..writeln(_header.join(','));
 
   for (final row in rows) {
-    final isTransfer = row.type == TransactionKind.transfer;
     buffer.writeln([
       DateFormat('yyyy-MM-dd').format(row.date),
       row.type.name,
@@ -39,7 +38,7 @@ String transactionsToCsv(List<TransactionEntity> rows) {
       row.account.currencyCode,
       row.account.name,
       row.toAccount?.name ?? '',
-      isTransfer ? '' : row.category.name,
+      row.category?.name ?? '',
       row.note ?? '',
     ].map(_escapeField).join(','));
   }

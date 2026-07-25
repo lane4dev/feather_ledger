@@ -19,10 +19,16 @@ class TransactionUiMapper {
     final account = e.account;
 
     final displayAmount = formatMinor(amount);
-    // Transfers carry no sign — the two legs net to zero (spec US5).
-    final displaySign = e.type == TransactionKind.transfer
-        ? ''
-        : (e.type == TransactionKind.income ? '+' : '-');
+    // Transfers carry no sign — the two legs net to zero. Balance purposes
+    // retain their real signed impact without becoming income/expense.
+    final displaySign = switch (e.type) {
+      TransactionKind.transfer => '',
+      TransactionKind.income => '+',
+      TransactionKind.expense => '-',
+      TransactionKind.openingBalance ||
+      TransactionKind.balanceAdjustment =>
+        e.amount >= 0 ? '+' : '-',
+    };
 
     return TransactionTileUiModel(
       id: id,

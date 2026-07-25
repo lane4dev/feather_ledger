@@ -66,8 +66,7 @@ void main() {
       final events = (await harness.eventStore.readAll()).events;
       expect(events, hasLength(3)); // account + category seeds + record
       expect(events.last.eventType, 'TransactionRecorded');
-      final recorded =
-          TransactionRecorded.fromJson(events.last.payloadJson);
+      final recorded = TransactionRecorded.fromJson(events.last.payloadJson);
       expect(recorded.kind, TransactionKind.expense);
       expect(recorded.postings.single.direction, PostingDirection.debit);
       expect(recorded.postings.single.amountMinor, 1050);
@@ -100,14 +99,13 @@ void main() {
       );
 
       final account = await harness.db.accountDao.getAccountById(accountId);
-      expect(account!.balanceMinor, -2000,
-          reason: '当前余额包含未来已入账 posting（记了就算）');
+      expect(account!.balanceMinor, -2000, reason: '当前余额包含未来已入账 posting（记了就算）');
     });
 
     test('expense on an archived account is rejected', () async {
       final (accountId, categoryId) = await seedAccountAndCategory();
-      await harness.accountService.archiveAccount(
-          commandId: 'cmd_archive', accountId: accountId);
+      await harness.accountService
+          .archiveAccount(commandId: 'cmd_archive', accountId: accountId);
 
       final result = await harness.ledgerService.addTransaction(
         commandId: 'cmd_on_archived',
@@ -124,11 +122,10 @@ void main() {
             .having((f) => f.code, 'code', LedgerErrorCode.accountArchived),
       );
       final events = (await harness.eventStore.readAll()).events;
-      expect(events.where((e) => e.eventType == 'TransactionRecorded'),
-          isEmpty,
+      expect(events.where((e) => e.eventType == 'TransactionRecorded'), isEmpty,
           reason: 'seed + archive only — no transaction event appended');
-      expect(await harness.db.select(harness.db.transactionsView).get(),
-          isEmpty);
+      expect(
+          await harness.db.select(harness.db.transactionsView).get(), isEmpty);
     });
   });
 
@@ -149,8 +146,7 @@ void main() {
 
       expect(result, isA<Success<void>>());
       final events = (await harness.eventStore.readAll()).events;
-      final recorded =
-          TransactionRecorded.fromJson(events.last.payloadJson);
+      final recorded = TransactionRecorded.fromJson(events.last.payloadJson);
       expect(recorded.kind, TransactionKind.income);
       expect(recorded.postings.single.direction, PostingDirection.credit);
 
@@ -179,8 +175,8 @@ void main() {
     });
 
     test('archived category is rejected', () async {
-      final (accountId, categoryId) = await seedAccountAndCategory(
-          categoryType: CategoryType.income);
+      final (accountId, categoryId) =
+          await seedAccountAndCategory(categoryType: CategoryType.income);
       await harness.categoryService.archiveCategory(
           commandId: 'cmd_archive_cat', categoryId: categoryId);
 
@@ -275,8 +271,8 @@ void main() {
 
       expect((await harness.eventStore.readAll()).events, isEmpty,
           reason: 'failed projection must not leave the event persisted');
-      expect(await harness.db.select(harness.db.transactionsView).get(),
-          isEmpty);
+      expect(
+          await harness.db.select(harness.db.transactionsView).get(), isEmpty);
     });
 
     test('replay names the violation it refuses', () async {
@@ -327,8 +323,8 @@ void main() {
       );
 
       expect((await harness.eventStore.readAll()).events, isEmpty);
-      expect(await harness.db.select(harness.db.transactionsView).get(),
-          isEmpty);
+      expect(
+          await harness.db.select(harness.db.transactionsView).get(), isEmpty);
     });
   });
 
@@ -354,9 +350,9 @@ void main() {
           .watchTransactions(DateTime(2026, 1))
           .first;
       expect(list, hasLength(1));
-      expect(list.single.category.name, 'Food',
+      expect(list.single.category!.name, 'Food',
           reason: '写时快照 — archived category does not blank history');
-      expect(list.single.category.archived, isFalse,
+      expect(list.single.category!.archived, isFalse,
           reason: 'snapshot carries no live archived flag');
     });
   });

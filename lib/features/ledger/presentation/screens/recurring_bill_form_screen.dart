@@ -59,7 +59,7 @@ class _RecurringBillFormScreenState
   /// Whether the user changed something only the series can hold. If they
   /// did, "only this bill" stops being an answer this edit can have.
   bool get _changedSeriesFields =>
-      _categoryId != widget.transaction.category.id ||
+      _categoryId != widget.transaction.category!.id ||
       _accountId != widget.transaction.account.id ||
       _note.text.trim() != (widget.transaction.note ?? '').trim();
 
@@ -69,7 +69,7 @@ class _RecurringBillFormScreenState
     final bill = widget.transaction;
     _amountMinor = bill.amount;
     _date = bill.date;
-    _categoryId = bill.category.id;
+    _categoryId = bill.category!.id;
     _accountId = bill.account.id;
     _note = TextEditingController(text: bill.note ?? '');
   }
@@ -111,13 +111,10 @@ class _RecurringBillFormScreenState
                 onSaved: (minor) => _amountMinor = minor,
               ),
               SizedBox(height: context.spacing.lg),
-
               const FeatherDivider(),
               SizedBox(height: context.spacing.md),
-
               _dateRow(l10n),
               SizedBox(height: context.spacing.sm),
-
               _categoryRow(l10n),
               SizedBox(height: context.spacing.sm),
               _accountRow(l10n),
@@ -133,7 +130,6 @@ class _RecurringBillFormScreenState
                   style: theme.textTheme.bodyLarge,
                 ),
               ),
-
               SizedBox(height: context.spacing.xl),
               FilledButton(
                 onPressed: _submit,
@@ -183,8 +179,7 @@ class _RecurringBillFormScreenState
                         ?.copyWith(color: theme.hintColor)
                     : null,
                 onTap: () async {
-                  final result =
-                      await showModalBottomSheet<String>(
+                  final result = await showModalBottomSheet<String>(
                     context: context,
                     isScrollControlled: true,
                     useSafeArea: true,
@@ -215,9 +210,8 @@ class _RecurringBillFormScreenState
       icon: LucideIcons.wallet,
       child: ref.watch(accountUiListProvider).when(
             data: (accounts) {
-              final selected = accounts
-                  .where((a) => a.account.id == _accountId)
-                  .firstOrNull;
+              final selected =
+                  accounts.where((a) => a.account.id == _accountId).firstOrNull;
               return LedgerSelectorField(
                 text: selected?.account.name ?? l10n.account,
                 textStyle: selected == null
@@ -261,8 +255,8 @@ class _RecurringBillFormScreenState
     // Day only. The bill keeps the rule's clock time, which is an artefact of
     // when the series was created and not something the user set.
     setState(() {
-      _date = DateTime(picked.year, picked.month, picked.day, _date.hour,
-          _date.minute);
+      _date = DateTime(
+          picked.year, picked.month, picked.day, _date.hour, _date.minute);
     });
   }
 
@@ -280,27 +274,25 @@ class _RecurringBillFormScreenState
       builder: (context) => RecurringScopeDialog(
         title: l10n.saveRecurringTitle,
         confirmLabel: l10n.save,
-        unavailable: _changedSeriesFields
-            ? const {RecurringScope.thisOnly}
-            : const {},
+        unavailable:
+            _changedSeriesFields ? const {RecurringScope.thisOnly} : const {},
         unavailableHint: l10n.scopeThisOnlyUnavailable,
       ),
     );
     if (scope == null || !mounted) return;
 
-    final result = await ref
-        .read(recurringViewModelProvider.notifier)
-        .updateBill(
-          widget.transaction.id,
-          scope: scope,
-          amountMinor: _amountMinor!,
-          date: _date,
-          categoryId: _categoryId ?? widget.transaction.category.id,
-          accountId: _accountId ?? widget.transaction.account.id,
-          description: _note.text.trim().isEmpty
-              ? widget.transaction.category.name
-              : _note.text.trim(),
-        );
+    final result =
+        await ref.read(recurringViewModelProvider.notifier).updateBill(
+              widget.transaction.id,
+              scope: scope,
+              amountMinor: _amountMinor!,
+              date: _date,
+              categoryId: _categoryId ?? widget.transaction.category!.id,
+              accountId: _accountId ?? widget.transaction.account.id,
+              description: _note.text.trim().isEmpty
+                  ? widget.transaction.category!.name
+                  : _note.text.trim(),
+            );
 
     if (!mounted) return;
 

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../data/event_sourcing/drift_event_store.dart';
@@ -60,9 +61,9 @@ class CorrectTransactionCommand {
     String? note,
   }) async {
     final original = await _loadCorrectable(originalTransactionId);
-    if (original.type == TransactionKind.transfer) {
-      throw const CommandRejected(LedgerErrorCode.invalidTransfer,
-          'a transfer original must be corrected through executeTransfer');
+    if (!original.type.requiresCategory) {
+      throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
+          'a balance-purpose original must be corrected through executeBalancePurpose');
     }
 
     final context = await _context.resolveForKind(
@@ -143,6 +144,55 @@ class CorrectTransactionCommand {
 
     // Same account, mismatched currencies and the two-leg shape are all
     // aggregate invariants — never re-checked here.
+    replacement.validateOrThrow();
+    await _appendCorrection(
+      originalTransactionId: originalTransactionId,
+      replacement: replacement,
+      commandId: commandId,
+    );
+  }
+
+  /// Corrects an opening balance or balance adjustment without giving it a
+  /// category. The original purpose is immutable: changing it would recast
+  /// pre-ledger money as a reconciliation difference (or vice versa).
+  Future<void> executeBalancePurpose({
+    required String commandId,
+    required String originalTransactionId,
+    required int signedAmountMinor,
+    required DateTime date,
+    required String accountId,
+    String? note,
+  }) async {
+    final original = await _loadCorrectable(originalTransactionId);
+    if (!original.type.isBalancePurpose) {
+      throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
+          'only an opening balance or balance adjustment uses this correction path');
+    }
+    if (signedAmountMinor == 0) {
+      throw const CommandRejected(
+          LedgerErrorCode.invalidAmount, 'a balance purpose cannot be zero');
+    }
+    final context =
+        await _context.resolveForBalancePurpose(accountId: accountId);
+    final replacement = original.type == TransactionKind.openingBalance
+        ? Transaction.openingBalance(
+            transactionId: const Uuid().v4(),
+            occurredAt: date,
+            signedAmountMinor: signedAmountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            description: note ?? '',
+            notes: note,
+          )
+        : Transaction.balanceAdjustment(
+            transactionId: const Uuid().v4(),
+            occurredAt: date,
+            signedAmountMinor: signedAmountMinor,
+            accountId: context.account.id,
+            currencyCode: context.account.currencyCode,
+            description: note ?? '',
+            notes: note,
+          );
     replacement.validateOrThrow();
     await _appendCorrection(
       originalTransactionId: originalTransactionId,

@@ -80,9 +80,8 @@ Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   // Watching this rebuilds the provider when the pending set changes. Each
   // rebuild re-runs the month query, which at personal-ledger scale is
   // cheaper than hand-rolling a stream combine.
-  final pending =
-      ref.watch(monthlyPendingTransactionsProvider(month)).value ??
-          const <TransactionTileUiModel>[];
+  final pending = ref.watch(monthlyPendingTransactionsProvider(month)).value ??
+      const <TransactionTileUiModel>[];
 
   return service.watchTransactions(month).map((items) {
     final uiItems = [
@@ -244,6 +243,23 @@ class LedgerViewModel extends _$LedgerViewModel {
           type: type,
           date: date,
           categoryId: categoryId,
+          accountId: accountId,
+          note: note,
+        );
+  }
+
+  Future<Result<void>> updateBalancePurpose({
+    required String id,
+    required int signedAmountMinor,
+    required DateTime date,
+    required String accountId,
+    String? note,
+  }) {
+    return ref.read(ledgerServiceProvider).updateBalancePurpose(
+          commandId: const Uuid().v4(),
+          id: id,
+          signedAmountMinor: signedAmountMinor,
+          date: date,
           accountId: accountId,
           note: note,
         );

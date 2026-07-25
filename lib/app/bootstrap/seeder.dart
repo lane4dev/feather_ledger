@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
 
-import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -11,8 +10,9 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/settings/domain/services/category_service.dart';
 
 /// Seeds a fresh install with the built-in category set through the standard
-/// write path (spec 003, US3/T030): 15 default categories plus the two
-/// built-in reversal system categories with fixed ids/systemCode.
+/// write path. Balance purposes have their own transaction kinds, so a fresh
+/// ledger contains no hidden system categories; old installations retain and
+/// replay their legacy system categories for historical compatibility.
 ///
 /// **Categories only — no accounts, no transactions.** The categories are a
 /// vocabulary the user fills with their own money; an account is that money,
@@ -106,15 +106,6 @@ Future<void> seedDatabase({
     type: CategoryType.expense,
   ));
   await _requireSuccess(categoryService.createCategory(
-    commandId: 'seed-category-reversal-expense',
-    categoryId: CategoryConstants.reversalExpenseId,
-    name: l10n.categoryReversalExpense,
-    iconKey: '${defaultIcons[30]}',
-    colorInt: defaultColors[16].toARGB32(),
-    type: CategoryType.expense,
-    systemCode: CategoryConstants.reversalExpenseCode,
-  ));
-  await _requireSuccess(categoryService.createCategory(
     commandId: 'seed-category-salary',
     name: l10n.categorySalary,
     iconKey: '${defaultIcons[7]}',
@@ -148,15 +139,6 @@ Future<void> seedDatabase({
     iconKey: '${defaultIcons[17]}',
     colorInt: defaultColors[4].toARGB32(),
     type: CategoryType.income,
-  ));
-  await _requireSuccess(categoryService.createCategory(
-    commandId: 'seed-category-reversal-income',
-    categoryId: CategoryConstants.reversalIncomeId,
-    name: l10n.categoryReversalIncome,
-    iconKey: '${defaultIcons[31]}',
-    colorInt: defaultColors[17].toARGB32(),
-    type: CategoryType.income,
-    systemCode: CategoryConstants.reversalIncomeCode,
   ));
 }
 

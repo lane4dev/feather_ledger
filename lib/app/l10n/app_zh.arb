@@ -257,6 +257,7 @@
     "description": "账户类型字段标签"
   },
   "initialBalance": "初始余额",
+  "transactionType": "类型",
   "@initialBalance": {
     "description": "初始余额字段标签"
   },

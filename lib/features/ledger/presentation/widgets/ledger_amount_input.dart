@@ -43,15 +43,17 @@ class LedgerAmountInput extends StatelessWidget {
     final typeColor = switch (type) {
       TransactionKind.income => context.colors.income,
       TransactionKind.expense => context.colors.expense,
-      TransactionKind.transfer => colorScheme.onSurface,
+      TransactionKind.transfer ||
+      TransactionKind.openingBalance ||
+      TransactionKind.balanceAdjustment =>
+        colorScheme.onSurface,
     };
 
     return IntrinsicWidth(
       child: TextFormField(
         autofocus: autofocus,
-        initialValue: initialMinorUnits == null
-            ? null
-            : formatMinor(initialMinorUnits!),
+        initialValue:
+            initialMinorUnits == null ? null : formatMinor(initialMinorUnits!),
         decoration: InputDecoration(
           prefixText: '$currencySymbol ',
           prefixStyle: theme.textTheme.displayMedium?.copyWith(

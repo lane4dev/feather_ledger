@@ -210,6 +210,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get initialBalance => 'Initial Balance';
 
   @override
+  String get transactionType => 'Type';
+
+  @override
   String get accountSaved => 'Account saved';
 
   @override

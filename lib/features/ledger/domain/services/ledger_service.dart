@@ -40,7 +40,8 @@ class LedgerService {
 
   Stream<MonthlySnapshotTotals> watchMonthlySnapshot(DateTime month,
       {required String currencyCode}) {
-    return _watchMonthlySnapshotQuery.execute(month, currencyCode: currencyCode);
+    return _watchMonthlySnapshotQuery.execute(month,
+        currencyCode: currencyCode);
   }
 
   /// Recurring bills are [RecurringService]'s business (spec 004, US2); these
@@ -148,9 +149,31 @@ class LedgerService {
         ));
   }
 
-  Future<Result<void>> deleteTransaction(String id, {required String commandId}) {
-    return guard(() =>
-        _reverseTransactionCommand.execute(id, commandId: commandId));
+  /// Corrects a visible system balance record through its dedicated path.
+  /// [signedAmountMinor] keeps the direction explicit while the UI edits the
+  /// magnitude and preserves the original sign.
+  Future<Result<void>> updateBalancePurpose({
+    required String commandId,
+    required String id,
+    required int signedAmountMinor,
+    required DateTime date,
+    required String accountId,
+    String? note,
+  }) {
+    return guard(() => _correctTransactionCommand.executeBalancePurpose(
+          commandId: commandId,
+          originalTransactionId: id,
+          signedAmountMinor: signedAmountMinor,
+          date: date,
+          accountId: accountId,
+          note: note,
+        ));
+  }
+
+  Future<Result<void>> deleteTransaction(String id,
+      {required String commandId}) {
+    return guard(
+        () => _reverseTransactionCommand.execute(id, commandId: commandId));
   }
 
   Future<Result<void>> convertScheduledToPosted(String scheduledId,

@@ -29,7 +29,6 @@ import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
-
 import '../../../../../support/fakes/fake_app_database.dart';
 
 void main() {
@@ -65,7 +64,8 @@ void main() {
         PostingContextResolver(accountRepository, categoryRepository);
     recordCommand =
         RecordTransactionCommand(eventStore, projector, contextResolver);
-    reverseCommand = ReverseTransactionCommand(eventStore, projector, repository);
+    reverseCommand =
+        ReverseTransactionCommand(eventStore, projector, repository);
     correctCommand = CorrectTransactionCommand(
         eventStore, projector, repository, contextResolver);
     convertScheduledCommand = ConvertScheduledToPostedCommand(
@@ -142,8 +142,8 @@ void main() {
 
         // Insert projection rows directly (the write path is covered by
         // record_transaction_test).
-        await database.transactionsDao.upsertTransaction(
-            TransactionsViewCompanion.insert(
+        await database.transactionsDao
+            .upsertTransaction(TransactionsViewCompanion.insert(
           transactionId: 'txn_1',
           occurredAt: date,
           kind: TransactionKind.expense,
@@ -153,8 +153,8 @@ void main() {
           categoryColorInt: const Value('ff000000'),
           originalEventId: 1,
         ));
-        await database.transactionsDao.upsertPosting(
-            TransactionPostingsViewCompanion.insert(
+        await database.transactionsDao
+            .upsertPosting(TransactionPostingsViewCompanion.insert(
           id: 'txn_1:0',
           transactionId: 'txn_1',
           accountId: accountId,
@@ -175,7 +175,7 @@ void main() {
                   .having((e) => e.type, 'type', TransactionKind.expense)
                   .having((e) => e.date, 'date', date)
                   .having((e) => e.note, 'note', 'Test Note')
-                  .having((e) => e.category.name, 'category name', 'Food')
+                  .having((e) => e.category!.name, 'category name', 'Food')
                   .having((e) => e.account.name, 'account name', 'Cash')
                   .having((e) => e.isReversed, 'isReversed', false),
             ],
@@ -309,8 +309,8 @@ void main() {
         await seedAccount(accountId, balanceMinor: -500);
         await seedCategory(categoryId);
 
-        await database.transactionsDao.upsertTransaction(
-            TransactionsViewCompanion.insert(
+        await database.transactionsDao
+            .upsertTransaction(TransactionsViewCompanion.insert(
           transactionId: 'txn_1',
           occurredAt: DateTime(2026, 1, 15),
           kind: TransactionKind.expense,
@@ -320,8 +320,8 @@ void main() {
           categoryColorInt: const Value('ff000000'),
           originalEventId: 1,
         ));
-        await database.transactionsDao.upsertPosting(
-            TransactionPostingsViewCompanion.insert(
+        await database.transactionsDao
+            .upsertPosting(TransactionPostingsViewCompanion.insert(
           id: 'txn_1:0',
           transactionId: 'txn_1',
           accountId: accountId,

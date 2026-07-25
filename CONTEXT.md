@@ -32,8 +32,15 @@ Not a delete.
 _Avoid_: delete, deactivate, soft delete
 
 **Opening balance**:
-The amount an account starts with, recorded as its own event rather than folded into account creation.
-_Avoid_: initial balance, starting amount
+The non-zero amount an account already has when it is first brought into the ledger. It is a
+category-free transaction purpose, never income or expense.
+_Avoid_: initial balance transaction, balance correction
+
+**Balance adjustment**:
+A category-free transaction that records the signed difference discovered while reconciling an
+account to an external balance. It is distinct from an opening balance and from ordinary income or
+expense.
+_Avoid_: correction category, edited account balance
 
 **Recurring series**:
 A rule that produces the same transaction on a schedule. Its kind is income or expense only — a transfer

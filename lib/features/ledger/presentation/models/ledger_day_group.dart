@@ -72,6 +72,8 @@ class LedgerDayGroup {
         case TransactionKind.expense:
           expense[day] = expense[day]! + tx.amount;
         case TransactionKind.transfer:
+        case TransactionKind.openingBalance:
+        case TransactionKind.balanceAdjustment:
           break;
       }
     }

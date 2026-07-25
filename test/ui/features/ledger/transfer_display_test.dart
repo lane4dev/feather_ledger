@@ -39,14 +39,6 @@ void main() {
     lastUpdatedEventId: 0,
   );
 
-  const emptyCategory = CategoryEntity(
-    id: '',
-    name: '',
-    iconKey: '',
-    colorInt: 0,
-    type: CategoryType.expense,
-  );
-
   TransactionTileUiModel tile({
     required TransactionKind type,
     required String displaySign,
@@ -57,8 +49,8 @@ void main() {
         type: type,
         date: DateTime(2026, 1, 10),
         note: 'note',
-        category: type == TransactionKind.transfer
-            ? emptyCategory
+        category: type == TransactionKind.transfer || type.isBalancePurpose
+            ? null
             : const CategoryEntity(
                 id: 'cat_food',
                 name: 'Food',
@@ -72,7 +64,8 @@ void main() {
         displaySign: displaySign,
       );
 
-  Future<void> pumpSheet(WidgetTester tester, TransactionTileUiModel model) async {
+  Future<void> pumpSheet(
+      WidgetTester tester, TransactionTileUiModel model) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -121,7 +114,8 @@ void main() {
 
   testWidgets('a transfer renders with no sign and the neutral colour',
       (tester) async {
-    await pumpSheet(tester, tile(type: TransactionKind.transfer, displaySign: ''));
+    await pumpSheet(
+        tester, tile(type: TransactionKind.transfer, displaySign: ''));
 
     final hero = heroAmount(tester);
     expect(hero.data!.trimLeft().startsWith('+'), isFalse,
@@ -133,13 +127,13 @@ void main() {
         reason: 'a transfer is not income');
     expect(hero.style?.color, isNot(semantics.expense),
         reason: 'a transfer is not expense');
-    expect(hero.style?.color,
-        AppTheme.lightTheme.colorScheme.onSurface);
+    expect(hero.style?.color, AppTheme.lightTheme.colorScheme.onSurface);
   });
 
   testWidgets('an expense still renders signed and in the expense colour',
       (tester) async {
-    await pumpSheet(tester, tile(type: TransactionKind.expense, displaySign: '-'));
+    await pumpSheet(
+        tester, tile(type: TransactionKind.expense, displaySign: '-'));
 
     final hero = heroAmount(tester);
     expect(hero.data!.trimLeft().startsWith('-'), isTrue);
@@ -150,7 +144,8 @@ void main() {
   });
 
   testWidgets('a transfer shows both legs and no category row', (tester) async {
-    await pumpSheet(tester, tile(type: TransactionKind.transfer, displaySign: ''));
+    await pumpSheet(
+        tester, tile(type: TransactionKind.transfer, displaySign: ''));
 
     expect(find.text('Cash'), findsOneWidget);
     expect(find.text('Bank'), findsOneWidget);
@@ -159,6 +154,17 @@ void main() {
 
     // A transfer has no category, so the category snapshot must not appear.
     expect(find.text('Food'), findsNothing);
+  });
+
+  testWidgets('an opening balance names its purpose instead of a category',
+      (tester) async {
+    await pumpSheet(
+        tester, tile(type: TransactionKind.openingBalance, displaySign: '+'));
+
+    expect(find.text('Initial Balance'), findsNWidgets(2),
+        reason: 'the heading and read-only type explain this system record');
+    expect(find.text('Food'), findsNothing);
+    expect(find.text('Type'), findsOneWidget);
   });
 }
 

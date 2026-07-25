@@ -55,9 +55,9 @@ class PostingContextResolver {
     required String categoryId,
     required TransactionKind kind,
   }) async {
-    if (kind == TransactionKind.transfer) {
-      throw const CommandRejected(LedgerErrorCode.invalidTransfer,
-          'transfers resolve through resolveForTransfer');
+    if (!kind.requiresCategory) {
+      throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
+          'only income and expense resolve through resolveForKind');
     }
     final account = await _requireLiveAccount(accountId);
     final category = await _requireLiveCategory(categoryId);
@@ -66,7 +66,8 @@ class PostingContextResolver {
         ? CategoryType.income
         : CategoryType.expense;
     if (category.type != expected) {
-      throw CommandRejected(LedgerErrorCode.categoryTypeMismatch,
+      throw CommandRejected(
+          LedgerErrorCode.categoryTypeMismatch,
           'Category $categoryId is ${category.type.name}, expected '
           '${expected.name}');
     }
@@ -84,6 +85,13 @@ class PostingContextResolver {
     final to = await _requireLiveAccount(toAccountId);
     return PostingContext(account: from, counterAccount: to);
   }
+
+  /// Opening balances and reconciliation adjustments move one live account
+  /// and deliberately have neither a category nor a counter-account.
+  Future<PostingContext> resolveForBalancePurpose({
+    required String accountId,
+  }) async =>
+      PostingContext(account: await _requireLiveAccount(accountId));
 
   Future<AccountEntity> _requireLiveAccount(String id) async {
     final account = await _accounts.getAccount(id);

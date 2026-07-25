@@ -25,6 +25,7 @@ import '../models/transaction_tile_ui_model.dart';
 import '../view_model/ledger_view_model.dart';
 import '../view_model/recurring_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
+import '../widgets/ledger_detail_row.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
@@ -83,9 +84,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   ];
 
   bool get _isTransfer => _type == TransactionKind.transfer;
+  bool get _isBalancePurpose => _type.isBalancePurpose;
 
   /// Whether this form can start a series at all.
-  bool get _canRepeat => !_isTransfer && widget.transaction == null;
+  bool get _canRepeat =>
+      !_isTransfer && !_isBalancePurpose && widget.transaction == null;
 
   // Categories are typed by CategoryType, which has no transfer member; a
   // transfer has no category at all.
@@ -103,7 +106,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       _type = transaction.type;
       _date = transaction.date;
       _note = transaction.note;
-      _categoryId = transaction.category.id;
+      _categoryId = transaction.category?.id;
       _accountId = transaction.account.id;
       _toAccountId = transaction.toAccount?.id;
     } else {
@@ -127,10 +130,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     // Pickers only offer non-archived accounts (spec 003, US3); history and
     // balances retain archived rows.
-    final activeAccounts =
-        (accountsAsync.value ?? const <AccountUiModel>[])
-            .where((a) => !a.account.archived)
-            .toList();
+    final activeAccounts = (accountsAsync.value ?? const <AccountUiModel>[])
+        .where((a) => !a.account.archived)
+        .toList();
     final fromAccount = activeAccounts
         .where((a) => a.account.id == _accountId)
         .firstOrNull
@@ -173,10 +175,18 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Kind Toggle
-              LedgerTypeSelector(
-                selectedType: _type,
-                onSelectionChanged: _onTypeChanged,
-              ),
+              if (!_isBalancePurpose)
+                LedgerTypeSelector(
+                  selectedType: _type,
+                  onSelectionChanged: _onTypeChanged,
+                )
+              else
+                LedgerDetailRow(
+                  label: l10n.transactionType,
+                  value: _type == TransactionKind.openingBalance
+                      ? l10n.initialBalance
+                      : l10n.accountBalanceAdjustmentDescription,
+                ),
               const SizedBox(height: 32),
 
               // 2. Amount Input
@@ -220,8 +230,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
               const SizedBox(height: 8),
 
-              // 4. Category — income and expense only.
-              if (!_isTransfer)
+              // 4. Category — ordinary income and expense only.
+              if (!_isTransfer && !_isBalancePurpose)
                 LedgerFormRow(
                   icon: LucideIcons.layoutGrid,
                   child: categoriesAsync.when(
@@ -245,8 +255,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                                 : null,
                             errorText: state.hasError ? state.errorText : null,
                             onTap: () async {
-                              final result =
-                                  await showModalBottomSheet<String>(
+                              final result = await showModalBottomSheet<String>(
                                 context: context,
                                 isScrollControlled: true,
                                 useSafeArea: true,
@@ -280,28 +289,32 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                 ),
 
-              if (!_isTransfer) const SizedBox(height: 8),
+              if (!_isTransfer && !_isBalancePurpose) const SizedBox(height: 8),
 
               // 5. Account(s). A transfer gets both legs; income and expense
               //    get the single account the money lands in or leaves.
-              _accountRow(
-                fieldKey: ValueKey('account-$_type'),
-                icon: _isTransfer
-                    ? LucideIcons.arrowUp
-                    : LucideIcons.wallet,
-                // A transfer's debit leg is its "from" side, and saying so is
-                // the whole point of the screen — the same labels the detail
-                // sheet uses.
-                placeholder: _isTransfer ? l10n.transferFrom : l10n.account,
-                options: activeAccounts,
-                selectedId: _accountId,
-                onSelected: (id) => setState(() {
-                  _accountId = id;
-                  // The destination is keyed on the source, so re-keying
-                  // resets a choice the currency filter may no longer offer.
-                  _toAccountId = null;
-                }),
-              ),
+              if (_isBalancePurpose)
+                LedgerDetailRow(
+                  label: l10n.account,
+                  value: widget.transaction!.account.name,
+                )
+              else
+                _accountRow(
+                  fieldKey: ValueKey('account-$_type'),
+                  icon: _isTransfer ? LucideIcons.arrowUp : LucideIcons.wallet,
+                  // A transfer's debit leg is its "from" side, and saying so is
+                  // the whole point of the screen — the same labels the detail
+                  // sheet uses.
+                  placeholder: _isTransfer ? l10n.transferFrom : l10n.account,
+                  options: activeAccounts,
+                  selectedId: _accountId,
+                  onSelected: (id) => setState(() {
+                    _accountId = id;
+                    // The destination is keyed on the source, so re-keying
+                    // resets a choice the currency filter may no longer offer.
+                    _toAccountId = null;
+                  }),
+                ),
 
               if (_isTransfer) ...[
                 const SizedBox(height: 8),
@@ -367,7 +380,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     if (widget.transaction == null) {
       return _isTransfer ? l10n.addTransfer : l10n.addTransaction;
     }
-    return _isTransfer ? l10n.editTransfer : l10n.editTransaction;
+    if (_isTransfer) return l10n.editTransfer;
+    return _isBalancePurpose
+        ? (_type == TransactionKind.openingBalance
+            ? l10n.initialBalance
+            : l10n.accountBalanceAdjustmentDescription)
+        : l10n.editTransaction;
   }
 
   /// Switching kind clears what the new kind cannot carry, rather than
@@ -417,9 +435,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     );
   }
 
-  String _repeatLabel(AppLocalizations l10n) => _repeat == _repeatNever
-      ? l10n.repeat
-      : _frequencyLabel(l10n, _repeat);
+  String _repeatLabel(AppLocalizations l10n) =>
+      _repeat == _repeatNever ? l10n.repeat : _frequencyLabel(l10n, _repeat);
 
   static String _frequencyLabel(AppLocalizations l10n, String frequency) =>
       switch (frequency) {
@@ -466,9 +483,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           return extraValidator?.call(value);
         },
         builder: (state) {
-          final selected = options
-              .where((a) => a.account.id == state.value)
-              .firstOrNull;
+          final selected =
+              options.where((a) => a.account.id == state.value).firstOrNull;
           return LedgerSelectorField(
             text: selected?.account.name ?? placeholder,
             textStyle: selected == null
@@ -555,6 +571,21 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       return;
     }
 
+    if (_isBalancePurpose) {
+      final original = widget.transaction!;
+      final signedAmount =
+          original.displaySign == '-' ? -_amountMinor! : _amountMinor!;
+      await _finish(
+          ref.read(ledgerViewModelProvider.notifier).updateBalancePurpose(
+                id: original.id,
+                signedAmountMinor: signedAmount,
+                date: _date,
+                accountId: original.account.id,
+                note: _note,
+              ));
+      return;
+    }
+
     // Overdraft check — an expense takes money out of an account it must be
     // able to cover. A transfer's debit leg is the same question, but its
     // semantics are genuinely ambiguous when both legs are the user's own
@@ -638,11 +669,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     if (!_canRepeat || _repeat == _repeatNever) return unitResult;
 
     final categories = ref.read(categoryListProvider(_categoryType)).value;
-    final categoryName = categories
-            ?.where((c) => c.id == _categoryId)
-            .firstOrNull
-            ?.name ??
-        '';
+    final categoryName =
+        categories?.where((c) => c.id == _categoryId).firstOrNull?.name ?? '';
 
     return ref.read(recurringViewModelProvider.notifier).createSeries(
           type: _type == TransactionKind.income

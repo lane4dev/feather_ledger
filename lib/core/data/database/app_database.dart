@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,6 +73,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.addColumn(accountsView, accountsView.includeInTotals);
           }
+          // v3 adds TransactionKind values only. Drift persists the enum as
+          // its existing integer ordinal and the new values are appended, so
+          // no table change is needed; projection version 4 triggers replay.
         },
       );
 }

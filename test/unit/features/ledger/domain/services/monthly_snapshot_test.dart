@@ -79,14 +79,13 @@ void main() {
         .id;
 
     // The creation month opens at zero and the starting balance lands as a
-    // correction transaction dated today — money the user typed is a row in
-    // the ledger, not an opening-balance event. The closing balance is the
-    // same 1000.00 either way; what moved is which line carries it.
-    var row = await harness.db.monthlySnapshotDao
-        .getForAccount(bankId, m0.$1, m0.$2);
+    // visible, category-free opening-balance transaction dated today. It
+    // changes the balance but not this month's income.
+    var row =
+        await harness.db.monthlySnapshotDao.getForAccount(bankId, m0.$1, m0.$2);
     expect(row, isNotNull);
     expect(row!.openingBalanceMinor, 0);
-    expect(row.incomeMinor, 100000);
+    expect(row.incomeMinor, 0);
     expect(row.netChangeMinor, 100000);
     expect(row.closingBalanceMinor, 100000);
     expect(row.isClosed, false);
@@ -98,8 +97,7 @@ void main() {
       colorInt: 0xFF000000,
       type: CategoryType.expense,
     );
-    final foodBankId =
-        await harness.userCategoryId();
+    final foodBankId = await harness.userCategoryId();
     await harness.ledgerService.addTransaction(
       commandId: 'cmd_expense_m0',
       amountMinor: 3000,
@@ -109,14 +107,14 @@ void main() {
       accountId: bankId,
     );
 
-    row = await harness.db.monthlySnapshotDao
-        .getForAccount(bankId, m0.$1, m0.$2);
+    row =
+        await harness.db.monthlySnapshotDao.getForAccount(bankId, m0.$1, m0.$2);
     expect(row!.openingBalanceMinor, 0);
     expect(row.netChangeMinor, 97000);
     expect(row.expenseMinor, -3000);
     expect(row.closingBalanceMinor, 97000);
     expect(row.transactionCount, 2,
-        reason: 'the opening correction and the expense');
+        reason: 'the opening balance and the expense');
 
     // Next month: opening = previous closing.
     await harness.ledgerService.addTransaction(
@@ -127,8 +125,8 @@ void main() {
       categoryId: foodBankId,
       accountId: bankId,
     );
-    row = await harness.db.monthlySnapshotDao
-        .getForAccount(bankId, m1.$1, m1.$2);
+    row =
+        await harness.db.monthlySnapshotDao.getForAccount(bankId, m1.$1, m1.$2);
     expect(row!.openingBalanceMinor, 97000);
     expect(row.closingBalanceMinor, 92000);
 
@@ -153,18 +151,19 @@ void main() {
 
   test('empty months materialize with zero net between events', () async {
     await seedCashAndFood();
-    await recordExpense(3000, commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
+    await recordExpense(3000,
+        commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
 
-    final jan = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 1);
+    final jan =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.openingBalanceMinor, 0,
         reason: 'Cash carries no starting balance → anchor opening is 0');
     expect(jan.closingBalanceMinor, -3000);
     expect(jan.transactionCount, 1);
 
     // February has no events: net zero, opening = January's closing.
-    final feb = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 2);
+    final feb =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 2);
     expect(feb, isNotNull, reason: 'empty months materialize (spec US7)');
     expect(feb!.openingBalanceMinor, -3000);
     expect(feb.closingBalanceMinor, -3000);
@@ -196,16 +195,16 @@ void main() {
     );
     expect(result, isA<Success<void>>());
 
-    final savings = await harness.db.monthlySnapshotDao
-        .getForAccount(savingsId, 2026, 1);
+    final savings =
+        await harness.db.monthlySnapshotDao.getForAccount(savingsId, 2026, 1);
     expect(savings!.transferOutMinor, -50000);
     expect(savings.transferInMinor, 0);
     expect(savings.incomeMinor, 0);
     expect(savings.expenseMinor, 0);
     expect(savings.netChangeMinor, -50000);
 
-    final cash = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 1);
+    final cash =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(cash!.transferInMinor, 50000);
     expect(cash.transferOutMinor, 0);
     expect(cash.incomeMinor, 0);
@@ -222,12 +221,12 @@ void main() {
 
   test('correction and deletion cascade through following months', () async {
     await seedCashAndFood();
-    await recordExpense(5000, commandId: 'cmd_original', date: DateTime(2026, 1, 10));
-    final originalId = (await harness.ledgerService
-            .watchTransactions(DateTime(2026, 1))
-            .first)
-        .single
-        .id;
+    await recordExpense(5000,
+        commandId: 'cmd_original', date: DateTime(2026, 1, 10));
+    final originalId =
+        (await harness.ledgerService.watchTransactions(DateTime(2026, 1)).first)
+            .single
+            .id;
 
     // Correction: the January row is rewritten to the new amount and
     // February's opening follows it.
@@ -240,23 +239,22 @@ void main() {
       categoryId: foodId,
       accountId: cashId,
     );
-    var jan = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 1);
+    var jan =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.expenseMinor, -8000);
     expect(jan.closingBalanceMinor, -8000);
-    var feb = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 2);
+    var feb =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 2);
     expect(feb!.openingBalanceMinor, -8000,
         reason: 'cascade: the month after the edit re-anchors');
 
     // Deletion: the original month nets zero and the chain follows.
-    final correctedId = (await harness.ledgerService
-            .watchTransactions(DateTime(2026, 1))
-            .first)
-        .single
-        .id;
-    final deleted = await harness.ledgerService.deleteTransaction(correctedId,
-        commandId: 'cmd_delete');
+    final correctedId =
+        (await harness.ledgerService.watchTransactions(DateTime(2026, 1)).first)
+            .single
+            .id;
+    final deleted = await harness.ledgerService
+        .deleteTransaction(correctedId, commandId: 'cmd_delete');
     expect(deleted, isA<Success<void>>());
     jan = await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.netChangeMinor, 0);
@@ -268,27 +266,31 @@ void main() {
 
   test('eventSequenceFrom/To bracket the events behind the row', () async {
     await seedCashAndFood();
-    await recordExpense(3000, commandId: 'cmd_first', date: DateTime(2026, 1, 10));
+    await recordExpense(3000,
+        commandId: 'cmd_first', date: DateTime(2026, 1, 10));
 
     final events = (await harness.eventStore.readAll()).events;
     final anchorGsn = events
-        .firstWhere((e) => e.eventType == 'AccountCreated' && e.streamId == cashId)
+        .firstWhere(
+            (e) => e.eventType == 'AccountCreated' && e.streamId == cashId)
         .globalSequenceNumber!;
 
-    var jan = await harness.db.monthlySnapshotDao
-        .getForAccount(cashId, 2026, 1);
+    var jan =
+        await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.eventSequenceFrom, anchorGsn);
     expect(jan.eventSequenceTo, events.last.globalSequenceNumber);
 
     // A second transaction advances only `to`.
-    await recordExpense(4000, commandId: 'cmd_second', date: DateTime(2026, 1, 20));
+    await recordExpense(4000,
+        commandId: 'cmd_second', date: DateTime(2026, 1, 20));
     final eventsAfter = (await harness.eventStore.readAll()).events;
     jan = await harness.db.monthlySnapshotDao.getForAccount(cashId, 2026, 1);
     expect(jan!.eventSequenceFrom, anchorGsn);
     expect(jan.eventSequenceTo, eventsAfter.last.globalSequenceNumber);
   });
 
-  test('the month owns income and expense; the balance is the ledger\'s', () async {
+  test('the month owns income and expense; the balance is the ledger\'s',
+      () async {
     // Two screens, one projection, three figures — but only two of them are
     // the month's. The header's big number is labelled 总余额 and is what the
     // accounts hold now; the reports screen shows the month's own closing
@@ -304,8 +306,10 @@ void main() {
       currencyCode: 'USD',
     );
 
-    await recordExpense(30000, commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
-    await recordExpense(20000, commandId: 'cmd_feb', date: DateTime(2026, 2, 10));
+    await recordExpense(30000,
+        commandId: 'cmd_jan', date: DateTime(2026, 1, 10));
+    await recordExpense(20000,
+        commandId: 'cmd_feb', date: DateTime(2026, 2, 10));
 
     final headerBalances = <int>[];
     final reportBalances = <int>[];
@@ -379,16 +383,16 @@ void main() {
 
     await seedCashAndFood();
     await openAccount('cmd_bank_in', 'Kept', 100000);
-    final excludedId =
-        await openAccount('cmd_bank_out', 'Held', 250000, includeInTotals: false);
+    final excludedId = await openAccount('cmd_bank_out', 'Held', 250000,
+        includeInTotals: false);
 
     final header = await harness.ledgerService
         .watchMonthlySnapshot(month, currencyCode: 'USD')
         .first;
     expect(header.balanceMinor, 100000,
         reason: 'the excluded account holds 250000 and none of it counts');
-    expect(header.incomeMinor, 100000,
-        reason: "the excluded opening is not the month's income either");
+    expect(header.incomeMinor, 0,
+        reason: 'opening balances are not monthly income');
 
     // Its own balance is untouched — the exclusion is about the sums, not
     // about the account.
@@ -396,7 +400,7 @@ void main() {
     expect(own!.balanceMinor, 250000);
     final ownRow = await harness.db.monthlySnapshotDao
         .getForAccount(excludedId, month.year, month.month);
-    expect(ownRow!.incomeMinor, 250000,
-        reason: 'the exclusion is read-time; the projection still records it');
+    expect(ownRow!.incomeMinor, 0,
+        reason: 'the opening balance changes only the account balance');
   });
 }

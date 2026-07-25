@@ -62,7 +62,7 @@ void main() {
     final summary = container.read(ledgerMonthlySummaryProvider(month)).value;
     expect(summary?.displayBalance, '¥1000.00',
         reason: "the header totals the accounts in the ledger's own currency");
-    expect(summary?.displayIncome, '¥1000.00',
-        reason: "the month's income is filtered by that same currency");
+    expect(summary?.displayIncome, '¥0.00',
+        reason: 'an opening balance is not this month\'s income');
   });
 }

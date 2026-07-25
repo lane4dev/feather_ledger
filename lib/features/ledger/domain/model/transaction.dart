@@ -83,6 +83,8 @@ enum TransactionViolation {
   transferAmounts,
   transferSameAccount,
   transferCurrency,
+  categoryRequired,
+  categoryForbidden,
 }
 
 extension TransactionViolationCode on TransactionViolation {
@@ -96,6 +98,9 @@ extension TransactionViolationCode on TransactionViolation {
         TransactionViolation.transferDirections ||
         TransactionViolation.transferAmounts =>
           LedgerErrorCode.invalidTransfer,
+        TransactionViolation.categoryRequired ||
+        TransactionViolation.categoryForbidden =>
+          LedgerErrorCode.invalidTransactionShape,
         // Unreachable through the intent constructors; a structural failure
         // here means a writer went around them.
         TransactionViolation.postingsEmpty ||
@@ -240,6 +245,90 @@ class Transaction {
         ],
       );
 
+  /// An account's signed balance at the point it joins the ledger. This is
+  /// not income and has no category: it represents money that predates this
+  /// book, not a current-period cash-flow event.
+  factory Transaction.openingBalance({
+    required String transactionId,
+    required DateTime occurredAt,
+    required int signedAmountMinor,
+    required String accountId,
+    required String currencyCode,
+    String description = '',
+    String? notes,
+  }) =>
+      _balancePurpose(
+        transactionId: transactionId,
+        occurredAt: occurredAt,
+        signedAmountMinor: signedAmountMinor,
+        accountId: accountId,
+        currencyCode: currencyCode,
+        kind: TransactionKind.openingBalance,
+        description: description,
+        notes: notes,
+      );
+
+  /// A signed reconciliation difference. It changes the account balance but
+  /// is not a category-bearing income or expense.
+  factory Transaction.balanceAdjustment({
+    required String transactionId,
+    required DateTime occurredAt,
+    required int signedAmountMinor,
+    required String accountId,
+    required String currencyCode,
+    String description = '',
+    String? notes,
+  }) =>
+      _balancePurpose(
+        transactionId: transactionId,
+        occurredAt: occurredAt,
+        signedAmountMinor: signedAmountMinor,
+        accountId: accountId,
+        currencyCode: currencyCode,
+        kind: TransactionKind.balanceAdjustment,
+        description: description,
+        notes: notes,
+      );
+
+  /// Both balance purposes assemble through [rehydrate], which ADR-0001
+  /// otherwise reserves for replay — **the one deliberate exception to that
+  /// rule.** Their intent is only "one account and a signed amount", and
+  /// turning the sign into a [PostingDirection] is exactly the translation
+  /// [rehydrate]'s door performs; writing a second intent constructor that
+  /// does the same thing would be two spellings of one shape.
+  ///
+  /// What that costs: [rehydrate] does not validate, so unlike the other
+  /// intent constructors these two are **not self-checking**. Every caller
+  /// must call [validateOrThrow] itself.
+  static Transaction _balancePurpose({
+    required String transactionId,
+    required DateTime occurredAt,
+    required int signedAmountMinor,
+    required String accountId,
+    required String currencyCode,
+    required TransactionKind kind,
+    required String description,
+    String? notes,
+  }) =>
+      Transaction.rehydrate(
+        transactionId: transactionId,
+        occurredAt: occurredAt,
+        description: description,
+        kind: kind,
+        notes: notes,
+        postings: [
+          Posting(
+            accountId: accountId,
+            direction: signedAmountMinor > 0
+                ? PostingDirection.credit
+                : PostingDirection.debit,
+            amountMinor: signedAmountMinor.abs(),
+            currencyCode: currencyCode,
+            memo: notes,
+          ),
+        ],
+      );
+
   /// Validates aggregate invariants, throwing [CommandRejected] on a
   /// violation — what the write path calls before building the event.
   void validateOrThrow() {
@@ -263,6 +352,9 @@ class Transaction {
         if (postings.first.direction != expected) {
           return TransactionViolation.postingDirection;
         }
+        if (postings.first.categoryId == null) {
+          return TransactionViolation.categoryRequired;
+        }
       case TransactionKind.transfer:
         if (postings.length != 2) return TransactionViolation.postingCount;
         final first = postings.first;
@@ -278,6 +370,15 @@ class Transaction {
         }
         if (first.currencyCode != second.currencyCode) {
           return TransactionViolation.transferCurrency;
+        }
+        if (postings.any((posting) => posting.categoryId != null)) {
+          return TransactionViolation.categoryForbidden;
+        }
+      case TransactionKind.openingBalance:
+      case TransactionKind.balanceAdjustment:
+        if (postings.length != 1) return TransactionViolation.postingCount;
+        if (postings.first.categoryId != null) {
+          return TransactionViolation.categoryForbidden;
         }
     }
     return null;

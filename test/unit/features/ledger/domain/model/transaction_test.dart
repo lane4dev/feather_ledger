@@ -16,6 +16,7 @@ void main() {
       direction: PostingDirection.debit,
       amountMinor: 1050,
       currencyCode: 'USD',
+      categoryId: 'food',
     );
 
     Posting leg(String accountId, PostingDirection direction,
@@ -64,41 +65,45 @@ void main() {
       );
     });
 
-    test('transfer requires opposite, equal, distinct, same-currency legs',
-        () {
+    test('transfer requires opposite, equal, distinct, same-currency legs', () {
       expect(
         of([
           leg('a', PostingDirection.debit),
           leg('b', PostingDirection.credit),
-        ], TransactionKind.transfer).validate(),
+        ], TransactionKind.transfer)
+            .validate(),
         isNull,
       );
       expect(
         of([
           leg('a', PostingDirection.debit),
           leg('a', PostingDirection.credit),
-        ], TransactionKind.transfer).validate(),
+        ], TransactionKind.transfer)
+            .validate(),
         TransactionViolation.transferSameAccount,
       );
       expect(
         of([
           leg('a', PostingDirection.debit),
           leg('b', PostingDirection.credit, amountMinor: 9999),
-        ], TransactionKind.transfer).validate(),
+        ], TransactionKind.transfer)
+            .validate(),
         TransactionViolation.transferAmounts,
       );
       expect(
         of([
           leg('a', PostingDirection.debit),
           leg('b', PostingDirection.debit),
-        ], TransactionKind.transfer).validate(),
+        ], TransactionKind.transfer)
+            .validate(),
         TransactionViolation.transferDirections,
       );
       expect(
         of([
           leg('a', PostingDirection.debit),
           leg('b', PostingDirection.credit, currencyCode: 'CNY'),
-        ], TransactionKind.transfer).validate(),
+        ], TransactionKind.transfer)
+            .validate(),
         TransactionViolation.transferCurrency,
       );
       expect(
@@ -201,13 +206,18 @@ void main() {
         TransactionViolation.transferSameAccount:
             LedgerErrorCode.sameAccountTransfer,
         TransactionViolation.transferCurrency: LedgerErrorCode.currencyMismatch,
-        TransactionViolation.transferDirections: LedgerErrorCode.invalidTransfer,
+        TransactionViolation.transferDirections:
+            LedgerErrorCode.invalidTransfer,
         TransactionViolation.transferAmounts: LedgerErrorCode.invalidTransfer,
         TransactionViolation.postingsEmpty:
             LedgerErrorCode.invalidTransactionShape,
         TransactionViolation.postingCount:
             LedgerErrorCode.invalidTransactionShape,
         TransactionViolation.postingDirection:
+            LedgerErrorCode.invalidTransactionShape,
+        TransactionViolation.categoryRequired:
+            LedgerErrorCode.invalidTransactionShape,
+        TransactionViolation.categoryForbidden:
             LedgerErrorCode.invalidTransactionShape,
       };
 

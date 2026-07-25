@@ -48,7 +48,10 @@ class TransactionDetailSheet extends ConsumerWidget {
     final color = switch (transaction.type) {
       TransactionKind.expense => context.colors.expense,
       TransactionKind.income => context.colors.income,
-      TransactionKind.transfer => Theme.of(context).colorScheme.onSurface,
+      TransactionKind.transfer ||
+      TransactionKind.openingBalance ||
+      TransactionKind.balanceAdjustment =>
+        Theme.of(context).colorScheme.onSurface,
     };
 
     return Container(
@@ -95,23 +98,27 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
           SizedBox(height: context.spacing.md),
 
-          // Title / Category — transfers have no category (spec US5).
-          if (transaction.type != TransactionKind.transfer)
+          // A special balance purpose is explicit, never represented by a
+          // hidden category. Ordinary categories remain historical snapshots.
+          if (transaction.category != null || transaction.type.isBalancePurpose)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  backgroundColor:
-                      Color(transaction.category.colorInt).withValues(alpha: 0.2),
-                  foregroundColor: Color(transaction.category.colorInt),
-                  child: Icon(
-                    CategoryTokens.iconFor(transaction.category.iconKey),
-                    size: 20,
+                if (transaction.category != null)
+                  CircleAvatar(
+                    backgroundColor: Color(transaction.category!.colorInt)
+                        .withValues(alpha: 0.2),
+                    foregroundColor: Color(transaction.category!.colorInt),
+                    child: Icon(
+                      CategoryTokens.iconFor(transaction.category!.iconKey),
+                      size: 20,
+                    ),
                   ),
-                ),
-                SizedBox(width: context.spacing.sm),
+                if (transaction.category != null)
+                  SizedBox(width: context.spacing.sm),
                 Text(
-                  transaction.category.name,
+                  transaction.category?.name ??
+                      _purposeName(l10n, transaction.type),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
@@ -125,6 +132,13 @@ class TransactionDetailSheet extends ConsumerWidget {
             label: l10n.date,
             value: DateFormat.yMMMMEEEEd(locale).format(transaction.date),
           ),
+          if (transaction.type.isBalancePurpose) ...[
+            SizedBox(height: context.spacing.md),
+            LedgerDetailRow(
+              label: l10n.transactionType,
+              value: _purposeName(l10n, transaction.type),
+            ),
+          ],
           SizedBox(height: context.spacing.md),
           if (transaction.type == TransactionKind.transfer &&
               transaction.toAccount != null) ...[
@@ -164,9 +178,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                 ),
           ),
           SizedBox(height: context.spacing.sm),
-          ...ref
-              .watch(getTransactionHistoryProvider(transaction.id))
-              .maybeWhen(
+          ...ref.watch(getTransactionHistoryProvider(transaction.id)).maybeWhen(
                 data: (history) => history.map((entry) {
                   final label = entry.eventType == 'TransactionRecorded'
                       ? l10n.eventRecorded
@@ -197,4 +209,12 @@ class TransactionDetailSheet extends ConsumerWidget {
       ),
     );
   }
+
+  String _purposeName(AppLocalizations l10n, TransactionKind type) =>
+      switch (type) {
+        TransactionKind.openingBalance => l10n.initialBalance,
+        TransactionKind.balanceAdjustment =>
+          l10n.accountBalanceAdjustmentDescription,
+        _ => '',
+      };
 }

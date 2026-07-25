@@ -4,10 +4,26 @@
 /// [PostingDirection]; amounts are int minor units everywhere.
 library;
 
-/// Transaction kind (spec Domain Model). `transfer` is the single
-/// exclusion criterion for income/expense statistics — no other code path
-/// may invent a second one.
-enum TransactionKind { income, expense, transfer }
+/// Transaction kind. The declaration order is persisted by Drift, so new
+/// values must only ever be appended.
+enum TransactionKind {
+  income,
+  expense,
+  transfer,
+  openingBalance,
+  balanceAdjustment,
+}
+
+extension TransactionKindSemantics on TransactionKind {
+  bool get requiresCategory =>
+      this == TransactionKind.income || this == TransactionKind.expense;
+
+  bool get isBalancePurpose =>
+      this == TransactionKind.openingBalance ||
+      this == TransactionKind.balanceAdjustment;
+
+  bool get contributesToIncomeExpense => requiresCategory;
+}
 
 /// Balance direction of a posting (personal-bookkeeping semantics, defined
 /// only here): credit = balance increases by amountMinor;

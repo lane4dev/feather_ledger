@@ -11,7 +11,4 @@ abstract class CategoryRepository {
 
   /// Retrieves a category by its [id], or null if not found.
   Future<CategoryEntity?> getCategory(String id);
-
-  /// Retrieves a built-in system category by its [code].
-  Future<CategoryEntity?> getBySystemCode(String code);
 }

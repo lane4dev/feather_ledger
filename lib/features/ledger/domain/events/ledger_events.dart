@@ -11,6 +11,7 @@
 library;
 
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 
 import '../model/transaction.dart';
@@ -99,6 +100,42 @@ class TransactionRecorded implements LedgerEventPayload {
       );
 }
 
+/// Compatibility interpretation for records written before balance purposes
+/// existed. Their immutable events remain income/expense rows using fixed
+/// system category IDs; projection replay derives the modern purpose from
+/// that stable identity. Account creation used a derived command id ending in
+/// `-opening`, which distinguishes its opening record from later adjustments.
+///
+/// **The event's `kind` and the projected `kind` disagree on purpose**, and
+/// this function is the whole of the disagreement: for these rows
+/// `transactions_view.kind` says `openingBalance`/`balanceAdjustment` while
+/// the payload still says `income`/`expense`. That is not drift to be
+/// reconciled — *the event is history and the view is the reading of it*, and
+/// rewriting the payload would mean editing immutable events to say something
+/// their author never wrote. So: never "fix" a stored payload to match this,
+/// and never read the payload's kind to decide how a ledger row behaves.
+///
+/// The `-opening` suffix is a string test on a command id, which is only
+/// tolerable because the set of writers it has to recognise is closed — the
+/// old `createAccount` derived that suffix, the old `adjustAccountBalance`
+/// minted a UUID, and neither producer exists any more. Anything that writes
+/// these kinds from now on chooses the kind directly.
+TransactionKind projectedTransactionKind(
+  TransactionRecorded transaction, {
+  required String commandId,
+}) {
+  final categoryId = transaction.postings.isEmpty
+      ? null
+      : transaction.postings.first.categoryId;
+  final isLegacyBalanceCategory =
+      categoryId == CategoryConstants.reversalIncomeId ||
+          categoryId == CategoryConstants.reversalExpenseId;
+  if (!isLegacyBalanceCategory) return transaction.kind;
+  return commandId.endsWith('-opening')
+      ? TransactionKind.openingBalance
+      : TransactionKind.balanceAdjustment;
+}
+
 /// Reversal reason: UI delete vs. edit-as-reverse-and-re-record.
 enum ReversalReason { userDeleted, correction }
 
@@ -139,8 +176,10 @@ class AccountCreated implements LedgerEventPayload {
   final AccountType type;
   final String currencyCode;
 
-  /// Initial balance is deliberately absent — accounts are created at
-  /// zero and a non-zero opening balance is a separate [OpeningBalanceSet].
+  /// Initial balance is deliberately absent — accounts are created at zero
+  /// and a non-zero opening balance is a separate `TransactionRecorded`
+  /// whose kind is `openingBalance`. [OpeningBalanceSet] remains readable
+  /// for legacy streams only.
   AccountCreated({
     required this.accountId,
     required this.name,
@@ -205,8 +244,7 @@ class AccountArchived implements LedgerEventPayload {
   String get streamId => accountId;
 
   @override
-  Map<String, dynamic> toJson() =>
-      {'schemaVersion': 1, 'accountId': accountId};
+  Map<String, dynamic> toJson() => {'schemaVersion': 1, 'accountId': accountId};
 
   factory AccountArchived.fromJson(Map<String, dynamic> json) =>
       AccountArchived(accountId: json['accountId'] as String);
@@ -355,8 +393,10 @@ class CategoryArchived implements LedgerEventPayload {
 
 /// — Account opening balance ————————————————————————————————————————
 
-/// Sets an account's opening balance. Only legal at account creation; the
-/// projector sets the balance to the absolute value of [amountMinor].
+/// Legacy opening-balance payload retained to rebuild historical streams.
+/// New commands never emit it: it cannot display a ledger row or preserve a
+/// signed liability balance, both of which `TransactionRecorded` with
+/// `openingBalance` does.
 class OpeningBalanceSet implements LedgerEventPayload {
   final String accountId;
   final int amountMinor;

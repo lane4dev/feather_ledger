@@ -60,7 +60,10 @@ class TransactionEntity {
   final TransactionKind type;
   final DateTime date;
   final String? note;
-  final CategoryEntity category;
+
+  /// Present only for ordinary income/expense transactions. Balance purposes
+  /// and transfers intentionally have no category.
+  final CategoryEntity? category;
 
   /// Debit-side account (the "from" side for transfers).
   final AccountEntity account;
@@ -76,7 +79,7 @@ class TransactionEntity {
     required this.type,
     required this.date,
     this.note,
-    required this.category,
+    this.category,
     required this.account,
     this.toAccount,
     this.isReversed = false,

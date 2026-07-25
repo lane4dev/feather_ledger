@@ -38,6 +38,9 @@ class LedgerTypeSelector extends StatelessWidget {
                 TransactionKind.expense => l10n.expense,
                 TransactionKind.income => l10n.income,
                 TransactionKind.transfer => l10n.transfer,
+                TransactionKind.openingBalance => l10n.initialBalance,
+                TransactionKind.balanceAdjustment =>
+                  l10n.accountBalanceAdjustmentDescription,
               }),
             ),
         ],

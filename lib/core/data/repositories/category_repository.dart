@@ -28,13 +28,6 @@ class CategoryRepositoryImpl implements CategoryRepository {
     return row == null ? null : _toEntity(row);
   }
 
-  @override
-  Future<CategoryEntity?> getBySystemCode(String code) async {
-    final categories = await _dao.getAllCategories();
-    final match = categories.where((c) => c.systemCode == code).firstOrNull;
-    return match == null ? null : _toEntity(match);
-  }
-
   CategoryEntity _toEntity(CategoryViewRow row) => CategoryEntity(
         id: row.id,
         name: row.name,

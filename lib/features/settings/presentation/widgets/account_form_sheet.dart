@@ -113,12 +113,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       child: TextFormField(
                         initialValue: _name,
                         decoration: InputDecoration(
-                          // The label is the only text this field needs: with
-                          // `always` it floats and stays, and a hint saying the
-                          // same thing would sit under it saying it twice.
-                          labelText: l10n.accountName,
-                          floatingLabelBehavior:
-                              FloatingLabelBehavior.always,
+                          hintText: l10n.accountName,
                           border: InputBorder.none,
                           contentPadding:
                               const EdgeInsets.symmetric(vertical: 12),

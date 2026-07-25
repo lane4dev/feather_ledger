@@ -173,24 +173,24 @@ class TransactionTile extends StatelessWidget {
                       ),
                     ),
 
-                  // Category Tag — transfers have no category (spec US5).
-                  if (transaction.type != TransactionKind.transfer ||
-                      transaction.isPending)
+                  // Ordinary transactions have a category. Transfers and
+                  // balance purposes intentionally do not.
+                  if (transaction.category != null || transaction.isPending)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
                       child: Row(
                         children: [
-                          if (transaction.type != TransactionKind.transfer)
+                          if (transaction.category != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6.0, vertical: 2.0),
                               decoration: BoxDecoration(
-                                color: Color(transaction.category.colorInt)
+                                color: Color(transaction.category!.colorInt)
                                     .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(4.0),
                               ),
                               child: Text(
-                                transaction.category.name,
+                                transaction.category!.name,
                                 style: LedgerTheme.denseLabel(context).copyWith(
                                   color: Theme.of(context)
                                       .colorScheme
@@ -219,7 +219,9 @@ class TransactionTile extends StatelessWidget {
                 color: switch (transaction.type) {
                   TransactionKind.expense => context.colors.expense,
                   TransactionKind.income => context.colors.income,
-                  TransactionKind.transfer =>
+                  TransactionKind.transfer ||
+                  TransactionKind.openingBalance ||
+                  TransactionKind.balanceAdjustment =>
                     Theme.of(context).colorScheme.onSurface,
                 },
               ),
@@ -233,9 +235,7 @@ class TransactionTile extends StatelessWidget {
     // one dial to turn, and it reads as "not yet" at a glance without
     // changing any of the colours the row's meaning depends on. Posted rows
     // — the common case — skip the extra layer entirely.
-    return transaction.isPending
-        ? Opacity(opacity: 0.55, child: row)
-        : row;
+    return transaction.isPending ? Opacity(opacity: 0.55, child: row) : row;
   }
 
   /// The "waiting to be posted" tag. Same pill shape as the category tag so
@@ -262,12 +262,19 @@ class TransactionTile extends StatelessWidget {
     if (transaction.type == TransactionKind.transfer) {
       return AppLocalizations.of(context)!.transfer;
     }
+    if (transaction.type == TransactionKind.openingBalance) {
+      return AppLocalizations.of(context)!.initialBalance;
+    }
+    if (transaction.type == TransactionKind.balanceAdjustment) {
+      return AppLocalizations.of(context)!.accountBalanceAdjustmentDescription;
+    }
     return transaction.account.name;
   }
 
   String? get _subtitle {
     final hasNote = transaction.note != null && transaction.note!.isNotEmpty;
-    if (transaction.type == TransactionKind.transfer && transaction.toAccount != null) {
+    if (transaction.type == TransactionKind.transfer &&
+        transaction.toAccount != null) {
       return '${transaction.account.name} → ${transaction.toAccount!.name}';
     }
     if (hasNote) return transaction.account.name;

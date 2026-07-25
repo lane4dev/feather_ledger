@@ -90,9 +90,8 @@ void main() {
     final originalRow =
         await harness.db.transactionsDao.getTransactionRow(original);
     expect(originalRow!.isReversed, isTrue);
-    final list = await harness.ledgerService
-        .watchTransactions(DateTime(2026, 1))
-        .first;
+    final list =
+        await harness.ledgerService.watchTransactions(DateTime(2026, 1)).first;
     expect(list, hasLength(1));
     expect(list.single.id, recorded.transactionId);
     expect(list.single.type, TransactionKind.transfer);
@@ -177,7 +176,7 @@ void main() {
     expect(
       result,
       isA<Failure<void>>().having(
-          (f) => f.code, 'code', LedgerErrorCode.invalidTransfer),
+          (f) => f.code, 'code', LedgerErrorCode.invalidTransactionShape),
     );
     expect((await harness.eventStore.readAll()).events.length, eventsBefore,
         reason: 'a rejected correction writes nothing');
@@ -214,8 +213,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having(
-          (f) => f.code, 'code', LedgerErrorCode.invalidTransfer),
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.invalidTransfer),
     );
   });
 
@@ -228,8 +227,8 @@ void main() {
       amountMinor: 10000,
       commandId: 'cmd_transfer',
     );
-    await harness.ledgerService.deleteTransaction(original,
-        commandId: 'cmd_delete');
+    await harness.ledgerService
+        .deleteTransaction(original, commandId: 'cmd_delete');
 
     final result = await harness.ledgerService.updateTransfer(
       commandId: 'cmd_correct_after_delete',
@@ -242,8 +241,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.transactionAlreadyReversed),
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.transactionAlreadyReversed),
     );
     expect(await harness.eventStore.readStream(original), hasLength(2),
         reason: 'the deletion is not undone');

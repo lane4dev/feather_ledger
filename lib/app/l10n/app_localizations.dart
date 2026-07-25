@@ -496,6 +496,12 @@ abstract class AppLocalizations {
   /// **'Initial Balance'**
   String get initialBalance;
 
+  /// No description provided for @transactionType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get transactionType;
+
   /// Message when account is saved
   ///
   /// In en, this message translates to:
