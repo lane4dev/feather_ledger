@@ -33,6 +33,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   late String _name;
   late int _balanceMinor;
   late AccountType _selectedType; // Removed prefix
+  late bool _includeInTotals;
 
   @override
   void initState() {
@@ -40,6 +41,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     _name = widget.account?.name ?? '';
     _balanceMinor = widget.account?.balanceMinor ?? 0;
     _selectedType = widget.account?.type ?? AccountType.cash; // Removed prefix
+    // New accounts count unless the user says otherwise; the entity already
+    // answers `true` for one that predates the flag.
+    _includeInTotals = widget.account?.includeInTotals ?? true;
   }
 
   @override
@@ -102,6 +106,78 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Name first: an account is what it is called before it
+                    // is what it holds.
+                    _FormRow(
+                      icon: LucideIcons.tag,
+                      child: TextFormField(
+                        initialValue: _name,
+                        decoration: InputDecoration(
+                          // The label is the only text this field needs: with
+                          // `always` it floats and stays, and a hint saying the
+                          // same thing would sit under it saying it twice.
+                          labelText: l10n.accountName,
+                          floatingLabelBehavior:
+                              FloatingLabelBehavior.always,
+                          border: InputBorder.none,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          isDense: true,
+                        ),
+                        style: theme.textTheme.bodyLarge,
+                        textCapitalization: TextCapitalization.words,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? l10n.required
+                            : null,
+                        onSaved: (value) => _name = value!,
+                      ),
+                    ),
+                    SizedBox(height: context.spacing.md),
+
+                    // Account Type (SegmentedButton)
+                    SegmentedButton<AccountType>(
+                      // Removed prefix
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.spacing.xs,
+                        ),
+                        textStyle: theme.textTheme.labelMedium,
+                      ),
+                      segments: AccountType.values.map((type) {
+                        // Removed prefix
+                        return ButtonSegment<AccountType>(
+                          // Removed prefix
+                          value: type,
+                          icon: Icon(
+                            type.icon,
+                            size: 20,
+                          ),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              type.localizedLabel(context),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      selected: {_selectedType},
+                      // Account type is fixed at creation (spec 003: only
+                      // Renamed/Archived exist) — disabled when editing.
+                      onSelectionChanged: isEditing
+                          ? null
+                          : (newSelection) {
+                              setState(() =>
+                                  _selectedType = newSelection.first);
+                            },
+                      showSelectedIcon: false,
+                    ),
+                    SizedBox(height: context.spacing.lg),
+
+                    const FeatherDivider(),
+                    SizedBox(height: context.spacing.md),
+
                     // Balance Input (Hero) - Left Aligned
                     TextFormField(
                       // The same input boundary as the ledger's amount
@@ -155,74 +231,22 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       },
                       onSaved: (value) => _balanceMinor = parseMinor(value!),
                     ),
-                    SizedBox(height: context.spacing.lg),
 
-                    // Account Type (SegmentedButton)
-                    SegmentedButton<AccountType>(
-                      // Removed prefix
-                      style: SegmentedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.spacing.xs,
-                        ),
-                        textStyle: theme.textTheme.labelMedium,
-                      ),
-                      segments: AccountType.values.map((type) {
-                        // Removed prefix
-                        return ButtonSegment<AccountType>(
-                          // Removed prefix
-                          value: type,
-                          icon: Icon(
-                            type.icon,
-                            size: 20,
-                          ),
-                          label: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              type.localizedLabel(context),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      selected: {_selectedType},
-                      // Account type is fixed at creation (spec 003: only
-                      // Renamed/Archived exist) — disabled when editing.
-                      onSelectionChanged: isEditing
-                          ? null
-                          : (newSelection) {
-                              setState(() =>
-                                  _selectedType = newSelection.first);
-                            },
-                      showSelectedIcon: false,
-                    ),
-                    SizedBox(height: context.spacing.lg),
+                    SizedBox(height: context.spacing.sm),
 
-                    const FeatherDivider(),
-                    SizedBox(height: context.spacing.md),
-
-                    // Name Input
-                    _FormRow(
-                      icon: LucideIcons.tag,
-                      child: TextFormField(
-                        initialValue: _name,
-                        decoration: InputDecoration(
-                          hintText: l10n.accountName,
-                          border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12),
-                          isDense: true,
-                        ),
-                        style: theme.textTheme.bodyLarge,
-                        textCapitalization: TextCapitalization.words,
-                        validator: (value) => (value == null || value.isEmpty)
-                            ? l10n.required
-                            : null,
-                        onSaved: (value) => _name = value!,
-                      ),
+                    // Out of the ledger totals, not out of the ledger: the
+                    // account stays everywhere it is shown, and only stops
+                    // counting in the sums. See CONTEXT.md.
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.accountIncludeInTotals),
+                      subtitle: Text(l10n.accountIncludeInTotalsHint),
+                      value: _includeInTotals,
+                      onChanged: (value) =>
+                          setState(() => _includeInTotals = value),
                     ),
 
-                    SizedBox(height: context.spacing.xl),
+                    SizedBox(height: context.spacing.lg),
 
                     // Save Button
                     SizedBox(
@@ -323,6 +347,17 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
             notes: l10n.accountBalanceAdjustmentNotes,
           );
         }
+
+        // Its own event, and its own commandId: nothing about the money moved,
+        // so it does not belong inside either write above.
+        if (_includeInTotals != widget.account!.includeInTotals &&
+            result is Success<void>) {
+          result = await service.setTotalsInclusion(
+            commandId: const Uuid().v4(),
+            accountId: widget.account!.id,
+            includeInTotals: _includeInTotals,
+          );
+        }
       } else {
         final currencyKey = ref.read(currencyControllerProvider).value ??
             AppCurrencies.defaultCurrency.code;
@@ -336,6 +371,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
           // A new account's whole balance is the difference from nothing, and
           // the row says so rather than looking like income.
           initialBalanceNote: l10n.accountInitialBalanceNote,
+          includeInTotals: _includeInTotals,
         );
       }
 

@@ -564,6 +564,16 @@ class $AccountsViewTable extends AccountsView
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("archived" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _includeInTotalsMeta =
+      const VerificationMeta('includeInTotals');
+  @override
+  late final GeneratedColumn<bool> includeInTotals = GeneratedColumn<bool>(
+      'include_in_totals', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("include_in_totals" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _lastUpdatedEventIdMeta =
       const VerificationMeta('lastUpdatedEventId');
   @override
@@ -586,6 +596,7 @@ class $AccountsViewTable extends AccountsView
         currencyCode,
         balanceMinor,
         archived,
+        includeInTotals,
         lastUpdatedEventId,
         projectionVersion
       ];
@@ -630,6 +641,12 @@ class $AccountsViewTable extends AccountsView
       context.handle(_archivedMeta,
           archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta));
     }
+    if (data.containsKey('include_in_totals')) {
+      context.handle(
+          _includeInTotalsMeta,
+          includeInTotals.isAcceptableOrUnknown(
+              data['include_in_totals']!, _includeInTotalsMeta));
+    }
     if (data.containsKey('last_updated_event_id')) {
       context.handle(
           _lastUpdatedEventIdMeta,
@@ -666,6 +683,8 @@ class $AccountsViewTable extends AccountsView
           .read(DriftSqlType.int, data['${effectivePrefix}balance_minor'])!,
       archived: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}archived'])!,
+      includeInTotals: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}include_in_totals'])!,
       lastUpdatedEventId: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}last_updated_event_id'])!,
       projectionVersion: attachedDatabase.typeMapping.read(
@@ -689,6 +708,15 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
   final String currencyCode;
   final int balanceMinor;
   final bool archived;
+
+  /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
+  /// Not the same switch as [archived], and pointed the other way: archiving
+  /// takes an account out of the pickers but keeps it in the totals; this one
+  /// leaves it everywhere and takes it out of the totals alone.
+  ///
+  /// The default is what every account that predates this column gets, and it
+  /// is the honest answer — nobody had opted out before it existed.
+  final bool includeInTotals;
   final int lastUpdatedEventId;
   final int projectionVersion;
   const AccountViewRow(
@@ -698,6 +726,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       required this.currencyCode,
       required this.balanceMinor,
       required this.archived,
+      required this.includeInTotals,
       required this.lastUpdatedEventId,
       required this.projectionVersion});
   @override
@@ -712,6 +741,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
     map['currency_code'] = Variable<String>(currencyCode);
     map['balance_minor'] = Variable<int>(balanceMinor);
     map['archived'] = Variable<bool>(archived);
+    map['include_in_totals'] = Variable<bool>(includeInTotals);
     map['last_updated_event_id'] = Variable<int>(lastUpdatedEventId);
     map['projection_version'] = Variable<int>(projectionVersion);
     return map;
@@ -725,6 +755,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       currencyCode: Value(currencyCode),
       balanceMinor: Value(balanceMinor),
       archived: Value(archived),
+      includeInTotals: Value(includeInTotals),
       lastUpdatedEventId: Value(lastUpdatedEventId),
       projectionVersion: Value(projectionVersion),
     );
@@ -741,6 +772,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       currencyCode: serializer.fromJson<String>(json['currencyCode']),
       balanceMinor: serializer.fromJson<int>(json['balanceMinor']),
       archived: serializer.fromJson<bool>(json['archived']),
+      includeInTotals: serializer.fromJson<bool>(json['includeInTotals']),
       lastUpdatedEventId: serializer.fromJson<int>(json['lastUpdatedEventId']),
       projectionVersion: serializer.fromJson<int>(json['projectionVersion']),
     );
@@ -756,6 +788,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       'currencyCode': serializer.toJson<String>(currencyCode),
       'balanceMinor': serializer.toJson<int>(balanceMinor),
       'archived': serializer.toJson<bool>(archived),
+      'includeInTotals': serializer.toJson<bool>(includeInTotals),
       'lastUpdatedEventId': serializer.toJson<int>(lastUpdatedEventId),
       'projectionVersion': serializer.toJson<int>(projectionVersion),
     };
@@ -768,6 +801,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           String? currencyCode,
           int? balanceMinor,
           bool? archived,
+          bool? includeInTotals,
           int? lastUpdatedEventId,
           int? projectionVersion}) =>
       AccountViewRow(
@@ -777,6 +811,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
         currencyCode: currencyCode ?? this.currencyCode,
         balanceMinor: balanceMinor ?? this.balanceMinor,
         archived: archived ?? this.archived,
+        includeInTotals: includeInTotals ?? this.includeInTotals,
         lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
         projectionVersion: projectionVersion ?? this.projectionVersion,
       );
@@ -792,6 +827,9 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           ? data.balanceMinor.value
           : this.balanceMinor,
       archived: data.archived.present ? data.archived.value : this.archived,
+      includeInTotals: data.includeInTotals.present
+          ? data.includeInTotals.value
+          : this.includeInTotals,
       lastUpdatedEventId: data.lastUpdatedEventId.present
           ? data.lastUpdatedEventId.value
           : this.lastUpdatedEventId,
@@ -810,6 +848,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           ..write('currencyCode: $currencyCode, ')
           ..write('balanceMinor: $balanceMinor, ')
           ..write('archived: $archived, ')
+          ..write('includeInTotals: $includeInTotals, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion')
           ..write(')'))
@@ -818,7 +857,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
 
   @override
   int get hashCode => Object.hash(id, name, type, currencyCode, balanceMinor,
-      archived, lastUpdatedEventId, projectionVersion);
+      archived, includeInTotals, lastUpdatedEventId, projectionVersion);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -829,6 +868,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           other.currencyCode == this.currencyCode &&
           other.balanceMinor == this.balanceMinor &&
           other.archived == this.archived &&
+          other.includeInTotals == this.includeInTotals &&
           other.lastUpdatedEventId == this.lastUpdatedEventId &&
           other.projectionVersion == this.projectionVersion);
 }
@@ -840,6 +880,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
   final Value<String> currencyCode;
   final Value<int> balanceMinor;
   final Value<bool> archived;
+  final Value<bool> includeInTotals;
   final Value<int> lastUpdatedEventId;
   final Value<int> projectionVersion;
   final Value<int> rowid;
@@ -850,6 +891,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     this.currencyCode = const Value.absent(),
     this.balanceMinor = const Value.absent(),
     this.archived = const Value.absent(),
+    this.includeInTotals = const Value.absent(),
     this.lastUpdatedEventId = const Value.absent(),
     this.projectionVersion = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -861,6 +903,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     required String currencyCode,
     required int balanceMinor,
     this.archived = const Value.absent(),
+    this.includeInTotals = const Value.absent(),
     required int lastUpdatedEventId,
     this.projectionVersion = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -877,6 +920,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     Expression<String>? currencyCode,
     Expression<int>? balanceMinor,
     Expression<bool>? archived,
+    Expression<bool>? includeInTotals,
     Expression<int>? lastUpdatedEventId,
     Expression<int>? projectionVersion,
     Expression<int>? rowid,
@@ -888,6 +932,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       if (currencyCode != null) 'currency_code': currencyCode,
       if (balanceMinor != null) 'balance_minor': balanceMinor,
       if (archived != null) 'archived': archived,
+      if (includeInTotals != null) 'include_in_totals': includeInTotals,
       if (lastUpdatedEventId != null)
         'last_updated_event_id': lastUpdatedEventId,
       if (projectionVersion != null) 'projection_version': projectionVersion,
@@ -902,6 +947,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       Value<String>? currencyCode,
       Value<int>? balanceMinor,
       Value<bool>? archived,
+      Value<bool>? includeInTotals,
       Value<int>? lastUpdatedEventId,
       Value<int>? projectionVersion,
       Value<int>? rowid}) {
@@ -912,6 +958,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       currencyCode: currencyCode ?? this.currencyCode,
       balanceMinor: balanceMinor ?? this.balanceMinor,
       archived: archived ?? this.archived,
+      includeInTotals: includeInTotals ?? this.includeInTotals,
       lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
       projectionVersion: projectionVersion ?? this.projectionVersion,
       rowid: rowid ?? this.rowid,
@@ -940,6 +987,9 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (includeInTotals.present) {
+      map['include_in_totals'] = Variable<bool>(includeInTotals.value);
+    }
     if (lastUpdatedEventId.present) {
       map['last_updated_event_id'] = Variable<int>(lastUpdatedEventId.value);
     }
@@ -961,6 +1011,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
           ..write('currencyCode: $currencyCode, ')
           ..write('balanceMinor: $balanceMinor, ')
           ..write('archived: $archived, ')
+          ..write('includeInTotals: $includeInTotals, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion, ')
           ..write('rowid: $rowid')
@@ -4705,6 +4756,7 @@ typedef $$AccountsViewTableCreateCompanionBuilder = AccountsViewCompanion
   required String currencyCode,
   required int balanceMinor,
   Value<bool> archived,
+  Value<bool> includeInTotals,
   required int lastUpdatedEventId,
   Value<int> projectionVersion,
   Value<int> rowid,
@@ -4717,6 +4769,7 @@ typedef $$AccountsViewTableUpdateCompanionBuilder = AccountsViewCompanion
   Value<String> currencyCode,
   Value<int> balanceMinor,
   Value<bool> archived,
+  Value<bool> includeInTotals,
   Value<int> lastUpdatedEventId,
   Value<int> projectionVersion,
   Value<int> rowid,
@@ -4750,6 +4803,10 @@ class $$AccountsViewTableFilterComposer
 
   ColumnFilters<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get includeInTotals => $composableBuilder(
+      column: $table.includeInTotals,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get lastUpdatedEventId => $composableBuilder(
       column: $table.lastUpdatedEventId,
@@ -4789,6 +4846,10 @@ class $$AccountsViewTableOrderingComposer
   ColumnOrderings<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get includeInTotals => $composableBuilder(
+      column: $table.includeInTotals,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get lastUpdatedEventId => $composableBuilder(
       column: $table.lastUpdatedEventId,
       builder: (column) => ColumnOrderings(column));
@@ -4824,6 +4885,9 @@ class $$AccountsViewTableAnnotationComposer
 
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<bool> get includeInTotals => $composableBuilder(
+      column: $table.includeInTotals, builder: (column) => column);
 
   GeneratedColumn<int> get lastUpdatedEventId => $composableBuilder(
       column: $table.lastUpdatedEventId, builder: (column) => column);
@@ -4864,6 +4928,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             Value<String> currencyCode = const Value.absent(),
             Value<int> balanceMinor = const Value.absent(),
             Value<bool> archived = const Value.absent(),
+            Value<bool> includeInTotals = const Value.absent(),
             Value<int> lastUpdatedEventId = const Value.absent(),
             Value<int> projectionVersion = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4875,6 +4940,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             currencyCode: currencyCode,
             balanceMinor: balanceMinor,
             archived: archived,
+            includeInTotals: includeInTotals,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
             rowid: rowid,
@@ -4886,6 +4952,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             required String currencyCode,
             required int balanceMinor,
             Value<bool> archived = const Value.absent(),
+            Value<bool> includeInTotals = const Value.absent(),
             required int lastUpdatedEventId,
             Value<int> projectionVersion = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4897,6 +4964,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             currencyCode: currencyCode,
             balanceMinor: balanceMinor,
             archived: archived,
+            includeInTotals: includeInTotals,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
             rowid: rowid,

@@ -47,6 +47,14 @@ void main() {
       initialBalanceMinor: 100000,
       currencyCode: 'USD',
     );
+    // One account out of the ledger totals, so the rebuild has to re-derive
+    // the flag rather than land on the column default for everything.
+    final seeded = await harness.db.accountDao.getAllAccounts();
+    await harness.accountService.setTotalsInclusion(
+      commandId: 'seed_bank_excluded',
+      accountId: seeded.firstWhere((a) => a.name == 'Bank').id,
+      includeInTotals: false,
+    );
     await harness.categoryService.createCategory(
       commandId: 'seed_food',
       name: 'Food',
@@ -93,6 +101,7 @@ void main() {
           currencyCode: r.currencyCode,
           balanceMinor: r.balanceMinor,
           archived: r.archived,
+          includeInTotals: r.includeInTotals,
           lastUpdatedEventId: r.lastUpdatedEventId,
           projectionVersion: r.projectionVersion,
         );

@@ -56,6 +56,14 @@ An account's current total, defined as including future-dated transactions and c
 place.
 _Avoid_: total, amount, sum
 
+**Ledger totals**:
+The figures that sum **across** accounts — the running balance the header shows, a month's income and
+expense, each day's subtotals, and everything on the reports page. Distinct from a *balance*, which is a
+fact about one account: an account left out of the ledger totals still has one, and it is still shown
+everywhere that account is shown. Archiving an account does not take it out of the totals; excluding it
+does — the two off-switches are independent and point in opposite directions.
+_Avoid_: stats, statistics, aggregate, summary
+
 ### Derived data
 
 **Projection**:

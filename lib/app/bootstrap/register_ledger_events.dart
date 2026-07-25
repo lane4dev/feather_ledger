@@ -51,6 +51,10 @@ void registerLedgerEvents() {
     eventType: 'AccountArchived',
     factory: (json) => AccountArchived.fromJson(json).toJson(),
   );
+  ledgerEventRegistry.registerFactory(
+    eventType: 'AccountTotalsInclusionChanged',
+    factory: (json) => AccountTotalsInclusionChanged.fromJson(json).toJson(),
+  );
 
   // Category stream
   ledgerEventRegistry.registerFactory(

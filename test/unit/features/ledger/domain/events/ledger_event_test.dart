@@ -65,6 +65,7 @@ void main() {
             accountId: 'a', name: 'n', type: AccountType.bank, currencyCode: 'USD'),
         AccountRenamed(accountId: 'a', name: 'n2'),
         AccountArchived(accountId: 'a'),
+        AccountTotalsInclusionChanged(accountId: 'a', includeInTotals: false),
         CategoryCreated(
             categoryId: 'c',
             name: 'n',
@@ -84,6 +85,7 @@ void main() {
         'AccountCreated',
         'AccountRenamed',
         'AccountArchived',
+        'AccountTotalsInclusionChanged',
         'CategoryCreated',
         'CategoryRenamed',
         'CategoryArchived',
@@ -103,6 +105,7 @@ void main() {
           'AccountCreated': 1,
           'AccountRenamed': 1,
           'AccountArchived': 1,
+          'AccountTotalsInclusionChanged': 1,
           'CategoryCreated': 2,
           'CategoryRenamed': 1,
           'CategoryArchived': 1,

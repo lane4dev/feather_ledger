@@ -212,6 +212,49 @@ class AccountArchived implements LedgerEventPayload {
       AccountArchived(accountId: json['accountId'] as String);
 }
 
+/// An account was included in, or taken out of, the **ledger totals**
+/// (CONTEXT.md).
+///
+/// An account is created counting (the projection's column default is true,
+/// and this event is the only thing that ever writes `false`). So creating an
+/// account with the switch already off is two events — `AccountCreated`, then
+/// this one — the same shape as a starting balance, which is `AccountCreated`
+/// followed by a transaction. Payload version 1 and it stays there: nothing
+/// about the existing events had to change to make room for this.
+///
+/// Nothing behind the totals is recomputed when this lands. The figures are
+/// summed at read time, so flipping the flag changes which rows a sum walks,
+/// never what any row says — see `WatchMonthlySnapshotQuery`. Mirroring
+/// [AccountArchived], which likewise refreshes no snapshot.
+class AccountTotalsInclusionChanged implements LedgerEventPayload {
+  final String accountId;
+  final bool includeInTotals;
+
+  AccountTotalsInclusionChanged({
+    required this.accountId,
+    required this.includeInTotals,
+  });
+
+  @override
+  String get eventType => 'AccountTotalsInclusionChanged';
+
+  @override
+  String get streamId => accountId;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'schemaVersion': 1,
+        'accountId': accountId,
+        'includeInTotals': includeInTotals,
+      };
+
+  factory AccountTotalsInclusionChanged.fromJson(Map<String, dynamic> json) =>
+      AccountTotalsInclusionChanged(
+        accountId: json['accountId'] as String,
+        includeInTotals: json['includeInTotals'] as bool,
+      );
+}
+
 /// — Category stream ———————————————————————————————————————————————
 
 /// A category was created.

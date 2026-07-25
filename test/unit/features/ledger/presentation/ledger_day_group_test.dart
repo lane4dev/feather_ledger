@@ -102,4 +102,42 @@ void main() {
     expect(days, hasLength(1));
     expect(days.single.displayExpense, r'$2.00');
   });
+
+  test('a row on an excluded account keeps its day but not its total', () {
+    // The day's subtotal is a cross-account total like any other, so the
+    // same rule applies. The row stays on screen — the account is out of the
+    // totals, not out of the ledger — which does mean a day can show rows
+    // that its own subtotal does not account for. That is the deliberate
+    // bargain; see CONTEXT.md on the two off-switches.
+    const excluded = AccountEntity(
+      id: 'acc_held',
+      name: 'Held',
+      type: AccountType.bank,
+      currencyCode: 'USD',
+      balanceMinor: 0,
+      archived: false,
+      includeInTotals: false,
+      lastUpdatedEventId: 0,
+    );
+
+    final days = group([
+      tile(amount: 50000, type: TransactionKind.expense, date: DateTime(2026, 11, 2)),
+      TransactionTileUiModel(
+        id: 'tx_excluded',
+        amount: 90000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 2),
+        note: null,
+        category: rent,
+        account: excluded,
+        displayAmount: '0.00',
+        displaySign: '-',
+      ),
+    ]);
+
+    expect(days.single.transactions, hasLength(2),
+        reason: 'the excluded row is still a row');
+    expect(days.single.displayExpense, r'$500.00',
+        reason: 'and it is not in the number beside it');
+  });
 }

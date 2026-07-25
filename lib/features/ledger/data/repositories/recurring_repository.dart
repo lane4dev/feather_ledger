@@ -126,6 +126,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         currencyCode: row.currencyCode,
         balanceMinor: row.balanceMinor,
         archived: row.archived,
+        includeInTotals: row.includeInTotals,
         lastUpdatedEventId: row.lastUpdatedEventId,
       );
 

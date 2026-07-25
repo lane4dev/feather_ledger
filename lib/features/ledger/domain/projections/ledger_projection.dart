@@ -22,7 +22,16 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// `transactions_view.category_icon` have to be re-derived — through the
 /// `CategoryCreated` upcaster, which is why a rebuild lands on the new
 /// vocabulary rather than replaying the old one.
-const int ledgerProjectionVersion = 2;
+///
+/// 3: accounts gained `include_in_totals` (Drift schema v2). The new column
+/// arrives by `ALTER TABLE` with a default, so no existing row is *wrong* —
+/// but a rebuild is what makes the migration self-healing: every derived row
+/// gets re-written from the events by the current projector, whatever the
+/// ALTER happened to leave behind. Keep the two version numbers moving
+/// together for that reason — a schema bump that changes what a projection
+/// column *means* and forgets this one restores a database that migrates
+/// cleanly and then never rebuilds, showing wrong figures with no error.
+const int ledgerProjectionVersion = 3;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the

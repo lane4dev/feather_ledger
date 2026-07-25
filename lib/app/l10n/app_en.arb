@@ -280,6 +280,14 @@
   "@accountInitialBalanceNote": {
     "description": "Note on the transaction recording a new account's starting balance"
   },
+  "accountIncludeInTotals": "Include in totals",
+  "@accountIncludeInTotals": {
+    "description": "Switch on the account form: whether this account counts toward the ledger's aggregate figures"
+  },
+  "accountIncludeInTotalsHint": "Off: this account is left out of the total balance and the income and expense totals. Its transactions still show in the ledger.",
+  "@accountIncludeInTotalsHint": {
+    "description": "Explanation under the include-in-totals switch, saying what turning it off does and does not do"
+  },
   "accountBalanceAdjustmentNotes": "Automated adjustment for account balance change.",
   "@accountBalanceAdjustmentNotes": {
     "description": "Notes for automated account balance adjustment transaction"

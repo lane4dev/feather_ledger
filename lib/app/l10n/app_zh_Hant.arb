@@ -280,6 +280,14 @@
   "@accountInitialBalanceNote": {
     "description": "新建帳戶的期初餘額交易的備註"
   },
+  "accountIncludeInTotals": "納入餘額統計",
+  "@accountIncludeInTotals": {
+    "description": "帳戶表單上的開關：此帳戶是否計入帳本的合計數字"
+  },
+  "accountIncludeInTotalsHint": "關閉後，此帳戶不計入總餘額與收支合計，但它的交易仍會顯示在帳本裡。",
+  "@accountIncludeInTotalsHint": {
+    "description": "開關下方的說明：關掉之後影響什麼、不影響什麼"
+  },
   "accountBalanceAdjustmentNotes": "因帳戶餘額變更自動調整。",
   "@accountBalanceAdjustmentNotes": {
     "description": "帳戶餘額自動調整交易的備註"

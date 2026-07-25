@@ -350,4 +350,53 @@ void main() {
     expect(future.balanceMinor, headerBalances.last,
         reason: 'nothing has happened since, and the ledger still holds it');
   });
+
+  test('an account out of the totals leaves every one of the three figures',
+      () async {
+    // The header's figures are the ledger totals (CONTEXT.md), and an
+    // excluded account is out of all of them — the balance and the month's
+    // income and expense alike. Nothing about the account itself changes:
+    // its own balance and its own snapshot rows stay exactly as they were.
+    //
+    // Opening balances land on today's date, so this is the current month.
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month);
+
+    Future<String> openAccount(String commandId, String name, int opening,
+        {bool includeInTotals = true}) async {
+      await harness.accountService.createAccount(
+        commandId: commandId,
+        name: name,
+        type: AccountType.bank,
+        initialBalanceMinor: opening,
+        currencyCode: 'USD',
+        includeInTotals: includeInTotals,
+      );
+      return (await harness.db.accountDao.getAllAccounts())
+          .firstWhere((a) => a.name == name)
+          .id;
+    }
+
+    await seedCashAndFood();
+    await openAccount('cmd_bank_in', 'Kept', 100000);
+    final excludedId =
+        await openAccount('cmd_bank_out', 'Held', 250000, includeInTotals: false);
+
+    final header = await harness.ledgerService
+        .watchMonthlySnapshot(month, currencyCode: 'USD')
+        .first;
+    expect(header.balanceMinor, 100000,
+        reason: 'the excluded account holds 250000 and none of it counts');
+    expect(header.incomeMinor, 100000,
+        reason: "the excluded opening is not the month's income either");
+
+    // Its own balance is untouched — the exclusion is about the sums, not
+    // about the account.
+    final own = await harness.db.accountDao.getAccountById(excludedId);
+    expect(own!.balanceMinor, 250000);
+    final ownRow = await harness.db.monthlySnapshotDao
+        .getForAccount(excludedId, month.year, month.month);
+    expect(ownRow!.incomeMinor, 250000,
+        reason: 'the exclusion is read-time; the projection still records it');
+  });
 }

@@ -37,6 +37,16 @@ class AccountsView extends Table {
   TextColumn get currencyCode => text()();
   IntColumn get balanceMinor => integer()(); // Minor units
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+
+  /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
+  /// Not the same switch as [archived], and pointed the other way: archiving
+  /// takes an account out of the pickers but keeps it in the totals; this one
+  /// leaves it everywhere and takes it out of the totals alone.
+  ///
+  /// The default is what every account that predates this column gets, and it
+  /// is the honest answer — nobody had opted out before it existed.
+  BoolColumn get includeInTotals =>
+      boolean().withDefault(const Constant(true))();
   IntColumn get lastUpdatedEventId => integer()(); // Source GSN cursor
   IntColumn get projectionVersion => integer().withDefault(const Constant(1))();
 

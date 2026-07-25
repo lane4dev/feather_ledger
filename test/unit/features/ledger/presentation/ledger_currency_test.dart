@@ -14,13 +14,15 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_vi
 /// are created in whatever the preference was at the time, the preference can
 /// move on, and there is no FX conversion to bridge the two.
 void main() {
-  AccountEntity account(String currencyCode) => AccountEntity(
+  AccountEntity account(String currencyCode, {bool includeInTotals = true}) =>
+      AccountEntity(
         id: 'acc_$currencyCode',
         name: 'Cash',
         type: AccountType.cash,
         currencyCode: currencyCode,
         balanceMinor: 100000,
         archived: false,
+        includeInTotals: includeInTotals,
         lastUpdatedEventId: 0,
       );
 
@@ -72,6 +74,22 @@ void main() {
     await c.read(currencyControllerProvider.future);
 
     expect(c.read(ledgerCurrencyProvider), 'EUR');
+  });
+
+  test('an account out of the totals still decides the currency', () {
+    // The flag excludes an account from the *sums*, never from the list this
+    // provider reads — filtering the list here would let the ledger's
+    // currency flip the moment the last counting account was excluded, and
+    // the header would go back to reporting zeroes over money it holds.
+    // Nothing filters `accountListProvider`; the exclusion happens at each
+    // aggregation site instead.
+    final c = container(
+      accounts: [account('CNY', includeInTotals: false)],
+      preference: 'USD',
+    );
+
+    expect(c.read(ledgerCurrencyProvider), 'CNY');
+    expect(c.read(displayCurrencySymbolProvider), '¥');
   });
 }
 

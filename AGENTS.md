@@ -93,8 +93,12 @@ lib/shared/     跨特性的组件与扩展
 
 ## 事件溯源账本模型
 
-- `ledger_events` 是写模型：每个事件一个 JSON payload（内嵌 `schemaVersion`），自增 id 即全局序列号（GSN），`unique(streamId, streamVersion)`，commandId 去重 —— 最后一项是在 append 时由代码校验（插入前查询）实现的，并非唯一索引。九种事件类型：`TransactionRecorded`、`TransactionReversed`（userDeleted | correction）、`AccountCreated/Renamed/Archived`、`CategoryCreated/Renamed/Archived`、`OpeningBalanceSet`。事件工厂在生产环境于 bootstrap 时注册（`register_ledger_events.dart`）；upcasting 走注册表读取，未注册的 `eventType` 也由注册表拒绝（持有信封的调用方会把事件 id 传进去，让报错点名到具体事件）。
-- 读模型是写入时投影出来的 Drift 表：`accounts_view`（单个 `balanceMinor` + archived + `lastUpdatedEventId` 游标）、`transactions_view`（一笔交易一行，含 kind、isReversed、写入时的分类快照）+ `transaction_postings_view`（分录级行）、`categories_view`、`monthly_account_balance_snapshots`。`recurring_series` 与 `scheduled_transactions_view` 豁免于 CRUD 之外（重建永不触碰）。
+- `ledger_events` 是写模型：每个事件一个 JSON payload（内嵌 `schemaVersion`），自增 id 即全局序列号（GSN），`unique(streamId, streamVersion)`，commandId 去重 —— 最后一项是在 append 时由代码校验（插入前查询）实现的，并非唯一索引。十种事件类型：`TransactionRecorded`、`TransactionReversed`（userDeleted | correction）、`AccountCreated/Renamed/Archived/TotalsInclusionChanged`、`CategoryCreated/Renamed/Archived`、`OpeningBalanceSet`。事件工厂在生产环境于 bootstrap 时注册（`register_ledger_events.dart`）；upcasting 走注册表读取，未注册的 `eventType` 也由注册表拒绝（持有信封的调用方会把事件 id 传进去，让报错点名到具体事件）。
+- 读模型是写入时投影出来的 Drift 表：`accounts_view`（单个 `balanceMinor` + archived + `includeInTotals` + `lastUpdatedEventId` 游标）、`transactions_view`（一笔交易一行，含 kind、isReversed、写入时的分类快照）+ `transaction_postings_view`（分录级行）、`categories_view`、`monthly_account_balance_snapshots`。`recurring_series` 与 `scheduled_transactions_view` 豁免于 CRUD 之外（重建永不触碰）。
+- **账户有两个互不相干的关闭开关，方向相反**：`archived` 把它拿出**选择器**、但留在**合计**里（`AccountArchived`）；`includeInTotals` 让它留在**一切显示的地方**、只拿出**合计**（`AccountTotalsInclusionChanged`）。术语见 `CONTEXT.md` 的 Ledger totals。
+  - **排除是读时行为，不落进任何投影。** 快照行按账户存，这个开关不改变任何一行的内容，只改变**哪些行进合计**，所以投影器不因它而动（与 `AccountArchived` 一致，都不刷新快照），开关因此瞬时生效且可逆。四个合计点各自读它：`WatchMonthlySnapshotQuery`（头部三个数字里的余额与收支两半）、`reports_dao` 的三个查询（各自 `innerJoin accounts_view`——用 join 而不是事后过滤，是因为 `watch()` 只对语句里出现过的表重新发信号，否则切换开关后图表会一直停在旧数字上）、`ledger_day_group.dart`（每天的收支小计）。
+  - **`accountListProvider` 永不过滤。** `ledgerCurrencyProvider` 靠**账户币种集合**推导；在这里滤掉被排除账户会让账本币种翻转，`850d60c` 修好的「头部对着 ¥1000 读 $0.00」会原样复活。回归测试是 `ledger_currency_test.dart` 里那条「an account out of the totals still decides the currency」。
+  - 被排除账户的交易**仍然出现在账本列表里**，只是不进当天小计——所以一天的行加起来可能不等于那天的合计。这是刻意的：规则只有一条，代价是看得到的东西不一定算得进旁边的数字。
 - `LedgerProjectorImpl` 是唯一的投影写入方；每次 append 都在同一个数据库事务里驱动它。余额计算全部位于投影路径内部，由两个协作者分担：投影器维护 `accounts_view.balanceMinor`，`MonthlySnapshotProjectorImpl` 从锚点月份起按账户重算各月收入/支出/转账与期初、期末余额。投影路径之外任何地方都不重算余额。
 - `LedgerRebuildService` 在一个事务内从事件存储重建五个事件溯源视图（启动时若某视图的 projectionVersion 过期就执行；设置页有长按开发者入口）。过期判定只覆盖带 `projectionVersion` 列的四个视图 —— `transaction_postings_view` 没有该列，它的过期只能经由 `transactions_view` 间接发现。未知事件类型硬失败，并报出事件 id。
 - 更正 = `TransactionReversed(correction)` + `TransactionRecorded`，成对出现在一个命令/一个事务里；UI 删除是 `TransactionReversed(userDeleted)`。被冲销的行对读模型隐藏；审计链留在事件存储中。
@@ -331,6 +335,20 @@ lib/shared/     跨特性的组件与扩展
   视图是从事件重建的，**只改投影不改事件会被下一次重建冲掉**，而版本号过期正是启动时触发重建的开关。
   `categories_view.icon_key` 与 `transactions_view.category_icon` 两处都要重新推导，实测迁移路径见
   `test/unit/features/ledger/data/category_icon_migration_test.dart`。
+  **反例（同等重要）：能不改已发布的 payload 就别改。** `includeInTotals` 是账户上线后才加的属性，
+  但它没有把 `AccountCreated` 升到 v2 —— 「新建时就不计入」走的是**第二个事件**（`AccountCreated` +
+  `AccountTotalsInclusionChanged`，`commandId` 派生为 `'$commandId-inclusion'`），与「期初余额 = 建账户
+  + 一笔交易」同一手法。列默认值 `true` 覆盖了所有旧账户，于是这里既不需要升版本，也不需要 upcaster：
+  **一个常量不值得换来一份永久契约。**
+- **Drift `schemaVersion` 与重建版本号是两回事，但改列时两个都要动。** `schemaVersion` 从 1 升到 2 是因为
+  `accounts_view` 多了 `include_in_totals`（`onUpgrade` 里 `addColumn`）；`ledgerProjectionVersion` 升到 3
+  则是让每一次启动都重推一遍——**迁移因此是自愈的**：不管 ALTER 留下了什么，投影都会从事件重新导出。
+  ⚠️ `onUpgrade` **只能用 `addColumn`，绝不能 `deleteTable`/`createTable`**：`LedgerRebuildService.isStale()`
+  是四个视图版本号汇成列表后 `.any(...)`，**空表返回 false**，派生表被删空就再也不会触发重建，账本会在事件
+  存储完好的情况**永久空白且不报错**。回归测试：`test/unit/core/database/app_database_test.dart` 里那条
+  「migrates a v1 database by adding the column, keeping its rows」。
+  **恢复校验因此是单向的**：`backup_service` 两道版本闸门（manifest 与 SQLite 头的 `user_version`）都只拒
+  **更新**的库，更旧的由 `onUpgrade` + 重建带上来。别把它改回 `!=`，否则用户手上已有的 `.flbackup` 全部作废。
 - 加了 Riverpod/Drift/json 注解后跑 `dart run build_runner build -d`；改了 ARB 后跑 `flutter gen-l10n`。
 
 ## 常用命令

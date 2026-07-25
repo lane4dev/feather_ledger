@@ -227,6 +227,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountInitialBalanceNote => 'Difference';
 
   @override
+  String get accountIncludeInTotals => 'Include in totals';
+
+  @override
+  String get accountIncludeInTotalsHint =>
+      'Off: this account is left out of the total balance and the income and expense totals. Its transactions still show in the ledger.';
+
+  @override
   String get accountBalanceAdjustmentNotes =>
       'Automated adjustment for account balance change.';
 

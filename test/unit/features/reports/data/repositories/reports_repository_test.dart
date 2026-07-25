@@ -25,16 +25,21 @@ void main() {
     await database.close();
   });
 
-  Future<void> seedAccount() => database.into(database.accountsView).insert(
-        AccountsViewCompanion.insert(
-          id: 'acc_1',
-          name: 'Cash',
-          type: AccountType.cash,
-          currencyCode: 'USD',
-          balanceMinor: 0,
-          lastUpdatedEventId: 1,
-        ),
-      );
+  Future<void> seedAccount({
+    String id = 'acc_1',
+    bool includeInTotals = true,
+  }) =>
+      database.into(database.accountsView).insert(
+            AccountsViewCompanion.insert(
+              id: id,
+              name: 'Cash',
+              type: AccountType.cash,
+              currencyCode: 'USD',
+              balanceMinor: 0,
+              includeInTotals: Value(includeInTotals),
+              lastUpdatedEventId: 1,
+            ),
+          );
 
   Future<void> insertTransaction({
     required String transactionId,
@@ -252,28 +257,35 @@ void main() {
   });
 
   group('watchMonthlyTotals', () {
+    Future<void> seedSnapshot(String accountId, int income, int expense,
+            int closing) =>
+        database.monthlySnapshotDao
+            .upsert(MonthlyAccountBalanceSnapshotsCompanion.insert(
+          accountId: accountId,
+          currencyCode: 'USD',
+          year: 2024,
+          month: 1,
+          openingBalanceMinor: closing - income - expense,
+          closingBalanceMinor: closing,
+          incomeMinor: income,
+          expenseMinor: expense,
+          transferInMinor: 0,
+          transferOutMinor: 0,
+          netChangeMinor: income + expense,
+          transactionCount: 1,
+          eventSequenceFrom: 1,
+          eventSequenceTo: 2,
+        ));
+
     test('aggregates the snapshot projection across accounts', () async {
       final month = DateTime(2024, 1);
 
-      Future<void> seedSnapshot(String accountId, int income, int expense,
-              int closing) =>
-          database.monthlySnapshotDao
-              .upsert(MonthlyAccountBalanceSnapshotsCompanion.insert(
-            accountId: accountId,
-            currencyCode: 'USD',
-            year: 2024,
-            month: 1,
-            openingBalanceMinor: closing - income - expense,
-            closingBalanceMinor: closing,
-            incomeMinor: income,
-            expenseMinor: expense,
-            transferInMinor: 0,
-            transferOutMinor: 0,
-            netChangeMinor: income + expense,
-            transactionCount: 1,
-            eventSequenceFrom: 1,
-            eventSequenceTo: 2,
-          ));
+      // Both accounts have to exist as accounts, not just as snapshot rows:
+      // the query joins `accounts_view` to apply the include-in-totals flag,
+      // so a snapshot for an account that is not there is a row no report can
+      // see.
+      await seedAccount();
+      await seedAccount(id: 'acc_2');
 
       await seedSnapshot('acc_1', 10000, -5000, 5000);
       await seedSnapshot('acc_2', 2000, 0, 2000);
@@ -283,6 +295,69 @@ void main() {
       expect(totals.expenseMinor, -5000);
       expect(totals.balanceMinor, 7000,
           reason: 'month-end balance = Σ closing across accounts');
+    });
+
+    test('leaves out an account that is out of the ledger totals', () async {
+      final month = DateTime(2024, 1);
+      await seedAccount();
+      await seedAccount(id: 'acc_held', includeInTotals: false);
+      await seedSnapshot('acc_1', 10000, -5000, 5000);
+      await seedSnapshot('acc_held', 9000, 0, 9000);
+
+      final totals = await repository.watchMonthlyTotals(month).first;
+
+      expect(totals.incomeMinor, 10000);
+      expect(totals.balanceMinor, 5000,
+          reason: 'the excluded account is not part of either figure');
+    });
+  });
+
+  /// Every report query is a cross-account total, so all three answer to the
+  /// same flag. The join to `accounts_view` is also what makes them re-emit
+  /// when it is toggled — a filter applied after the query would leave the
+  /// charts stale until something else moved.
+  group('an account out of the ledger totals', () {
+    final month = DateTime(2024, 1);
+
+    Future<void> seedExcludedExpense() async {
+      await seedAccount();
+      await seedAccount(id: 'acc_held', includeInTotals: false);
+      await insertTransaction(
+        transactionId: 'txn_kept',
+        date: DateTime(2024, 1, 15, 12),
+        kind: TransactionKind.expense,
+        categoryId: 'cat_food',
+        amountMinor: 10000,
+        postings: [('acc_1', PostingDirection.debit, 10000)],
+      );
+      await insertTransaction(
+        transactionId: 'txn_held',
+        date: DateTime(2024, 1, 15, 12),
+        kind: TransactionKind.expense,
+        categoryId: 'cat_food',
+        amountMinor: 90000,
+        originalEventId: 2,
+        postings: [('acc_held', PostingDirection.debit, 90000)],
+      );
+    }
+
+    test('is missing from the heatmap', () async {
+      await seedExcludedExpense();
+
+      final heatmap = await repository.watchHeatmapData(month).first;
+
+      expect(heatmap[DateTime(2024, 1, 15)], -10000,
+          reason: 'only the account that counts');
+    });
+
+    test('is missing from the category breakdown', () async {
+      await seedExcludedExpense();
+
+      final breakdown = await repository
+          .watchCategoryBreakdown(month, CategoryType.expense)
+          .first;
+
+      expect(breakdown.single.totalMinor, 10000);
     });
   });
 }

@@ -11,6 +11,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/record_transactio
 import 'package:feather_ledger/features/settings/domain/commands/create_account_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/rename_account_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/archive_account_command.dart';
+import 'package:feather_ledger/features/settings/domain/commands/set_account_totals_inclusion_command.dart';
 import 'package:feather_ledger/features/settings/domain/queries/watch_all_accounts_query.dart';
 import 'package:feather_ledger/features/settings/domain/queries/get_account_by_id_query.dart';
 
@@ -23,6 +24,7 @@ class AccountService {
   final WatchAllAccountsQuery _watchAllAccountsQuery;
   final GetAccountByIdQuery _getAccountByIdQuery;
   final RecordTransactionCommand _recordTransactionCommand;
+  final SetAccountTotalsInclusionCommand _setTotalsInclusionCommand;
   final CategoryRepository _categoryRepository;
 
   AccountService(
@@ -32,6 +34,7 @@ class AccountService {
     this._watchAllAccountsQuery,
     this._getAccountByIdQuery,
     this._recordTransactionCommand,
+    this._setTotalsInclusionCommand,
     this._categoryRepository,
   );
 
@@ -46,6 +49,12 @@ class AccountService {
   /// answer to that question everywhere else in the app. So it lands in the
   /// same shape as every later adjustment of the same balance, under the same
   /// system category, with [initialBalanceNote] saying it is the difference.
+  ///
+  /// [includeInTotals] is [SetAccountTotalsInclusionCommand] reached from the
+  /// create form: an account is born counting, so opting out at birth is a
+  /// second event rather than a field on `AccountCreated` — the same pairing
+  /// as the starting balance above, and it keeps a published payload from
+  /// having to grow a version.
   Future<Result<void>> createAccount({
     required String commandId,
     required String name,
@@ -53,6 +62,7 @@ class AccountService {
     required int initialBalanceMinor,
     required String currencyCode,
     String? initialBalanceNote,
+    bool includeInTotals = true,
   }) {
     return guard(() async {
       // Resolve the category *before* anything is written: a rejection here
@@ -66,6 +76,14 @@ class AccountService {
           name: name,
           type: type,
           currencyCode: currencyCode);
+
+      if (!includeInTotals) {
+        await _setTotalsInclusionCommand.execute(
+          commandId: '$commandId-inclusion',
+          accountId: accountId,
+          includeInTotals: false,
+        );
+      }
 
       if (category == null) return;
 
@@ -84,6 +102,23 @@ class AccountService {
         note: initialBalanceNote,
       );
     });
+  }
+
+  /// Includes the account in, or takes it out of, the **ledger totals**
+  /// (CONTEXT.md): the header's balance and the month's income and expense,
+  /// each day's subtotals, and the reports. The account itself, its balance
+  /// and its transactions are untouched — this moves which sums it appears
+  /// in, not what any of them says.
+  Future<Result<void>> setTotalsInclusion({
+    required String commandId,
+    required String accountId,
+    required bool includeInTotals,
+  }) {
+    return guard(() => _setTotalsInclusionCommand.execute(
+          commandId: commandId,
+          accountId: accountId,
+          includeInTotals: includeInTotals,
+        ));
   }
 
   Future<Result<void>> renameAccount({
@@ -178,6 +213,7 @@ AccountService accountService(Ref ref) {
     ref.watch(watchAllAccountsQueryProvider),
     ref.watch(getAccountByIdQueryProvider),
     ref.watch(recordTransactionCommandProvider),
+    ref.watch(setAccountTotalsInclusionCommandProvider),
     ref.watch(categoryRepositoryProvider),
   );
 }

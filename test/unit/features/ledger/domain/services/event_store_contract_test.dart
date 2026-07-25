@@ -75,20 +75,21 @@ void main() {
   });
 
   group('production factory registration (T021)', () {
-    test('all nine final payloads are registered and readable', () {
+    test('all ten final payloads are registered and readable', () {
       final registry = store.registry;
-      const nine = [
+      const types = [
         'TransactionRecorded',
         'TransactionReversed',
         'AccountCreated',
         'AccountRenamed',
         'AccountArchived',
+        'AccountTotalsInclusionChanged',
         'CategoryCreated',
         'CategoryRenamed',
         'CategoryArchived',
         'OpeningBalanceSet',
       ];
-      for (final type in nine) {
+      for (final type in types) {
         expect(registry.hasFactory(type), isTrue,
             reason: 'production registration must cover "$type"');
       }

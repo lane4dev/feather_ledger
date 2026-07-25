@@ -280,6 +280,14 @@
   "@accountInitialBalanceNote": {
     "description": "新建账户的期初余额交易的备注"
   },
+  "accountIncludeInTotals": "纳入余额统计",
+  "@accountIncludeInTotals": {
+    "description": "账户表单上的开关：此账户是否计入账本的合计数字"
+  },
+  "accountIncludeInTotalsHint": "关闭后，此账户不计入总余额与收支合计，但它的交易仍会显示在账本里。",
+  "@accountIncludeInTotalsHint": {
+    "description": "开关下方的说明：关掉之后影响什么、不影响什么"
+  },
   "accountBalanceAdjustmentNotes": "因账户余额变更自动调整。",
   "@accountBalanceAdjustmentNotes": {
     "description": "账户余额自动调整交易的备注"

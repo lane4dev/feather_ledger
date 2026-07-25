@@ -526,6 +526,18 @@ abstract class AppLocalizations {
   /// **'Difference'**
   String get accountInitialBalanceNote;
 
+  /// Switch on the account form: whether this account counts toward the ledger's aggregate figures
+  ///
+  /// In en, this message translates to:
+  /// **'Include in totals'**
+  String get accountIncludeInTotals;
+
+  /// Explanation under the include-in-totals switch, saying what turning it off does and does not do
+  ///
+  /// In en, this message translates to:
+  /// **'Off: this account is left out of the total balance and the income and expense totals. Its transactions still show in the ledger.'**
+  String get accountIncludeInTotalsHint;
+
   /// Notes for automated account balance adjustment transaction
   ///
   /// In en, this message translates to:

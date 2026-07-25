@@ -91,6 +91,24 @@ void main() {
   File stagingMarker() => File(p.join(
       supportDir.path, RestoreLayout.stagingDir, RestoreLayout.pendingMarker));
 
+  /// A genuine database from the previous schema version: the current schema,
+  /// minus the column v2 added, with the older `user_version` to match.
+  ///
+  /// Built by going backwards rather than by keeping a checked-in fixture, so
+  /// it cannot drift out of step with the real schema — if a future migration
+  /// changes `accounts_view` again, this keeps describing v1 correctly or
+  /// stops compiling.
+  Future<File> v1Database() async {
+    final file = File(p.join(supportDir.path, 'v1.sqlite'));
+    final db = AppDatabase.internal(NativeDatabase(file));
+    await db.customStatement('SELECT 1'); // opens it, running createAll
+    await db.customStatement(
+        'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
+    await db.customStatement('PRAGMA user_version = 1');
+    await db.close();
+    return file;
+  }
+
   group('buildArchive', () {
     test('produces a three-entry archive with a matching manifest', () async {
       await seedExpense();
@@ -243,20 +261,55 @@ void main() {
           reason: 'a corrupt restore must not be armed');
     });
 
-    test('refuses a database whose schema this build cannot read', () async {
+    test('an older backup is accepted, because it is carried forward',
+        () async {
+      // The other side of the version gate, and the reason it is one-sided:
+      // a backup taken before this build must stay restorable, or every file
+      // the user has already exported is dead. `onUpgrade` carries the schema
+      // to the current version and the rebuild re-derives the projections, so
+      // "older" is not a reason to refuse. "Newer" still is — see the test
+      // above.
+      final v1 = await v1Database();
+      final picked = await archiveFile(corrupt: (valid) {
+        final manifest = jsonDecode(
+          utf8.decode(valid.findFile(RestoreLayout.stagedManifest)!.content),
+        ) as Map<String, dynamic>;
+        manifest['schemaVersion'] = 1;
+        return Archive()
+          ..addFile(ArchiveFile.string(
+              RestoreLayout.stagedManifest, jsonEncode(manifest)))
+          ..addFile(ArchiveFile.bytes(
+              RestoreLayout.stagedDb, v1.readAsBytesSync()))
+          ..addFile(ArchiveFile.string(RestoreLayout.stagedPreferences, '{}'));
+      });
+
+      final result = await service().stageRestore(picked);
+
+      expect(result, isA<Success<void>>(),
+          reason: 'a backup from an older build is still the user\'s ledger');
+      expect(stagingMarker().existsSync(), isTrue);
+    });
+
+    test('a database this build cannot read is refused, and not armed',
+        () async {
       // Found by running the app against a real leftover database: one
-      // written before the event-sourcing migration has user_version 1 —
-      // the same as the current schemaVersion — and passes
-      // PRAGMA integrity_check, but has none of the tables this build reads.
+      // written before the event-sourcing migration, with none of the tables
+      // this build reads, that nevertheless passes PRAGMA integrity_check.
       // Accepting it would replace the user's ledger with one the app cannot
       // open, which is the worst possible outcome for a restore.
+      //
+      // The version gate no longer catches this — it accepts anything older
+      // than this build, deliberately, so that an older *ledger* stays
+      // restorable. The fixture therefore claims the current version, which
+      // is the honest shape of the trap: a file that looks current and is not
+      // ours at all. What refuses it is the DAO probe at the bottom, which is
+      // the only check that proves the schema is one this build can use.
       final legacy = File(p.join(supportDir.path, 'legacy.sqlite'));
       final legacyDb = AppDatabase.internal(NativeDatabase(legacy, setup: (db) {
         // `setup` runs on the raw database before drift's migration decides
         // anything. Writing the current user_version is what makes drift skip
-        // `onCreate` — which is exactly the trap: a same-version database with
-        // the wrong tables looks fine to every check but this one.
-        db.execute('PRAGMA user_version = 1');
+        // `onCreate` *and* `onUpgrade`.
+        db.execute('PRAGMA user_version = ${AppDatabase().schemaVersion}');
         db.execute('CREATE TABLE accounts (id TEXT PRIMARY KEY)');
         db.execute('CREATE TABLE transactions (id TEXT PRIMARY KEY)');
       }));

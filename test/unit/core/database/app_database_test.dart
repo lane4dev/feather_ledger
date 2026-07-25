@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
@@ -20,7 +24,42 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(1));
+      expect(database.schemaVersion, equals(2));
+    });
+
+    test('migrates a v1 database by adding the column, keeping its rows',
+        () async {
+      // `onUpgrade` is otherwise unreachable from the suite: every other test
+      // opens a fresh database, so `onCreate` builds the current schema and
+      // the migration branch never runs. A schema is only migrated once per
+      // install, which is precisely why it needs a test of its own.
+      //
+      // The fixture goes backwards from the real schema rather than forward
+      // from a checked-in copy, so it cannot describe a shape that no longer
+      // exists.
+      final file = File(p.join(
+          Directory.systemTemp.createTempSync('feather_v1').path, 'v1.sqlite'));
+      final v1 = AppDatabase.internal(NativeDatabase(file));
+      await v1.customStatement('SELECT 1'); // opens it, running createAll
+      await v1.customStatement(
+          'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
+      await v1.customStatement(
+          'INSERT INTO accounts_view (id, name, type, currency_code, '
+          'balance_minor, archived, last_updated_event_id, projection_version) '
+          "VALUES ('acc_v1', 'Cash', 0, 'USD', 5000, 0, 1, 2)");
+      await v1.customStatement('PRAGMA user_version = 1');
+      await v1.close();
+
+      final upgraded = AppDatabase.internal(NativeDatabase(file));
+      addTearDown(upgraded.close);
+
+      final row = await upgraded.accountDao.getAccountById('acc_v1');
+      expect(row, isNotNull,
+          reason: 'a migration must not drop the rows it migrates');
+      expect(row!.balanceMinor, 5000);
+      expect(row.includeInTotals, isTrue,
+          reason: 'every account that predates the flag counts toward the '
+              'totals — nobody had opted out before it existed');
     });
 
     test('should create all tables on initialization', () async {

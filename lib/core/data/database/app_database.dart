@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,10 +56,23 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          // Placeholder for future migrations
-          // if (from < 2) {
-          //   await m.createTable(ledgerEvents);
-          // }
+          // v2: accounts gained `include_in_totals`.
+          //
+          // **addColumn, never deleteTable/createTable.** The event-sourced
+          // views are rebuilt from `ledger_events`, so recreating one looks
+          // harmless — but `LedgerRebuildService.isStale()` is `.any(...)`
+          // over four views' projection versions, and an empty list is
+          // `false`. Drop enough of them at once and nothing is ever stale
+          // again: the home page stays empty over a full event store, with no
+          // error and no way back. addColumn keeps the rows, and the rebuild
+          // below re-derives the column from the events anyway.
+          //
+          // `ledgerProjectionVersion` goes to 3 in the same change, so every
+          // derived row is re-written by the current projector regardless of
+          // what this migration left behind.
+          if (from < 2) {
+            await m.addColumn(accountsView, accountsView.includeInTotals);
+          }
         },
       );
 }

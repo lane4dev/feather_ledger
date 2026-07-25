@@ -83,6 +83,7 @@ class TestDataBuilder {
     String currencyCode = 'USD',
     int balanceMinor = 0,
     bool archived = false,
+    bool includeInTotals = true,
     int lastUpdatedEventId = 1,
     int projectionVersion = 1,
   }) {
@@ -93,6 +94,7 @@ class TestDataBuilder {
       currencyCode: currencyCode,
       balanceMinor: balanceMinor,
       archived: archived,
+      includeInTotals: includeInTotals,
       lastUpdatedEventId: lastUpdatedEventId,
       projectionVersion: projectionVersion,
     );

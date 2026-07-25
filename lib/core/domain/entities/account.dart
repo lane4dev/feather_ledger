@@ -9,6 +9,13 @@ class AccountEntity {
   final String currencyCode;
   final int balanceMinor;
   final bool archived;
+
+  /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
+  /// Independent of [archived] and pointed the other way: an archived account
+  /// still counts, an excluded one does not. Defaulted so every construction
+  /// that predates the flag means "counts", which is what it used to do.
+  final bool includeInTotals;
+
   final int lastUpdatedEventId;
 
   const AccountEntity({
@@ -18,6 +25,7 @@ class AccountEntity {
     required this.currencyCode,
     required this.balanceMinor,
     required this.archived,
+    this.includeInTotals = true,
     required this.lastUpdatedEventId,
   });
 

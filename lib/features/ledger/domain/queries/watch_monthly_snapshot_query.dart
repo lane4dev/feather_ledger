@@ -44,7 +44,15 @@ class MonthlySnapshotTotals {
 /// it lands. (A snapshot row cannot change without its account changing.)
 ///
 /// Archived accounts stay in the total — archiving takes an account out of
-/// the pickers, it does not make the money go away.
+/// the pickers, it does not make the money go away. An account with
+/// `includeInTotals` off does leave it, and that is a different switch, not a
+/// stronger [archived]. Both live on the account row, which is why the toggle
+/// re-runs this query: the account stream is its trigger.
+///
+/// If every account is excluded, the balance reads 0 over a ledger that
+/// visibly holds money — the exact picture a bug once made here. It is the
+/// answer, not the bug: nothing was left in the total, so nothing is what it
+/// reports.
 class WatchMonthlySnapshotQuery {
   final MonthlySnapshotDao _snapshotDao;
   final AccountDao _accountDao;
@@ -60,10 +68,20 @@ class WatchMonthlySnapshotQuery {
     return _accountDao.watchAllAccounts().asyncMap((accounts) async {
       final rows = await _snapshotDao.getAllForMonth(month.year, month.month);
 
+      // Excluded accounts are skipped on both halves. They are still watched
+      // — the account stream is this query's trigger, and it is a toggle on
+      // an account row that has to re-run it — and they are still in
+      // [accounts], so the check is against all of them, not the survivors.
+      final excluded = {
+        for (final account in accounts)
+          if (!account.includeInTotals) account.id,
+      };
+
       var income = 0;
       var expense = 0;
       for (final row in rows) {
         if (row.currencyCode != currencyCode) continue;
+        if (excluded.contains(row.accountId)) continue;
         income += row.incomeMinor;
         expense += row.expenseMinor;
       }
@@ -71,6 +89,7 @@ class WatchMonthlySnapshotQuery {
       var balance = 0;
       for (final account in accounts) {
         if (account.currencyCode != currencyCode) continue;
+        if (!account.includeInTotals) continue;
         balance += account.balanceMinor;
       }
 

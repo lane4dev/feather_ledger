@@ -156,7 +156,13 @@ class BackupService {
       final archive = _decodeArchive(await picked.readAsBytes());
       final manifest = _readManifest(archive);
 
-      if (manifest.schemaVersion != _db.schemaVersion) {
+      // Older is fine, newer is not. The container format already draws the
+      // line this way (see `BackupManifest.fromJson`) — the two versions are
+      // checked separately precisely so a future schemaVersion can be refused
+      // on its own. An older database is carried forward by `onUpgrade` and
+      // then re-derived by the projection rebuild, so refusing it would cost
+      // the user every backup they have already taken and buy nothing.
+      if (manifest.schemaVersion > _db.schemaVersion) {
         throw BackupFormatException(
             'Backup is schema v${manifest.schemaVersion}; this app reads '
             'v${_db.schemaVersion}.');
@@ -221,8 +227,10 @@ class BackupService {
   /// arrived intact, not that SQLite can use them.
   Future<void> _verifyDatabase(File staged) async {
     // Read the schema version out of the SQLite header rather than by opening
-    // the file: opening it through drift would run the migration strategy,
-    // which could rewrite the very copy under validation. user_version is a
+    // the file: opening it through drift runs the migration strategy, which
+    // rewrites the copy under validation — and the header has to be read
+    // *before* that happens, or the check would be against the version the
+    // migration just wrote rather than the one that arrived. user_version is a
     // big-endian uint32 at byte offset 60 of the 100-byte header.
     final handle = await staged.open();
     try {
@@ -232,7 +240,10 @@ class BackupService {
       }
       final version =
           ByteData.sublistView(header, 60, 64).getUint32(0, Endian.big);
-      if (version != _db.schemaVersion) {
+      // Older is fine — the probe below opens it and `onUpgrade` carries it
+      // to the current schema. Newer is not: there is no migration for a
+      // shape this build has never seen.
+      if (version > _db.schemaVersion) {
         throw BackupFormatException(
             'Backup database is schema v$version; this app reads '
             'v${_db.schemaVersion}.');
@@ -243,7 +254,15 @@ class BackupService {
 
     final probe = AppDatabase.internal(NativeDatabase(staged));
     try {
-      final rows = await probe.customSelect('PRAGMA integrity_check').get();
+      // The first statement is what opens the file, so it is also where
+      // `onUpgrade` runs — and a file that is not this application's database
+      // fails right there, on the migration, rather than on any query below.
+      // Refusing is the correct outcome either way; the point is to name it
+      // as a refusal rather than let a raw SQL error escape as `unknownEvent`.
+      final rows = await _refusing(
+        () => probe.customSelect('PRAGMA integrity_check').get(),
+        'Backup database could not be opened at schema v${_db.schemaVersion}',
+      );
       final verdict = rows.isEmpty ? null : rows.first.data.values.first;
       if (verdict != 'ok') {
         throw BackupFormatException('Backup database failed its integrity '
@@ -257,6 +276,11 @@ class BackupService {
       // installing it makes the app die on the first event-store query, with
       // the user's current ledger already replaced. Reading through the real
       // DAO is what proves the schema is one this build can use.
+      //
+      // This is the gate that carries the weight now that the version check
+      // accepts anything older than this build: `onUpgrade` may legitimately
+      // rewrite the file, and then the only question left is whether the
+      // result is readable.
       try {
         await probe.eventsDao.countAll();
       } catch (e) {
@@ -266,6 +290,19 @@ class BackupService {
       }
     } finally {
       await probe.close();
+    }
+  }
+
+  /// Runs [read] and turns any failure that is not already a
+  /// [BackupFormatException] into one, so every path out of the verification
+  /// says what the user did wrong rather than what SQLite did.
+  static Future<T> _refusing<T>(Future<T> Function() read, String what) async {
+    try {
+      return await read();
+    } on BackupFormatException {
+      rethrow;
+    } catch (e) {
+      throw BackupFormatException('$what: $e');
     }
   }
 

@@ -36,6 +36,13 @@ class LedgerDayGroup {
   /// Transfers are counted as neither. Their two legs are one movement
   /// between the user's own accounts, so a day that only moved money around
   /// reads as a day with no income and no expense, which is the truth.
+  ///
+  /// A row on an account that is out of the **ledger totals** (CONTEXT.md)
+  /// still gets its day, and still appears in it — but it adds nothing to
+  /// that day's figures. The day's subtotal is a cross-account total like any
+  /// other, and the rule is one rule; the cost is that such a row is on
+  /// screen without being in the arithmetic beside it. That is the same
+  /// bargain the header makes one level up.
   static List<LedgerDayGroup> group(
     List<TransactionTileUiModel> transactions, {
     required String currencySymbol,
@@ -54,6 +61,8 @@ class LedgerDayGroup {
         expense[day] = 0;
       }
       byDay[day]!.add(tx);
+
+      if (!tx.account.includeInTotals) continue;
 
       // Tile amounts are unsigned — the kind is what says which way the money
       // went, so the kind is what decides which column this lands in.

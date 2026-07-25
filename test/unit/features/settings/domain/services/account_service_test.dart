@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
@@ -158,6 +159,120 @@ void main() {
         reason: 'the retry appends nothing, and does not double the balance',
       );
       expect(await harness.db.accountDao.getAllAccounts(), hasLength(1));
+    });
+  });
+
+  group('includeInTotals', () {
+    test('an account is born counting — no event says so', () async {
+      final result = await harness.accountService.createAccount(
+        commandId: 'cmd_totals_on',
+        name: 'Wallet',
+        type: AccountType.cash,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD',
+      );
+
+      expect(result, isA<Success<void>>());
+      final events = (await allEvents())
+          .where((e) => e.commandId.startsWith('cmd_totals_on'))
+          .toList();
+      expect(events.map((e) => e.eventType), ['AccountCreated'],
+          reason: 'counting is the column default, so it is not news');
+
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      expect(account.includeInTotals, isTrue);
+    });
+
+    test('opting out at birth is a second event, not a field', () async {
+      // The same shape as a starting balance: create the account, then record
+      // the thing about it that is not the default. Keeping it out of
+      // `AccountCreated` is what keeps a published payload from having to grow
+      // a version for a constant.
+      await harness.accountService.createAccount(
+        commandId: 'cmd_totals_off',
+        name: 'Held for a friend',
+        type: AccountType.bank,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD',
+        includeInTotals: false,
+      );
+
+      final events = (await allEvents())
+          .where((e) => e.commandId.startsWith('cmd_totals_off'))
+          .toList();
+      expect(events.map((e) => e.eventType),
+          ['AccountCreated', 'AccountTotalsInclusionChanged']);
+
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      expect(account.includeInTotals, isFalse);
+    });
+
+    test('toggling appends the event and updates the projection', () async {
+      await harness.accountService.createAccount(
+        commandId: 'cmd_toggle',
+        name: 'Wallet',
+        type: AccountType.cash,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD',
+      );
+      final accountId = (await harness.db.accountDao.getAllAccounts()).single.id;
+
+      final result = await harness.accountService.setTotalsInclusion(
+        commandId: 'cmd_toggle_off',
+        accountId: accountId,
+        includeInTotals: false,
+      );
+
+      expect(result, isA<Success<void>>());
+      expect((await allEvents()).last.eventType,
+          'AccountTotalsInclusionChanged');
+      final account = await harness.db.accountDao.getAccountById(accountId);
+      expect(account!.includeInTotals, isFalse);
+      expect(account.archived, isFalse,
+          reason: 'the other off-switch is not this one');
+      expect(account.balanceMinor, 0,
+          reason: 'a flag moves no money');
+    });
+
+    test('the flag survives a rebuild — it is derived, not decoration',
+        () async {
+      // Without this, a projector branch that returned without writing
+      // anything would pass every other test in the suite: the write path
+      // would look right until the next rebuild quietly put the account back
+      // in the totals.
+      await harness.accountService.createAccount(
+        commandId: 'cmd_rebuild',
+        name: 'Held for a friend',
+        type: AccountType.bank,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD',
+        includeInTotals: false,
+      );
+      final accountId = (await harness.db.accountDao.getAllAccounts()).single.id;
+
+      await LedgerRebuildService(
+        harness.db,
+        harness.eventStore,
+        harness.projector,
+      ).rebuild();
+
+      final account = await harness.db.accountDao.getAccountById(accountId);
+      expect(account!.includeInTotals, isFalse,
+          reason: 'the rebuild replays the event that wrote it');
+    });
+
+    test('unknown account fails with accountNotFound', () async {
+      final result = await harness.accountService.setTotalsInclusion(
+        commandId: 'cmd_toggle_missing',
+        accountId: 'missing',
+        includeInTotals: false,
+      );
+
+      expect(
+        result,
+        isA<Failure<void>>()
+            .having((f) => f.code, 'code', LedgerErrorCode.accountNotFound),
+      );
     });
   });
 

@@ -47,6 +47,7 @@ void main() {
             currencyCode: 'USD',
             balanceMinor: 100000,
             archived: false,
+            includeInTotals: true,
             lastUpdatedEventId: 1,
             projectionVersion: 1,
           ),
@@ -57,6 +58,7 @@ void main() {
             currencyCode: 'USD',
             balanceMinor: 500000,
             archived: false,
+            includeInTotals: true,
             lastUpdatedEventId: 1,
             projectionVersion: 1,
           ),
@@ -108,6 +110,7 @@ void main() {
           currencyCode: 'USD',
           balanceMinor: 100000,
           archived: false,
+          includeInTotals: true,
           lastUpdatedEventId: 1,
           projectionVersion: 1,
         );

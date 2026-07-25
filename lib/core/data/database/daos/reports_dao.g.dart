@@ -10,6 +10,7 @@ mixin _$ReportsDaoMixin on DatabaseAccessor<AppDatabase> {
       attachedDatabase.transactionPostingsView;
   $MonthlyAccountBalanceSnapshotsTable get monthlyAccountBalanceSnapshots =>
       attachedDatabase.monthlyAccountBalanceSnapshots;
+  $AccountsViewTable get accountsView => attachedDatabase.accountsView;
   ReportsDaoManager get managers => ReportsDaoManager(this);
 }
 
@@ -26,4 +27,6 @@ class ReportsDaoManager {
       get monthlyAccountBalanceSnapshots =>
           $$MonthlyAccountBalanceSnapshotsTableTableManager(
               _db.attachedDatabase, _db.monthlyAccountBalanceSnapshots);
+  $$AccountsViewTableTableManager get accountsView =>
+      $$AccountsViewTableTableManager(_db.attachedDatabase, _db.accountsView);
 }

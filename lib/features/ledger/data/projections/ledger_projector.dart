@@ -63,6 +63,9 @@ class LedgerProjectorImpl implements LedgerProjector {
         await _applyAccountRenamed(envelope, AccountRenamed.fromJson(payload));
       case 'AccountArchived':
         await _applyAccountArchived(envelope, AccountArchived.fromJson(payload));
+      case 'AccountTotalsInclusionChanged':
+        await _applyAccountTotalsInclusionChanged(
+            envelope, AccountTotalsInclusionChanged.fromJson(payload));
       case 'CategoryCreated':
         await _applyCategoryCreated(envelope, CategoryCreated.fromJson(payload));
       case 'CategoryRenamed':
@@ -139,6 +142,27 @@ class LedgerProjectorImpl implements LedgerProjector {
     await _db.accountDao.updateRow(AccountsViewCompanion(
       id: Value(p.accountId),
       archived: const Value(true),
+      lastUpdatedEventId: Value(gsn),
+    ));
+  }
+
+  /// Writes the flag and nothing else. Deliberately no snapshot refresh: the
+  /// flag changes which rows a *sum* walks, never what any row holds, so
+  /// there is nothing downstream to recompute — the same reason
+  /// [_applyAccountArchived] refreshes nothing.
+  Future<void> _applyAccountTotalsInclusionChanged(
+      EventEnvelope e, AccountTotalsInclusionChanged p) async {
+    final gsn = e.globalSequenceNumber!;
+    final existing = await _db.accountDao.getAccountById(p.accountId);
+    if (existing == null) {
+      throw StateError(
+          'AccountTotalsInclusionChanged for unknown account ${p.accountId} '
+          '(event ${e.eventId})');
+    }
+    if (existing.lastUpdatedEventId >= gsn) return; // already applied
+    await _db.accountDao.updateRow(AccountsViewCompanion(
+      id: Value(p.accountId),
+      includeInTotals: Value(p.includeInTotals),
       lastUpdatedEventId: Value(gsn),
     ));
   }

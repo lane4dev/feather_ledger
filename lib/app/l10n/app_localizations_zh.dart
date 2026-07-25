@@ -224,6 +224,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountInitialBalanceNote => '差额';
 
   @override
+  String get accountIncludeInTotals => '纳入余额统计';
+
+  @override
+  String get accountIncludeInTotalsHint => '关闭后，此账户不计入总余额与收支合计，但它的交易仍会显示在账本里。';
+
+  @override
   String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
 
   @override
@@ -791,6 +797,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accountInitialBalanceNote => '差额';
 
   @override
+  String get accountIncludeInTotals => '纳入余额统计';
+
+  @override
+  String get accountIncludeInTotalsHint => '关闭后，此账户不计入总余额与收支合计，但它的交易仍会显示在账本里。';
+
+  @override
   String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
 
   @override
@@ -1356,6 +1368,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get accountInitialBalanceNote => '差額';
+
+  @override
+  String get accountIncludeInTotals => '納入餘額統計';
+
+  @override
+  String get accountIncludeInTotalsHint => '關閉後，此帳戶不計入總餘額與收支合計，但它的交易仍會顯示在帳本裡。';
 
   @override
   String get accountBalanceAdjustmentNotes => '因帳戶餘額變更自動調整。';

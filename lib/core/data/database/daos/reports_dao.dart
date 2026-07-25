@@ -57,13 +57,20 @@ class ReportMonthlyTotalsRow {
 @DriftAccessor(tables: [
   TransactionsView,
   TransactionPostingsView,
-  MonthlyAccountBalanceSnapshots
+  MonthlyAccountBalanceSnapshots,
+  AccountsView
 ])
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   ReportsDao(super.db);
 
   /// Daily signed posting impacts for the heatmap's 3-month window,
   /// excluding transfers (net zero) and reversed rows.
+  ///
+  /// The join to `accounts_view` is what drops postings on accounts that are
+  /// out of the **ledger totals** (CONTEXT.md). It is a join rather than a
+  /// filter over the result because `watch()` re-emits on writes to every
+  /// table in the statement — without the account table in the query, toggling
+  /// the flag would leave this chart stale until something else moved.
   Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime datetime) {
     final start = DateTime(datetime.year, datetime.month - 2, 1);
     final end = DateTime(datetime.year, datetime.month + 1, 1)
@@ -74,9 +81,12 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           transactionPostingsView,
           transactionPostingsView.transactionId
               .equalsExp(transactionsView.transactionId)),
+      innerJoin(accountsView,
+          accountsView.id.equalsExp(transactionPostingsView.accountId)),
     ])
       ..where(transactionsView.occurredAt.isBetweenValues(start, end) &
-          transactionsView.isReversed.equals(false));
+          transactionsView.isReversed.equals(false) &
+          accountsView.includeInTotals.equals(true));
 
     return query.watch().map((rows) {
       final map = <DateTime, int>{};
@@ -109,10 +119,13 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           transactionPostingsView,
           transactionPostingsView.transactionId
               .equalsExp(transactionsView.transactionId)),
+      innerJoin(accountsView,
+          accountsView.id.equalsExp(transactionPostingsView.accountId)),
     ])
       ..where(transactionsView.occurredAt.isBetweenValues(start, end) &
           transactionsView.isReversed.equals(false) &
-          transactionsView.kind.equals(kind.index));
+          transactionsView.kind.equals(kind.index) &
+          accountsView.includeInTotals.equals(true));
 
     return query.watch().map((rows) {
       final grouped = <String, ReportCategoryRow>{};
@@ -135,19 +148,35 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   }
 
   /// Monthly income/expense/end-of-month balance from the snapshot
-  /// projection, aggregated across accounts.
+  /// projection, aggregated across accounts — but only the accounts that
+  /// count toward the **ledger totals** (CONTEXT.md), hence the join.
   Stream<ReportMonthlyTotalsRow> watchMonthlyTotals(DateTime datetime,
       {String currencyCode = 'USD'}) {
-    return (select(monthlyAccountBalanceSnapshots)
-          ..where((t) =>
-              t.year.equals(datetime.year) & t.month.equals(datetime.month) &
-              t.currencyCode.equals(currencyCode)))
+    return (select(monthlyAccountBalanceSnapshots).join([
+      innerJoin(accountsView,
+          accountsView.id.equalsExp(monthlyAccountBalanceSnapshots.accountId)),
+    ])
+          ..where(monthlyAccountBalanceSnapshots.year.equals(datetime.year) &
+              monthlyAccountBalanceSnapshots.month.equals(datetime.month) &
+              monthlyAccountBalanceSnapshots.currencyCode
+                  .equals(currencyCode) &
+              accountsView.includeInTotals.equals(true)))
         .watch()
-        .map((rows) => ReportMonthlyTotalsRow(
-              incomeMinor: rows.fold<int>(0, (s, r) => s + r.incomeMinor),
-              expenseMinor: rows.fold<int>(0, (s, r) => s + r.expenseMinor),
-              balanceMinor:
-                  rows.fold<int>(0, (s, r) => s + r.closingBalanceMinor),
-            ));
+        .map((joined) {
+      var income = 0;
+      var expense = 0;
+      var balance = 0;
+      for (final row in joined) {
+        final snapshot = row.readTable(monthlyAccountBalanceSnapshots);
+        income += snapshot.incomeMinor;
+        expense += snapshot.expenseMinor;
+        balance += snapshot.closingBalanceMinor;
+      }
+      return ReportMonthlyTotalsRow(
+        incomeMinor: income,
+        expenseMinor: expense,
+        balanceMinor: balance,
+      );
+    });
   }
 }
