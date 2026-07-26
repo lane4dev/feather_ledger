@@ -42,6 +42,7 @@ class RecordTransactionCommand {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     // Describes this entry point, not the transaction: transfers and balance
     // purposes have their own category-free construction paths.
@@ -68,6 +69,7 @@ class RecordTransactionCommand {
             description: note ?? '',
             notes: note,
             memo: note,
+            attachments: attachments,
           )
         : Transaction.expense(
             transactionId: transactionId,
@@ -79,6 +81,7 @@ class RecordTransactionCommand {
             description: note ?? '',
             notes: note,
             memo: note,
+            attachments: attachments,
           );
 
     transaction.validateOrThrow();
@@ -96,6 +99,7 @@ class RecordTransactionCommand {
     required String fromAccountId,
     required String toAccountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     final context = await _context.resolveForTransfer(
       fromAccountId: fromAccountId,
@@ -112,6 +116,7 @@ class RecordTransactionCommand {
       toCurrencyCode: context.counterAccount!.currencyCode,
       description: note ?? '',
       notes: note,
+      attachments: attachments,
     );
 
     // Same account, mismatched currencies and the two-leg shape are all
@@ -129,6 +134,7 @@ class RecordTransactionCommand {
     required DateTime occurredAt,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       _executeBalancePurpose(
         commandId: commandId,
@@ -137,6 +143,7 @@ class RecordTransactionCommand {
         accountId: accountId,
         note: note,
         kind: TransactionKind.openingBalance,
+        attachments: attachments,
       );
 
   /// Records the difference produced by a reconciliation or explicit balance
@@ -148,6 +155,7 @@ class RecordTransactionCommand {
     required DateTime occurredAt,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       _executeBalancePurpose(
         commandId: commandId,
@@ -156,6 +164,7 @@ class RecordTransactionCommand {
         accountId: accountId,
         note: note,
         kind: TransactionKind.balanceAdjustment,
+        attachments: attachments,
       );
 
   Future<void> _executeBalancePurpose({
@@ -165,6 +174,7 @@ class RecordTransactionCommand {
     required String accountId,
     required String? note,
     required TransactionKind kind,
+    required List<TransactionAttachment> attachments,
   }) async {
     if (!kind.isBalancePurpose || signedAmountMinor == 0) {
       throw const CommandRejected(LedgerErrorCode.invalidAmount,
@@ -181,6 +191,7 @@ class RecordTransactionCommand {
             currencyCode: context.account.currencyCode,
             description: note ?? '',
             notes: note,
+            attachments: attachments,
           )
         : Transaction.balanceAdjustment(
             transactionId: const Uuid().v4(),
@@ -190,6 +201,7 @@ class RecordTransactionCommand {
             currencyCode: context.account.currencyCode,
             description: note ?? '',
             notes: note,
+            attachments: attachments,
           );
     transaction.validateOrThrow();
     await _append(transaction, commandId);
@@ -208,6 +220,7 @@ class RecordTransactionCommand {
             description: transaction.description,
             notes: transaction.notes,
             postings: transaction.postings,
+            attachments: transaction.attachments,
           ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,

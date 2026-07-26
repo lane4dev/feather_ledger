@@ -15,6 +15,7 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_state.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
@@ -164,7 +165,8 @@ void main() {
       );
 
   Future<void> openPicker(WidgetTester tester, int index) async {
-    await tester.tap(find.byType(LedgerSelectorField).at(index));
+    // Date is now the first selector; account pickers follow it.
+    await tester.tap(find.byType(LedgerSelectorField).at(index + 1));
     await settle(tester);
   }
 
@@ -181,8 +183,53 @@ void main() {
     expect(find.text('Transfer'), findsOneWidget);
     // A new transaction is an expense by default — what the FAB is for.
     expect(find.text('Add Transaction'), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget,
+        reason: 'the page title belongs in the compact top bar');
+    expect(find.text('Save'), findsOneWidget,
+        reason: 'there is one persistent primary action, not a second top CTA');
     expect(find.text('Category'), findsOneWidget);
+    expect(find.text('Select'), findsNWidgets(2),
+        reason: 'new forms keep the category and account labels visible');
     expect(find.text('From'), findsNothing);
+  });
+
+  testWidgets('the transaction kind selector occupies the core input width',
+      (tester) async {
+    await pumpForm(tester);
+
+    final selectorWidth =
+        tester.getSize(find.byType(SegmentedButton<TransactionKind>)).width;
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+
+    expect(selectorWidth / screenWidth, inInclusiveRange(0.60, 0.75));
+
+    await teardownTree(tester);
+  });
+
+  testWidgets(
+      'a balance-purpose edit keeps its type visible and can attach a file',
+      (tester) async {
+    await pumpForm(
+      tester,
+      transaction: TransactionTileUiModel(
+        id: 'opening-1',
+        amount: 12000,
+        type: TransactionKind.openingBalance,
+        date: DateTime(2026, 1, 1),
+        note: null,
+        account: cash,
+        displayAmount: '120.00',
+        displaySign: '+',
+      ),
+    );
+
+    expect(find.text('Initial Balance'), findsNWidgets(2),
+        reason: 'the title and the read-only type both name the system entry');
+    expect(find.text('Cash'), findsOneWidget);
+    expect(find.text('Add attachment'), findsOneWidget);
+    expect(find.text('Expense'), findsNothing,
+        reason: 'a balance purpose cannot be recast as a normal entry');
   });
 
   testWidgets('tapping Transfer swaps the form to the transfer layout',
@@ -200,8 +247,8 @@ void main() {
     await pumpForm(tester);
     await selectKind(tester, 'Transfer');
 
-    expect(find.byType(LedgerSelectorField), findsNWidgets(2),
-        reason: 'from and to');
+    expect(find.byType(LedgerSelectorField), findsNWidgets(3),
+        reason: 'date plus from and to');
     expect(find.text('From'), findsOneWidget);
     expect(find.text('To'), findsOneWidget);
     // The category row is not rendered at all — a transfer has no category,
@@ -219,7 +266,7 @@ void main() {
     expect(find.text('Add Transaction'), findsOneWidget);
     // Category, account and the repeat row — a transfer has neither a
     // category nor a repeat rule, so both extra rows appear only here.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(3));
+    expect(find.byType(LedgerSelectorField), findsNWidgets(4));
     expect(find.text('Category'), findsOneWidget);
     expect(find.text('From'), findsNothing);
     expect(find.text('To'), findsNothing);
@@ -282,7 +329,7 @@ void main() {
     await tester.tap(inSheet('Bank'));
     await settle(tester);
 
-    await tester.tap(find.text('Save Transaction'));
+    await tester.tap(find.text('Save'));
     await settle(tester);
 
     expect(viewModel.addedTransfers, hasLength(1));
@@ -306,19 +353,20 @@ void main() {
       ),
       '30.00',
     );
-    await openPicker(tester, 0); // category
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
+    await settle(tester);
     await tester.tap(find.text('Food'));
     await settle(tester);
-    await openPicker(tester, 1); // account
+    await tester.tap(find.byType(LedgerSelectorField).at(3)); // account
+    await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
 
-    await tester.tap(find.text('Save Transaction'));
+    await tester.tap(find.text('Save'));
     await settle(tester);
 
     expect(viewModel.addedTransactions, hasLength(1));
-    expect(viewModel.addedTransactions.single['type'],
-        TransactionKind.expense);
+    expect(viewModel.addedTransactions.single['type'], TransactionKind.expense);
     expect(viewModel.addedTransfers, isEmpty);
 
     await teardownTree(tester);
@@ -336,7 +384,7 @@ void main() {
       '250.00',
     );
 
-    await tester.tap(find.text('Save Transaction'));
+    await tester.tap(find.text('Save'));
     await settle(tester);
 
     expect(find.text('Required'), findsWidgets,
@@ -376,7 +424,7 @@ void main() {
     // Both legs are pre-filled, so the fields show the accounts rather than
     // their placeholders. Direction is carried by the up/down icons, the same
     // way the detail sheet carries it with From/To labels.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(2));
+    expect(find.byType(LedgerSelectorField), findsNWidgets(3));
     expect(find.text('Cash'), findsOneWidget);
     expect(find.text('Bank'), findsOneWidget);
     expect(find.byIcon(LucideIcons.arrowUp), findsOneWidget);
@@ -390,7 +438,7 @@ void main() {
       '300.00',
     );
 
-    await tester.tap(find.text('Save Transaction'));
+    await tester.tap(find.text('Save'));
     await settle(tester);
 
     expect(viewModel.updatedTransfers, hasLength(1));
@@ -421,6 +469,7 @@ class _RecordingLedgerViewModel extends LedgerViewModel {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     addedTransfers.add({
       'amountMinor': amountMinor,
@@ -439,6 +488,7 @@ class _RecordingLedgerViewModel extends LedgerViewModel {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     updatedTransfers.add({
       'id': id,
@@ -458,6 +508,7 @@ class _RecordingLedgerViewModel extends LedgerViewModel {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     addedTransactions.add({
       'amountMinor': amountMinor,

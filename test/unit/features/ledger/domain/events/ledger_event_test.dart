@@ -3,13 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_type_registry.dart';
+import 'package:feather_ledger/app/bootstrap/register_ledger_events.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
 void main() {
   group('final event payloads', () {
-    test('TransactionRecorded round-trips with schemaVersion and postings',
-        () {
+    test('TransactionRecorded round-trips with schemaVersion and postings', () {
       final event = TransactionRecorded(
         transactionId: 'txn-1',
         occurredAt: DateTime(2026, 1, 15, 8, 30),
@@ -32,6 +32,14 @@ void main() {
             memo: 'rent',
           ),
         ],
+        attachments: const [
+          TransactionAttachment(
+            id: 'receipt-1',
+            fileName: 'receipt.pdf',
+            relativePath: 'transaction_attachments/receipt-1',
+            byteSize: 42,
+          ),
+        ],
       );
 
       final restored = TransactionRecorded.fromJson(event.toJson());
@@ -42,7 +50,8 @@ void main() {
       expect(restored.postings, hasLength(2));
       expect(restored.postings.first.signedImpact, -10000);
       expect(restored.postings.last.memo, 'rent');
-      expect(event.toJson()['schemaVersion'], 1);
+      expect(restored.attachments.single.fileName, 'receipt.pdf');
+      expect(event.toJson()['schemaVersion'], 2);
     });
 
     test('every payload serializes with stable eventType == class name', () {
@@ -62,7 +71,10 @@ void main() {
         TransactionReversed(
             originalTransactionId: 't', reason: ReversalReason.correction),
         AccountCreated(
-            accountId: 'a', name: 'n', type: AccountType.bank, currencyCode: 'USD'),
+            accountId: 'a',
+            name: 'n',
+            type: AccountType.bank,
+            currencyCode: 'USD'),
         AccountRenamed(accountId: 'a', name: 'n2'),
         AccountArchived(accountId: 'a'),
         AccountTotalsInclusionChanged(accountId: 'a', includeInTotals: false),
@@ -100,7 +112,7 @@ void main() {
       expect(
         {for (final e in events) e.eventType: e.toJson()['schemaVersion']},
         {
-          'TransactionRecorded': 1,
+          'TransactionRecorded': 2,
           'TransactionReversed': 1,
           'AccountCreated': 1,
           'AccountRenamed': 1,
@@ -116,8 +128,27 @@ void main() {
 
     test('AccountCreated payload carries no initial balance', () {
       final event = AccountCreated(
-          accountId: 'a', name: 'n', type: AccountType.cash, currencyCode: 'USD');
+          accountId: 'a',
+          name: 'n',
+          type: AccountType.cash,
+          currencyCode: 'USD');
       expect(event.toJson().containsKey('initialBalance'), isFalse);
+    });
+
+    test('TransactionRecorded v1 upcasts to an empty attachment list', () {
+      registerLedgerEvents();
+
+      final upcast = ledgerEventRegistry.upcast('TransactionRecorded', {
+        'schemaVersion': 1,
+        'transactionId': 'legacy',
+        'occurredAt': DateTime(2026).toIso8601String(),
+        'kind': TransactionKind.expense.name,
+        'description': '',
+        'postings': const [],
+      });
+
+      expect(upcast['schemaVersion'], 2);
+      expect(upcast['attachments'], isEmpty);
     });
   });
 
@@ -170,8 +201,8 @@ void main() {
 
     test('upcast is a no-op when payload is at latest version', () {
       final r = registry();
-      final payload = r.upcast(
-          'TransactionRecorded', {'schemaVersion': 1, 'x': 1});
+      final payload =
+          r.upcast('TransactionRecorded', {'schemaVersion': 1, 'x': 1});
       expect(payload, {'schemaVersion': 1, 'x': 1});
     });
 

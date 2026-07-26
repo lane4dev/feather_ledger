@@ -1,6 +1,7 @@
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
 enum ScheduledTransactionStatus {
   scheduled,
@@ -60,6 +61,7 @@ class TransactionEntity {
   final TransactionKind type;
   final DateTime date;
   final String? note;
+  final List<TransactionAttachment> attachments;
 
   /// Present only for ordinary income/expense transactions. Balance purposes
   /// and transfers intentionally have no category.
@@ -79,6 +81,7 @@ class TransactionEntity {
     required this.type,
     required this.date,
     this.note,
+    this.attachments = const [],
     this.category,
     required this.account,
     this.toAccount,
@@ -92,6 +95,7 @@ class TransactionEntity {
     TransactionKind? type,
     DateTime? date,
     String? note,
+    List<TransactionAttachment>? attachments,
     CategoryEntity? category,
     AccountEntity? account,
     AccountEntity? toAccount,
@@ -104,6 +108,7 @@ class TransactionEntity {
       type: type ?? this.type,
       date: date ?? this.date,
       note: note ?? this.note,
+      attachments: attachments ?? this.attachments,
       category: category ?? this.category,
       account: account ?? this.account,
       toAccount: toAccount ?? this.toAccount,

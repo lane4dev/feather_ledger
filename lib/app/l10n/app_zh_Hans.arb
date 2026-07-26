@@ -91,10 +91,6 @@
     "description": "备注字段标签"
   },
   "save": "保存",
-  "saveTransaction": "保存交易",
-  "@saveTransaction": {
-    "description": "保存交易按钮"
-  },
   "required": "必填",
   "@required": {
     "description": "必填字段验证提示"
@@ -580,5 +576,10 @@
   "pendingBill": "待入账",
   "repeat": "重复",
   "repeatNever": "不重复",
-  "repeatSetupFailed": "已保存。但重复规则创建失败：{error}"
+  "repeatSetupFailed": "已保存。但重复规则创建失败：{error}",
+  "addAttachment": "添加附件",
+  "attachments": "附件",
+  "removeAttachment": "移除附件",
+  "select": "请选择",
+  "attachmentCount": "{count} 个附件"
 }

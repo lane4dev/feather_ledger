@@ -59,6 +59,7 @@ class CorrectTransactionCommand {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     final original = await _loadCorrectable(originalTransactionId);
     if (!original.type.requiresCategory) {
@@ -84,6 +85,7 @@ class CorrectTransactionCommand {
             description: note ?? '',
             notes: note,
             memo: note,
+            attachments: attachments,
           )
         : Transaction.expense(
             transactionId: transactionId,
@@ -95,6 +97,7 @@ class CorrectTransactionCommand {
             description: note ?? '',
             notes: note,
             memo: note,
+            attachments: attachments,
           );
 
     replacement.validateOrThrow();
@@ -118,6 +121,7 @@ class CorrectTransactionCommand {
     required String fromAccountId,
     required String toAccountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     final original = await _loadCorrectable(originalTransactionId);
     if (original.type != TransactionKind.transfer) {
@@ -140,6 +144,7 @@ class CorrectTransactionCommand {
       toCurrencyCode: context.counterAccount!.currencyCode,
       description: note ?? '',
       notes: note,
+      attachments: attachments,
     );
 
     // Same account, mismatched currencies and the two-leg shape are all
@@ -162,6 +167,7 @@ class CorrectTransactionCommand {
     required DateTime date,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     final original = await _loadCorrectable(originalTransactionId);
     if (!original.type.isBalancePurpose) {
@@ -183,6 +189,7 @@ class CorrectTransactionCommand {
             currencyCode: context.account.currencyCode,
             description: note ?? '',
             notes: note,
+            attachments: attachments,
           )
         : Transaction.balanceAdjustment(
             transactionId: const Uuid().v4(),
@@ -192,6 +199,7 @@ class CorrectTransactionCommand {
             currencyCode: context.account.currencyCode,
             description: note ?? '',
             notes: note,
+            attachments: attachments,
           );
     replacement.validateOrThrow();
     await _appendCorrection(
@@ -253,6 +261,7 @@ class CorrectTransactionCommand {
             description: replacement.description,
             notes: replacement.notes,
             postings: replacement.postings,
+            attachments: replacement.attachments,
           ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,

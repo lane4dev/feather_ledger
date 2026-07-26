@@ -66,10 +66,8 @@ void main() {
       colorInt: 0xFF000000,
       type: CategoryType.expense,
     );
-    final accountId =
-        (await harness.db.accountDao.getAllAccounts()).single.id;
-    final categoryId =
-        await harness.userCategoryId();
+    final accountId = (await harness.db.accountDao.getAllAccounts()).single.id;
+    final categoryId = await harness.userCategoryId();
     await harness.ledgerService.addTransaction(
       commandId: 'cmd_expense',
       amountMinor: 5000,
@@ -104,6 +102,8 @@ void main() {
     await db.customStatement('SELECT 1'); // opens it, running createAll
     await db.customStatement(
         'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
+    await db.customStatement(
+        'ALTER TABLE transactions_view DROP COLUMN attachments_json');
     await db.customStatement('PRAGMA user_version = 1');
     await db.close();
     return file;
@@ -128,8 +128,8 @@ void main() {
       );
 
       final manifest = BackupManifest.fromJson(
-        jsonDecode(utf8.decode(
-            archive.findFile(RestoreLayout.stagedManifest)!.content)),
+        jsonDecode(utf8
+            .decode(archive.findFile(RestoreLayout.stagedManifest)!.content)),
       );
       expect(manifest.schemaVersion, harness.db.schemaVersion);
       expect(manifest.appVersion, '1.0.0+1');
@@ -147,9 +147,8 @@ void main() {
       await seedExpense();
 
       final path = builtArchivePath(await service().buildArchive());
-      final dbBytes = readArchive(path)
-          .findFile(RestoreLayout.stagedDb)!
-          .content;
+      final dbBytes =
+          readArchive(path).findFile(RestoreLayout.stagedDb)!.content;
 
       // SQLite's own file magic — proves the snapshot is a database rather
       // than a partial or truncated file.
@@ -174,8 +173,7 @@ void main() {
       if (corrupt == null) {
         await target.writeAsBytes(await File(path).readAsBytes());
       } else {
-        await target.writeAsBytes(
-            ZipEncoder().encodeBytes(corrupt(valid)));
+        await target.writeAsBytes(ZipEncoder().encodeBytes(corrupt(valid)));
       }
       return target;
     }
@@ -201,8 +199,7 @@ void main() {
       );
     });
 
-    test('refuses a zip that is not one of ours, leaving no marker',
-        () async {
+    test('refuses a zip that is not one of ours, leaving no marker', () async {
       final foreign = File(p.join(supportDir.path, 'foreign.zip'));
       await foreign.writeAsBytes(ZipEncoder().encodeBytes(
         Archive()..addFile(ArchiveFile.string('holiday-photos.txt', 'hi')),
@@ -249,8 +246,8 @@ void main() {
               RestoreLayout.stagedManifest,
               utf8.decode(
                   valid.findFile(RestoreLayout.stagedManifest)!.content)))
-          ..addFile(ArchiveFile.bytes(RestoreLayout.stagedDb,
-              dbBytes.sublist(0, dbBytes.length ~/ 3)))
+          ..addFile(ArchiveFile.bytes(
+              RestoreLayout.stagedDb, dbBytes.sublist(0, dbBytes.length ~/ 3)))
           ..addFile(ArchiveFile.string(RestoreLayout.stagedPreferences, '{}'));
       });
 
@@ -278,8 +275,8 @@ void main() {
         return Archive()
           ..addFile(ArchiveFile.string(
               RestoreLayout.stagedManifest, jsonEncode(manifest)))
-          ..addFile(ArchiveFile.bytes(
-              RestoreLayout.stagedDb, v1.readAsBytesSync()))
+          ..addFile(
+              ArchiveFile.bytes(RestoreLayout.stagedDb, v1.readAsBytesSync()))
           ..addFile(ArchiveFile.string(RestoreLayout.stagedPreferences, '{}'));
       });
 
@@ -324,8 +321,8 @@ void main() {
         return Archive()
           ..addFile(ArchiveFile.string(
               RestoreLayout.stagedManifest, jsonEncode(manifest)))
-          ..addFile(ArchiveFile.bytes(RestoreLayout.stagedDb,
-              legacy.readAsBytesSync()))
+          ..addFile(ArchiveFile.bytes(
+              RestoreLayout.stagedDb, legacy.readAsBytesSync()))
           ..addFile(ArchiveFile.string(RestoreLayout.stagedPreferences, '{}'));
       });
 
@@ -338,9 +335,10 @@ void main() {
 
     test('carries the event counts the restore warning needs', () async {
       await seedExpense();
-      final archive = readArchive(builtArchivePath(await service().buildArchive()));
-      final manifest = BackupManifest.fromJson(jsonDecode(utf8.decode(
-          archive.findFile(RestoreLayout.stagedManifest)!.content)));
+      final archive =
+          readArchive(builtArchivePath(await service().buildArchive()));
+      final manifest = BackupManifest.fromJson(jsonDecode(utf8
+          .decode(archive.findFile(RestoreLayout.stagedManifest)!.content)));
 
       expect(manifest.eventCount, greaterThan(0),
           reason: 'the dialog states how many events a restore discards');

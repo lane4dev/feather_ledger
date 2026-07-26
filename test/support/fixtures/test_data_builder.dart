@@ -13,6 +13,7 @@ class TestDataBuilder {
     String categoryName = 'Test Category',
     String categoryIcon = 'test_icon',
     String categoryColorInt = 'ff000000',
+    String attachmentsJson = '[]',
     int originalEventId = 1,
     int projectionVersion = 1,
   }) {
@@ -25,6 +26,7 @@ class TestDataBuilder {
       categoryName: categoryName,
       categoryIcon: categoryIcon,
       categoryColorInt: categoryColorInt,
+      attachmentsJson: attachmentsJson,
       originalEventId: originalEventId,
       projectionVersion: projectionVersion,
     );

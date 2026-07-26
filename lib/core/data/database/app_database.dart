@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +76,13 @@ class AppDatabase extends _$AppDatabase {
           // v3 adds TransactionKind values only. Drift persists the enum as
           // its existing integer ordinal and the new values are appended, so
           // no table change is needed; projection version 4 triggers replay.
+          // v4 projects transaction attachment metadata alongside the ledger
+          // row. The attachment bytes live outside SQLite, while the event
+          // remains the source for this re-buildable reference list.
+          if (from < 4) {
+            await m.addColumn(
+                transactionsView, transactionsView.attachmentsJson);
+          }
         },
       );
 }

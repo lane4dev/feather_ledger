@@ -22,6 +22,42 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 export 'package:feather_ledger/core/domain/enums.dart'
     show TransactionKind, PostingDirection;
 
+/// Metadata for a file copied into Feather Ledger's private attachment store.
+///
+/// The bytes deliberately stay out of the event store: an event records the
+/// immutable business reference while the app-owned file keeps the payloads
+/// compact. [relativePath] is relative to the application's support directory
+/// so a restored database never accidentally points at a device-specific
+/// absolute path.
+class TransactionAttachment {
+  final String id;
+  final String fileName;
+  final String relativePath;
+  final int byteSize;
+
+  const TransactionAttachment({
+    required this.id,
+    required this.fileName,
+    required this.relativePath,
+    required this.byteSize,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fileName': fileName,
+        'relativePath': relativePath,
+        'byteSize': byteSize,
+      };
+
+  factory TransactionAttachment.fromJson(Map<String, dynamic> json) =>
+      TransactionAttachment(
+        id: json['id'] as String,
+        fileName: json['fileName'] as String,
+        relativePath: json['relativePath'] as String,
+        byteSize: json['byteSize'] as int,
+      );
+}
+
 /// One money movement against one account.
 ///
 /// [amountMinor] is always positive; direction carries the sign. The
@@ -131,6 +167,7 @@ class Transaction {
   final TransactionKind kind;
   final String? notes;
   final List<Posting> postings;
+  final List<TransactionAttachment> attachments;
 
   /// Rebuilds an already-recorded transaction (replay only).
   ///
@@ -144,6 +181,7 @@ class Transaction {
     required this.kind,
     this.notes,
     required this.postings,
+    this.attachments = const [],
   });
 
   /// A single expense: one debit posting of a positive amount.
@@ -157,6 +195,7 @@ class Transaction {
     String description = '',
     String? notes,
     String? memo,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       Transaction.rehydrate(
         transactionId: transactionId,
@@ -164,6 +203,7 @@ class Transaction {
         description: description,
         kind: TransactionKind.expense,
         notes: notes,
+        attachments: attachments,
         postings: [
           Posting(
             accountId: accountId,
@@ -187,6 +227,7 @@ class Transaction {
     String description = '',
     String? notes,
     String? memo,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       Transaction.rehydrate(
         transactionId: transactionId,
@@ -194,6 +235,7 @@ class Transaction {
         description: description,
         kind: TransactionKind.income,
         notes: notes,
+        attachments: attachments,
         postings: [
           Posting(
             accountId: accountId,
@@ -220,6 +262,7 @@ class Transaction {
     String description = '',
     String? notes,
     String? memo,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       Transaction.rehydrate(
         transactionId: transactionId,
@@ -227,6 +270,7 @@ class Transaction {
         description: description,
         kind: TransactionKind.transfer,
         notes: notes,
+        attachments: attachments,
         postings: [
           Posting(
             accountId: fromAccountId,
@@ -256,6 +300,7 @@ class Transaction {
     required String currencyCode,
     String description = '',
     String? notes,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       _balancePurpose(
         transactionId: transactionId,
@@ -266,6 +311,7 @@ class Transaction {
         kind: TransactionKind.openingBalance,
         description: description,
         notes: notes,
+        attachments: attachments,
       );
 
   /// A signed reconciliation difference. It changes the account balance but
@@ -278,6 +324,7 @@ class Transaction {
     required String currencyCode,
     String description = '',
     String? notes,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       _balancePurpose(
         transactionId: transactionId,
@@ -288,6 +335,7 @@ class Transaction {
         kind: TransactionKind.balanceAdjustment,
         description: description,
         notes: notes,
+        attachments: attachments,
       );
 
   /// Both balance purposes assemble through [rehydrate], which ADR-0001
@@ -309,6 +357,7 @@ class Transaction {
     required TransactionKind kind,
     required String description,
     String? notes,
+    List<TransactionAttachment> attachments = const [],
   }) =>
       Transaction.rehydrate(
         transactionId: transactionId,
@@ -316,6 +365,7 @@ class Transaction {
         description: description,
         kind: kind,
         notes: notes,
+        attachments: attachments,
         postings: [
           Posting(
             accountId: accountId,

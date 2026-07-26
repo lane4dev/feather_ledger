@@ -1,6 +1,6 @@
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
 class TransactionTileUiModel {
   final String id;
@@ -8,6 +8,7 @@ class TransactionTileUiModel {
   final TransactionKind type;
   final DateTime date;
   final String? note;
+  final List<TransactionAttachment> attachments;
 
   final CategoryEntity? category;
   final AccountEntity account;
@@ -35,6 +36,7 @@ class TransactionTileUiModel {
     required this.type,
     required this.date,
     required this.note,
+    this.attachments = const [],
     this.category,
     required this.account,
     this.toAccount,

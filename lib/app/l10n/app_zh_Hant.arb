@@ -91,10 +91,6 @@
     "description": "備註欄位標籤"
   },
   "save": "保存",
-  "saveTransaction": "儲存交易",
-  "@saveTransaction": {
-    "description": "儲存交易按鈕"
-  },
   "required": "必填",
   "@required": {
     "description": "必填欄位驗證提示"
@@ -580,5 +576,10 @@
   "pendingBill": "待入帳",
   "repeat": "重複",
   "repeatNever": "不重複",
-  "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}"
+  "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}",
+  "addAttachment": "新增附件",
+  "attachments": "附件",
+  "removeAttachment": "移除附件",
+  "select": "請選擇",
+  "attachmentCount": "{count} 個附件"
 }

@@ -87,7 +87,19 @@ class FakeAppLocalizations implements AppLocalizations {
   String get save => 'Save';
 
   @override
-  String get saveTransaction => 'Save Transaction';
+  String get addAttachment => 'Add attachment';
+
+  @override
+  String get attachments => 'Attachments';
+
+  @override
+  String get removeAttachment => 'Remove attachment';
+
+  @override
+  String get select => 'Select';
+
+  @override
+  String attachmentCount(int count) => '$count attachments';
 
   @override
   String get required => 'Required';

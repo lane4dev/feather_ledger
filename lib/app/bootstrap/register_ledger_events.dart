@@ -33,6 +33,13 @@ void registerLedgerEvents() {
     eventType: 'TransactionRecorded',
     factory: (json) => TransactionRecorded.fromJson(json).toJson(),
   );
+  // v2 introduces attachment metadata. Older entries are intentionally
+  // attachment-free rather than guessed from any device-local files.
+  ledgerEventRegistry.registerUpcaster(
+    eventType: 'TransactionRecorded',
+    fromVersion: 1,
+    upcaster: (old) => {...old, 'schemaVersion': 2, 'attachments': const []},
+  );
   ledgerEventRegistry.registerFactory(
     eventType: 'TransactionReversed',
     factory: (json) => TransactionReversed.fromJson(json).toJson(),

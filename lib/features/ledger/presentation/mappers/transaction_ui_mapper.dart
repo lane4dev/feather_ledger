@@ -15,6 +15,7 @@ class TransactionUiMapper {
     final type = e.type;
     final date = e.date;
     final note = e.note;
+    final attachments = e.attachments;
     final category = e.category;
     final account = e.account;
 
@@ -36,6 +37,7 @@ class TransactionUiMapper {
       type: type,
       date: date,
       note: note,
+      attachments: attachments,
       category: category,
       account: account,
       toAccount: e.toAccount,

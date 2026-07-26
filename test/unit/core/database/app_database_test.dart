@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(3));
+      expect(database.schemaVersion, equals(4));
     });
 
     test('migrates a v1 database by adding the column, keeping its rows',
@@ -43,6 +43,8 @@ void main() {
       await v1.customStatement('SELECT 1'); // opens it, running createAll
       await v1.customStatement(
           'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
+      await v1.customStatement(
+          'ALTER TABLE transactions_view DROP COLUMN attachments_json');
       await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '

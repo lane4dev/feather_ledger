@@ -71,6 +71,10 @@ class TransactionsView extends Table {
   TextColumn get categoryName => text().nullable()();
   TextColumn get categoryIcon => text().nullable()();
   TextColumn get categoryColorInt => text().nullable()(); // ARGB hex
+
+  /// JSON metadata copied from `TransactionRecorded.attachments`. The bytes
+  /// themselves live in the app-private attachment directory, not SQLite.
+  TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
   IntColumn get originalEventId => integer()(); // source GSN
   IntColumn get projectionVersion => integer().withDefault(const Constant(1))();
 

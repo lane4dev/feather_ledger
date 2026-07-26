@@ -84,9 +84,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get save => '保存';
 
   @override
-  String get saveTransaction => '保存交易';
-
-  @override
   String get required => '必填';
 
   @override
@@ -577,6 +574,23 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String repeatSetupFailed(String error) {
     return '已保存。但重复规则创建失败：$error';
+  }
+
+  @override
+  String get addAttachment => '添加附件';
+
+  @override
+  String get attachments => '附件';
+
+  @override
+  String get removeAttachment => '移除附件';
+
+  @override
+  String get select => '请选择';
+
+  @override
+  String attachmentCount(int count) {
+    return '$count 个附件';
   }
 }
 
@@ -660,9 +674,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get save => '保存';
 
   @override
-  String get saveTransaction => '保存交易';
-
-  @override
   String get required => '必填';
 
   @override
@@ -1154,6 +1165,23 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String repeatSetupFailed(String error) {
     return '已保存。但重复规则创建失败：$error';
   }
+
+  @override
+  String get addAttachment => '添加附件';
+
+  @override
+  String get attachments => '附件';
+
+  @override
+  String get removeAttachment => '移除附件';
+
+  @override
+  String get select => '请选择';
+
+  @override
+  String attachmentCount(int count) {
+    return '$count 个附件';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1234,9 +1262,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get save => '保存';
-
-  @override
-  String get saveTransaction => '儲存交易';
 
   @override
   String get required => '必填';
@@ -1729,5 +1754,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String repeatSetupFailed(String error) {
     return '已儲存。但重複規則建立失敗：$error';
+  }
+
+  @override
+  String get addAttachment => '新增附件';
+
+  @override
+  String get attachments => '附件';
+
+  @override
+  String get removeAttachment => '移除附件';
+
+  @override
+  String get select => '請選擇';
+
+  @override
+  String attachmentCount(int count) {
+    return '$count 個附件';
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -269,6 +271,7 @@ class LedgerProjectorImpl implements LedgerProjector {
       kind: p.kind,
       notes: p.notes,
       postings: p.postings,
+      attachments: p.attachments,
     );
     final violation = txn.validate();
     if (violation != null) {
@@ -303,6 +306,8 @@ class LedgerProjectorImpl implements LedgerProjector {
       categoryName: Value(category?.name),
       categoryIcon: Value(category?.iconKey),
       categoryColorInt: Value(category?.colorInt.toRadixString(16)),
+      attachmentsJson: Value(jsonEncode(
+          p.attachments.map((attachment) => attachment.toJson()).toList())),
       originalEventId: gsn,
       projectionVersion: const Value(ledgerProjectionVersion),
     ));

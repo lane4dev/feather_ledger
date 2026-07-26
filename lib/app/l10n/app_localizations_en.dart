@@ -85,9 +85,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
-  String get saveTransaction => 'Save Transaction';
-
-  @override
   String get required => 'Required';
 
   @override
@@ -595,5 +592,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String repeatSetupFailed(String error) {
     return 'Saved. The repeat could not be set up: $error';
+  }
+
+  @override
+  String get addAttachment => 'Add attachment';
+
+  @override
+  String get attachments => 'Attachments';
+
+  @override
+  String get removeAttachment => 'Remove attachment';
+
+  @override
+  String get select => 'Select';
+
+  @override
+  String attachmentCount(int count) {
+    return '$count attachments';
   }
 }

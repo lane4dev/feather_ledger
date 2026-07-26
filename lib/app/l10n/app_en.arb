@@ -91,10 +91,6 @@
     "description": "Note field label"
   },
   "save": "Save",
-  "saveTransaction": "Save Transaction",
-  "@saveTransaction": {
-    "description": "Save transaction button"
-  },
   "required": "Required",
   "@required": {
     "description": "Required field validation message"
@@ -628,6 +624,31 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "addAttachment": "Add attachment",
+  "@addAttachment": {
+    "description": "Action that opens the transaction attachment picker"
+  },
+  "attachments": "Attachments",
+  "@attachments": {
+    "description": "Transaction attachment section label"
+  },
+  "removeAttachment": "Remove attachment",
+  "@removeAttachment": {
+    "description": "Tooltip for removing an attachment from the transaction form"
+  },
+  "select": "Select",
+  "@select": {
+    "description": "Placeholder for a required choice that has not been made"
+  },
+  "attachmentCount": "{count} attachments",
+  "@attachmentCount": {
+    "description": "Number of attachments on a transaction",
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/value_objects/account_balance.dart';
@@ -66,6 +66,7 @@ class LedgerService {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return guard(() => _recordTransactionCommand.execute(
           commandId: commandId,
@@ -75,6 +76,7 @@ class LedgerService {
           categoryId: categoryId,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         ));
   }
 
@@ -89,6 +91,7 @@ class LedgerService {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return guard(() => _recordTransactionCommand.executeTransfer(
           commandId: commandId,
@@ -97,6 +100,7 @@ class LedgerService {
           toAccountId: toAccountId,
           occurredAt: date,
           note: note,
+          attachments: attachments,
         ));
   }
 
@@ -109,6 +113,7 @@ class LedgerService {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return guard(() => _correctTransactionCommand.execute(
           commandId: commandId,
@@ -119,6 +124,7 @@ class LedgerService {
           categoryId: categoryId,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         ));
   }
 
@@ -137,6 +143,7 @@ class LedgerService {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return guard(() => _correctTransactionCommand.executeTransfer(
           commandId: commandId,
@@ -146,6 +153,7 @@ class LedgerService {
           toAccountId: toAccountId,
           date: date,
           note: note,
+          attachments: attachments,
         ));
   }
 
@@ -159,6 +167,7 @@ class LedgerService {
     required DateTime date,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return guard(() => _correctTransactionCommand.executeBalancePurpose(
           commandId: commandId,
@@ -167,6 +176,7 @@ class LedgerService {
           date: date,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         ));
   }
 

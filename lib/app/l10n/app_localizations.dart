@@ -250,12 +250,6 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
-  /// Save transaction button
-  ///
-  /// In en, this message translates to:
-  /// **'Save Transaction'**
-  String get saveTransaction;
-
   /// Required field validation message
   ///
   /// In en, this message translates to:
@@ -1228,6 +1222,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved. The repeat could not be set up: {error}'**
   String repeatSetupFailed(String error);
+
+  /// Action that opens the transaction attachment picker
+  ///
+  /// In en, this message translates to:
+  /// **'Add attachment'**
+  String get addAttachment;
+
+  /// Transaction attachment section label
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachments;
+
+  /// Tooltip for removing an attachment from the transaction form
+  ///
+  /// In en, this message translates to:
+  /// **'Remove attachment'**
+  String get removeAttachment;
+
+  /// Placeholder for a required choice that has not been made
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get select;
+
+  /// Number of attachments on a transaction
+  ///
+  /// In en, this message translates to:
+  /// **'{count} attachments'**
+  String attachmentCount(int count);
 }
 
 class _AppLocalizationsDelegate

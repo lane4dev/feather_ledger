@@ -1,14 +1,16 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/model/transaction.dart';
 import '../../domain/services/ledger_service.dart';
+import '../../data/transaction_attachment_store.dart';
 
 import '../mappers/transaction_ui_mapper.dart';
 import '../models/ledger_day_group.dart';
@@ -215,6 +217,7 @@ class LedgerViewModel extends _$LedgerViewModel {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return ref.read(ledgerServiceProvider).addTransaction(
           commandId: const Uuid().v4(),
@@ -224,6 +227,7 @@ class LedgerViewModel extends _$LedgerViewModel {
           categoryId: categoryId,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         );
   }
 
@@ -235,6 +239,7 @@ class LedgerViewModel extends _$LedgerViewModel {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return ref.read(ledgerServiceProvider).updateTransaction(
           commandId: const Uuid().v4(),
@@ -245,6 +250,7 @@ class LedgerViewModel extends _$LedgerViewModel {
           categoryId: categoryId,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         );
   }
 
@@ -254,6 +260,7 @@ class LedgerViewModel extends _$LedgerViewModel {
     required DateTime date,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return ref.read(ledgerServiceProvider).updateBalancePurpose(
           commandId: const Uuid().v4(),
@@ -262,6 +269,7 @@ class LedgerViewModel extends _$LedgerViewModel {
           date: date,
           accountId: accountId,
           note: note,
+          attachments: attachments,
         );
   }
 
@@ -271,6 +279,7 @@ class LedgerViewModel extends _$LedgerViewModel {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return ref.read(ledgerServiceProvider).addTransfer(
           commandId: const Uuid().v4(),
@@ -279,6 +288,7 @@ class LedgerViewModel extends _$LedgerViewModel {
           toAccountId: toAccountId,
           date: date,
           note: note,
+          attachments: attachments,
         );
   }
 
@@ -289,6 +299,7 @@ class LedgerViewModel extends _$LedgerViewModel {
     required String toAccountId,
     required DateTime date,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) {
     return ref.read(ledgerServiceProvider).updateTransfer(
           commandId: const Uuid().v4(),
@@ -298,6 +309,7 @@ class LedgerViewModel extends _$LedgerViewModel {
           toAccountId: toAccountId,
           date: date,
           note: note,
+          attachments: attachments,
         );
   }
 
@@ -305,5 +317,18 @@ class LedgerViewModel extends _$LedgerViewModel {
     return ref
         .read(ledgerServiceProvider)
         .deleteTransaction(id, commandId: const Uuid().v4());
+  }
+
+  /// Moves picked files into app-private storage before the form hands their
+  /// immutable metadata to a transaction command.
+  Future<Result<List<TransactionAttachment>>> importAttachments(
+      List<XFile> files) {
+    return guard(
+        () => ref.read(transactionAttachmentStoreProvider).importFiles(files));
+  }
+
+  Future<void> discardImportedAttachments(
+      List<TransactionAttachment> attachments) {
+    return ref.read(transactionAttachmentStoreProvider).discard(attachments);
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -9,6 +11,7 @@ import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/value_objects/transaction_filter.dart';
 
@@ -118,6 +121,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       type: tx.kind,
       date: tx.occurredAt,
       note: tx.description,
+      attachments: _attachmentsFromJson(tx.attachmentsJson),
       category: category,
       account: _toAccountEntity(row.account),
       toAccount: toAccount,
@@ -136,6 +140,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
         includeInTotals: row.includeInTotals,
         lastUpdatedEventId: row.lastUpdatedEventId,
       );
+
+  List<TransactionAttachment> _attachmentsFromJson(String json) {
+    final decoded = jsonDecode(json) as List<dynamic>;
+    return decoded
+        .map((value) => TransactionAttachment.fromJson(
+            Map<String, dynamic>.from(value as Map)))
+        .toList();
+  }
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() {

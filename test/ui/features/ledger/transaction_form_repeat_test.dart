@@ -15,6 +15,7 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_state.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
@@ -92,11 +93,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          accountUiListProvider.overrideWithValue(
-              AsyncData([AccountUiModel.of(cash)])),
+          accountUiListProvider
+              .overrideWithValue(AsyncData([AccountUiModel.of(cash)])),
           categoryListProvider.overrideWith(
-            (ref, type) =>
-                Stream.value(type == CategoryType.expense ? const [rent] : const []),
+            (ref, type) => Stream.value(
+                type == CategoryType.expense ? const [rent] : const []),
           ),
           ledgerViewModelProvider.overrideWith(() => ledger),
           recurringViewModelProvider.overrideWith(() => recurring),
@@ -136,11 +137,11 @@ void main() {
       ),
       '500.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(0)); // category
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
     await settle(tester);
     await tester.tap(find.text('Rent'));
     await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(1)); // account
+    await tester.tap(find.byType(LedgerSelectorField).at(3)); // account
     await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
@@ -150,14 +151,14 @@ void main() {
   /// sit below the fold — an unscrolled tap would land on whatever is under
   /// the finger instead.
   Future<void> save(WidgetTester tester) async {
-    await tester.tap(find.text('Save Transaction'));
+    await tester.tap(find.text('Save'));
     await settle(tester);
   }
 
-  /// Opens the repeat picker — the last selector on the form.
+  /// Opens the repeat picker, immediately after the date selector.
   Future<void> chooseRepeat(WidgetTester tester, String label) async {
     final fields = find.byType(LedgerSelectorField);
-    await tester.tap(fields.at(fields.evaluate().length - 1));
+    await tester.tap(fields.at(1));
     await settle(tester);
     await tester.tap(find.text(label));
     await settle(tester);
@@ -168,8 +169,8 @@ void main() {
     await pumpForm(tester);
 
     expect(find.text('Repeat'), findsOneWidget);
-    expect(find.text('Does not repeat'), findsNothing,
-        reason: 'the untouched form shows the placeholder, not the option');
+    expect(find.text('Does not repeat'), findsOneWidget,
+        reason: 'the field name and its current value are both visible');
 
     await teardownTree(tester);
   });
@@ -264,8 +265,7 @@ void main() {
 
     await save(tester);
 
-    expect(ledger.addedTransactions, hasLength(1),
-        reason: 'the entry stands');
+    expect(ledger.addedTransactions, hasLength(1), reason: 'the entry stands');
     expect(find.textContaining('Saved. The repeat could not be set up'),
         findsOneWidget);
 
@@ -287,6 +287,7 @@ class _RecordingLedgerViewModel extends LedgerViewModel {
     required String categoryId,
     required String accountId,
     String? note,
+    List<TransactionAttachment> attachments = const [],
   }) async {
     addedTransactions.add({
       'amountMinor': amountMinor,

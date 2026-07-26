@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
@@ -25,7 +27,6 @@ import '../models/transaction_tile_ui_model.dart';
 import '../view_model/ledger_view_model.dart';
 import '../view_model/recurring_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
-import '../widgets/ledger_detail_row.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
@@ -59,6 +60,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   late TransactionKind _type;
   DateTime _date = DateTime.now();
   String? _note;
+  List<TransactionAttachment> _attachments = const [];
+  final List<XFile> _newAttachments = [];
 
   /// The category for income/expense, and for a transfer the account the
   /// money leaves — the debit leg, which is the entity's primary account.
@@ -106,6 +109,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       _type = transaction.type;
       _date = transaction.date;
       _note = transaction.note;
+      _attachments = transaction.attachments;
       _categoryId = transaction.category?.id;
       _accountId = transaction.account.id;
       _toAccountId = transaction.toAccount?.id;
@@ -159,217 +163,269 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(LucideIcons.x),
           onPressed: () => context.pop(),
+          tooltip: l10n.cancel,
         ),
         title: Text(_title(l10n)),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-            horizontal: context.spacing.lg, vertical: context.spacing.md),
+      body: SafeArea(
+        top: false,
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Kind Toggle
-              if (!_isBalancePurpose)
-                LedgerTypeSelector(
-                  selectedType: _type,
-                  onSelectionChanged: _onTypeChanged,
-                )
-              else
-                LedgerDetailRow(
-                  label: l10n.transactionType,
-                  value: _type == TransactionKind.openingBalance
-                      ? l10n.initialBalance
-                      : l10n.accountBalanceAdjustmentDescription,
-                ),
-              const SizedBox(height: 32),
-
-              // 2. Amount Input
-              LedgerAmountInput(
-                initialMinorUnits: _amountMinor,
-                type: _type,
-                currencySymbol: currencySymbol,
-                autofocus: widget.transaction == null,
-                onSaved: (minor) => _amountMinor = minor,
-              ),
-              const SizedBox(height: 32),
-
-              const FeatherDivider(),
-              const SizedBox(height: 16),
-
-              // 3. Date & Time
-              LedgerFormRow(
-                icon: LucideIcons.clock,
-                child: InkWell(
-                  onTap: _pickDateTime,
-                  borderRadius: BorderRadius.circular(4),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          DateFormat.yMMMEd(locale)
-                              .format(_date), // e.g., Sat, Jan 20
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat.jm(locale).format(_date), // e.g., 5:08 PM
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                      ],
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.spacing.lg,
+              vertical: context.spacing.lg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Transaction kind and amount describe the same action, so
+                // they intentionally read as one compact primary module.
+                if (!_isBalancePurpose)
+                  LedgerTypeSelector(
+                    selectedType: _type,
+                    onSelectionChanged: _onTypeChanged,
+                    widthFactor: 0.72,
+                  )
+                else
+                  LedgerFormRow(
+                    icon: LucideIcons.badgeInfo,
+                    child: _readonlyValue(
+                      l10n.transactionType,
+                      _type == TransactionKind.openingBalance
+                          ? l10n.initialBalance
+                          : l10n.accountBalanceAdjustmentDescription,
                     ),
                   ),
+                SizedBox(height: context.spacing.xl),
+
+                // The large amount gets the same visual prominence as an event
+                // title while keeping its numeric validation in LedgerAmountInput.
+                LedgerAmountInput(
+                  initialMinorUnits: _amountMinor,
+                  type: _type,
+                  currencySymbol: currencySymbol,
+                  autofocus: widget.transaction == null,
+                  onSaved: (minor) => _amountMinor = minor,
                 ),
-              ),
+                SizedBox(height: context.spacing.lg),
 
-              const SizedBox(height: 8),
+                const FeatherDivider(),
+                SizedBox(height: context.spacing.sm),
 
-              // 4. Category — ordinary income and expense only.
-              if (!_isTransfer && !_isBalancePurpose)
+                // Time information stays together: when it happened,
+                // then whether it will happen again.
                 LedgerFormRow(
-                  icon: LucideIcons.layoutGrid,
-                  child: categoriesAsync.when(
-                    data: (categories) {
-                      final filtered = categories
-                          .where((c) => c.type == _categoryType)
-                          .toList();
-                      return FormField<String>(
-                        key: ValueKey('category-$_type'),
-                        initialValue: _categoryId,
-                        validator: (val) => val == null ? l10n.required : null,
-                        builder: (state) {
-                          final selected = filtered
-                              .where((c) => c.id == state.value)
-                              .firstOrNull;
-                          return LedgerSelectorField(
-                            text: selected?.name ?? l10n.category,
-                            textStyle: selected == null
-                                ? theme.textTheme.bodyLarge
-                                    ?.copyWith(color: theme.hintColor)
-                                : null,
-                            errorText: state.hasError ? state.errorText : null,
-                            onTap: () async {
-                              final result = await showModalBottomSheet<String>(
-                                context: context,
-                                isScrollControlled: true,
-                                useSafeArea: true,
-                                builder: (context) =>
-                                    LedgerSelectionSheet<CategoryEntity>(
-                                  title: l10n.category,
-                                  options: filtered,
-                                  getLabel: (c) => c.name,
-                                  getIcon: (c) =>
-                                      CategoryTokens.iconFor(c.iconKey),
-                                  getColor: (c) => Color(c.colorInt),
-                                  isSelected: (c) => c.id == state.value,
-                                  onSelected: (c) =>
-                                      Navigator.pop(context, c.id),
-                                  onManageTap: () =>
-                                      context.push('/categories_management'),
-                                  manageButtonText: l10n.manageCategories,
-                                ),
-                              );
-                              if (result != null) {
-                                state.didChange(result);
-                                setState(() => _categoryId = result);
-                              }
-                            },
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const LinearProgressIndicator(),
-                    error: (_, __) => const SizedBox(),
+                  icon: LucideIcons.clock,
+                  child: LedgerSelectorField(
+                    label: l10n.date,
+                    text:
+                        '${DateFormat.yMMMEd(locale).format(_date)} ${DateFormat.jm(locale).format(_date)}',
+                    onTap: _pickDateTime,
                   ),
                 ),
 
-              if (!_isTransfer && !_isBalancePurpose) const SizedBox(height: 8),
+                if (_canRepeat) ...[
+                  const SizedBox(height: 8),
+                  _repeatRow(l10n),
+                ],
 
-              // 5. Account(s). A transfer gets both legs; income and expense
-              //    get the single account the money lands in or leaves.
-              if (_isBalancePurpose)
-                LedgerDetailRow(
-                  label: l10n.account,
-                  value: widget.transaction!.account.name,
-                )
-              else
-                _accountRow(
-                  fieldKey: ValueKey('account-$_type'),
-                  icon: _isTransfer ? LucideIcons.arrowUp : LucideIcons.wallet,
-                  // A transfer's debit leg is its "from" side, and saying so is
-                  // the whole point of the screen — the same labels the detail
-                  // sheet uses.
-                  placeholder: _isTransfer ? l10n.transferFrom : l10n.account,
-                  options: activeAccounts,
-                  selectedId: _accountId,
-                  onSelected: (id) => setState(() {
-                    _accountId = id;
-                    // The destination is keyed on the source, so re-keying
-                    // resets a choice the currency filter may no longer offer.
-                    _toAccountId = null;
-                  }),
+                SizedBox(height: context.spacing.sm),
+                const FeatherDivider(),
+                SizedBox(height: context.spacing.sm),
+
+                // Classification and account identify where the money
+                // belongs. A transfer keeps its explicit two accounts.
+                if (!_isTransfer && !_isBalancePurpose)
+                  LedgerFormRow(
+                    icon: LucideIcons.layoutGrid,
+                    child: categoriesAsync.when(
+                      data: (categories) {
+                        final filtered = categories
+                            .where((c) => c.type == _categoryType)
+                            .toList();
+                        return FormField<String>(
+                          key: ValueKey('category-$_type'),
+                          initialValue: _categoryId,
+                          validator: (val) =>
+                              val == null ? l10n.required : null,
+                          builder: (state) {
+                            final selected = filtered
+                                .where((c) => c.id == state.value)
+                                .firstOrNull;
+                            return LedgerSelectorField(
+                              label: l10n.category,
+                              text: selected?.name ?? l10n.select,
+                              textStyle: selected == null
+                                  ? theme.textTheme.bodyLarge
+                                      ?.copyWith(color: theme.hintColor)
+                                  : null,
+                              errorText:
+                                  state.hasError ? state.errorText : null,
+                              onTap: () async {
+                                final result =
+                                    await showModalBottomSheet<String>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  useSafeArea: true,
+                                  builder: (context) =>
+                                      LedgerSelectionSheet<CategoryEntity>(
+                                    title: l10n.category,
+                                    options: filtered,
+                                    getLabel: (c) => c.name,
+                                    getIcon: (c) =>
+                                        CategoryTokens.iconFor(c.iconKey),
+                                    getColor: (c) => Color(c.colorInt),
+                                    isSelected: (c) => c.id == state.value,
+                                    onSelected: (c) =>
+                                        Navigator.pop(context, c.id),
+                                    onManageTap: () =>
+                                        context.push('/categories_management'),
+                                    manageButtonText: l10n.manageCategories,
+                                  ),
+                                );
+                                if (result != null) {
+                                  state.didChange(result);
+                                  setState(() => _categoryId = result);
+                                }
+                              },
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, __) => const SizedBox(),
+                    ),
+                  ),
+
+                if (!_isTransfer && !_isBalancePurpose)
+                  const SizedBox(height: 8),
+
+                // 5. Account(s). A transfer gets both legs; income and expense
+                //    get the single account the money lands in or leaves.
+                if (_isBalancePurpose)
+                  LedgerFormRow(
+                    icon: LucideIcons.wallet,
+                    child: _readonlyValue(
+                      l10n.account,
+                      widget.transaction!.account.name,
+                    ),
+                  )
+                else
+                  _accountRow(
+                    fieldKey: ValueKey('account-$_type'),
+                    icon:
+                        _isTransfer ? LucideIcons.arrowUp : LucideIcons.wallet,
+                    // A transfer's debit leg is its "from" side, and saying so is
+                    // the whole point of the screen — the same labels the detail
+                    // sheet uses.
+                    label: _isTransfer ? l10n.transferFrom : l10n.account,
+                    options: activeAccounts,
+                    selectedId: _accountId,
+                    onSelected: (id) => setState(() {
+                      _accountId = id;
+                      // The destination is keyed on the source, so re-keying
+                      // resets a choice the currency filter may no longer offer.
+                      _toAccountId = null;
+                    }),
+                  ),
+
+                if (_isTransfer) ...[
+                  const SizedBox(height: 8),
+                  _accountRow(
+                    fieldKey: ValueKey('to-account-$_accountId'),
+                    icon: LucideIcons.arrowDown,
+                    label: l10n.transferTo,
+                    options: toAccountOptions,
+                    selectedId: _toAccountId,
+                    onSelected: (id) => setState(() => _toAccountId = id),
+                    // Defence in depth: the options already exclude it, but the
+                    // aggregate is the real guard and this keeps an unreachable
+                    // state from becoming reachable through a refactor.
+                    extraValidator: (value) =>
+                        value != null && value == _accountId
+                            ? l10n.errorSameAccountTransfer
+                            : null,
+                  ),
+                ],
+
+                SizedBox(height: context.spacing.sm),
+                const FeatherDivider(),
+                SizedBox(height: context.spacing.sm),
+
+                // 6. Note
+                LedgerFormRow(
+                  icon: LucideIcons.stickyNote,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          l10n.note,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: _note,
+                          decoration: InputDecoration(
+                            hintText: l10n.note,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
+                            isDense: true,
+                          ),
+                          minLines: 1,
+                          maxLines: 3,
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.bodyLarge,
+                          onSaved: (value) => _note = value,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
-              if (_isTransfer) ...[
-                const SizedBox(height: 8),
-                _accountRow(
-                  fieldKey: ValueKey('to-account-$_accountId'),
-                  icon: LucideIcons.arrowDown,
-                  placeholder: l10n.transferTo,
-                  options: toAccountOptions,
-                  selectedId: _toAccountId,
-                  onSelected: (id) => setState(() => _toAccountId = id),
-                  // Defence in depth: the options already exclude it, but the
-                  // aggregate is the real guard and this keeps an unreachable
-                  // state from becoming reachable through a refactor.
-                  extraValidator: (value) =>
-                      value != null && value == _accountId
-                          ? l10n.errorSameAccountTransfer
-                          : null,
-                ),
+                SizedBox(height: context.spacing.sm),
+
+                // Files are listed in-place like Calendar attachments. They are
+                // imported only when Save is pressed, so cancelling is clean.
+                _attachmentRow(l10n),
+
+                SizedBox(height: context.spacing.sm),
+
+                SizedBox(height: context.spacing.xl),
               ],
-
-              const SizedBox(height: 8),
-
-              // 6. Note
-              LedgerFormRow(
-                icon: LucideIcons.stickyNote,
-                child: TextFormField(
-                  initialValue: _note,
-                  decoration: InputDecoration(
-                    hintText: l10n.note,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    isDense: true,
-                  ),
-                  maxLines: null,
-                  style: theme.textTheme.bodyLarge,
-                  onSaved: (value) => _note = value,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // 7. Repeat — turns this one entry into a series as well.
-              if (_canRepeat) _repeatRow(l10n),
-
-              const SizedBox(height: 32),
-              const FeatherDivider(),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  onPressed: _submit,
-                  child: Text(l10n.saveTransaction),
-                ),
-              ),
-            ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: AnimatedPadding(
+        duration: kThemeAnimationDuration,
+        curve: Curves.easeOut,
+        padding: EdgeInsets.fromLTRB(
+          context.spacing.lg,
+          context.spacing.sm,
+          context.spacing.lg,
+          MediaQuery.viewInsetsOf(context).bottom + context.spacing.sm,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 52,
+            width: double.infinity,
+            child: AppButton(
+              onPressed: _submit,
+              child: Text(l10n.save),
+            ),
           ),
         ),
       ),
@@ -388,6 +444,116 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         : l10n.editTransaction;
   }
 
+  Widget _readonlyValue(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+            ),
+            const SizedBox(width: 16),
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _attachmentRow(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final existing = _attachments.indexed;
+    final pending = _newAttachments.indexed;
+    final count = _attachments.length + _newAttachments.length;
+
+    return LedgerFormRow(
+      icon: LucideIcons.paperclip,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: _pickAttachments,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.attachments,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    count == 0
+                        ? l10n.addAttachment
+                        : l10n.attachmentCount(count),
+                    style: count == 0
+                        ? theme.textTheme.bodyLarge
+                            ?.copyWith(color: theme.hintColor)
+                        : theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(LucideIcons.chevronRight, color: theme.hintColor),
+                ],
+              ),
+            ),
+          ),
+          ...existing.map(
+            (entry) => _attachmentItem(
+              entry.$2.fileName,
+              onRemove: () => setState(
+                () => _attachments = [
+                  ..._attachments.take(entry.$1),
+                  ..._attachments.skip(entry.$1 + 1),
+                ],
+              ),
+              removeTooltip: l10n.removeAttachment,
+            ),
+          ),
+          ...pending.map(
+            (entry) => _attachmentItem(
+              entry.$2.name,
+              onRemove: () =>
+                  setState(() => _newAttachments.removeAt(entry.$1)),
+              removeTooltip: l10n.removeAttachment,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attachmentItem(
+    String fileName, {
+    required VoidCallback onRemove,
+    required String removeTooltip,
+  }) =>
+      Row(
+        children: [
+          Expanded(
+            child:
+                Text(fileName, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+          IconButton(
+            onPressed: onRemove,
+            icon: const Icon(LucideIcons.x),
+            tooltip: removeTooltip,
+          ),
+        ],
+      );
+
+  Future<void> _pickAttachments() async {
+    final selected = await openFiles();
+    if (!mounted || selected.isEmpty) return;
+    setState(() => _newAttachments.addAll(selected));
+  }
+
   /// Switching kind clears what the new kind cannot carry, rather than
   /// leaving a value in a field it does not render.
   void _onTypeChanged(TransactionKind type) {
@@ -402,18 +568,13 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   /// The repeat picker. Shaped like [_accountRow] because it is the same
   /// gesture, but over plain frequency strings rather than entities.
   Widget _repeatRow(AppLocalizations l10n) {
-    final theme = Theme.of(context);
     final label = _repeatLabel(l10n);
 
     return LedgerFormRow(
       icon: LucideIcons.repeat,
       child: LedgerSelectorField(
-        // A picked rule reads as the rule itself; "never" reads as the
-        // placeholder, which is what an untouched form looks like.
-        text: _repeat == _repeatNever ? l10n.repeat : label,
-        textStyle: _repeat == _repeatNever
-            ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
-            : null,
+        label: l10n.repeat,
+        text: label,
         onTap: () async {
           final result = await showModalBottomSheet<String>(
             context: context,
@@ -435,8 +596,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     );
   }
 
-  String _repeatLabel(AppLocalizations l10n) =>
-      _repeat == _repeatNever ? l10n.repeat : _frequencyLabel(l10n, _repeat);
+  String _repeatLabel(AppLocalizations l10n) => _repeat == _repeatNever
+      ? l10n.repeatNever
+      : _frequencyLabel(l10n, _repeat);
 
   static String _frequencyLabel(AppLocalizations l10n, String frequency) =>
       switch (frequency) {
@@ -464,7 +626,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   Widget _accountRow({
     required Key fieldKey,
     required IconData icon,
-    required String placeholder,
+    required String label,
     required List<AccountUiModel> options,
     required String? selectedId,
     required ValueChanged<String> onSelected,
@@ -486,7 +648,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           final selected =
               options.where((a) => a.account.id == state.value).firstOrNull;
           return LedgerSelectorField(
-            text: selected?.account.name ?? placeholder,
+            label: label,
+            text: selected?.account.name ?? l10n.select,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
@@ -497,7 +660,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 isScrollControlled: true,
                 useSafeArea: true,
                 builder: (context) => LedgerSelectionSheet<AccountUiModel>(
-                  title: placeholder,
+                  title: label,
                   options: options,
                   getLabel: (a) => a.account.name,
                   // Each account's own currency, not the global display
@@ -567,22 +730,32 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     if (_isTransfer) {
-      await _finish(_saveTransfer());
+      final imported = await _importNewAttachments();
+      if (imported == null) return;
+      await _finish(
+        _saveTransfer([..._attachments, ...imported]),
+        importedAttachments: imported,
+      );
       return;
     }
 
     if (_isBalancePurpose) {
+      final imported = await _importNewAttachments();
+      if (imported == null) return;
       final original = widget.transaction!;
       final signedAmount =
           original.displaySign == '-' ? -_amountMinor! : _amountMinor!;
       await _finish(
-          ref.read(ledgerViewModelProvider.notifier).updateBalancePurpose(
-                id: original.id,
-                signedAmountMinor: signedAmount,
-                date: _date,
-                accountId: original.account.id,
-                note: _note,
-              ));
+        ref.read(ledgerViewModelProvider.notifier).updateBalancePurpose(
+          id: original.id,
+          signedAmountMinor: signedAmount,
+          date: _date,
+          accountId: original.account.id,
+          note: _note,
+          attachments: [..._attachments, ...imported],
+        ),
+        importedAttachments: imported,
+      );
       return;
     }
 
@@ -618,6 +791,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     }
 
     final vm = ref.read(ledgerViewModelProvider.notifier);
+    final imported = await _importNewAttachments();
+    if (imported == null) return;
+    final attachments = [..._attachments, ...imported];
     final recorded = await (widget.transaction == null
         ? vm.addTransaction(
             amountMinor: _amountMinor!,
@@ -626,6 +802,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             categoryId: _categoryId!,
             accountId: _accountId!,
             note: _note,
+            attachments: attachments,
           )
         : vm.updateTransaction(
             id: widget.transaction!.id,
@@ -635,9 +812,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             categoryId: _categoryId!,
             accountId: _accountId!,
             note: _note,
+            attachments: attachments,
           ));
     if (!mounted) return;
     if (recorded case Failure(:final code)) {
+      await vm.discardImportedAttachments(imported);
       _report(code.message(l10n));
       return;
     }
@@ -690,7 +869,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 
   /// A transfer has no category, and takes the two accounts instead.
-  Future<Result<void>> _saveTransfer() {
+  Future<Result<void>> _saveTransfer(List<TransactionAttachment> attachments) {
     final vm = ref.read(ledgerViewModelProvider.notifier);
     return widget.transaction == null
         ? vm.addTransfer(
@@ -699,6 +878,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             toAccountId: _toAccountId!,
             date: _date,
             note: _note,
+            attachments: attachments,
           )
         : vm.updateTransfer(
             id: widget.transaction!.id,
@@ -707,19 +887,40 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             toAccountId: _toAccountId!,
             date: _date,
             note: _note,
+            attachments: attachments,
           );
   }
 
   /// Reports the outcome and closes on success — the one place a failure is
   /// rendered, shared by every kind.
-  Future<void> _finish(Future<Result<void>> write) async {
+  Future<void> _finish(
+    Future<Result<void>> write, {
+    List<TransactionAttachment> importedAttachments = const [],
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await write;
     if (!mounted) return;
 
     if (result case Failure(:final code)) {
-      _report(code.message(AppLocalizations.of(context)!));
+      await ref
+          .read(ledgerViewModelProvider.notifier)
+          .discardImportedAttachments(importedAttachments);
+      _report(code.message(l10n));
       return;
     }
     context.pop();
+  }
+
+  Future<List<TransactionAttachment>?> _importNewAttachments() async {
+    if (_newAttachments.isEmpty) return const [];
+    final result = await ref
+        .read(ledgerViewModelProvider.notifier)
+        .importAttachments(_newAttachments);
+    if (!mounted) return null;
+    if (result case Failure(:final code)) {
+      _report(code.message(AppLocalizations.of(context)!));
+      return null;
+    }
+    return result.value;
   }
 }

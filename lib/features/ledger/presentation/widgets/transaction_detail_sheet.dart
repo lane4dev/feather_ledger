@@ -163,6 +163,15 @@ class TransactionDetailSheet extends ConsumerWidget {
               value: transaction.note!,
             ),
           ],
+          if (transaction.attachments.isNotEmpty) ...[
+            SizedBox(height: context.spacing.md),
+            LedgerDetailRow(
+              label: l10n.attachments,
+              value: transaction.attachments
+                  .map((attachment) => attachment.fileName)
+                  .join('\n'),
+            ),
+          ],
 
           // Audit history (spec 003, US6/T047): the event chain of this
           // transaction — Recorded, plus Reversed with its reason once the

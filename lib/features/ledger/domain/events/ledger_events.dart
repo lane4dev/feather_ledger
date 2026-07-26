@@ -60,6 +60,7 @@ class TransactionRecorded implements LedgerEventPayload {
   final String description;
   final String? notes;
   final List<Posting> postings;
+  final List<TransactionAttachment> attachments;
 
   TransactionRecorded({
     required this.transactionId,
@@ -68,6 +69,7 @@ class TransactionRecorded implements LedgerEventPayload {
     required this.description,
     this.notes,
     required this.postings,
+    this.attachments = const [],
   });
 
   @override
@@ -78,13 +80,14 @@ class TransactionRecorded implements LedgerEventPayload {
 
   @override
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'transactionId': transactionId,
         'occurredAt': occurredAt.toIso8601String(),
         'kind': kind.name,
         'description': description,
         if (notes != null) 'notes': notes,
         'postings': postings.map((p) => p.toJson()).toList(),
+        'attachments': attachments.map((a) => a.toJson()).toList(),
       };
 
   factory TransactionRecorded.fromJson(Map<String, dynamic> json) =>
@@ -96,6 +99,10 @@ class TransactionRecorded implements LedgerEventPayload {
         notes: json['notes'] as String?,
         postings: (json['postings'] as List)
             .map((e) => Posting.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        attachments: (json['attachments'] as List? ?? const [])
+            .map((e) => TransactionAttachment.fromJson(
+                Map<String, dynamic>.from(e as Map)))
             .toList(),
       );
 }
