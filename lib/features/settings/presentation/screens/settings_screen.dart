@@ -13,6 +13,7 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
 
 import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
@@ -256,7 +257,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => SimpleDialog(
         title: Text(l10n.theme),
         children: [
-          _DialogOption(
+          FeatherDialogOption(
             label: l10n.system,
             value: ThemeMode.system,
             groupValue: currentMode,
@@ -265,7 +266,7 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
             },
           ),
-          _DialogOption(
+          FeatherDialogOption(
             label: l10n.light,
             value: ThemeMode.light,
             groupValue: currentMode,
@@ -274,7 +275,7 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
             },
           ),
-          _DialogOption(
+          FeatherDialogOption(
             label: l10n.dark,
             value: ThemeMode.dark,
             groupValue: currentMode,
@@ -302,7 +303,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => SimpleDialog(
         title: Text(l10n.language),
         children: AppLanguages.supportedLocales.map((locale) {
-          return _DialogOption(
+          return FeatherDialogOption(
             label: AppLanguages.getName(locale, l10n),
             value: locale,
             // Compare by languageCode to be safe against 'en' vs 'en_US'
@@ -328,7 +329,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => SimpleDialog(
         title: Text(l10n.currencySymbol),
         children: AppCurrencies.supportedCurrencyCodes.map((currencyCode) {
-          return _DialogOption(
+          return FeatherDialogOption(
             label: AppCurrencies.getName(currencyCode, l10n),
             value: currencyCode,
             groupValue: currentCurrency,
@@ -380,58 +381,3 @@ BackupFilePicker backupFilePicker(Ref ref) => (String typeLabel) async {
       );
       return picked == null ? null : File(picked.path);
     };
-
-class _DialogOption<T> extends StatelessWidget {
-  final String label;
-  final T value;
-  final T? groupValue;
-  final ValueChanged<T> onChanged;
-
-  const _DialogOption({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Custom equality check for Locale to handle 'en' vs 'en_US' if necessary
-    // But since we use AppLanguages.supportedLocales, we expect exact matches
-    // usually. However, Localizations.localeOf(context) might return a country-specific one.
-    var isSelected = false;
-    if (value is Locale && groupValue is Locale) {
-      isSelected = (value == groupValue);
-    } else {
-      isSelected = value == groupValue;
-    }
-
-    return SimpleDialogOption(
-      onPressed: () => onChanged(value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color:
-                      isSelected ? Theme.of(context).colorScheme.primary : null,
-                ),
-              ),
-            ),
-            if (isSelected)
-              Icon(
-                LucideIcons.check,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}

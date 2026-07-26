@@ -13,11 +13,13 @@ import 'package:feather_ledger/core/presentation/providers/account_providers.dar
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
+import '../theme/ledger_theme.dart';
 import '../view_model/recurring_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
@@ -50,7 +52,9 @@ class _RecurringBillFormScreenState
     extends ConsumerState<RecurringBillFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  int? _amountMinor;
+  /// The bill's amount, as the text the field shows. Read back through
+  /// [parseMinor] when it is saved — the field holds no value of its own.
+  late final TextEditingController _amount;
   late DateTime _date;
   String? _categoryId;
   String? _accountId;
@@ -67,7 +71,7 @@ class _RecurringBillFormScreenState
   void initState() {
     super.initState();
     final bill = widget.transaction;
-    _amountMinor = bill.amount;
+    _amount = TextEditingController(text: formatMinor(bill.amount));
     _date = bill.date;
     _categoryId = bill.category!.id;
     _accountId = bill.account.id;
@@ -76,6 +80,7 @@ class _RecurringBillFormScreenState
 
   @override
   void dispose() {
+    _amount.dispose();
     _note.dispose();
     super.dispose();
   }
@@ -95,23 +100,25 @@ class _RecurringBillFormScreenState
         title: Text(l10n.editRecurringTitle),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.spacing.lg,
-          vertical: context.spacing.md,
-        ),
+        // No horizontal padding: a row insets its own contents so its ripple
+        // can reach the edge, and padding it from out here would clip that
+        // ripple. Everything in the column that is not a row is wrapped in
+        // [_inset].
+        padding: EdgeInsets.symmetric(vertical: context.spacing.md),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              LedgerAmountInput(
-                initialMinorUnits: _amountMinor,
-                type: widget.transaction.type,
-                currencySymbol: currency,
-                onSaved: (minor) => _amountMinor = minor,
+              _inset(
+                LedgerAmountInput(
+                  controller: _amount,
+                  type: widget.transaction.type,
+                  currencySymbol: currency,
+                ),
               ),
               SizedBox(height: context.spacing.lg),
-              const FeatherDivider(),
+              _inset(const FeatherDivider()),
               SizedBox(height: context.spacing.md),
               _dateRow(l10n),
               SizedBox(height: context.spacing.sm),
@@ -131,9 +138,11 @@ class _RecurringBillFormScreenState
                 ),
               ),
               SizedBox(height: context.spacing.xl),
-              FilledButton(
-                onPressed: _submit,
-                child: Text(l10n.save),
+              _inset(
+                FilledButton(
+                  onPressed: _submit,
+                  child: Text(l10n.save),
+                ),
               ),
             ],
           ),
@@ -141,6 +150,14 @@ class _RecurringBillFormScreenState
       ),
     );
   }
+
+  /// The page's horizontal margin, for the column's children that are not
+  /// [LedgerFormRow]s. A row insets itself so that its ripple can reach the
+  /// edge; anything else has to be inset from out here.
+  Widget _inset(Widget child) => Padding(
+        padding: LedgerTheme.pageInset(context),
+        child: child,
+      );
 
   Widget _dateRow(AppLocalizations l10n) {
     final locale = Localizations.localeOf(context).toString();
@@ -166,80 +183,86 @@ class _RecurringBillFormScreenState
         ? CategoryType.income
         : CategoryType.expense;
 
+    final categories = ref.watch(categoryListProvider(categoryType));
+
     return LedgerFormRow(
       icon: LucideIcons.layoutGrid,
-      child: ref.watch(categoryListProvider(categoryType)).when(
-            data: (categories) {
-              final selected =
-                  categories.where((c) => c.id == _categoryId).firstOrNull;
-              return LedgerSelectorField(
-                text: selected?.name ?? l10n.category,
-                textStyle: selected == null
-                    ? theme.textTheme.bodyLarge
-                        ?.copyWith(color: theme.hintColor)
-                    : null,
-                onTap: () async {
-                  final result = await showModalBottomSheet<String>(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    builder: (context) => LedgerSelectionSheet<CategoryEntity>(
-                      title: l10n.category,
-                      options: categories,
-                      getLabel: (c) => c.name,
-                      isSelected: (c) => c.id == _categoryId,
-                      onSelected: (c) => Navigator.pop(context, c.id),
-                      onManageTap: () => context.push('/categories_management'),
-                      manageButtonText: l10n.manageCategories,
-                    ),
-                  );
-                  if (result != null) setState(() => _categoryId = result);
-                },
+      onTap: categories.value == null
+          ? null
+          : () async {
+              final result = await showModalBottomSheet<String>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (context) => LedgerSelectionSheet<CategoryEntity>(
+                  title: l10n.category,
+                  options: categories.value!,
+                  getLabel: (c) => c.name,
+                  isSelected: (c) => c.id == _categoryId,
+                  onSelected: (c) => Navigator.pop(context, c.id),
+                  onManageTap: () => context.push('/categories_management'),
+                  manageButtonText: l10n.manageCategories,
+                ),
               );
+              if (result != null) setState(() => _categoryId = result);
             },
-            loading: () => const SizedBox(height: 24),
-            error: (_, __) => const SizedBox(height: 24),
-          ),
+      child: categories.when(
+        data: (categories) {
+          final selected =
+              categories.where((c) => c.id == _categoryId).firstOrNull;
+          return LedgerSelectorField(
+            text: selected?.name ?? l10n.category,
+            textStyle: selected == null
+                ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
+                : null,
+          );
+        },
+        loading: () => const SizedBox(height: 24),
+        error: (_, __) => const SizedBox(height: 24),
+      ),
     );
   }
 
   Widget _accountRow(AppLocalizations l10n) {
     final theme = Theme.of(context);
 
+    final accounts = ref.watch(accountUiListProvider);
+
     return LedgerFormRow(
       icon: LucideIcons.wallet,
-      child: ref.watch(accountUiListProvider).when(
-            data: (accounts) {
-              final selected =
-                  accounts.where((a) => a.account.id == _accountId).firstOrNull;
-              return LedgerSelectorField(
-                text: selected?.account.name ?? l10n.account,
-                textStyle: selected == null
-                    ? theme.textTheme.bodyLarge
-                        ?.copyWith(color: theme.hintColor)
-                    : null,
-                onTap: () async {
-                  final result = await showModalBottomSheet<String>(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    builder: (context) => LedgerSelectionSheet<AccountUiModel>(
-                      title: l10n.account,
-                      options: accounts,
-                      getLabel: (a) => a.account.name,
-                      isSelected: (a) => a.account.id == _accountId,
-                      onSelected: (a) => Navigator.pop(context, a.account.id),
-                      onManageTap: () => context.push('/accounts_management'),
-                      manageButtonText: l10n.manageAccounts,
-                    ),
-                  );
-                  if (result != null) setState(() => _accountId = result);
-                },
+      onTap: accounts.value == null
+          ? null
+          : () async {
+              final result = await showModalBottomSheet<String>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (context) => LedgerSelectionSheet<AccountUiModel>(
+                  title: l10n.account,
+                  options: accounts.value!,
+                  getLabel: (a) => a.account.name,
+                  isSelected: (a) => a.account.id == _accountId,
+                  onSelected: (a) => Navigator.pop(context, a.account.id),
+                  onManageTap: () => context.push('/accounts_management'),
+                  manageButtonText: l10n.manageAccounts,
+                ),
               );
+              if (result != null) setState(() => _accountId = result);
             },
-            loading: () => const SizedBox(height: 24),
-            error: (_, __) => const SizedBox(height: 24),
-          ),
+      child: accounts.when(
+        data: (accounts) {
+          final selected =
+              accounts.where((a) => a.account.id == _accountId).firstOrNull;
+          return LedgerSelectorField(
+            text: selected?.account.name ?? l10n.account,
+            textStyle: selected == null
+                ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
+                : null,
+          );
+        },
+        loading: () => const SizedBox(height: 24),
+        error: (_, __) => const SizedBox(height: 24),
+      ),
     );
   }
 
@@ -262,10 +285,7 @@ class _RecurringBillFormScreenState
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context)!;
-    // `save()` as well as `validate()`: the amount field reports itself
-    // through `onSaved`, which validating alone never runs.
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    _formKey.currentState!.save();
 
     // Asked here, not on the way in: the question is "how far does *this*
     // edit reach", and there is no this until the fields are filled.
@@ -285,7 +305,7 @@ class _RecurringBillFormScreenState
         await ref.read(recurringViewModelProvider.notifier).updateBill(
               widget.transaction.id,
               scope: scope,
-              amountMinor: _amountMinor!,
+              amountMinor: parseMinor(_amount.text),
               date: _date,
               categoryId: _categoryId ?? widget.transaction.category!.id,
               accountId: _accountId ?? widget.transaction.account.id,

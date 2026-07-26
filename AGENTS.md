@@ -202,9 +202,14 @@ lib/shared/     跨特性的组件与扩展
   `formatMinor`（int → 两位小数字符串）。
 - **转换发生在投喂层，不在组件里。** 组件拿到的是**已写好的字符串**（或它无需转换的 int）。因此
   `formatMinor` / `.abs()` / `.toDouble()` 只允许出现在 `presentation/models/` 与
-  `presentation/mappers/` —— 以及两个**输入边界**组件：`LedgerAmountInput` 与
-  `account_form_sheet` 的余额框。这两个是可编辑字段，用十进制文本作初值、用 `parseMinor` 读回，
-  是同一枚硬币的两面，属于 AGENTS 已承认的输入桥接，不是漏网的展示转换。
+  `presentation/mappers/` —— 以及两处**输入边界**：`LedgerAmountInput` +
+  `account_form_sheet` 的余额框，以及 `TransactionFormViewState`。
+  这几处都是可编辑字段的桥：文本进、`parseMinor` 出。
+  **交易表单那一处在 `view_model/` 而不在组件里**，因为金额的所有权在视图模型：
+  状态存的是**用户敲进去的文本**（`amountText`），`formatMinor` 只在**播种**时用一次
+  （`TransactionTileUiModel` → 文本，此时还没有光标），`parseMinor` 只在**用时**用一次
+  （`amountMinor`）。中间绝不回流去重新格式化 —— 那会把 `12.` 改写成 `12.00`、
+  每一次按键都把光标推到末尾。`LedgerAmountInput` 因此是受控的：它只报原始文本。
   做这件事的模型/映射器：`LedgerDayGroup`（每日收支合计）、`MonthlySummaryUiModel`（月度三个头条数字，
   ledger 与 reports 共用）、`ReportBreakdownMapper`（排序 / Top-5 / 「其他」桶 / 占比）、
   `AccountUiModel`（账户余额，ledger 选择器与 settings 管理页共用）、`TransactionUiMapper`。
@@ -268,6 +273,10 @@ lib/shared/     跨特性的组件与扩展
 
 ## 数据可携带性与恢复（spec 004）
 
+- **表单的逻辑在 `TransactionFormViewModel`**（`presentation/view_model/`，配 `TransactionFormViewState`），屏幕只渲染：字段的状态转移、按 kind 分派写入、超支判断、系列创建、附件导入与丢弃都在视图模型里；打开选择器/日期选择器、弹确认框、显示失败文案留在屏幕 —— 它们要 `BuildContext`。三条容易踩的约定：
+  - **`build()` 不 watch 任何会变的东西。** watch 账户/分类流看起来无害，实际是每次流推送都重跑 `build()`、把用户填了一半的表单清空。需要那些列表的规则是 `TransactionFormViewState` 上的纯方法（`activeAccounts` / `transferDestinations`），由屏幕把已经 watch 到的列表喂进来。
+  - **表单的参数就是 provider 的参数**：`transactionFormViewModelProvider(transaction)`。notifier 不能在 `initState` 里播种（Riverpod 禁止在组件生命周期里改 provider），而且「下一帧再填」会先闪一帧空表单。这个 family 的参数在表单生命周期内**不变** —— 与 `SearchViewModel` 拒掉的那种「参数每次按键都变」不同。
+  - **提交结果是密封类**（`TransactionFormSaved` / `TransactionFormSavedSeriesFailed` / `TransactionFormSaveFailed`）：视图模型从不碰 SnackBar、对话框与路由，失败只带 `LedgerErrorCode`。超支不是结果的一种，而是写入**之前**的问题（`wouldOverdraft()`），所以屏幕问、视图模型判断。
 - **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账（用户能选的就这三种，账本自己造的两种余额用途只在这条表单上**以只读形式**出现）。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
 - 路由只有 `/ledger/add` 与 `/ledger/edit`：kind 由表单**自己的类型选择器**决定，或（编辑时）由 `extra` 里的交易决定。**转账没有独立入口**——账本页右上角的转账按钮已移除，转账在表单里面选。不要为某个 kind 再加一个路由或快捷入口。
 - `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种（**用户能选的只有这三种**）；「重复」行只在非 transfer 时才渲染 —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。

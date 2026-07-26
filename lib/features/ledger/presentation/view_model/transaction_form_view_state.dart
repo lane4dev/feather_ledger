@@ -1,0 +1,192 @@
+import 'package:file_selector/file_selector.dart';
+
+import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
+import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
+
+import '../models/transaction_tile_ui_model.dart';
+
+/// What the transaction form is holding, and the rules that read it.
+///
+/// The amount is the **text** the field shows, not minor units: the field
+/// cannot re-format while the user types without moving the caret, so the text
+/// is what travels and the conversion happens once, where the value is used
+/// ([amountMinor]). It is formatted once, here, when the form is seeded.
+class TransactionFormViewState {
+  /// The entry being corrected, or null when this form records a new one.
+  final TransactionTileUiModel? original;
+
+  final TransactionKind type;
+  final DateTime date;
+  final String amountText;
+
+  /// The note's text; '' when empty.
+  final String note;
+
+  /// [repeatNever], or a code from [repeatOptions].
+  final String repeat;
+
+  /// The debit leg: the account of an income/expense, and a transfer's **from**.
+  final String? accountId;
+  final String? categoryId;
+
+  /// The credit leg. Only a transfer has one.
+  final String? toAccountId;
+
+  /// Attachments already in app storage.
+  final List<TransactionAttachment> attachments;
+
+  /// Files the user picked, moved into app storage only when the entry is
+  /// saved — so cancelling the form leaves nothing behind.
+  final List<XFile> pendingAttachments;
+
+  const TransactionFormViewState({
+    required this.original,
+    required this.type,
+    required this.date,
+    required this.amountText,
+    required this.note,
+    required this.repeat,
+    required this.accountId,
+    required this.categoryId,
+    required this.toAccountId,
+    required this.attachments,
+    required this.pendingAttachments,
+  });
+
+  static const repeatNever = 'NEVER';
+  static const repeatOptions = [
+    repeatNever,
+    'DAILY',
+    'WEEKLY',
+    'MONTHLY',
+    'YEARLY',
+  ];
+
+  /// A blank entry: the common case, and the one the FAB is for.
+  factory TransactionFormViewState.initial() => TransactionFormViewState(
+        original: null,
+        type: TransactionKind.expense,
+        date: DateTime.now(),
+        amountText: '',
+        note: '',
+        repeat: repeatNever,
+        accountId: null,
+        categoryId: null,
+        toAccountId: null,
+        attachments: const [],
+        pendingAttachments: const [],
+      );
+
+  /// Fills the form with the entry being corrected.
+  factory TransactionFormViewState.fromTile(TransactionTileUiModel tile) =>
+      TransactionFormViewState(
+        original: tile,
+        type: tile.type,
+        date: tile.date,
+        amountText: formatMinor(tile.amount),
+        note: tile.note ?? '',
+        // Editing never touches a series: changing a rule is "deactivate and
+        // create another".
+        repeat: repeatNever,
+        accountId: tile.account.id,
+        // The mapper hands a transfer an empty category; only a kind that
+        // requires one gets to carry an id.
+        categoryId: tile.type.requiresCategory ? tile.category?.id : null,
+        toAccountId: tile.toAccount?.id,
+        attachments: tile.attachments,
+        pendingAttachments: const [],
+      );
+
+  /// A field that reads null here means "leave it alone", which is the house
+  /// convention — but three of these fields are nullable *and* have to be
+  /// settable back to null: switching kind clears the category and the
+  /// destination, and that is a real transition, not a missing argument. Those
+  /// three take [_unset] as their default so an explicit null can mean "clear
+  /// me" instead.
+  static const _unset = Object();
+
+  TransactionFormViewState copyWith({
+    TransactionKind? type,
+    DateTime? date,
+    String? amountText,
+    String? note,
+    String? repeat,
+    Object? accountId = _unset,
+    Object? categoryId = _unset,
+    Object? toAccountId = _unset,
+    List<TransactionAttachment>? attachments,
+    List<XFile>? pendingAttachments,
+  }) =>
+      TransactionFormViewState(
+        original: original,
+        type: type ?? this.type,
+        date: date ?? this.date,
+        amountText: amountText ?? this.amountText,
+        note: note ?? this.note,
+        repeat: repeat ?? this.repeat,
+        accountId:
+            identical(accountId, _unset) ? this.accountId : accountId as String?,
+        categoryId: identical(categoryId, _unset)
+            ? this.categoryId
+            : categoryId as String?,
+        toAccountId: identical(toAccountId, _unset)
+            ? this.toAccountId
+            : toAccountId as String?,
+        attachments: attachments ?? this.attachments,
+        pendingAttachments: pendingAttachments ?? this.pendingAttachments,
+      );
+
+  bool get isEditing => original != null;
+  bool get isTransfer => type == TransactionKind.transfer;
+  bool get isBalancePurpose => type.isBalancePurpose;
+
+  /// Whether this form can start a series at all: a series has one account, so
+  /// a transfer cannot be one (ADR-0002), and a corrected entry does not touch
+  /// its series.
+  bool get canRepeat =>
+      !isTransfer && !isBalancePurpose && original == null;
+
+  // Categories are typed by CategoryType, which has no transfer member; a
+  // transfer has no category at all.
+  CategoryType get categoryType =>
+      type == TransactionKind.income ? CategoryType.income : CategoryType.expense;
+
+  /// What the field's formatter admits. Re-checked here so that reading the
+  /// amount is total: [parseMinor] rejects sub-cent precision by throwing, and
+  /// a getter that can throw from a build is a trap.
+  static final _moneyText = RegExp(r'^\d*\.?\d{0,2}$');
+
+  /// The amount in minor units, or null while it is empty or not yet a number.
+  int? get amountMinor {
+    if (!_moneyText.hasMatch(amountText)) return null;
+    final parsed = double.tryParse(amountText);
+    if (parsed == null || parsed <= 0) return null;
+    return parseMinor(amountText);
+  }
+
+  int get attachmentCount => attachments.length + pendingAttachments.length;
+
+  /// Accounts a picker may offer: an archived account is history, not a
+  /// choice (spec 003, US3).
+  List<AccountUiModel> activeAccounts(Iterable<AccountUiModel> all) =>
+      all.where((a) => !a.account.archived).toList();
+
+  AccountUiModel? selectedAccount(Iterable<AccountUiModel> all) =>
+      all.where((a) => a.account.id == accountId).firstOrNull;
+
+  /// Where a transfer may land. Two rules, both of them invariants of the
+  /// aggregate rather than preferences, so the pair is unreachable instead of
+  /// chosen and then refused: a transfer needs two different accounts, and both
+  /// legs are in one currency (cross-currency transfers wait for exchange
+  /// rates).
+  List<AccountUiModel> transferDestinations(Iterable<AccountUiModel> active) {
+    final from = selectedAccount(active)?.account;
+    return active
+        .where((a) => a.account.id != accountId)
+        .where((a) =>
+            from == null || a.account.currencyCode == from.currencyCode)
+        .toList();
+  }
+}

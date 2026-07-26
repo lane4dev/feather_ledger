@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../domain/entities/ledger_entities.dart';
@@ -18,28 +17,6 @@ part 'recurring_view_model.g.dart';
 class RecurringViewModel extends _$RecurringViewModel {
   @override
   void build() {}
-
-  /// Starts a series — what the transaction form calls when the user sets a
-  /// repeat rule. Materializes the first instances as part of the same call.
-  Future<Result<void>> createSeries({
-    required RecurringSeriesKind type,
-    required int amountMinor,
-    required String accountId,
-    required String categoryId,
-    required String description,
-    required String frequency,
-    required DateTime startDate,
-  }) =>
-      ref.read(recurringServiceProvider).createSeries(
-            type: type,
-            amountMinor: amountMinor,
-            accountId: accountId,
-            categoryId: categoryId,
-            description: description,
-            frequency: frequency,
-            interval: 1,
-            startDate: startDate,
-          );
 
   /// Records a pending bill as a real transaction.
   Future<Result<void>> postInstance(String scheduledId) =>

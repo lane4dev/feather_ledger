@@ -9,15 +9,13 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
-import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_state.dart';
+import '../../../support/fakes/recording_services.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
@@ -75,9 +73,9 @@ void main() {
     type: CategoryType.expense,
   );
 
-  late _RecordingLedgerViewModel viewModel;
+  late RecordingLedgerService ledger;
 
-  setUp(() => viewModel = _RecordingLedgerViewModel());
+  setUp(() => ledger = RecordingLedgerService());
 
   /// The amount field autofocuses, and a blinking cursor never lets
   /// `pumpAndSettle` settle — pump a bounded number of frames instead.
@@ -134,7 +132,7 @@ void main() {
               type == CategoryType.expense ? const [food] : const [],
             ),
           ),
-          ledgerViewModelProvider.overrideWith(() => viewModel),
+          ledgerServiceProvider.overrideWithValue(ledger),
         ],
         child: MaterialApp.router(
           // AppTheme carries the ThemeExtensions (spacing, semantic colours)
@@ -181,6 +179,16 @@ void main() {
     expect(find.text('Expense'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Transfer'), findsOneWidget);
+    // Offered in the order money arrives, leaves, then moves — while the
+    // selection stays on expense, which is what the FAB is for.
+    expect(
+      tester.getCenter(find.text('Income')).dx,
+      lessThan(tester.getCenter(find.text('Expense')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('Expense')).dx,
+      lessThan(tester.getCenter(find.text('Transfer')).dx),
+    );
     // A new transaction is an expense by default — what the FAB is for.
     expect(find.text('Add Transaction'), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget,
@@ -203,6 +211,55 @@ void main() {
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
 
     expect(selectorWidth / screenWidth, inInclusiveRange(0.60, 0.75));
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('a row ripples to the edges, its contents keep the margin',
+      (tester) async {
+    await pumpForm(tester);
+
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    final row = find.ancestor(
+      of: find.text('Date'),
+      matching: find.byType(InkWell),
+    );
+
+    // The page does not pad its rows: the row pads its own contents, so the
+    // tap target reaches both edges of the screen while the field keeps the
+    // page's margin. Padding from the outside would clip the ripple.
+    expect(tester.getTopLeft(row).dx, 0);
+    expect(tester.getTopRight(row).dx, screenWidth);
+    expect(tester.getTopLeft(find.byIcon(LucideIcons.clock)).dx,
+        AppTheme.spacing.lg);
+  });
+
+  testWidgets('the empty note says what to write there', (tester) async {
+    await pumpForm(tester);
+
+    // The field's name is in the column to its left, so the hint is a prompt
+    // rather than the word "Note" a second time.
+    expect(find.text('Add a note'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).last, 'Groceries');
+    await settle(tester);
+
+    expect(find.text('Groceries'), findsOneWidget);
+    // Flutter fades a hint out rather than removing it — the Text stays in the
+    // tree — so "no longer showing" has to be read off the fade, not off the
+    // finder.
+    expect(
+      tester
+          .widgetList<FadeTransition>(
+            find.ancestor(
+              of: find.text('Add a note'),
+              matching: find.byType(FadeTransition),
+            ),
+          )
+          .map((fade) => fade.opacity.value),
+      contains(0.0),
+    );
 
     await teardownTree(tester);
   });
@@ -247,8 +304,8 @@ void main() {
     await pumpForm(tester);
     await selectKind(tester, 'Transfer');
 
-    expect(find.byType(LedgerSelectorField), findsNWidgets(3),
-        reason: 'date plus from and to');
+    expect(find.byType(LedgerSelectorField), findsNWidgets(4),
+        reason: 'date, from, to and the attachment row');
     expect(find.text('From'), findsOneWidget);
     expect(find.text('To'), findsOneWidget);
     // The category row is not rendered at all — a transfer has no category,
@@ -264,9 +321,11 @@ void main() {
     await selectKind(tester, 'Expense');
 
     expect(find.text('Add Transaction'), findsOneWidget);
-    // Category, account and the repeat row — a transfer has neither a
-    // category nor a repeat rule, so both extra rows appear only here.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(4));
+    // Account, category, the repeat row and the attachment row — a transfer
+    // has neither a category nor a repeat rule, so the first two extras
+    // appear only here. The attachment row is one of these fields because it
+    // is the same row: a fixed-column label, a value, a chevron to open.
+    expect(find.byType(LedgerSelectorField), findsNWidgets(5));
     expect(find.text('Category'), findsOneWidget);
     expect(find.text('From'), findsNothing);
     expect(find.text('To'), findsNothing);
@@ -332,12 +391,12 @@ void main() {
     await tester.tap(find.text('Save'));
     await settle(tester);
 
-    expect(viewModel.addedTransfers, hasLength(1));
-    final call = viewModel.addedTransfers.single;
+    expect(ledger.addedTransfers, hasLength(1));
+    final call = ledger.addedTransfers.single;
     expect(call['amountMinor'], 25000);
     expect(call['fromAccountId'], 'acc_cash');
     expect(call['toAccountId'], 'acc_bank');
-    expect(viewModel.addedTransactions, isEmpty,
+    expect(ledger.addedTransactions, isEmpty,
         reason: 'a transfer must not go down the income/expense path');
 
     await teardownTree(tester);
@@ -353,21 +412,21 @@ void main() {
       ),
       '30.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
-    await settle(tester);
-    await tester.tap(find.text('Food'));
-    await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(3)); // account
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // account
     await settle(tester);
     await tester.tap(inSheet('Cash'));
+    await settle(tester);
+    await tester.tap(find.byType(LedgerSelectorField).at(3)); // category
+    await settle(tester);
+    await tester.tap(find.text('Food'));
     await settle(tester);
 
     await tester.tap(find.text('Save'));
     await settle(tester);
 
-    expect(viewModel.addedTransactions, hasLength(1));
-    expect(viewModel.addedTransactions.single['type'], TransactionKind.expense);
-    expect(viewModel.addedTransfers, isEmpty);
+    expect(ledger.addedTransactions, hasLength(1));
+    expect(ledger.addedTransactions.single['type'], TransactionKind.expense);
+    expect(ledger.addedTransfers, isEmpty);
 
     await teardownTree(tester);
   });
@@ -389,7 +448,7 @@ void main() {
 
     expect(find.text('Required'), findsWidgets,
         reason: 'both legs are required');
-    expect(viewModel.addedTransfers, isEmpty);
+    expect(ledger.addedTransfers, isEmpty);
 
     await teardownTree(tester);
   });
@@ -424,7 +483,8 @@ void main() {
     // Both legs are pre-filled, so the fields show the accounts rather than
     // their placeholders. Direction is carried by the up/down icons, the same
     // way the detail sheet carries it with From/To labels.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(3));
+    expect(find.byType(LedgerSelectorField), findsNWidgets(4),
+        reason: 'the two legs, the date and the attachment row');
     expect(find.text('Cash'), findsOneWidget);
     expect(find.text('Bank'), findsOneWidget);
     expect(find.byIcon(LucideIcons.arrowUp), findsOneWidget);
@@ -441,81 +501,11 @@ void main() {
     await tester.tap(find.text('Save'));
     await settle(tester);
 
-    expect(viewModel.updatedTransfers, hasLength(1));
-    expect(viewModel.updatedTransfers.single['id'], 'tx_transfer');
-    expect(viewModel.updatedTransfers.single['amountMinor'], 30000);
-    expect(viewModel.addedTransfers, isEmpty);
+    expect(ledger.updatedTransfers, hasLength(1));
+    expect(ledger.updatedTransfers.single['id'], 'tx_transfer');
+    expect(ledger.updatedTransfers.single['amountMinor'], 30000);
+    expect(ledger.addedTransfers, isEmpty);
 
     await teardownTree(tester);
   });
-}
-
-/// A [LedgerViewModel] that records write calls instead of running them.
-///
-/// `build` is overridden so the real one's keep-alive stream subscriptions
-/// (which outlive a widget test and leave pending timers) never start.
-class _RecordingLedgerViewModel extends LedgerViewModel {
-  final List<Map<String, Object?>> addedTransfers = [];
-  final List<Map<String, Object?>> updatedTransfers = [];
-  final List<Map<String, Object?>> addedTransactions = [];
-
-  @override
-  LedgerViewState build() => LedgerViewState.initial();
-
-  @override
-  Future<Result<void>> addTransfer({
-    required int amountMinor,
-    required String fromAccountId,
-    required String toAccountId,
-    required DateTime date,
-    String? note,
-    List<TransactionAttachment> attachments = const [],
-  }) async {
-    addedTransfers.add({
-      'amountMinor': amountMinor,
-      'fromAccountId': fromAccountId,
-      'toAccountId': toAccountId,
-      'note': note,
-    });
-    return unitResult;
-  }
-
-  @override
-  Future<Result<void>> updateTransfer({
-    required String id,
-    required int amountMinor,
-    required String fromAccountId,
-    required String toAccountId,
-    required DateTime date,
-    String? note,
-    List<TransactionAttachment> attachments = const [],
-  }) async {
-    updatedTransfers.add({
-      'id': id,
-      'amountMinor': amountMinor,
-      'fromAccountId': fromAccountId,
-      'toAccountId': toAccountId,
-      'note': note,
-    });
-    return unitResult;
-  }
-
-  @override
-  Future<Result<void>> addTransaction({
-    required int amountMinor,
-    required TransactionKind type,
-    required DateTime date,
-    required String categoryId,
-    required String accountId,
-    String? note,
-    List<TransactionAttachment> attachments = const [],
-  }) async {
-    addedTransactions.add({
-      'amountMinor': amountMinor,
-      'type': type,
-      'categoryId': categoryId,
-      'accountId': accountId,
-    });
-    return unitResult;
-  }
 }

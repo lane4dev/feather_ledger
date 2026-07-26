@@ -11,6 +11,8 @@ import 'package:feather_ledger/core/presentation/providers/account_providers.dar
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../theme/ledger_theme.dart';
+
 import '../../domain/value_objects/transaction_filter.dart';
 import 'ledger_form_row.dart';
 import 'ledger_selection_sheet.dart';
@@ -56,9 +58,10 @@ class _TransactionFilterSheetState
     ];
 
     return Padding(
+      // No horizontal padding: the rows inset their own contents so their
+      // ripples can reach the sheet's edges. What is not a row is padded
+      // individually below.
       padding: EdgeInsets.only(
-        left: context.spacing.lg,
-        right: context.spacing.lg,
         top: context.spacing.md,
         bottom: MediaQuery.of(context).viewInsets.bottom + context.spacing.lg,
       ),
@@ -67,8 +70,11 @@ class _TransactionFilterSheetState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.filterTitle,
-                style: Theme.of(context).textTheme.titleLarge),
+            Padding(
+              padding: LedgerTheme.pageInset(context),
+              child: Text(l10n.filterTitle,
+                  style: Theme.of(context).textTheme.titleLarge),
+            ),
             SizedBox(height: context.spacing.md),
 
             // Kind
@@ -143,28 +149,31 @@ class _TransactionFilterSheetState
             ),
 
             SizedBox(height: context.spacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    outlined: true,
-                    onPressed: () => Navigator.pop(
-                      context,
-                      // An empty filter, not null: the caller can tell
-                      // "cleared" from "dismissed".
-                      TransactionFilter.empty,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: context.spacing.lg),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      outlined: true,
+                      onPressed: () => Navigator.pop(
+                        context,
+                        // An empty filter, not null: the caller can tell
+                        // "cleared" from "dismissed".
+                        TransactionFilter.empty,
+                      ),
+                      child: Text(l10n.filterClear),
                     ),
-                    child: Text(l10n.filterClear),
                   ),
-                ),
-                SizedBox(width: context.spacing.md),
-                Expanded(
-                  child: AppButton(
-                    onPressed: () => Navigator.pop(context, _build()),
-                    child: Text(l10n.filterApply),
+                  SizedBox(width: context.spacing.md),
+                  Expanded(
+                    child: AppButton(
+                      onPressed: () => Navigator.pop(context, _build()),
+                      child: Text(l10n.filterApply),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -269,38 +278,49 @@ class _EntityPicker<T> extends StatelessWidget {
     final theme = Theme.of(context);
     final selected = options.where((o) => _idOf(o) == selectedId).firstOrNull;
 
-    return Row(
-      children: [
-        Expanded(
-          child: LedgerSelectorField(
-            text: selected == null ? placeholder : getLabel(selected),
-            textStyle: selected == null
-                ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
-                : null,
-            onTap: () async {
-              final result = await showModalBottomSheet<String>(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                builder: (context) => LedgerSelectionSheet<T>(
-                  title: placeholder,
-                  options: options,
-                  getLabel: getLabel,
-                  isSelected: (option) => _idOf(option) == selectedId,
-                  onSelected: (option) => Navigator.pop(context, _idOf(option)),
-                ),
-              );
-              if (result != null) onSelected(result);
-            },
+    // The sheet belongs to the picker, not to the row around it — the row
+    // cannot open a sheet it has no type for — so this is one of the few rows
+    // whose tap target is its own contents rather than the whole line. The
+    // clear button keeps its own gesture inside it.
+    return InkWell(
+      onTap: () async {
+        final result = await showModalBottomSheet<String>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          builder: (context) => LedgerSelectionSheet<T>(
+            title: placeholder,
+            options: options,
+            getLabel: getLabel,
+            isSelected: (option) => _idOf(option) == selectedId,
+            onSelected: (option) => Navigator.pop(context, _idOf(option)),
           ),
-        ),
-        if (selected != null)
-          IconButton(
-            icon: const Icon(LucideIcons.x),
-            onPressed: onClear,
-            tooltip: placeholder,
+        );
+        if (result != null) onSelected(result);
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: LedgerSelectorField(
+              text: selected == null ? placeholder : getLabel(selected),
+              textStyle: selected == null
+                  ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
+                  : null,
+            ),
           ),
-      ],
+          if (selected != null)
+            IconButton(
+              icon: const Icon(LucideIcons.x),
+              onPressed: onClear,
+              tooltip: placeholder,
+            ),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Icon(LucideIcons.chevronRight, color: theme.hintColor),
+          ),
+        ],
+      ),
     );
   }
 }

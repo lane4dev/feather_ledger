@@ -202,6 +202,24 @@ abstract class AppLocalizations {
   /// **'Date'**
   String get date;
 
+  /// Date on the transaction form, when it is the current day
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// Date on the transaction form, when it is the day before
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// Date on the transaction form, when it is the day after
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get tomorrow;
+
   /// Category field label
   ///
   /// In en, this message translates to:
@@ -243,6 +261,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note'**
   String get note;
+
+  /// Hint inside the empty note field; the field name is already on its left
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note'**
+  String get noteHint;
 
   /// No description provided for @save.
   ///

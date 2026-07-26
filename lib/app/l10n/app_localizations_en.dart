@@ -61,6 +61,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get date => 'Date';
 
   @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
   String get category => 'Category';
 
   @override
@@ -80,6 +89,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get note => 'Note';
+
+  @override
+  String get noteHint => 'Add a note';
 
   @override
   String get save => 'Save';

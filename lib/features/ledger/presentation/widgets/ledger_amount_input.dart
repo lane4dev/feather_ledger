@@ -4,30 +4,36 @@ import 'package:flutter/services.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/shared/presentation/money_format.dart';
 
-/// The amount field — and the one place in the presentation layer where an
-/// amount legitimately crosses between its two forms.
+/// The amount field.
 ///
-/// It is seeded with the decimal text and hands back minor units
-/// ([parseMinor] → `Money.fromDouble`), which is the input boundary AGENTS
-/// names as the only double bridge. Everywhere else, converting belongs to the
-/// mapper or model that feeds the widget, not to the widget.
+/// Controlled from outside: it holds no value of its own. It renders whatever
+/// the caller's [controller] holds and reports the raw text of every
+/// keystroke; the amount itself lives in the form's view model.
+///
+/// The conversions between text and minor units deliberately stay out of here.
+/// A field that re-formatted its own text as you typed would turn `12.` into
+/// `12.00` mid-keystroke and slam the caret to the end, so the round trip
+/// happens once on each side instead — format when seeding the controller,
+/// parse when the value is used. Between those two moments the text only ever
+/// travels user → view model, never back through a formatter.
 class LedgerAmountInput extends StatelessWidget {
-  final int? initialMinorUnits;
+  final TextEditingController controller;
+
+  /// The raw text, on every change. Not minor units — see the class doc.
+  /// Omitted by a caller that only reads [controller] when it saves.
+  final ValueChanged<String>? onChanged;
+
   final TransactionKind type;
   final bool autofocus;
-
-  /// Receives the parsed amount in int minor units.
-  final FormFieldSetter<int> onSaved;
   final String currencySymbol;
 
   const LedgerAmountInput({
     super.key,
-    this.initialMinorUnits,
+    required this.controller,
+    this.onChanged,
     required this.type,
     this.autofocus = false,
-    required this.onSaved,
     this.currencySymbol = '\$',
   });
 
@@ -50,45 +56,66 @@ class LedgerAmountInput extends StatelessWidget {
     };
 
     return IntrinsicWidth(
-      child: TextFormField(
-        autofocus: autofocus,
-        initialValue:
-            initialMinorUnits == null ? null : formatMinor(initialMinorUnits!),
-        decoration: InputDecoration(
-          prefixText: '$currencySymbol ',
-          prefixStyle: theme.textTheme.displayMedium?.copyWith(
-            color: typeColor,
-            fontWeight: FontWeight.bold,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        // So the symbol sits on the digits' baseline rather than on whatever
+        // the decoration's box centres to.
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          // The symbol is the unit, not part of the number, so it is drawn in
+          // the secondary colour — and it is drawn, always. It cannot be
+          // `InputDecoration.prefixText`: the framework fades a prefix
+          // completely out unless the field is focused or non-empty
+          // (`_AffixText` animates its opacity on the decoration's
+          // "label should withdraw" state), so on a *new* entry — empty, and
+          // not yet tapped — the symbol was simply absent.
+          Text(
+            '$currencySymbol ',
+            style: theme.textTheme.displayMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          hintText: '0.00',
-          hintStyle: theme.textTheme.displayMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          Flexible(
+            child: TextFormField(
+              controller: controller,
+              autofocus: autofocus,
+              decoration: InputDecoration(
+                hintText: '0.00',
+                hintStyle: theme.textTheme.displayMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: theme.textTheme.displayMedium?.copyWith(
+                color: typeColor,
+                fontWeight: FontWeight.bold,
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  final text = newValue.text;
+                  return (text.isEmpty ||
+                          RegExp(r'^\d*\.?\d{0,2}$').hasMatch(text))
+                      ? newValue
+                      : oldValue;
+                }),
+              ],
+              textInputAction: TextInputAction.next,
+              onChanged: onChanged,
+              validator: (value) {
+                if (value == null || value.isEmpty) return l10n.required;
+                final p = double.tryParse(value);
+                if (p == null || p <= 0) return l10n.invalidAmount;
+                return null;
+              },
+            ),
           ),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.zero,
-        ),
-        style: theme.textTheme.displayMedium?.copyWith(
-          color: typeColor,
-          fontWeight: FontWeight.bold,
-        ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          TextInputFormatter.withFunction((oldValue, newValue) {
-            final text = newValue.text;
-            return (text.isEmpty || RegExp(r'^\d*\.?\d{0,2}$').hasMatch(text))
-                ? newValue
-                : oldValue;
-          }),
         ],
-        textInputAction: TextInputAction.next,
-        validator: (value) {
-          if (value == null || value.isEmpty) return l10n.required;
-          final p = double.tryParse(value);
-          if (p == null || p <= 0) return l10n.invalidAmount;
-          return null;
-        },
-        onSaved: (value) => onSaved(parseMinor(value!)),
       ),
     );
   }

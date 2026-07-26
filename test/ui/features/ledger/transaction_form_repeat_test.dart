@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -10,15 +11,14 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
-import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_state.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
+import '../../../support/fakes/recording_services.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
@@ -46,12 +46,12 @@ void main() {
     type: CategoryType.expense,
   );
 
-  late _RecordingLedgerViewModel ledger;
-  late _RecordingRecurringViewModel recurring;
+  late RecordingLedgerService ledger;
+  late RecordingRecurringService recurring;
 
   setUp(() {
-    ledger = _RecordingLedgerViewModel();
-    recurring = _RecordingRecurringViewModel();
+    ledger = RecordingLedgerService();
+    recurring = RecordingRecurringService();
   });
 
   Future<void> settle(WidgetTester tester) async {
@@ -99,8 +99,8 @@ void main() {
             (ref, type) => Stream.value(
                 type == CategoryType.expense ? const [rent] : const []),
           ),
-          ledgerViewModelProvider.overrideWith(() => ledger),
-          recurringViewModelProvider.overrideWith(() => recurring),
+          ledgerServiceProvider.overrideWithValue(ledger),
+          recurringServiceProvider.overrideWithValue(recurring),
         ],
         child: MaterialApp.router(
           theme: AppTheme.lightTheme,
@@ -137,13 +137,13 @@ void main() {
       ),
       '500.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
-    await settle(tester);
-    await tester.tap(find.text('Rent'));
-    await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(3)); // account
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // account
     await settle(tester);
     await tester.tap(inSheet('Cash'));
+    await settle(tester);
+    await tester.tap(find.byType(LedgerSelectorField).at(3)); // category
+    await settle(tester);
+    await tester.tap(find.text('Rent'));
     await settle(tester);
   }
 
@@ -155,12 +155,19 @@ void main() {
     await settle(tester);
   }
 
+  /// The repeat picker's options, as opposed to the row that opens it: the
+  /// row shows the current rule, and that rule is one of the options.
+  Finder inDialog(String text) => find.descendant(
+        of: find.byType(SimpleDialog),
+        matching: find.text(text),
+      );
+
   /// Opens the repeat picker, immediately after the date selector.
   Future<void> chooseRepeat(WidgetTester tester, String label) async {
     final fields = find.byType(LedgerSelectorField);
     await tester.tap(fields.at(1));
     await settle(tester);
-    await tester.tap(find.text(label));
+    await tester.tap(inDialog(label));
     await settle(tester);
   }
 
@@ -171,6 +178,36 @@ void main() {
     expect(find.text('Repeat'), findsOneWidget);
     expect(find.text('Does not repeat'), findsOneWidget,
         reason: 'the field name and its current value are both visible');
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('the repeat picker is a dialog, with the rule in force marked',
+      (tester) async {
+    // Five plain options in the middle of a form is a menu, not a sheet: the
+    // account and category pickers open one because their lists are long and
+    // carry icons, balances and a way through to managing them.
+    await pumpForm(tester);
+    await tester.tap(find.byType(LedgerSelectorField).at(1));
+    await settle(tester);
+
+    expect(find.byType(SimpleDialog), findsOneWidget);
+    expect(inDialog('Does not repeat'), findsOneWidget);
+    expect(inDialog('month'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SimpleDialog),
+        matching: find.byIcon(LucideIcons.check),
+      ),
+      findsOneWidget,
+      reason: 'the option in force is the one marked, and only it',
+    );
+
+    // Tapping the option in force closes without changing anything.
+    await tester.tap(inDialog('Does not repeat'));
+    await settle(tester);
+
+    expect(find.byType(SimpleDialog), findsNothing);
 
     await teardownTree(tester);
   });
@@ -271,61 +308,4 @@ void main() {
 
     await teardownTree(tester);
   });
-}
-
-class _RecordingLedgerViewModel extends LedgerViewModel {
-  final List<Map<String, Object?>> addedTransactions = [];
-
-  @override
-  LedgerViewState build() => LedgerViewState.initial();
-
-  @override
-  Future<Result<void>> addTransaction({
-    required int amountMinor,
-    required TransactionKind type,
-    required DateTime date,
-    required String categoryId,
-    required String accountId,
-    String? note,
-    List<TransactionAttachment> attachments = const [],
-  }) async {
-    addedTransactions.add({
-      'amountMinor': amountMinor,
-      'type': type,
-      'categoryId': categoryId,
-      'accountId': accountId,
-    });
-    return unitResult;
-  }
-}
-
-class _RecordingRecurringViewModel extends RecurringViewModel {
-  final List<Map<String, Object?>> created = [];
-  LedgerErrorCode? failure;
-
-  @override
-  void build() {}
-
-  @override
-  Future<Result<void>> createSeries({
-    required RecurringSeriesKind type,
-    required int amountMinor,
-    required String accountId,
-    required String categoryId,
-    required String description,
-    required String frequency,
-    required DateTime startDate,
-  }) async {
-    if (failure != null) return Failure(failure!, 'rejected');
-    created.add({
-      'type': type,
-      'amountMinor': amountMinor,
-      'accountId': accountId,
-      'categoryId': categoryId,
-      'description': description,
-      'frequency': frequency,
-      'startDate': startDate,
-    });
-    return unitResult;
-  }
 }

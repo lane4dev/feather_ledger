@@ -62,6 +62,18 @@
   "@date": {
     "description": "日期字段标签"
   },
+  "today": "今天",
+  "@today": {
+    "description": "交易表单上的日期，当天时"
+  },
+  "yesterday": "昨天",
+  "@yesterday": {
+    "description": "交易表单上的日期，前一天时"
+  },
+  "tomorrow": "明天",
+  "@tomorrow": {
+    "description": "交易表单上的日期，后一天时"
+  },
   "category": "分类",
   "@category": {
     "description": "分类字段标签"
@@ -89,6 +101,10 @@
   "note": "备注",
   "@note": {
     "description": "备注字段标签"
+  },
+  "noteHint": "添加备注",
+  "@noteHint": {
+    "description": "备注输入框为空时的提示；字段名已经在它左边"
   },
   "save": "保存",
   "required": "必填",

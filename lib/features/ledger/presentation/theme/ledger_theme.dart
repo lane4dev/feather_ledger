@@ -1,11 +1,69 @@
 import 'package:flutter/material.dart';
 
+import 'package:feather_ledger/app/theme/app_theme.dart';
+
 class LedgerTheme {
   const LedgerTheme._();
 
   // --- Layout Constants ---
   static const double colAnchorWidth = 72.0;
   static const double cardRadius = 16.0;
+
+  /// The ceiling on the field-name column in the transaction form. The column
+  /// is measured from the labels the form actually shows in the language being
+  /// read ([formLabelWidth]), not fixed: a name must be as wide as it needs to
+  /// be, or a language whose words are longer than the box has its field names
+  /// cut off. The ceiling is what keeps a single long name from eating the
+  /// value's half of the row.
+  static const double formLabelMaxWidth = 104.0;
+
+  /// The gap between that column and the value.
+  static const double formLabelGap = 12.0;
+
+  /// The page's horizontal margin.
+  ///
+  /// A form row applies it to its own contents rather than having its screen
+  /// apply it from outside: the row's tap target has to reach the screen edge
+  /// for its ripple to, and padding applied around a row clips that ripple.
+  /// Whatever a screen puts in the same column that is *not* a row is the
+  /// screen's to inset — by this.
+  static EdgeInsets pageInset(BuildContext context) =>
+      EdgeInsets.symmetric(horizontal: context.spacing.lg);
+
+  /// The width of the field-name column: the widest of [labels] as it will be
+  /// drawn, capped at [formLabelMaxWidth].
+  ///
+  /// Pass every name the screen can show, not just the ones rendered right
+  /// now — the column is shared by all of a form's rows, so a width that
+  /// changed with the state would move every value's starting x mid-form.
+  ///
+  /// The measurement has to match how the label is painted or the column
+  /// silently under-reserves: the same style, the same text scale, the same
+  /// direction, and no max width (the question is what one unbroken line
+  /// needs, and [TextPainter.width] answers that only when unconstrained).
+  static double formLabelWidth(BuildContext context, Iterable<String> labels) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodyLarge!;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final textDirection = Directionality.of(context);
+    final locale = Localizations.localeOf(context);
+
+    var widest = 0.0;
+    for (final label in labels) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: textDirection,
+        textScaler: textScaler,
+        locale: locale,
+      )..layout();
+      // Round up: landing a hair under the painted width ellipsizes a label
+      // that would have fitted.
+      final width = painter.width.ceilToDouble();
+      painter.dispose();
+      if (width > widest) widest = width;
+    }
+    return widest < formLabelMaxWidth ? widest : formLabelMaxWidth;
+  }
 
   /// Placeholder fill for loading skeletons: a translucent neutral that
   /// follows the surface lightness instead of a fixed grey.
@@ -37,10 +95,10 @@ class LedgerTheme {
 
   static TextStyle transactionAmount(BuildContext context) {
     return Theme.of(context).textTheme.titleMedium!.copyWith(
-          fontWeight: FontWeight.bold,
-          // monospacedDigit is optional but good for alignment
-          fontFeatures: const [FontFeature.tabularFigures()],
-        );
+      fontWeight: FontWeight.bold,
+      // monospacedDigit is optional but good for alignment
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
   }
 
   static TextStyle transactionTitle(BuildContext context) {

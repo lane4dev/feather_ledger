@@ -1,75 +1,88 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../theme/ledger_theme.dart';
+
+/// The value column of a form row, with its field name in front of it and its
+/// error under it.
+///
+/// It draws and nothing else: what happens when the row is tapped — the
+/// ripple, the chevron, the picker — belongs to the row
+/// ([LedgerFormRow.onTap]), which is why the tap covers the row's icon too.
+///
+/// The name occupies a fixed column ([labelWidth]) so that every value begins
+/// at the same x down a whole form. The width is measured once per form from
+/// the names that form can show ([LedgerTheme.formLabelWidth]) rather than
+/// here, because one row cannot know what its siblings say.
 class LedgerSelectorField extends StatelessWidget {
   /// A persistent field name. When provided, [text] is rendered as the
   /// current value rather than replacing the field's meaning.
   final String? label;
+
+  /// The width of the name's column, shared by every row of the form. Only
+  /// meaningful with a [label].
+  final double? labelWidth;
+
   final String text;
   final TextStyle? textStyle;
-  final VoidCallback onTap;
   final String? errorText;
 
   const LedgerSelectorField({
     super.key,
     this.label,
+    this.labelWidth,
     required this.text,
     this.textStyle,
-    required this.onTap,
     this.errorText,
-  });
+  }) : assert(label == null || labelWidth != null,
+            'a labelled field needs the column width its form measured');
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final value = Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: label == null ? null : TextAlign.end,
-      style: textStyle ?? theme.textTheme.bodyLarge,
-    );
-
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                // Without a label the value stands in for the field's name, so
-                // it keeps the leading edge and the spacer sits between it and
-                // the chevron. The unlabelled callers (the recurring bill form,
-                // the filter sheet) relied on that, and a spacer *before* it
-                // parks the value in the middle of the row instead.
-                if (label != null) ...[
-                  Expanded(
-                    child: Text(label!, style: theme.textTheme.bodyLarge),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              if (label != null) ...[
+                SizedBox(
+                  width: labelWidth,
+                  child: Text(
+                    label!,
+                    // One line, always. A name is not a sentence, and a name
+                    // that wrapped would push the row's height around. What
+                    // gives when there is not enough room is the value, which
+                    // is allowed to ellipsize.
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge,
                   ),
-                  const SizedBox(width: 16),
-                  Flexible(child: value),
-                ] else ...[
-                  value,
-                  const Spacer(),
-                ],
-                const SizedBox(width: 4),
-                Icon(LucideIcons.chevronRight, color: theme.hintColor),
+                ),
+                const SizedBox(width: LedgerTheme.formLabelGap),
               ],
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textStyle ?? theme.textTheme.bodyLarge,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (errorText != null)
+          Text(
+            errorText!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.error,
             ),
           ),
-          if (errorText != null)
-            Text(
-              errorText!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.error,
-              ),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }

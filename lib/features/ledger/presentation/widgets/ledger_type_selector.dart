@@ -7,9 +7,12 @@ class LedgerTypeSelector extends StatelessWidget {
   final TransactionKind selectedType;
   final ValueChanged<TransactionKind> onSelectionChanged;
 
-  /// Which kinds to offer, in order. Defaults to all three — a recurring
-  /// series has one account, so its form passes income and expense only
-  /// (ADR-0002) rather than showing a transfer the series cannot be.
+  /// Which kinds to offer, in order. Defaults to all three, income first —
+  /// the order money arrives, then leaves, then moves. That order is not the
+  /// default *selection*: a new entry is still an expense, which is what the
+  /// FAB is for. A recurring series has one account, so its form would pass
+  /// income and expense only (ADR-0002) rather than offer a transfer the
+  /// series cannot be.
   final List<TransactionKind> kinds;
 
   /// A proportion of the available content width to occupy. Supplying this
@@ -21,8 +24,8 @@ class LedgerTypeSelector extends StatelessWidget {
     required this.selectedType,
     required this.onSelectionChanged,
     this.kinds = const [
-      TransactionKind.expense,
       TransactionKind.income,
+      TransactionKind.expense,
       TransactionKind.transfer,
     ],
     this.widthFactor,

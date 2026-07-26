@@ -62,6 +62,18 @@
   "@date": {
     "description": "Date field label"
   },
+  "today": "Today",
+  "@today": {
+    "description": "Date on the transaction form, when it is the current day"
+  },
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "Date on the transaction form, when it is the day before"
+  },
+  "tomorrow": "Tomorrow",
+  "@tomorrow": {
+    "description": "Date on the transaction form, when it is the day after"
+  },
   "category": "Category",
   "@category": {
     "description": "Category field label"
@@ -89,6 +101,10 @@
   "note": "Note",
   "@note": {
     "description": "Note field label"
+  },
+  "noteHint": "Add a note",
+  "@noteHint": {
+    "description": "Hint inside the empty note field; the field name is already on its left"
   },
   "save": "Save",
   "required": "Required",

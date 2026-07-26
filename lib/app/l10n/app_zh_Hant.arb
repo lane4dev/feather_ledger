@@ -62,6 +62,18 @@
   "@date": {
     "description": "日期欄位標籤"
   },
+  "today": "今天",
+  "@today": {
+    "description": "交易表單上的日期，當天時"
+  },
+  "yesterday": "昨天",
+  "@yesterday": {
+    "description": "交易表單上的日期，前一天時"
+  },
+  "tomorrow": "明天",
+  "@tomorrow": {
+    "description": "交易表單上的日期，後一天時"
+  },
   "category": "分類",
   "@category": {
     "description": "分類欄位標籤"
@@ -89,6 +101,10 @@
   "note": "備註",
   "@note": {
     "description": "備註欄位標籤"
+  },
+  "noteHint": "新增備註",
+  "@noteHint": {
+    "description": "備註輸入框為空時的提示；欄位名已經在它左邊"
   },
   "save": "保存",
   "required": "必填",

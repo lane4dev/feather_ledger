@@ -60,6 +60,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get date => '日期';
 
   @override
+  String get today => '今天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get tomorrow => '明天';
+
+  @override
   String get category => '分类';
 
   @override
@@ -79,6 +88,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get note => '备注';
+
+  @override
+  String get noteHint => '添加备注';
 
   @override
   String get save => '保存';
@@ -650,6 +662,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get date => '日期';
 
   @override
+  String get today => '今天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get tomorrow => '明天';
+
+  @override
   String get category => '分类';
 
   @override
@@ -669,6 +690,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get note => '备注';
+
+  @override
+  String get noteHint => '添加备注';
 
   @override
   String get save => '保存';
@@ -1240,6 +1264,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get date => '日期';
 
   @override
+  String get today => '今天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get tomorrow => '明天';
+
+  @override
   String get category => '分類';
 
   @override
@@ -1259,6 +1292,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get note => '備註';
+
+  @override
+  String get noteHint => '新增備註';
 
   @override
   String get save => '保存';
