@@ -204,13 +204,21 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                         color: colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      // A balance is signed — a credit card starts in debt —
+                      // so this field takes the minus, and its keypad has one.
+                      // Without that, a negative seeded into it (an existing
+                      // account being edited) could be shown but never
+                      // re-typed: the formatter would revert every edit that
+                      // kept the sign.
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
                       inputFormatters: [
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           final text = newValue.text;
                           return (text.isEmpty ||
-                                  RegExp(r'^\d*\.?\d{0,2}$').hasMatch(text))
+                                  RegExp(r'^-?\d*\.?\d{0,2}$').hasMatch(text))
                               ? newValue
                               : oldValue;
                         }),

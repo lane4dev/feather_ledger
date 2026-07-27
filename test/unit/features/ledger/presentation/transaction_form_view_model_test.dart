@@ -341,7 +341,38 @@ void main() {
           reason: 'a transfer must not go down the income/expense path');
     });
 
-    test('a balance purpose keeps the record\'s own sign', () async {
+    test('a balance purpose is seeded with the sign the record has', () async {
+      // The tile carries the amount and the direction apart, because a row
+      // says the direction with its label. A field cannot, so the form puts
+      // them back together — and the sign is then the user's to edit.
+      final spending = form(
+        container(),
+        original: tile(
+          id: 'opening-1',
+          amount: 12000,
+          type: TransactionKind.openingBalance,
+          category: null,
+          sign: '-',
+        ),
+      );
+      expect(spending.state.amountText, '-120.00');
+      expect(spending.state.amountMinor, -12000);
+
+      final funding = form(
+        container(),
+        original: tile(
+          id: 'opening-2',
+          amount: 12000,
+          type: TransactionKind.openingBalance,
+          category: null,
+          sign: '+',
+        ),
+      );
+      expect(funding.state.amountText, '120.00');
+      expect(funding.state.amountMinor, 12000);
+    });
+
+    test('the sign in the field is the direction that gets written', () async {
       final vm = form(
         container(),
         original: tile(
@@ -352,15 +383,31 @@ void main() {
           sign: '-',
         ),
       );
-      // The field edits the magnitude; the minus is the record's.
+
+      // The record was negative; the user says it should have been positive.
+      // Typing the minus away is the whole gesture.
       vm.setAmountText('50.00');
-
       await vm.submit();
+      expect(ledger.updatedBalancePurposes.last['signedAmountMinor'], 5000);
 
-      final call = ledger.updatedBalancePurposes.single;
-      expect(call['id'], 'opening-1');
-      expect(call['signedAmountMinor'], -5000);
-      expect(call['accountId'], 'acc_cash');
+      vm.setAmountText('-50.00');
+      await vm.submit();
+      expect(ledger.updatedBalancePurposes.last['signedAmountMinor'], -5000);
+      expect(ledger.updatedBalancePurposes.last['id'], 'opening-1');
+      expect(ledger.updatedBalancePurposes.last['accountId'], 'acc_cash');
+    });
+
+    test('a kind that carries its own direction refuses a sign', () async {
+      final vm = form(container());
+      vm.setAmountText('-5.00');
+      vm.selectAccount('acc_cash');
+      vm.selectCategory('cat_rent');
+
+      // An income or an expense already says which way it points; a minus in
+      // the number would be a second, contradictory answer.
+      expect(vm.state.amountMinor, isNull);
+      expect(await vm.submit(), isA<TransactionFormSaveFailed>());
+      expect(ledger.addedTransactions, isEmpty);
     });
 
     test('an unparseable amount never reaches a command', () async {

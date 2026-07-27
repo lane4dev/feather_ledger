@@ -17,6 +17,13 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 /// happens once on each side instead — format when seeding the controller,
 /// parse when the value is used. Between those two moments the text only ever
 /// travels user → view model, never back through a formatter.
+///
+/// **A balance purpose's amount carries its own sign.** Income, expense and
+/// transfer say which way the money went through their kind, so a sign in the
+/// number would be a second answer to a question already answered. An opening
+/// balance or an adjustment has no such kind — the sign *is* the direction —
+/// so for those the field takes a `-` (and a `+` clears it again, for a
+/// physical keyboard).
 class LedgerAmountInput extends StatelessWidget {
   final TextEditingController controller;
 
@@ -37,6 +44,11 @@ class LedgerAmountInput extends StatelessWidget {
     this.currencySymbol = '\$',
   });
 
+  /// At most two decimals, and a minus only where the number carries the
+  /// direction itself.
+  static final _unsignedAmount = RegExp(r'^\d*\.?\d{0,2}$');
+  static final _signedAmount = RegExp(r'^-?\d*\.?\d{0,2}$');
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -54,6 +66,10 @@ class LedgerAmountInput extends StatelessWidget {
       TransactionKind.balanceAdjustment =>
         colorScheme.onSurface,
     };
+
+    // See the class doc: only the two kinds that carry no direction of their
+    // own let the number carry one.
+    final signed = type.isBalancePurpose;
 
     return IntrinsicWidth(
       child: Row(
@@ -94,15 +110,42 @@ class LedgerAmountInput extends StatelessWidget {
                 color: typeColor,
                 fontWeight: FontWeight.bold,
               ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.numberWithOptions(
+                decimal: true,
+                // Without this the keypad has no minus to press, and the
+                // formatter below would be waiting for a character the user
+                // cannot type.
+                signed: signed,
+              ),
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {
-                  final text = newValue.text;
-                  return (text.isEmpty ||
-                          RegExp(r'^\d*\.?\d{0,2}$').hasMatch(text))
-                      ? newValue
-                      : oldValue;
+                  final allowed = signed ? _signedAmount : _unsignedAmount;
+
+                  // A `+` means "positive" — it clears the sign rather than
+                  // becoming a character in the number. Only a physical
+                  // keyboard sends one; a keypad offers digits and a minus.
+                  if (signed && newValue.text.contains('+')) {
+                    final text = newValue.text.replaceAll(RegExp(r'[+-]'), '');
+                    if (!(text.isEmpty || allowed.hasMatch(text))) {
+                      return oldValue;
+                    }
+                    return TextEditingValue(
+                      text: text,
+                      selection: TextSelection.collapsed(
+                        offset:
+                            newValue.selection.baseOffset.clamp(0, text.length),
+                      ),
+                    );
+                  }
+
+                  // Untouched when it is fine: rebuilding the value here would
+                  // collapse a selection and drop the composing region on
+                  // every ordinary keystroke.
+                  if (newValue.text.isEmpty ||
+                      allowed.hasMatch(newValue.text)) {
+                    return newValue;
+                  }
+                  return oldValue;
                 }),
               ],
               textInputAction: TextInputAction.next,
@@ -110,7 +153,8 @@ class LedgerAmountInput extends StatelessWidget {
               validator: (value) {
                 if (value == null || value.isEmpty) return l10n.required;
                 final p = double.tryParse(value);
-                if (p == null || p <= 0) return l10n.invalidAmount;
+                // Zero is not an amount, whichever way it points.
+                if (p == null || p == 0) return l10n.invalidAmount;
                 return null;
               },
             ),

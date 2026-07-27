@@ -85,7 +85,13 @@ class TransactionFormViewState {
         original: tile,
         type: tile.type,
         date: tile.date,
-        amountText: formatMinor(tile.amount),
+        // A balance purpose's sign is part of its amount: the tile carries
+        // them apart (amount always positive, direction in `displaySign`),
+        // because a *row* says the direction with a label. A field cannot, so
+        // the two are put back together here.
+        amountText: tile.type.isBalancePurpose && tile.displaySign == '-'
+            ? formatMinor(-tile.amount)
+            : formatMinor(tile.amount),
         note: tile.note ?? '',
         // Editing never touches a series: changing a rule is "deactivate and
         // create another".
@@ -157,12 +163,20 @@ class TransactionFormViewState {
   /// amount is total: [parseMinor] rejects sub-cent precision by throwing, and
   /// a getter that can throw from a build is a trap.
   static final _moneyText = RegExp(r'^\d*\.?\d{0,2}$');
+  static final _signedMoneyText = RegExp(r'^-?\d*\.?\d{0,2}$');
 
-  /// The amount in minor units, or null while it is empty or not yet a number.
+  /// The amount in minor units — signed for a balance purpose, whose direction
+  /// is the number itself. Null while the field is empty or not yet a number.
   int? get amountMinor {
-    if (!_moneyText.hasMatch(amountText)) return null;
+    if (!(isBalancePurpose ? _signedMoneyText : _moneyText).hasMatch(amountText)) {
+      return null;
+    }
     final parsed = double.tryParse(amountText);
-    if (parsed == null || parsed <= 0) return null;
+    // Zero is not an amount, whichever way it points.
+    if (parsed == null || parsed == 0) return null;
+    // A kind that carries the direction does not let the number disagree with
+    // it, so a minus typed into an income is not an amount either.
+    if (!isBalancePurpose && parsed < 0) return null;
     return parseMinor(amountText);
   }
 

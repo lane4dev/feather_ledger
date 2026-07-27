@@ -284,9 +284,43 @@ void main() {
     expect(find.text('Initial Balance'), findsNWidgets(2),
         reason: 'the title and the read-only type both name the system entry');
     expect(find.text('Cash'), findsOneWidget);
+    // The kind reads under the account it belongs to, not above the amount.
+    // Scoped to a field, because the app bar's title says the same words.
+    final typeValue = find.descendant(
+      of: find.byType(LedgerSelectorField),
+      matching: find.text('Initial Balance'),
+    );
+    expect(typeValue, findsOneWidget);
+    expect(
+      tester.getTopLeft(typeValue).dy,
+      greaterThan(tester.getTopLeft(find.text('Cash')).dy),
+      reason: 'the account comes first, then what this entry is',
+    );
     expect(find.text('Add attachment'), findsOneWidget);
     expect(find.text('Expense'), findsNothing,
         reason: 'a balance purpose cannot be recast as a normal entry');
+  });
+
+  testWidgets('a balance purpose opens showing its direction', (tester) async {
+    await pumpForm(
+      tester,
+      transaction: TransactionTileUiModel(
+        id: 'opening-2',
+        amount: 12000,
+        type: TransactionKind.openingBalance,
+        date: DateTime(2026, 1, 1),
+        note: null,
+        account: cash,
+        displayAmount: '120.00',
+        displaySign: '-',
+      ),
+    );
+
+    // This account started in debt, and the field says so. The sign is part of
+    // the text, so editing it is how the direction changes — a balance purpose
+    // has no kind to carry the direction instead.
+    expect(find.text('-120.00'), findsOneWidget);
+    expect(find.text('120.00'), findsNothing);
   });
 
   testWidgets('tapping Transfer swaps the form to the transfer layout',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,7 +25,11 @@ void main() {
   });
   tearDown(() => controller.dispose());
 
-  Future<void> pump(WidgetTester tester) => tester.pumpWidget(
+  Future<void> pump(
+    WidgetTester tester, {
+    TransactionKind type = TransactionKind.expense,
+  }) =>
+      tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
           localizationsDelegates: const [
@@ -40,7 +45,7 @@ void main() {
               child: LedgerAmountInput(
                 controller: controller,
                 onChanged: changes.add,
-                type: TransactionKind.expense,
+                type: type,
                 currencySymbol: '¥',
               ),
             ),
@@ -129,5 +134,66 @@ void main() {
     await tester.enterText(find.byType(TextFormField), '0.01');
     await tester.pump();
     expect(await validate(), isNull);
+  });
+
+  group('a balance purpose', () {
+    // Income, expense and transfer say the direction with their kind, so their
+    // amount is a magnitude. An opening balance or an adjustment has no such
+    // kind — the sign is the direction — and that sign is typed.
+    testWidgets('takes a minus, and a plus clears it again', (tester) async {
+      await pump(tester, type: TransactionKind.openingBalance);
+
+      await tester.enterText(find.byType(TextFormField), '-500');
+      await tester.pump();
+      expect(find.text('-500'), findsOneWidget);
+      expect(changes.last, '-500');
+
+      // A physical keyboard's `+` means "positive": it clears the sign rather
+      // than becoming part of the number.
+      await tester.enterText(find.byType(TextFormField), '+-500');
+      await tester.pump();
+      expect(find.text('500'), findsOneWidget);
+      expect(changes.last, '500');
+    });
+
+    testWidgets('backspacing the minus leaves a positive amount',
+        (tester) async {
+      await pump(tester, type: TransactionKind.balanceAdjustment);
+
+      await tester.enterText(find.byType(TextFormField), '-500');
+      await tester.pump();
+
+      // The minus is a character like any other, so deleting it is what makes
+      // the amount positive again — no separate "switch the sign" gesture.
+      await tester.tap(find.byType(TextFormField));
+      await tester.pump();
+      controller.selection = const TextSelection.collapsed(offset: 1);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+
+      expect(find.text('500'), findsOneWidget);
+      expect(changes.last, '500');
+    });
+
+    testWidgets('a negative is a valid amount', (tester) async {
+      await pump(tester, type: TransactionKind.openingBalance);
+
+      await tester.enterText(find.byType(TextFormField), '-500.00');
+      await tester.pump();
+      formKey.currentState!.validate();
+      await tester.pump();
+
+      expect(find.text('Invalid amount'), findsNothing);
+    });
+
+    testWidgets('an expense still refuses one', (tester) async {
+      await pump(tester);
+
+      await tester.enterText(find.byType(TextFormField), '-500');
+      await tester.pump();
+
+      expect(find.text('-500'), findsNothing,
+          reason: 'the formatter keeps the minus out of an unsigned field');
+    });
   });
 }

@@ -183,9 +183,9 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         ledger.updateBalancePurpose(
           commandId: const Uuid().v4(),
           id: original!.id,
-          // The field edits the magnitude; the record's own sign rides along.
-          signedAmountMinor:
-              original.displaySign == '-' ? -amountMinor : amountMinor,
+          // The sign in the field *is* the direction of this entry — a balance
+          // purpose has no kind to carry one. [amountMinor] is signed here.
+          signedAmountMinor: amountMinor,
           date: form.date,
           accountId: original.account.id,
           note: form.note,

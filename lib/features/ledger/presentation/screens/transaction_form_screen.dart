@@ -179,24 +179,15 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Transaction kind and amount describe the same action, so
-                // they intentionally read as one compact primary module.
+                // they intentionally read as one compact primary module. A
+                // balance purpose has no kind to pick — what it is states
+                // itself further down, under the account it happened in.
                 if (!state.isBalancePurpose)
                   _inset(
                     LedgerTypeSelector(
                       selectedType: state.type,
                       onSelectionChanged: vm.setType,
                       widthFactor: 0.72,
-                    ),
-                  )
-                else
-                  LedgerFormRow(
-                    icon: LucideIcons.badgeInfo,
-                    child: LedgerSelectorField(
-                      label: l10n.transactionType,
-                      labelWidth: labelWidth,
-                      text: state.type == TransactionKind.openingBalance
-                          ? l10n.initialBalance
-                          : l10n.accountBalanceAdjustmentDescription,
                     ),
                   ),
                 SizedBox(height: context.spacing.xl),
@@ -247,7 +238,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 // the one field every kind has, and the category names the
                 // entry rather than the movement. A transfer keeps its
                 // explicit two accounts and has no category at all.
-                if (state.isBalancePurpose)
+                if (state.isBalancePurpose) ...[
                   LedgerFormRow(
                     icon: LucideIcons.wallet,
                     child: LedgerSelectorField(
@@ -255,8 +246,23 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       labelWidth: labelWidth,
                       text: state.original!.account.name,
                     ),
-                  )
-                else
+                  ),
+                  const SizedBox(height: 8),
+                  // The kind, stated rather than offered: the ledger made this
+                  // entry, so only the amount and the date are the user's to
+                  // change. It sits under the account because that is what it
+                  // is about — this account, this kind of entry.
+                  LedgerFormRow(
+                    icon: LucideIcons.badgeInfo,
+                    child: LedgerSelectorField(
+                      label: l10n.transactionType,
+                      labelWidth: labelWidth,
+                      text: state.type == TransactionKind.openingBalance
+                          ? l10n.initialBalance
+                          : l10n.accountBalanceAdjustmentDescription,
+                    ),
+                  ),
+                ] else
                   _accountRow(
                     fieldKey: ValueKey('account-${state.type}'),
                     icon: state.isTransfer

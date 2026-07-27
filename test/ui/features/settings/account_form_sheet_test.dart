@@ -114,6 +114,47 @@ void main() {
     expect(account.includeInTotals, isTrue);
   });
 
+  testWidgets('a debt can be typed as the opening balance', (tester) async {
+    // A credit card starts owing money. Until this field admitted a minus, the
+    // only way to express that was a value seeded from elsewhere — and such a
+    // value could be shown but never re-typed.
+    await pumpForm(tester);
+
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Account Name'), 'Card');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Initial Balance'), '-500');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    expect(account.balanceMinor, -50000,
+        reason: 'a negative opening balance is a real balance');
+  });
+
+  testWidgets('an existing debt stays editable', (tester) async {
+    await harness.accountService.createAccount(
+      commandId: 'cmd_debt',
+      name: 'Card',
+      type: AccountType.credit,
+      initialBalanceMinor: -50000,
+      currencyCode: 'USD',
+    );
+    final id = (await harness.db.accountDao.getAllAccounts()).single.id;
+    await pumpForm(tester, accountId: id);
+
+    // Seeded with its sign, and — the point — an edit that keeps the sign is
+    // accepted rather than reverted to the value the field was given.
+    expect(find.text('-500.00'), findsOneWidget);
+
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Initial Balance'), '-750.00');
+    await tester.pump();
+
+    expect(find.text('-750.00'), findsOneWidget);
+    expect(find.text('-500.00'), findsNothing);
+  });
+
   testWidgets('turning it off reaches the projection', (tester) async {
     await pumpForm(tester);
 
