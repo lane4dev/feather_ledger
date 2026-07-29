@@ -10,6 +10,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get appTitle => 'Feather Ledger';
 
   @override
+  String get followSystem => 'Follow system';
+
+  @override
   String get ledgerTitle => 'Ledger';
 
   @override

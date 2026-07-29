@@ -132,6 +132,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get system => 'System';
 
   @override
+  String get followSystem => 'Follow system';
+
+  @override
   String get light => 'Light';
 
   @override

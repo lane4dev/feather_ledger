@@ -131,6 +131,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get system => '跟随系统';
 
   @override
+  String get followSystem => '跟随系统';
+
+  @override
   String get light => '浅色';
 
   @override
@@ -733,6 +736,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get system => '跟随系统';
 
   @override
+  String get followSystem => '跟随系统';
+
+  @override
   String get light => '浅色';
 
   @override
@@ -1333,6 +1339,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get system => '跟隨系統';
+
+  @override
+  String get followSystem => '跟隨系統';
 
   @override
   String get light => '淺色';

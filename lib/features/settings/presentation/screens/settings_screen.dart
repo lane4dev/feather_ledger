@@ -46,8 +46,7 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.theme),
             subtitle: Text(_getThemeLabel(themeAsync.value, l10n)),
             trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () =>
-                _showThemeDialog(context, ref, themeAsync.value, l10n),
+            onTap: () => _showThemeDialog(context, ref, themeAsync.value, l10n),
           ),
           const FeatherDivider(),
 
@@ -55,12 +54,10 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(LucideIcons.languages),
             title: Text(l10n.language),
-            // Show the actual language name. If null (system), resolve the current active locale.
-            subtitle:
-                Text(_getLocaleLabel(context, localeAsync.value, l10n)),
+            subtitle: Text(_getLocaleLabel(localeAsync.value, l10n)),
             trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () => _showLanguageDialog(
-                context, ref, localeAsync.value, l10n),
+            onTap: () =>
+                _showLanguageDialog(context, ref, localeAsync.value, l10n),
           ),
           const FeatherDivider(),
 
@@ -74,8 +71,8 @@ class SettingsScreen extends ConsumerWidget {
               error: (_, __) => '',
             )),
             trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () => _showCurrencyDialog(
-                context, ref, currencyAsync.value, l10n),
+            onTap: () =>
+                _showCurrencyDialog(context, ref, currencyAsync.value, l10n),
           ),
           const FeatherDivider(),
 
@@ -295,25 +292,32 @@ class SettingsScreen extends ConsumerWidget {
     Locale? currentLocale,
     AppLocalizations l10n,
   ) {
-    // If currentLocale is null (System), we want to check which one is active to show the checkmark.
-    final effectiveLocale = currentLocale ?? Localizations.localeOf(context);
-
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(l10n.language),
-        children: AppLanguages.supportedLocales.map((locale) {
-          return FeatherDialogOption(
-            label: AppLanguages.getName(locale, l10n),
-            value: locale,
-            // Compare by languageCode to be safe against 'en' vs 'en_US'
-            groupValue: effectiveLocale,
+        children: [
+          FeatherDialogOption<Locale?>(
+            label: l10n.followSystem,
+            value: null,
+            groupValue: currentLocale,
             onChanged: (value) {
               ref.read(localeControllerProvider.notifier).setLocale(value);
               Navigator.pop(context);
             },
-          );
-        }).toList(),
+          ),
+          ...AppLanguages.supportedLocales.map((locale) {
+            return FeatherDialogOption<Locale?>(
+              label: AppLanguages.getName(locale, l10n),
+              value: locale,
+              groupValue: currentLocale,
+              onChanged: (value) {
+                ref.read(localeControllerProvider.notifier).setLocale(value);
+                Navigator.pop(context);
+              },
+            );
+          }),
+        ],
       ),
     );
   }
@@ -355,11 +359,8 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  String _getLocaleLabel(
-      BuildContext context, Locale? locale, AppLocalizations l10n) {
-    final effectiveLocale = locale ?? Localizations.localeOf(context);
-    return AppLanguages.getName(effectiveLocale, l10n);
-  }
+  String _getLocaleLabel(Locale? locale, AppLocalizations l10n) =>
+      locale == null ? l10n.followSystem : AppLanguages.getName(locale, l10n);
 }
 
 /// Opens the platform file dialog and returns the chosen backup, or null if

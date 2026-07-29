@@ -340,6 +340,12 @@ abstract class AppLocalizations {
   /// **'System'**
   String get system;
 
+  /// Language preference that uses the device language
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system'**
+  String get followSystem;
+
   /// Light theme option
   ///
   /// In en, this message translates to:

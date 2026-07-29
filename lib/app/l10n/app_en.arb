@@ -156,6 +156,10 @@
   "@system": {
     "description": "System theme option"
   },
+  "followSystem": "Follow system",
+  "@followSystem": {
+    "description": "Language preference that uses the device language"
+  },
   "light": "Light",
   "@light": {
     "description": "Light theme option"

@@ -156,6 +156,10 @@
   "@system": {
     "description": "系统主题选项"
   },
+  "followSystem": "跟随系统",
+  "@followSystem": {
+    "description": "使用设备语言的语言偏好"
+  },
   "light": "浅色",
   "@light": {
     "description": "浅色主题选项"

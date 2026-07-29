@@ -156,6 +156,10 @@
   "@system": {
     "description": "系統主題選項"
   },
+  "followSystem": "跟隨系統",
+  "@followSystem": {
+    "description": "使用裝置語言的語言偏好"
+  },
   "light": "淺色",
   "@light": {
     "description": "淺色主題選項"
