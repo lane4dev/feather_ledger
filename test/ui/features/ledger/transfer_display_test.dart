@@ -166,6 +166,14 @@ void main() {
     expect(find.text('Food'), findsNothing);
     expect(find.text('Type'), findsOneWidget);
   });
+
+  testWidgets('receipt number and barcode are generated from date and time',
+      (tester) async {
+    await pumpSheet(
+        tester, tile(type: TransactionKind.expense, displaySign: '-'));
+
+    expect(find.byKey(const ValueKey('transaction-barcode')), findsOneWidget);
+  });
 }
 
 /// Pins the display currency so the sheet does not read SharedPreferences.

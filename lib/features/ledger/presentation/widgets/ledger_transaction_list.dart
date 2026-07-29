@@ -28,7 +28,8 @@ class LedgerTransactionList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final transactionsAsync = ref.watch(ledgerMonthlyTransactionsProvider(month));
+    final transactionsAsync =
+        ref.watch(ledgerMonthlyTransactionsProvider(month));
 
     // Wrap in a container with background color to prevent transparency issues during slide
     return Container(
@@ -73,6 +74,7 @@ class LedgerTransactionList extends ConsumerWidget {
                     isScrollControlled: true,
                     useRootNavigator: true,
                     useSafeArea: true,
+                    backgroundColor: Colors.transparent,
                     builder: (context) => TransactionDetailSheet(
                       transaction: tx,
                       currencySymbol: currency,
@@ -112,8 +114,7 @@ class LedgerTransactionList extends ConsumerWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        failure.code.message(l10n))),
+                                    content: Text(failure.code.message(l10n))),
                               );
                             }
                           }
