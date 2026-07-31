@@ -584,6 +584,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get repeat => '重复';
 
   @override
+  String get transactionModeDefault => '默认';
+
+  @override
+  String get transactionModePlanned => '计划';
+
+  @override
+  String get transactionModeSubscription => '订阅';
+
+  @override
+  String get transactionModeRepeating => '重复';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -1189,6 +1201,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get repeat => '重复';
 
   @override
+  String get transactionModeDefault => '默认';
+
+  @override
+  String get transactionModePlanned => '计划';
+
+  @override
+  String get transactionModeSubscription => '订阅';
+
+  @override
+  String get transactionModeRepeating => '重复';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -1792,6 +1816,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get repeat => '重複';
+
+  @override
+  String get transactionModeDefault => '預設';
+
+  @override
+  String get transactionModePlanned => '計畫';
+
+  @override
+  String get transactionModeSubscription => '訂閱';
+
+  @override
+  String get transactionModeRepeating => '重複';
 
   @override
   String get repeatNever => '不重複';

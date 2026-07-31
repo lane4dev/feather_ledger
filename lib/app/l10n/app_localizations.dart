@@ -1241,6 +1241,30 @@ abstract class AppLocalizations {
   /// **'Repeat'**
   String get repeat;
 
+  /// No description provided for @transactionModeDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get transactionModeDefault;
+
+  /// No description provided for @transactionModePlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get transactionModePlanned;
+
+  /// No description provided for @transactionModeSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get transactionModeSubscription;
+
+  /// No description provided for @transactionModeRepeating.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating'**
+  String get transactionModeRepeating;
+
   /// No description provided for @repeatNever.
   ///
   /// In en, this message translates to:

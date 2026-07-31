@@ -55,6 +55,7 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
 
 class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  _TransactionFormMode _formMode = _TransactionFormMode.defaultMode;
 
   /// The fields' view of the two text values. The values themselves live in
   /// the view model; these only carry them into the widgets, and are seeded
@@ -203,6 +204,17 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     autofocus: !state.isEditing,
                   ),
                 ),
+
+                if (!state.isBalancePurpose) ...[
+                  SizedBox(height: context.spacing.md),
+                  _inset(
+                    _TransactionFormModeSelector(
+                      selected: _formMode,
+                      onSelected: (mode) => setState(() => _formMode = mode),
+                      l10n: l10n,
+                    ),
+                  ),
+                ],
                 SizedBox(height: context.spacing.lg),
 
                 _inset(const FeatherDivider()),
@@ -780,4 +792,45 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+/// Presentation-only transaction modes. They deliberately do not change the
+/// form's command or recurring rules yet; this selector establishes the
+/// Calendar-like visual distinction before those behaviours are introduced.
+enum _TransactionFormMode { defaultMode, planned, subscription, repeating }
+
+class _TransactionFormModeSelector extends StatelessWidget {
+  const _TransactionFormModeSelector({
+    required this.selected,
+    required this.onSelected,
+    required this.l10n,
+  });
+
+  final _TransactionFormMode selected;
+  final ValueChanged<_TransactionFormMode> onSelected;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: context.spacing.sm,
+      runSpacing: context.spacing.sm,
+      children: [
+        for (final mode in _TransactionFormMode.values)
+          ChoiceChip(
+            label: Text(_label(mode)),
+            selected: selected == mode,
+            showCheckmark: false,
+            onSelected: (_) => onSelected(mode),
+          ),
+      ],
+    );
+  }
+
+  String _label(_TransactionFormMode mode) => switch (mode) {
+        _TransactionFormMode.defaultMode => l10n.transactionModeDefault,
+        _TransactionFormMode.planned => l10n.transactionModePlanned,
+        _TransactionFormMode.subscription => l10n.transactionModeSubscription,
+        _TransactionFormMode.repeating => l10n.transactionModeRepeating,
+      };
 }

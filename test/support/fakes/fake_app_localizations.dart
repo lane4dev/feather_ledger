@@ -7,6 +7,18 @@ class FakeAppLocalizations implements AppLocalizations {
   String get localeName => 'en'; // Added missing concrete implementation
 
   @override
+  String get transactionModeDefault => 'Default';
+
+  @override
+  String get transactionModePlanned => 'Planned';
+
+  @override
+  String get transactionModeSubscription => 'Subscription';
+
+  @override
+  String get transactionModeRepeating => 'Repeating';
+
+  @override
   String get appTitle => 'Feather Ledger';
 
   @override

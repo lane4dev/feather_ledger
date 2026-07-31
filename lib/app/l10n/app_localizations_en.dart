@@ -602,6 +602,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repeat => 'Repeat';
 
   @override
+  String get transactionModeDefault => 'Default';
+
+  @override
+  String get transactionModePlanned => 'Planned';
+
+  @override
+  String get transactionModeSubscription => 'Subscription';
+
+  @override
+  String get transactionModeRepeating => 'Repeating';
+
+  @override
   String get repeatNever => 'Does not repeat';
 
   @override

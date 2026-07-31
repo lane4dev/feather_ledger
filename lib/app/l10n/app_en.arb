@@ -638,6 +638,10 @@
   "noSearchResults": "No matching transactions",
   "pendingBill": "Pending",
   "repeat": "Repeat",
+  "transactionModeDefault": "Default",
+  "transactionModePlanned": "Planned",
+  "transactionModeSubscription": "Subscription",
+  "transactionModeRepeating": "Repeating",
   "repeatNever": "Does not repeat",
   "repeatSetupFailed": "Saved. The repeat could not be set up: {error}",
   "@repeatSetupFailed": {
