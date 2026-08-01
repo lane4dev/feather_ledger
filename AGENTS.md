@@ -127,9 +127,10 @@ lib/shared/     跨特性的组件与扩展
 
 这是账本中唯一**刻意不做**事件溯源的部分，也是重建存在豁免名单的原因。
 
-- `recurring_series` 存规则（frequency、interval、start/end、count）；`scheduled_transactions_view`
+- `recurring_series` 存规则（frequency、interval、start/end、count、autoPost）；`scheduled_transactions_view`
   存物化出来的实例，状态为 `scheduled | posted | skipped | failed`。两者都是 CRUD 表 —— 直接写入，
-  永不重建，投影器永不触碰。
+  永不重建，投影器永不触碰。`autoPost`（v5 加列，addColumn-only 迁移、默认 `false` 回填旧行；CRUD
+  豁免表不重建，所以**不升** `ledgerProjectionVersion`）标记订阅系列：到期实例由应用在启动时入账。
 - `ProjectRecurringEventsCommand` 用 `package:rrule` 按**滚动 90 天窗口、夹在 [3, 12]** 物化实例：
   填满窗口；窗口内不足 3 个就继续向后取到 3 个（上限再放 3 年，兜住每年规则）；任何时候不物化超过 12 个。
   于是 每月→3、每周→12、每年→3、每日→12，不需要按频率写规则。id 形如
@@ -142,11 +143,21 @@ lib/shared/     跨特性的组件与扩展
   **并且**它的状态在同一个 append 事务里翻转。
 - 这里的金额与币种代码同样遵循最小单位规则（`amountMinor`）。
 - `RecurringService` 是这条链路唯一的服务入口（`createSeries` / `deleteBill` /
-  `postInstance` / `materialize` / `watchSeries` / `watchScheduled`）；
-  三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者）。
-- 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动）。
-- **周期没有自己的页面。** 规则在交易表单里设置（非转账的新建交易上有一行「重复」，`interval` 固定为 1，
-  保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生），待入账账单直接**混在账本列表里**
+  `postInstance` / `materialize` / `watchSeries` / `watchScheduled` / `catchUpAutoPosted`）；
+  三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者——
+  `catchUpAutoPosted` 是例外：它转手 `postInstance` 并传**确定性**的 `'autopost-<instanceId>'`）。
+- 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动），随后跑
+  `catchUpAutoPosted`：把自动入账系列里**已到期**的 `scheduled` 实例逐个转正。它与 materialize
+  一样**await**（首帧会读它写的交易）；双重幂等（状态翻转与 append 同事务 + 确定性 commandId
+  在 append 时去重），失败的那笔留在待入账列表里——那条 tile 就是报告——不挡其他实例。
+- **周期没有自己的页面。** 规则在交易表单里设置：新建收支的**模式选择器**（默认 / 计划 / 订阅 / 重复，
+  `TransactionFormMode`，住在 `transaction_form_view_state.dart`，经 `setMode` 拥有频率——
+  进系列模式播种 MONTHLY、离开归 NEVER，picker 不提供「不重复」）决定「重复」行是否出现；
+  `interval` 固定为 1。保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生。**计划**不记账、
+  只建一条一次性系列（`startDate == endDate`，`CreateRecurringSeriesCommand` 只拒*早于*起点的
+  end date；UNTIL 闭区间 ⇒ 恰好一个实例），表单因此在该模式下隐藏附件行（系列行带不了文件）；
+  系列失败**就是**保存失败（没有「先记账」可保）。**订阅**与重复同形，仅多 `autoPost: true`。
+  模式选择器只对 `canRepeat`（新建 + 非转账）渲染，待入账账单直接**混在账本列表里**
   按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 编辑 / 删除。编辑是右上角的铅笔、
   删除是它旁边的**溢出菜单**，与已入账交易的详情抽屉**共用同一个 `LedgerDeleteMenu`** —— 同一个手势、
   同一个角落、同一个错误色，两者的入口因此不会各自漂移。`RecurringViewModel`
@@ -284,7 +295,9 @@ lib/shared/     跨特性的组件与扩展
   - **提交结果是密封类**（`TransactionFormSaved` / `TransactionFormSavedSeriesFailed` / `TransactionFormSaveFailed`）：视图模型从不碰 SnackBar、对话框与路由，失败只带 `LedgerErrorCode`。超支不是结果的一种，而是写入**之前**的问题（`wouldOverdraft()`），所以屏幕问、视图模型判断。
 - **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账（用户能选的就这三种，账本自己造的两种余额用途只在这条表单上**以只读形式**出现）。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
 - 路由只有 `/ledger/add` 与 `/ledger/edit`：kind 由表单**自己的类型选择器**决定，或（编辑时）由 `extra` 里的交易决定。**转账没有独立入口**——账本页右上角的转账按钮已移除，转账在表单里面选。不要为某个 kind 再加一个路由或快捷入口。
-- `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种（**用户能选的只有这三种**）；「重复」行只在非 transfer 时才渲染 —— 一个系列只有一个账户，transfer 对它不可表达（ADR-0002）。
+- `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种（**用户能选的只有这三种**）。模式选择器
+  （默认/计划/订阅/重复）与「重复」行都**只在 `canRepeat`**（新建 + 非 transfer + 非余额用途）时渲染 ——
+  一个系列只有一个账户，transfer 对它不可表达（ADR-0002），编辑不碰系列。频率属于模式（见「周期与预约交易」节）。
 - **两种余额用途不是"用户能选的 kind"，所以表单不为它们渲染选择器**：编辑一条 `openingBalance` / `balanceAdjustment` 时，kind 那一行、分类那一行、账户选择器都换成只读的 `LedgerDetailRow`（账户不能改、分类不存在、"重复"也不给）。往一个只认三种的表单里塞第四种会当场炸——`SegmentedButton` 的 `selected` 必须在 `segments` 里。
 - 「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。同账户同理（候选排除 + 一条兜底校验）。
 - 金额输入框的币种符号：转账用「从」账户的币种（两条腿同币种），收支用全局显示偏好。
@@ -378,6 +391,8 @@ lib/shared/     跨特性的组件与扩展
 - **Drift `schemaVersion` 与重建版本号是两回事，但改列时两个都要动。** `schemaVersion` 从 1 升到 2 是因为
   `accounts_view` 多了 `include_in_totals`（`onUpgrade` 里 `addColumn`）；`ledgerProjectionVersion` 升到 3
   则是让每一次启动都重推一遍——**迁移因此是自愈的**：不管 ALTER 留下了什么，投影都会从事件重新导出。
+  **例外先例（v5）**：`recurring_series` 加 `auto_post` 时只升了 `schemaVersion`（addColumn + 默认值回填），
+  **没升** `ledgerProjectionVersion` —— 那张表是 CRUD 豁免、不从事件重建，重推版本号纯属空转。
   ⚠️ `onUpgrade` **只能用 `addColumn`，绝不能 `deleteTable`/`createTable`**：`LedgerRebuildService.isStale()`
   是四个视图版本号汇成列表后 `.any(...)`，**空表返回 false**，派生表被删空就再也不会触发重建，账本会在事件
   存储完好的情况**永久空白且不报错**。回归测试：`test/unit/core/database/app_database_test.dart` 里那条

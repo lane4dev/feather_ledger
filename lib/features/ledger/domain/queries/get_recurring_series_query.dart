@@ -26,6 +26,7 @@ class GetRecurringSeriesQuery {
       frequency: seriesRow.frequency,
       interval: seriesRow.interval,
       limit: seriesRow.countLimit,
+      autoPost: seriesRow.autoPost,
     );
   }
 }

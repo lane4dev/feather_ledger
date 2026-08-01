@@ -621,7 +621,7 @@ final class LedgerViewModelProvider
   }
 }
 
-String _$ledgerViewModelHash() => r'787d06e51c9dfb232e6b54173d4f18d53a245357';
+String _$ledgerViewModelHash() => r'f112acc654a39f55d661a692c9cec1d15d88f82f';
 
 abstract class _$LedgerViewModel extends $Notifier<LedgerViewState> {
   LedgerViewState build();

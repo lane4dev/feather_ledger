@@ -55,7 +55,6 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
 
 class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  _TransactionFormMode _formMode = _TransactionFormMode.defaultMode;
 
   /// The fields' view of the two text values. The values themselves live in
   /// the view model; these only carry them into the widgets, and are seeded
@@ -205,12 +204,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                 ),
 
-                if (!state.isBalancePurpose) ...[
+                if (state.canRepeat) ...[
                   SizedBox(height: context.spacing.md),
                   _inset(
                     _TransactionFormModeSelector(
-                      selected: _formMode,
-                      onSelected: (mode) => setState(() => _formMode = mode),
+                      selected: state.mode,
+                      onSelected: vm.setMode,
                       l10n: l10n,
                     ),
                   ),
@@ -237,7 +236,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                 ),
 
-                if (state.canRepeat) ...[
+                if (state.showsRepeatRow) ...[
                   const SizedBox(height: 8),
                   _repeatRow(l10n, labelWidth, state),
                 ],
@@ -410,9 +409,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
                 // Files are listed in-place like Calendar attachments. They are
                 // imported only when Save is pressed, so cancelling is clean.
-                _attachmentRow(l10n, labelWidth, state),
-
-                SizedBox(height: context.spacing.sm),
+                // A 计划 saves a series row, which carries no attachments.
+                if (state.showsAttachments) ...[
+                  _attachmentRow(l10n, labelWidth, state),
+                  SizedBox(height: context.spacing.sm),
+                ],
 
                 SizedBox(height: context.spacing.xl),
               ],
@@ -594,8 +595,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         ),
       );
 
-  /// Five plain options, and picking one is the whole answer — a menu, not a
-  /// question, so it carries no confirm button.
+  /// Four plain options, and picking one is the whole answer — a menu, not a
+  /// question, so it carries no confirm button. "Does not repeat" is not among
+  /// them: the row only exists in a series mode, and the mode already said
+  /// "repeats".
   ///
   /// The account and category rows open sheets instead because their lists are
   /// long and each row carries an icon, a balance and a way through to
@@ -607,7 +610,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       builder: (context) => SimpleDialog(
         title: Text(l10n.repeat),
         children: [
-          for (final option in TransactionFormViewState.repeatOptions)
+          for (final option in TransactionFormViewState.repeatFrequencies)
             FeatherDialogOption<String>(
               label: _repeatOptionLabel(l10n, option),
               value: option,
@@ -794,11 +797,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 }
 
-/// Presentation-only transaction modes. They deliberately do not change the
-/// form's command or recurring rules yet; this selector establishes the
-/// Calendar-like visual distinction before those behaviours are introduced.
-enum _TransactionFormMode { defaultMode, planned, subscription, repeating }
-
+/// The four modes the form offers (see [TransactionFormMode]): what the entry
+/// is, chosen before the details. Rendered only where a mode is meaningful —
+/// a new income/expense entry.
 class _TransactionFormModeSelector extends StatelessWidget {
   const _TransactionFormModeSelector({
     required this.selected,
@@ -806,8 +807,8 @@ class _TransactionFormModeSelector extends StatelessWidget {
     required this.l10n,
   });
 
-  final _TransactionFormMode selected;
-  final ValueChanged<_TransactionFormMode> onSelected;
+  final TransactionFormMode selected;
+  final ValueChanged<TransactionFormMode> onSelected;
   final AppLocalizations l10n;
 
   @override
@@ -816,7 +817,7 @@ class _TransactionFormModeSelector extends StatelessWidget {
       spacing: context.spacing.sm,
       runSpacing: context.spacing.sm,
       children: [
-        for (final mode in _TransactionFormMode.values)
+        for (final mode in TransactionFormMode.values)
           ChoiceChip(
             label: Text(_label(mode)),
             selected: selected == mode,
@@ -827,10 +828,10 @@ class _TransactionFormModeSelector extends StatelessWidget {
     );
   }
 
-  String _label(_TransactionFormMode mode) => switch (mode) {
-        _TransactionFormMode.defaultMode => l10n.transactionModeDefault,
-        _TransactionFormMode.planned => l10n.transactionModePlanned,
-        _TransactionFormMode.subscription => l10n.transactionModeSubscription,
-        _TransactionFormMode.repeating => l10n.transactionModeRepeating,
+  String _label(TransactionFormMode mode) => switch (mode) {
+        TransactionFormMode.defaultMode => l10n.transactionModeDefault,
+        TransactionFormMode.planned => l10n.transactionModePlanned,
+        TransactionFormMode.subscription => l10n.transactionModeSubscription,
+        TransactionFormMode.repeating => l10n.transactionModeRepeating,
       };
 }

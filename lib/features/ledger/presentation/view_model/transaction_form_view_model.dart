@@ -87,10 +87,42 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
 
   void selectToAccount(String id) => state = state.copyWith(toAccountId: id);
 
+  /// The mode owns the frequency: a series mode always has one (MONTHLY floor,
+  /// never "does not repeat" — the mode already answered that), and the other
+  /// modes never do. Entering 计划 also drops picked files: a series cannot
+  /// carry them, and an invisible list is a leak.
+  void setMode(TransactionFormMode mode) {
+    if (mode == state.mode) return;
+    final wantsFrequency = mode == TransactionFormMode.repeating ||
+        mode == TransactionFormMode.subscription;
+    state = state.copyWith(
+      mode: mode,
+      repeat: wantsFrequency
+          ? (state.repeat == TransactionFormViewState.repeatNever
+              ? 'MONTHLY'
+              : state.repeat)
+          : TransactionFormViewState.repeatNever,
+      pendingAttachments: mode == TransactionFormMode.planned
+          ? const []
+          : state.pendingAttachments,
+    );
+  }
+
   /// Switching kind clears what the new kind cannot carry, rather than leaving
-  /// a value in a field it does not render.
+  /// a value in a field it does not render. A transfer cannot be a series
+  /// (ADR-0002) and has no plan to make either, so the mode goes with them.
   void setType(TransactionKind type) {
     if (type == state.type) return;
+    if (type == TransactionKind.transfer) {
+      state = state.copyWith(
+        type: type,
+        categoryId: null,
+        toAccountId: null,
+        mode: TransactionFormMode.defaultMode,
+        repeat: TransactionFormViewState.repeatNever,
+      );
+      return;
+    }
     state = state.copyWith(type: type, categoryId: null, toAccountId: null);
   }
 
@@ -127,6 +159,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// own money, so it is left alone until that is decided.
   bool wouldOverdraft() {
     final amount = state.amountMinor;
+    if (state.mode == TransactionFormMode.planned) return false; // no money moves
     if (state.type != TransactionKind.expense ||
         state.accountId == null ||
         amount == null) {
@@ -148,6 +181,18 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     final amountMinor = form.amountMinor;
     if (amountMinor == null) {
       return const TransactionFormSaveFailed(LedgerErrorCode.invalidAmount);
+    }
+
+    // 计划: nothing is recorded and nothing moves. The series *is* the save —
+    // a one-shot rule whose single instance is the bill being planned — so a
+    // failure here is the save failing, and no attachments are imported (the
+    // row that would carry them is never created).
+    if (form.mode == TransactionFormMode.planned) {
+      final series = await _createPlannedSeries(form, amountMinor);
+      return switch (series) {
+        Failure(:final code) => TransactionFormSaveFailed(code),
+        Success() => const TransactionFormSaved(),
+      };
     }
 
     final imported = await _importPending();
@@ -225,7 +270,9 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     // Only once the money is recorded. If this fails the entry stands — it is a
     // real movement either way, and unwinding it because a schedule could not
     // be created would destroy a correct record to tidy up a separate one.
-    if (!form.canRepeat || form.repeat == TransactionFormViewState.repeatNever) {
+    if (!form.canRepeat ||
+        !form.wantsSeries ||
+        form.repeat == TransactionFormViewState.repeatNever) {
       return const TransactionFormSaved();
     }
     final series = await _startSeries(form, amountMinor);
@@ -258,11 +305,6 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     TransactionFormViewState form,
     int amountMinor,
   ) {
-    final categories = ref.read(categoryListProvider(form.categoryType)).value;
-    final categoryName =
-        categories?.where((c) => c.id == form.categoryId).firstOrNull?.name ??
-            '';
-
     return ref.read(recurringServiceProvider).createSeries(
           type: form.type == TransactionKind.income
               ? RecurringSeriesKind.income
@@ -270,17 +312,50 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           amountMinor: amountMinor,
           accountId: form.accountId!,
           categoryId: form.categoryId!,
-          // A series must be named — the ledger list shows this. The note is
-          // what the user called it; failing that, the category.
-          description: form.note.trim().isEmpty
-              ? categoryName
-              : form.note.trim(),
+          description: _seriesDescription(form),
           frequency: form.repeat,
           // The form's repeat row has no interval control: every rule is
           // "every one".
           interval: 1,
           startDate: nextOccurrence(form.date, form.repeat),
+          // 订阅: the app confirms each due instance at launch instead of
+          // waiting for the user's 记入.
+          autoPost: form.mode == TransactionFormMode.subscription,
         );
+  }
+
+  /// 计划: the series is the whole save. A one-shot rule (`startDate ==
+  /// endDate`, UNTIL is inclusive) materializes exactly the one bill being
+  /// planned, on the chosen day, into the pending list.
+  Future<Result<void>> _createPlannedSeries(
+    TransactionFormViewState form,
+    int amountMinor,
+  ) {
+    return ref.read(recurringServiceProvider).createSeries(
+          type: form.type == TransactionKind.income
+              ? RecurringSeriesKind.income
+              : RecurringSeriesKind.expense,
+          amountMinor: amountMinor,
+          accountId: form.accountId!,
+          categoryId: form.categoryId!,
+          description: _seriesDescription(form),
+          // Meaningless for a one-shot (UNTIL caps it at one instance), but
+          // the column is non-null.
+          frequency: 'MONTHLY',
+          interval: 1,
+          startDate: form.date,
+          endDate: form.date,
+        );
+  }
+
+  /// A series must be named — the ledger list shows this. The note is what the
+  /// user called it; failing that, the category.
+  String _seriesDescription(TransactionFormViewState form) {
+    final categories = ref.read(categoryListProvider(form.categoryType)).value;
+    final categoryName =
+        categories?.where((c) => c.id == form.categoryId).firstOrNull?.name ??
+            '';
+    return form.note.trim().isEmpty ? categoryName : form.note.trim();
   }
 
   /// The first occurrence *after* the one being recorded — the entry the user

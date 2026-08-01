@@ -37,6 +37,7 @@ class CreateRecurringSeriesCommand {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    bool autoPost = false,
   }) async {
     if (amountMinor <= 0) {
       throw const CommandRejected(
@@ -46,9 +47,11 @@ class CreateRecurringSeriesCommand {
       throw const CommandRejected(
           LedgerErrorCode.invalidAmount, 'Series interval must be at least 1');
     }
-    if (endDate != null && !endDate.isAfter(startDate)) {
+    if (endDate != null && endDate.isBefore(startDate)) {
+      // Equal is the one-shot series (计划): UNTIL is inclusive, so a rule
+      // capped at its own start date yields exactly one instance.
       throw const CommandRejected(LedgerErrorCode.invalidAmount,
-          'Series end date must be after its start date');
+          'Series end date must not be before its start date');
     }
 
     // The same red lines a manual record runs: the account and category must
@@ -78,6 +81,7 @@ class CreateRecurringSeriesCommand {
         categoryId: categoryId,
         accountId: accountId,
         type: type,
+        autoPost: Value(autoPost),
       ),
     );
   }

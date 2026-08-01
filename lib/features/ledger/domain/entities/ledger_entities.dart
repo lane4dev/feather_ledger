@@ -191,6 +191,11 @@ class RecurringTransactionSeriesEntity {
   final int? interval; // e.g., every '2' months
   final int? limit; // e.g., limit to '5' occurrences
 
+  /// Whether due instances post themselves at launch (订阅). Required here so
+  /// a construction site cannot silently drop it — the flag rides every
+  /// series rewrite (edit scopes) or the split series loses auto-posting.
+  final bool autoPost;
+
   const RecurringTransactionSeriesEntity({
     required this.id,
     required this.description,
@@ -203,5 +208,6 @@ class RecurringTransactionSeriesEntity {
     this.endDate,
     this.interval,
     this.limit,
+    required this.autoPost,
   });
 }

@@ -2635,6 +2635,16 @@ class $RecurringSeriesTable extends RecurringSeries
               type: DriftSqlType.int, requiredDuringInsert: true)
           .withConverter<RecurringSeriesKind>(
               $RecurringSeriesTable.$convertertype);
+  static const VerificationMeta _autoPostMeta =
+      const VerificationMeta('autoPost');
+  @override
+  late final GeneratedColumn<bool> autoPost = GeneratedColumn<bool>(
+      'auto_post', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("auto_post" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2648,7 +2658,8 @@ class $RecurringSeriesTable extends RecurringSeries
         description,
         categoryId,
         accountId,
-        type
+        type,
+        autoPost
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2727,6 +2738,10 @@ class $RecurringSeriesTable extends RecurringSeries
     } else if (isInserting) {
       context.missing(_accountIdMeta);
     }
+    if (data.containsKey('auto_post')) {
+      context.handle(_autoPostMeta,
+          autoPost.isAcceptableOrUnknown(data['auto_post']!, _autoPostMeta));
+    }
     return context;
   }
 
@@ -2761,6 +2776,8 @@ class $RecurringSeriesTable extends RecurringSeries
       type: $RecurringSeriesTable.$convertertype.fromSql(attachedDatabase
           .typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}type'])!),
+      autoPost: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}auto_post'])!,
     );
   }
 
@@ -2787,6 +2804,11 @@ class RecurringSeriesRow extends DataClass
   final String categoryId;
   final String accountId;
   final RecurringSeriesKind type;
+
+  /// Whether due instances post themselves at launch (订阅). The schedule is
+  /// unchanged — this only says who confirms each instance: the app, or the
+  /// user tapping 记入.
+  final bool autoPost;
   const RecurringSeriesRow(
       {required this.id,
       required this.rrule,
@@ -2799,7 +2821,8 @@ class RecurringSeriesRow extends DataClass
       required this.description,
       required this.categoryId,
       required this.accountId,
-      required this.type});
+      required this.type,
+      required this.autoPost});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2824,6 +2847,7 @@ class RecurringSeriesRow extends DataClass
       map['type'] =
           Variable<int>($RecurringSeriesTable.$convertertype.toSql(type));
     }
+    map['auto_post'] = Variable<bool>(autoPost);
     return map;
   }
 
@@ -2847,6 +2871,7 @@ class RecurringSeriesRow extends DataClass
       categoryId: Value(categoryId),
       accountId: Value(accountId),
       type: Value(type),
+      autoPost: Value(autoPost),
     );
   }
 
@@ -2867,6 +2892,7 @@ class RecurringSeriesRow extends DataClass
       accountId: serializer.fromJson<String>(json['accountId']),
       type: $RecurringSeriesTable.$convertertype
           .fromJson(serializer.fromJson<int>(json['type'])),
+      autoPost: serializer.fromJson<bool>(json['autoPost']),
     );
   }
   @override
@@ -2886,6 +2912,7 @@ class RecurringSeriesRow extends DataClass
       'accountId': serializer.toJson<String>(accountId),
       'type': serializer
           .toJson<int>($RecurringSeriesTable.$convertertype.toJson(type)),
+      'autoPost': serializer.toJson<bool>(autoPost),
     };
   }
 
@@ -2901,7 +2928,8 @@ class RecurringSeriesRow extends DataClass
           String? description,
           String? categoryId,
           String? accountId,
-          RecurringSeriesKind? type}) =>
+          RecurringSeriesKind? type,
+          bool? autoPost}) =>
       RecurringSeriesRow(
         id: id ?? this.id,
         rrule: rrule ?? this.rrule,
@@ -2915,6 +2943,7 @@ class RecurringSeriesRow extends DataClass
         categoryId: categoryId ?? this.categoryId,
         accountId: accountId ?? this.accountId,
         type: type ?? this.type,
+        autoPost: autoPost ?? this.autoPost,
       );
   RecurringSeriesRow copyWithCompanion(RecurringSeriesCompanion data) {
     return RecurringSeriesRow(
@@ -2934,6 +2963,7 @@ class RecurringSeriesRow extends DataClass
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       type: data.type.present ? data.type.value : this.type,
+      autoPost: data.autoPost.present ? data.autoPost.value : this.autoPost,
     );
   }
 
@@ -2951,7 +2981,8 @@ class RecurringSeriesRow extends DataClass
           ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
           ..write('accountId: $accountId, ')
-          ..write('type: $type')
+          ..write('type: $type, ')
+          ..write('autoPost: $autoPost')
           ..write(')'))
         .toString();
   }
@@ -2969,7 +3000,8 @@ class RecurringSeriesRow extends DataClass
       description,
       categoryId,
       accountId,
-      type);
+      type,
+      autoPost);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2985,7 +3017,8 @@ class RecurringSeriesRow extends DataClass
           other.description == this.description &&
           other.categoryId == this.categoryId &&
           other.accountId == this.accountId &&
-          other.type == this.type);
+          other.type == this.type &&
+          other.autoPost == this.autoPost);
 }
 
 class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
@@ -3001,6 +3034,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
   final Value<String> categoryId;
   final Value<String> accountId;
   final Value<RecurringSeriesKind> type;
+  final Value<bool> autoPost;
   final Value<int> rowid;
   const RecurringSeriesCompanion({
     this.id = const Value.absent(),
@@ -3015,6 +3049,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.categoryId = const Value.absent(),
     this.accountId = const Value.absent(),
     this.type = const Value.absent(),
+    this.autoPost = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecurringSeriesCompanion.insert({
@@ -3030,6 +3065,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     required String categoryId,
     required String accountId,
     required RecurringSeriesKind type,
+    this.autoPost = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         rrule = Value(rrule),
@@ -3053,6 +3089,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     Expression<String>? categoryId,
     Expression<String>? accountId,
     Expression<int>? type,
+    Expression<bool>? autoPost,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3068,6 +3105,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       if (categoryId != null) 'category_id': categoryId,
       if (accountId != null) 'account_id': accountId,
       if (type != null) 'type': type,
+      if (autoPost != null) 'auto_post': autoPost,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3085,6 +3123,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       Value<String>? categoryId,
       Value<String>? accountId,
       Value<RecurringSeriesKind>? type,
+      Value<bool>? autoPost,
       Value<int>? rowid}) {
     return RecurringSeriesCompanion(
       id: id ?? this.id,
@@ -3099,6 +3138,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       categoryId: categoryId ?? this.categoryId,
       accountId: accountId ?? this.accountId,
       type: type ?? this.type,
+      autoPost: autoPost ?? this.autoPost,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3143,6 +3183,9 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       map['type'] =
           Variable<int>($RecurringSeriesTable.$convertertype.toSql(type.value));
     }
+    if (autoPost.present) {
+      map['auto_post'] = Variable<bool>(autoPost.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3164,6 +3207,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
           ..write('categoryId: $categoryId, ')
           ..write('accountId: $accountId, ')
           ..write('type: $type, ')
+          ..write('autoPost: $autoPost, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5814,6 +5858,7 @@ typedef $$RecurringSeriesTableCreateCompanionBuilder = RecurringSeriesCompanion
   required String categoryId,
   required String accountId,
   required RecurringSeriesKind type,
+  Value<bool> autoPost,
   Value<int> rowid,
 });
 typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
@@ -5830,6 +5875,7 @@ typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
   Value<String> categoryId,
   Value<String> accountId,
   Value<RecurringSeriesKind> type,
+  Value<bool> autoPost,
   Value<int> rowid,
 });
 
@@ -5905,6 +5951,9 @@ class $$RecurringSeriesTableFilterComposer
           column: $table.type,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
+  ColumnFilters<bool> get autoPost => $composableBuilder(
+      column: $table.autoPost, builder: (column) => ColumnFilters(column));
+
   Expression<bool> scheduledTransactionsViewRefs(
       Expression<bool> Function(
               $$ScheduledTransactionsViewTableFilterComposer f)
@@ -5974,6 +6023,9 @@ class $$RecurringSeriesTableOrderingComposer
 
   ColumnOrderings<int> get type => $composableBuilder(
       column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get autoPost => $composableBuilder(
+      column: $table.autoPost, builder: (column) => ColumnOrderings(column));
 }
 
 class $$RecurringSeriesTableAnnotationComposer
@@ -6020,6 +6072,9 @@ class $$RecurringSeriesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<RecurringSeriesKind, int> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoPost =>
+      $composableBuilder(column: $table.autoPost, builder: (column) => column);
 
   Expression<T> scheduledTransactionsViewRefs<T extends Object>(
       Expression<T> Function(
@@ -6082,6 +6137,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<String> categoryId = const Value.absent(),
             Value<String> accountId = const Value.absent(),
             Value<RecurringSeriesKind> type = const Value.absent(),
+            Value<bool> autoPost = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion(
@@ -6097,6 +6153,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             categoryId: categoryId,
             accountId: accountId,
             type: type,
+            autoPost: autoPost,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -6112,6 +6169,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             required String categoryId,
             required String accountId,
             required RecurringSeriesKind type,
+            Value<bool> autoPost = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion.insert(
@@ -6127,6 +6185,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             categoryId: categoryId,
             accountId: accountId,
             type: type,
+            autoPost: autoPost,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

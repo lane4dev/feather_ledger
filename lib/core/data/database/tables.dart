@@ -143,6 +143,11 @@ class RecurringSeries extends Table {
   // has one account, so a transfer is not representable (ADR-0002).
   IntColumn get type => intEnum<RecurringSeriesKind>()();
 
+  /// Whether due instances post themselves at launch (订阅). The schedule is
+  /// unchanged — this only says who confirms each instance: the app, or the
+  /// user tapping 记入.
+  BoolColumn get autoPost => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

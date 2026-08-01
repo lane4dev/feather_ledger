@@ -104,6 +104,17 @@ void main() async {
     debugPrint('recurring catch-up failed: $e');
   }
 
+  // 订阅 catch-up: auto-posting series post their due instances now. Runs
+  // after materialize (which put the due instances on the table) and is
+  // awaited for the same reason — the first frame reads the transactions it
+  // writes. A post that fails leaves its instance pending in the list; the
+  // deterministic commandId means a re-run can never double-post.
+  try {
+    await container.read(recurringServiceProvider).catchUpAutoPosted();
+  } catch (e) {
+    debugPrint('recurring auto-post catch-up failed: $e');
+  }
+
   // Preferences that arrived with a restored backup. Applied exactly once, on
   // the launch AFTER staging — never in the run that staged the restore.
   // SharedPreferences caches in memory per process, so applying them any

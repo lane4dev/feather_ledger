@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +82,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.addColumn(
                 transactionsView, transactionsView.attachmentsJson);
+          }
+          // v5: recurring_series gained `auto_post` (订阅 auto-post).
+          // CRUD-exempt table, never rebuilt — the column default backfills
+          // every existing row, so no upcaster and no projection bump.
+          if (from < 5) {
+            await m.addColumn(recurringSeries, recurringSeries.autoPost);
           }
         },
       );

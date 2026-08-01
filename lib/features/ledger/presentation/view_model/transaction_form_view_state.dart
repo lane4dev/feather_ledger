@@ -7,6 +7,14 @@ import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 
+/// What the entry IS: a record, a plan, or a schedule.
+///
+/// Presentation-layer intent — the domain expresses the same things as a
+/// one-shot series (计划: `startDate == endDate`) and an `autoPost` flag
+/// (订阅), and has no mode concept. [TransactionFormMode.defaultMode] is a
+/// plain recorded entry.
+enum TransactionFormMode { defaultMode, planned, subscription, repeating }
+
 /// What the transaction form is holding, and the rules that read it.
 ///
 /// The amount is the **text** the field shows, not minor units: the field
@@ -26,6 +34,10 @@ class TransactionFormViewState {
 
   /// [repeatNever], or a code from [repeatOptions].
   final String repeat;
+
+  /// What this entry is: a record, a plan, or a schedule. Only meaningful
+  /// where [canRepeat] holds — the selector is not rendered otherwise.
+  final TransactionFormMode mode;
 
   /// The debit leg: the account of an income/expense, and a transfer's **from**.
   final String? accountId;
@@ -48,6 +60,7 @@ class TransactionFormViewState {
     required this.amountText,
     required this.note,
     required this.repeat,
+    required this.mode,
     required this.accountId,
     required this.categoryId,
     required this.toAccountId,
@@ -56,13 +69,8 @@ class TransactionFormViewState {
   });
 
   static const repeatNever = 'NEVER';
-  static const repeatOptions = [
-    repeatNever,
-    'DAILY',
-    'WEEKLY',
-    'MONTHLY',
-    'YEARLY',
-  ];
+  static const repeatFrequencies = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+  static const repeatOptions = [repeatNever, ...repeatFrequencies];
 
   /// A blank entry: the common case, and the one the FAB is for.
   factory TransactionFormViewState.initial() => TransactionFormViewState(
@@ -72,6 +80,7 @@ class TransactionFormViewState {
         amountText: '',
         note: '',
         repeat: repeatNever,
+        mode: TransactionFormMode.defaultMode,
         accountId: null,
         categoryId: null,
         toAccountId: null,
@@ -96,6 +105,7 @@ class TransactionFormViewState {
         // Editing never touches a series: changing a rule is "deactivate and
         // create another".
         repeat: repeatNever,
+        mode: TransactionFormMode.defaultMode,
         accountId: tile.account.id,
         // The mapper hands a transfer an empty category; only a kind that
         // requires one gets to carry an id.
@@ -119,6 +129,7 @@ class TransactionFormViewState {
     String? amountText,
     String? note,
     String? repeat,
+    TransactionFormMode? mode,
     Object? accountId = _unset,
     Object? categoryId = _unset,
     Object? toAccountId = _unset,
@@ -132,6 +143,7 @@ class TransactionFormViewState {
         amountText: amountText ?? this.amountText,
         note: note ?? this.note,
         repeat: repeat ?? this.repeat,
+        mode: mode ?? this.mode,
         accountId:
             identical(accountId, _unset) ? this.accountId : accountId as String?,
         categoryId: identical(categoryId, _unset)
@@ -153,6 +165,23 @@ class TransactionFormViewState {
   /// its series.
   bool get canRepeat =>
       !isTransfer && !isBalancePurpose && original == null;
+
+  /// Whether the frequency row shows: only a series mode has a frequency, and
+  /// only where [canRepeat] holds. Default and 计划 have none — the picker
+  /// never offers "does not repeat", because the mode already answered that.
+  bool get showsRepeatRow =>
+      canRepeat &&
+      (mode == TransactionFormMode.repeating ||
+          mode == TransactionFormMode.subscription);
+
+  /// Whether the attachment row shows. A series row cannot carry attachments,
+  /// and an invisible picked-files list would be a leak.
+  bool get showsAttachments => mode != TransactionFormMode.planned;
+
+  /// Whether saving creates a recurring series (重复 / 订阅).
+  bool get wantsSeries =>
+      mode == TransactionFormMode.repeating ||
+      mode == TransactionFormMode.subscription;
 
   // Categories are typed by CategoryType, which has no transfer member; a
   // transfer has no category at all.

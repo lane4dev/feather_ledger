@@ -153,6 +153,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         frequency: row.frequency,
         interval: row.interval,
         limit: row.countLimit,
+        autoPost: row.autoPost,
       );
 }
 

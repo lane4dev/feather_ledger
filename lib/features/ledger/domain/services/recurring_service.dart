@@ -42,6 +42,9 @@ class RecurringService {
 
   /// Creates a series and immediately materializes it, so a new series shows
   /// up as pending instances instead of only after the next launch.
+  ///
+  /// [autoPost] marks a 订阅 series: due instances post themselves at launch
+  /// (see [catchUpAutoPosted]) instead of waiting for the user's 记入.
   Future<Result<void>> createSeries({
     required RecurringSeriesKind type,
     required int amountMinor,
@@ -52,6 +55,7 @@ class RecurringService {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    bool autoPost = false,
   }) {
     return guard(() async {
       await _createSeries.execute(
@@ -65,6 +69,7 @@ class RecurringService {
         interval: interval,
         startDate: startDate,
         endDate: endDate,
+        autoPost: autoPost,
       );
       await materialize();
     });
@@ -125,6 +130,28 @@ class RecurringService {
   /// Rolls the 90-day window forward for every series. Idempotent, so it is
   /// safe on every launch and after every series creation.
   Future<void> materialize() => _projectInstances.execute();
+
+  /// Launch catch-up for 订阅 series: every `scheduled` instance of an
+  /// auto-posting series whose date has passed becomes a real transaction.
+  ///
+  /// Idempotent twice over: the status flip rides the append transaction, and
+  /// the deterministic commandId (`'autopost-<instanceId>'`) is deduped at
+  /// append time. A failed post leaves the instance `scheduled` and visible in
+  /// the ledger list — that pending tile is the report — and does not stop the
+  /// other instances. Runs after [materialize], which is what puts the due
+  /// instances on the table.
+  Future<void> catchUpAutoPosted() async {
+    final instances = await _watchScheduled.execute().first;
+    final now = DateTime.now();
+    for (final instance in instances) {
+      if (instance.recurringTransactionSeries?.autoPost != true) continue;
+      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
+      if (instance.date.isAfter(now)) continue;
+      // postInstance returns Result and never throws; ignoring it *is* the
+      // "continue on failure" policy above.
+      await postInstance(instance.id, commandId: 'autopost-${instance.id}');
+    }
+  }
 }
 
 @riverpod

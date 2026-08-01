@@ -44,7 +44,10 @@ _Avoid_: correction category, edited account balance
 
 **Recurring series**:
 A rule that produces the same transaction on a schedule. Its kind is income or expense only — a transfer
-has two accounts to move between, and a series has one.
+has two accounts to move between, and a series has one. An auto-posting series has its due instances
+confirmed by the app at launch; the UI label for that is 订阅 (subscription), which stays a label —
+the domain term is recurring series. A one-shot series (start equals end) is the 计划 (planned) entry:
+one pending bill, no recorded transaction.
 _Avoid_: recurring transaction, schedule, subscription
 
 ### Money

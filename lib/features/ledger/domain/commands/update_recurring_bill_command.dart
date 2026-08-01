@@ -186,6 +186,8 @@ class UpdateRecurringBillCommand {
       categoryId: categoryId,
       accountId: accountId,
       type: series.type,
+      // The split is an edit of the same subscription, not a new series.
+      autoPost: Value(series.autoPost),
     ));
 
     // A bill the old rule already recorded must not be billed again by the
@@ -303,6 +305,7 @@ class UpdateRecurringBillCommand {
         categoryId: Value(categoryId ?? series.categoryId),
         accountId: Value(accountId ?? series.accountId),
         type: Value(series.type),
+        autoPost: Value(series.autoPost),
       );
 
   static bool _sameDay(DateTime a, DateTime b) =>
