@@ -449,7 +449,7 @@ void main() {
       vm.setAmountText('500.00');
       vm.selectAccount('acc_cash');
       vm.selectCategory('cat_rent');
-      vm.setRepeat('MONTHLY');
+      vm.setMode(TransactionFormMode.repeating);
 
       final outcome = await vm.submit();
 
@@ -459,6 +459,8 @@ void main() {
       final series = recurring.created.single;
       expect(series['frequency'], 'MONTHLY');
       expect(series['interval'], 1);
+      expect(series['autoPost'], isFalse,
+          reason: '重复 confirms each bill with the user 记入');
       // The first occurrence *after* the one just recorded.
       expect(
         series['startDate'],
@@ -477,7 +479,7 @@ void main() {
       vm.setAmountText('500.00');
       vm.selectAccount('acc_cash');
       vm.selectCategory('cat_rent');
-      vm.setRepeat('MONTHLY');
+      vm.setMode(TransactionFormMode.repeating);
 
       await vm.submit();
       expect(recurring.created.single['description'], 'Rent');
@@ -493,7 +495,7 @@ void main() {
       vm.setAmountText('500.00');
       vm.selectAccount('acc_cash');
       vm.selectCategory('cat_rent');
-      vm.setRepeat('MONTHLY');
+      vm.setMode(TransactionFormMode.repeating);
 
       final outcome = await vm.submit();
 
@@ -502,6 +504,70 @@ void main() {
           LedgerErrorCode.unknownEvent);
       expect(ledger.addedTransactions, hasLength(1),
           reason: 'the record is legitimate on its own');
+    });
+
+    test('the mode owns the frequency: a series mode seeds MONTHLY, leaving resets it',
+        () {
+      final vm = form(container());
+
+      vm.setMode(TransactionFormMode.repeating);
+      expect(vm.state.repeat, 'MONTHLY',
+          reason: 'the row cannot show "does not repeat" — the mode said it does');
+
+      vm.setMode(TransactionFormMode.subscription);
+      expect(vm.state.repeat, 'MONTHLY', reason: 'a series mode keeps its rule');
+
+      vm.setMode(TransactionFormMode.defaultMode);
+      expect(vm.state.repeat, TransactionFormViewState.repeatNever,
+          reason: 'a default entry has no frequency to carry');
+    });
+
+    test('a subscription starts an auto-posting series', () async {
+      final vm = form(container());
+      vm.setAmountText('500.00');
+      vm.selectAccount('acc_cash');
+      vm.selectCategory('cat_rent');
+      vm.setMode(TransactionFormMode.subscription);
+
+      await vm.submit();
+
+      expect(recurring.created.single['autoPost'], isTrue,
+          reason: '订阅 posts its due instances at launch');
+    });
+
+    test('a planned entry creates one bill and records nothing', () async {
+      final vm = form(container());
+      vm.setAmountText('500.00');
+      vm.selectAccount('acc_cash');
+      vm.selectCategory('cat_rent');
+      vm.setMode(TransactionFormMode.planned);
+
+      final outcome = await vm.submit();
+
+      expect(outcome, isA<TransactionFormSaved>());
+      expect(ledger.addedTransactions, isEmpty,
+          reason: '计划 moves no money — the bill has not happened yet');
+      final series = recurring.created.single;
+      expect(series['startDate'], vm.state.date);
+      expect(series['endDate'], vm.state.date,
+          reason: 'a one-shot rule: exactly one instance, on the chosen day');
+      expect(series['autoPost'], isFalse);
+    });
+
+    test('a planned entry that fails is a failed save', () async {
+      recurring.failure = LedgerErrorCode.unknownEvent;
+      final vm = form(container());
+      vm.setAmountText('500.00');
+      vm.selectAccount('acc_cash');
+      vm.selectCategory('cat_rent');
+      vm.setMode(TransactionFormMode.planned);
+
+      final outcome = await vm.submit();
+
+      expect(outcome, isA<TransactionFormSaveFailed>());
+      expect(ledger.addedTransactions, isEmpty);
+      expect(recurring.created, isEmpty,
+          reason: 'the fake records nothing when it fails');
     });
   });
 

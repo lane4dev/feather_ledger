@@ -104,6 +104,8 @@ void main() {
         'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
     await db.customStatement(
         'ALTER TABLE transactions_view DROP COLUMN attachments_json');
+    await db.customStatement(
+        'ALTER TABLE recurring_series DROP COLUMN auto_post');
     await db.customStatement('PRAGMA user_version = 1');
     await db.close();
     return file;

@@ -67,6 +67,7 @@ void main() {
     RecurringSeriesKind type = RecurringSeriesKind.expense,
     CategoryType categoryType = CategoryType.expense,
     DateTime? endDate,
+    bool autoPost = false,
   }) {
     return harness.recurringService.createSeries(
       type: type,
@@ -80,6 +81,7 @@ void main() {
       interval: 1,
       startDate: DateTime(2026, 1, 1),
       endDate: endDate,
+      autoPost: autoPost,
     );
   }
 
@@ -217,7 +219,7 @@ void main() {
     expect(await harness.db.recurringDao.getAllSeries(), isEmpty);
   });
 
-  test('an end date at or before the start is refused', () async {
+  test('an end date before the start is refused', () async {
     await seed();
 
     final result = await harness.recurringService.createSeries(
@@ -229,11 +231,41 @@ void main() {
       frequency: 'MONTHLY',
       interval: 1,
       startDate: DateTime(2026, 1, 1),
-      endDate: DateTime(2026, 1, 1),
+      endDate: DateTime(2025, 12, 31),
     );
 
     expect(result, isA<Failure<void>>());
     expect(await harness.db.recurringDao.getAllSeries(), isEmpty);
+  });
+
+  test('a one-shot series (计划) materializes exactly one instance', () async {
+    await seed();
+
+    // startDate == endDate is the 计划 shape: UNTIL is inclusive, so the rule
+    // yields its own start date and nothing else — the far-future date is no
+    // obstacle, the floor anchors at the series' own start.
+    final result = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Planned bill',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime(2027, 1, 1),
+      endDate: DateTime(2027, 1, 1),
+    );
+
+    expect(result, isA<Success<void>>());
+    final instances = await scheduled();
+    expect(instances, hasLength(1));
+    final only = instances.single;
+    expect(only.status, ScheduledTransactionStatus.scheduled);
+    expect(only.date, DateTime(2027, 1, 1));
+
+    // A second run adds nothing: the derived id is the whole idempotency.
+    await harness.recurringService.materialize();
+    expect(await scheduledIds(), {only.id});
   });
 
   test('posting an instance records one transaction and flips its status',
@@ -713,5 +745,111 @@ void main() {
         (await harness.eventStore.readAll()).events.last.payloadJson);
     expect(recorded.kind, TransactionKind.income);
     expect(await accountBalance(), 100000 + 300000);
+  });
+
+  // — 订阅 auto-post ——————————————————————————————————————————————————————
+
+  /// An auto-posting monthly series started ten days ago: one due instance
+  /// (its start) and several ahead, which is the catch-up's whole question.
+  Future<Result<void>> createAutoPostingSeries({int amountMinor = 20000}) {
+    return harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: amountMinor,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Subscription',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime.now().subtract(const Duration(days: 10)),
+      autoPost: true,
+    );
+  }
+
+  test('catch-up posts the due instances of an auto-posting series, once',
+      () async {
+    await seed();
+    expect(await createAutoPostingSeries(), isA<Success<void>>());
+
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+    await harness.recurringService.catchUpAutoPosted();
+
+    final instances = await scheduled();
+    final due = instances.where((i) => !i.date.isAfter(DateTime.now()));
+    expect(due, isNotEmpty, reason: 'fixture precondition');
+    expect(due.every((i) => i.status == ScheduledTransactionStatus.posted),
+        isTrue,
+        reason: 'the due instances posted themselves');
+    expect(
+        instances
+            .where((i) => i.status == ScheduledTransactionStatus.scheduled)
+            .isNotEmpty,
+        isTrue,
+        reason: 'future instances wait for their date');
+    expect((await harness.eventStore.readAll()).events.length,
+        eventsBefore + due.length,
+        reason: 'one TransactionRecorded per due instance');
+    expect(await accountBalance(), 100000 - 20000 * due.length);
+
+    // The second run changes nothing — the status flip and the deterministic
+    // commandId both refuse to post the same instance twice.
+    await harness.recurringService.catchUpAutoPosted();
+    expect((await harness.eventStore.readAll()).events.length,
+        eventsBefore + due.length,
+        reason: 'no double posting');
+    expect(await accountBalance(), 100000 - 20000 * due.length);
+  });
+
+  test('catch-up leaves a manual series pending', () async {
+    await seed();
+    final result = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 20000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Rent',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime.now().subtract(const Duration(days: 10)),
+    );
+    expect(result, isA<Success<void>>());
+    final events = (await harness.eventStore.readAll()).events.length;
+
+    await harness.recurringService.catchUpAutoPosted();
+
+    expect(
+        (await scheduled())
+            .every((i) => i.status == ScheduledTransactionStatus.scheduled),
+        isTrue,
+        reason: '重复 bills wait for the user 记入, not the launch');
+    expect((await harness.eventStore.readAll()).events.length, events);
+  });
+
+  test('an edit split keeps the series auto-posting', () async {
+    await seed();
+    expect(await createMonthly(autoPost: true), isA<Success<void>>());
+    final cut = (await scheduled())[2];
+
+    final result = await editBill(cut,
+        scope: RecurringScope.thisAndFollowing, amountMinor: 60000);
+
+    expect(result, isA<Success<void>>());
+    final series = await harness.db.recurringDao.getAllSeries();
+    expect(series, hasLength(2));
+    expect(series.every((s) => s.autoPost), isTrue,
+        reason: 'the split is an edit of the same subscription, not a new '
+            'series — a rewrite that dropped the flag would silently turn a '
+            '订阅 back into a 重复');
+  });
+
+  test('rewriting the whole rule keeps the series auto-posting', () async {
+    await seed();
+    expect(await createMonthly(autoPost: true), isA<Success<void>>());
+    final instance = await firstScheduled();
+
+    final result = await editBill(instance,
+        scope: RecurringScope.all, amountMinor: 60000);
+
+    expect(result, isA<Success<void>>());
+    expect((await seriesRow()).autoPost, isTrue);
   });
 }

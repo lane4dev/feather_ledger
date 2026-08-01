@@ -128,7 +128,9 @@ void main() {
         matching: find.text(text),
       );
 
-  /// Fills in an expense: amount, category, account.
+  /// Fills in an expense: amount, category, account — in default mode, where
+  /// the fields are date, account, category (the frequency row only exists in
+  /// a series mode, and every test that fills the form starts there).
   Future<void> fillExpense(WidgetTester tester) async {
     await tester.enterText(
       find.descendant(
@@ -137,11 +139,11 @@ void main() {
       ),
       '500.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // account
+    await tester.tap(find.byType(LedgerSelectorField).at(1)); // account
     await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(3)); // category
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
     await settle(tester);
     await tester.tap(find.text('Rent'));
     await settle(tester);
@@ -162,38 +164,57 @@ void main() {
         matching: find.text(text),
       );
 
-  /// Opens the repeat picker, immediately after the date selector.
+  /// Picks a form mode chip.
+  Future<void> chooseMode(WidgetTester tester, String label) async {
+    await tester.tap(find.text(label));
+    await settle(tester);
+  }
+
+  /// Opens the repeat picker — the row right after the date selector, which
+  /// only exists once a series mode has put it there.
   Future<void> chooseRepeat(WidgetTester tester, String label) async {
-    final fields = find.byType(LedgerSelectorField);
-    await tester.tap(fields.at(1));
+    await tester.tap(find.byType(LedgerSelectorField).at(1));
     await settle(tester);
     await tester.tap(inDialog(label));
     await settle(tester);
   }
 
-  testWidgets('a new expense offers a repeat rule, defaulting to none',
-      (tester) async {
+  testWidgets('default mode shows the modes, not a frequency', (tester) async {
     await pumpForm(tester);
 
+    for (final label in ['Default', 'Planned', 'Subscription', 'Repeating']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('Repeat'), findsNothing,
+        reason: 'a default entry repeats by no rule — there is nothing to ask');
+    expect(find.text('Attachments'), findsOneWidget);
+
+    // The mode owns the frequency: entering a series mode reveals the row,
+    // already carrying its MONTHLY floor.
+    await chooseMode(tester, 'Repeating');
     expect(find.text('Repeat'), findsOneWidget);
-    expect(find.text('Does not repeat'), findsOneWidget,
-        reason: 'the field name and its current value are both visible');
+    expect(find.text('month'), findsOneWidget);
 
     await teardownTree(tester);
   });
 
   testWidgets('the repeat picker is a dialog, with the rule in force marked',
       (tester) async {
-    // Five plain options in the middle of a form is a menu, not a sheet: the
+    // Four plain options in the middle of a form is a menu, not a sheet: the
     // account and category pickers open one because their lists are long and
-    // carry icons, balances and a way through to managing them.
+    // carry icons, balances and a way through to managing them. "Does not
+    // repeat" is not among them — the mode already answered that.
     await pumpForm(tester);
+    await chooseMode(tester, 'Repeating');
     await tester.tap(find.byType(LedgerSelectorField).at(1));
     await settle(tester);
 
     expect(find.byType(SimpleDialog), findsOneWidget);
-    expect(inDialog('Does not repeat'), findsOneWidget);
+    expect(inDialog('Does not repeat'), findsNothing);
+    expect(inDialog('day'), findsOneWidget);
+    expect(inDialog('week'), findsOneWidget);
     expect(inDialog('month'), findsOneWidget);
+    expect(inDialog('year'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(SimpleDialog),
@@ -204,7 +225,7 @@ void main() {
     );
 
     // Tapping the option in force closes without changing anything.
-    await tester.tap(inDialog('Does not repeat'));
+    await tester.tap(inDialog('month'));
     await settle(tester);
 
     expect(find.byType(SimpleDialog), findsNothing);
@@ -214,12 +235,15 @@ void main() {
 
   testWidgets('a transfer cannot repeat', (tester) async {
     // A series has one account, so a transfer is not representable
-    // (ADR-0002) — the row is absent rather than disabled.
+    // (ADR-0002) — the row, and the modes that would need it, are absent
+    // rather than disabled.
     await pumpForm(tester);
     await tester.tap(find.text('Transfer'));
     await settle(tester);
 
     expect(find.text('Repeat'), findsNothing);
+    expect(find.text('Repeating'), findsNothing,
+        reason: 'a transfer has no modes to choose between');
 
     await teardownTree(tester);
   });
@@ -243,6 +267,8 @@ void main() {
     expect(find.text('Edit Transaction'), findsOneWidget);
     expect(find.text('Repeat'), findsNothing,
         reason: 'changing a rule is "deactivate and create another"');
+    expect(find.text('Repeating'), findsNothing,
+        reason: 'a correction states what it already is');
 
     await teardownTree(tester);
   });
@@ -251,7 +277,7 @@ void main() {
       (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
-    await chooseRepeat(tester, 'month');
+    await chooseMode(tester, 'Repeating');
     await tester.enterText(find.byType(TextFormField).last, 'Rent');
 
     await save(tester);
@@ -261,7 +287,8 @@ void main() {
     expect(ledger.addedTransactions.single['amountMinor'], 50000);
     expect(ledger.addedTransactions.single['type'], TransactionKind.expense);
 
-    // …and the rule for the ones that have not.
+    // …and the rule for the ones that have not, at the MONTHLY the mode
+    // seeded (the row showed "month" without the picker being opened).
     expect(recurring.created, hasLength(1));
     final series = recurring.created.single;
     expect(series['frequency'], 'MONTHLY');
@@ -269,6 +296,8 @@ void main() {
     expect(series['accountId'], 'acc_cash');
     expect(series['categoryId'], 'cat_rent');
     expect(series['description'], 'Rent');
+    expect(series['autoPost'], isFalse,
+        reason: '重复 waits for the user 记入, instance by instance');
 
     // The series starts one period AFTER the entry just recorded, so the two
     // never describe the same month.
@@ -278,9 +307,43 @@ void main() {
     await teardownTree(tester);
   });
 
+  testWidgets('picking a frequency re-anchors the series', (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Repeating');
+    await chooseRepeat(tester, 'week');
+
+    await save(tester);
+
+    expect(ledger.addedTransactions, hasLength(1));
+    expect(recurring.created.single['frequency'], 'WEEKLY');
+    final now = DateTime.now();
+    expect(recurring.created.single['startDate'],
+        DateTime(now.year, now.month, now.day + 7));
+
+    await teardownTree(tester);
+  });
+
   testWidgets('saving without a rule records only the entry', (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
+
+    await save(tester);
+
+    expect(ledger.addedTransactions, hasLength(1));
+    expect(recurring.created, isEmpty);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('leaving a series mode drops the rule with it', (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Repeating');
+    await chooseMode(tester, 'Default');
+
+    expect(find.text('Repeat'), findsNothing,
+        reason: 'a default entry has no frequency to carry');
 
     await save(tester);
 
@@ -298,12 +361,89 @@ void main() {
 
     await pumpForm(tester);
     await fillExpense(tester);
-    await chooseRepeat(tester, 'month');
+    await chooseMode(tester, 'Repeating');
 
     await save(tester);
 
     expect(ledger.addedTransactions, hasLength(1), reason: 'the entry stands');
     expect(find.textContaining('Saved. The repeat could not be set up'),
+        findsOneWidget);
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('a subscription starts an auto-posting series', (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Subscription');
+
+    await save(tester);
+
+    expect(ledger.addedTransactions, hasLength(1));
+    final series = recurring.created.single;
+    expect(series['frequency'], 'MONTHLY');
+    expect(series['autoPost'], isTrue,
+        reason: '订阅 posts its due instances at launch, without asking');
+    final now = DateTime.now();
+    expect(series['startDate'], DateTime(now.year, now.month + 1, now.day));
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('a planned entry creates the bill and records nothing',
+      (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+
+    // The attachments row goes with the recording: a series row carries no
+    // files, and a hidden picked-files list would be a leak.
+    expect(find.text('Attachments'), findsOneWidget);
+    await chooseMode(tester, 'Planned');
+    expect(find.text('Attachments'), findsNothing);
+
+    await save(tester);
+
+    // No money moved — the plan is a one-shot series whose single instance
+    // is the bill, waiting in the pending list.
+    expect(ledger.addedTransactions, isEmpty);
+    expect(recurring.created, hasLength(1));
+    final series = recurring.created.single;
+    expect(series['amountMinor'], 50000);
+    expect(series['accountId'], 'acc_cash');
+    expect(series['categoryId'], 'cat_rent');
+    expect(series['description'], 'Rent',
+        reason: 'the note is empty, so the series takes the category name');
+    expect(series['autoPost'], isFalse,
+        reason: '计划 waits for the user 记入, like any other pending bill');
+    // The form's date carries the time it was opened; the contract is only
+    // "the one bill is on the day the user chose".
+    final now = DateTime.now();
+    expect(series['startDate'], series['endDate'],
+        reason: 'a one-shot rule: UNTIL at its own start is exactly one bill');
+    final start = series['startDate'] as DateTime;
+    expect(DateTime(start.year, start.month, start.day),
+        DateTime(now.year, now.month, now.day));
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('a planned entry that fails is a failed save', (tester) async {
+    // 计划 has no entry to fall back on — the series is the whole save, so a
+    // rejected series is a rejected save, reported as one.
+    recurring.failure = LedgerErrorCode.categoryTypeMismatch;
+
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Planned');
+
+    await save(tester);
+
+    expect(ledger.addedTransactions, isEmpty);
+    expect(recurring.created, isEmpty);
+    expect(find.textContaining('Saved. The repeat could not be set up'),
+        findsNothing,
+        reason: 'nothing was recorded, so that message would lie');
+    expect(find.text('Category type does not match the transaction type'),
         findsOneWidget);
 
     await teardownTree(tester);

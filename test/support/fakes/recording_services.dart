@@ -204,6 +204,7 @@ class RecordingRecurringService implements RecurringService {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    bool autoPost = false,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     created.add({
@@ -215,6 +216,8 @@ class RecordingRecurringService implements RecurringService {
       'frequency': frequency,
       'interval': interval,
       'startDate': startDate,
+      'endDate': endDate,
+      'autoPost': autoPost,
     });
     return unitResult;
   }
@@ -243,6 +246,9 @@ class RecordingRecurringService implements RecurringService {
 
   @override
   Future<void> materialize() async {}
+
+  @override
+  Future<void> catchUpAutoPosted() async {}
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled() =>

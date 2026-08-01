@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(4));
+      expect(database.schemaVersion, equals(5));
     });
 
     test('migrates a v1 database by adding the column, keeping its rows',
@@ -46,9 +46,17 @@ void main() {
       await v1.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN attachments_json');
       await v1.customStatement(
+          'ALTER TABLE recurring_series DROP COLUMN auto_post');
+      await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
           "VALUES ('acc_v1', 'Cash', 0, 'USD', 5000, 0, 1, 2)");
+      await v1.customStatement(
+          'INSERT INTO recurring_series (id, rrule, start_date, end_date, '
+          'frequency, interval, count_limit, amount_minor, description, '
+          'category_id, account_id, type) '
+          "VALUES ('ser_v1', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', "
+          "1, NULL, 1200, 'Rent', 'cat', 'acc_v1', 1)");
       await v1.customStatement('PRAGMA user_version = 1');
       await v1.close();
 
@@ -62,6 +70,14 @@ void main() {
       expect(row.includeInTotals, isTrue,
           reason: 'every account that predates the flag counts toward the '
               'totals — nobody had opted out before it existed');
+
+      final series =
+          await upgraded.recurringDao.getSeries('ser_v1');
+      expect(series, isNotNull,
+          reason: 'the CRUD-exempt table is not rebuilt, so the migration is '
+              'the only chance its rows have');
+      expect(series!.autoPost, isFalse,
+          reason: 'no series predated the flag, so none auto-posts');
     });
 
     test('should create all tables on initialization', () async {

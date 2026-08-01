@@ -355,11 +355,12 @@ void main() {
     await selectKind(tester, 'Expense');
 
     expect(find.text('Add Transaction'), findsOneWidget);
-    // Account, category, the repeat row and the attachment row — a transfer
-    // has neither a category nor a repeat rule, so the first two extras
-    // appear only here. The attachment row is one of these fields because it
-    // is the same row: a fixed-column label, a value, a chevron to open.
-    expect(find.byType(LedgerSelectorField), findsNWidgets(5));
+    // Date, account, category and the attachment row — a transfer has neither
+    // a category nor a repeat rule, so the category appears only here. The
+    // attachment row is one of these fields because it is the same row: a
+    // fixed-column label, a value, a chevron to open. (No frequency row: a
+    // default-mode entry has none — the 重复 chip puts it back.)
+    expect(find.byType(LedgerSelectorField), findsNWidgets(4));
     expect(find.text('Category'), findsOneWidget);
     expect(find.text('From'), findsNothing);
     expect(find.text('To'), findsNothing);
@@ -446,11 +447,12 @@ void main() {
       ),
       '30.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // account
+    // Default mode has no frequency row: date, account, category.
+    await tester.tap(find.byType(LedgerSelectorField).at(1)); // account
     await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(3)); // category
+    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
     await settle(tester);
     await tester.tap(find.text('Food'));
     await settle(tester);
