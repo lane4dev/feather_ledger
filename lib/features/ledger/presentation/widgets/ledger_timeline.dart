@@ -4,7 +4,6 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
-import 'package:feather_ledger/shared/presentation/widgets/sliver_clip_rect.dart';
 
 import '../models/ledger_day_group.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -12,12 +11,14 @@ import '../theme/ledger_theme.dart';
 
 import 'time_anchor.dart';
 import 'transaction_tile.dart';
+import 'ledger_day_section.dart';
 
 class LedgerTimeline extends StatelessWidget {
   /// Already grouped, already totalled, already written out — see
   /// [LedgerDayGroup]. This widget decides only how a day looks.
   final List<LedgerDayGroup> days;
   final String? currencySymbol;
+  final SliverOverlapAbsorberHandle? overlapHandle;
 
   final Function(TransactionTileUiModel)? onTransactionTap;
 
@@ -26,6 +27,7 @@ class LedgerTimeline extends StatelessWidget {
     required this.days,
     this.currencySymbol,
     this.onTransactionTap,
+    this.overlapHandle,
   });
 
   @override
@@ -41,6 +43,7 @@ class LedgerTimeline extends StatelessWidget {
                 day: day,
                 currencySymbol: effectiveCurrencySymbol,
                 onTransactionTap: onTransactionTap,
+                overlapHandle: overlapHandle,
               ))
           .toList(),
     );
@@ -51,11 +54,13 @@ class _DayGroup extends StatelessWidget {
   final LedgerDayGroup day;
   final String currencySymbol;
   final Function(TransactionTileUiModel)? onTransactionTap;
+  final SliverOverlapAbsorberHandle? overlapHandle;
 
   const _DayGroup({
     required this.day,
     required this.currencySymbol,
     this.onTransactionTap,
+    this.overlapHandle,
   });
 
   @override
@@ -63,95 +68,36 @@ class _DayGroup extends StatelessWidget {
     final date = day.date;
     final transactions = day.transactions;
 
-    return SliverClipRect(
-      sliver: SliverMainAxisGroup(
-        slivers: [
-          // The TimeAnchor is pinned.
-          // We set its extent to 0 so it doesn't push the list down.
-          // This allows the list to overlap visually with the anchor area.
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TimeAnchorDelegate(
-              date: date,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            ),
-          ),
-          SliverList.builder(
-            // +1 for the summary row
-            itemCount: transactions.length + 1,
-            itemBuilder: (context, index) {
-              if (index == transactions.length) {
-                return _DailySummary(
-                  displayIncome: day.displayIncome,
-                  displayExpense: day.displayExpense,
-                );
-              }
-
-              final tx = transactions[index];
-
-              return TransactionTile(
-                transaction: tx,
-                currencySymbol: currencySymbol,
-                onTap: () => onTransactionTap?.call(tx),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
-  final DateTime date;
-  final Color backgroundColor;
-
-  // Height of the anchor area. Should match the visual height we want to reserve/display.
-  static const double _anchorHeight = 56.0;
-  static const double _layoutExtent = 1.0;
-
-  _TimeAnchorDelegate({
-    required this.date,
-    required this.backgroundColor,
-  });
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: OverflowBox(
-        // We allow the child to be its natural size (or fixed height)
-        // even though the sliver extent is 0.
-        minHeight: 0,
-        maxHeight: double.infinity,
-        alignment: Alignment.topLeft,
+    return LedgerDaySection(
+      overlapHandle: overlapHandle,
+      headerWidth: LedgerTheme.colAnchorWidth,
+      header: IgnorePointer(
         child: SizedBox(
-          height: _anchorHeight,
-          // Background color ensures the anchor is readable if content slides under (though here content is indented)
-          child: Container(
-            color: backgroundColor,
-            child: TimeAnchor(date: date),
-          ),
+          height: 56,
+          child: TimeAnchor(date: date),
         ),
       ),
+      sliver: SliverList.builder(
+        // +1 for the summary row
+        itemCount: transactions.length + 1,
+        itemBuilder: (context, index) {
+          if (index == transactions.length) {
+            return _DailySummary(
+              displayIncome: day.displayIncome,
+              displayExpense: day.displayExpense,
+            );
+          }
+
+          final tx = transactions[index];
+
+          return TransactionTile(
+            transaction: tx,
+            currencySymbol: currencySymbol,
+            onTap: () => onTransactionTap?.call(tx),
+          );
+        },
+      ),
     );
-  }
-
-  // We return a tiny extent (1.0) instead of 0.0 to ensure the RenderObject
-  // considers itself visible and paints the child.
-  // 0.0 might be optimized out or clipped.
-  // The 1.0 pixel offset is visually negligible.
-  @override
-  double get maxExtent => _layoutExtent;
-
-  @override
-  double get minExtent => _layoutExtent;
-
-  @override
-  bool shouldRebuild(covariant _TimeAnchorDelegate oldDelegate) {
-    return oldDelegate.date != date ||
-        oldDelegate.backgroundColor != backgroundColor;
   }
 }
 
@@ -167,8 +113,7 @@ class _DailySummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(
-        left: LedgerTheme.colAnchorWidth +
-            context.spacing.md, // Match TransactionTile content start
+        left: LedgerTheme.colAnchorWidth + context.spacing.md,
         right: context.spacing.md,
         bottom: context
             .spacing.lg, // Increased bottom spacing for better group separation

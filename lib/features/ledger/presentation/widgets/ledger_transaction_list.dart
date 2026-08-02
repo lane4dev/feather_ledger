@@ -50,6 +50,8 @@ class LedgerTransactionList extends ConsumerWidget {
               }
               return LedgerTimeline(
                 days: days,
+                overlapHandle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 currencySymbol: currency,
                 onTransactionTap: (tx) {
                   // A pending bill has no event stream and cannot be edited;
