@@ -64,6 +64,52 @@ class ReportMonthlyTotalsRow {
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   ReportsDao(super.db);
 
+  /// Daily transaction counts for the three-month heatmap window. Count
+  /// transactions, not postings: DISTINCT keeps a joined transaction unique.
+  /// Joining accounts also makes inclusion changes invalidate the stream.
+  Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month) {
+    final start = DateTime(month.year, month.month - 2, 1);
+    final end = DateTime(month.year, month.month + 1, 1);
+    final query = selectOnly(transactionsView, distinct: true)
+      ..addColumns([
+        transactionsView.transactionId,
+        transactionsView.occurredAt,
+      ])
+      ..join([
+        innerJoin(
+          transactionPostingsView,
+          transactionPostingsView.transactionId
+              .equalsExp(transactionsView.transactionId),
+          useColumns: false,
+        ),
+        innerJoin(
+          accountsView,
+          accountsView.id.equalsExp(transactionPostingsView.accountId),
+          useColumns: false,
+        ),
+      ])
+      ..where(
+        transactionsView.occurredAt.isBiggerOrEqualValue(start) &
+            transactionsView.occurredAt.isSmallerThanValue(end) &
+            transactionsView.kind.isIn([
+              TransactionKind.income.index,
+              TransactionKind.expense.index,
+            ]) &
+            transactionsView.isReversed.equals(false) &
+            accountsView.includeInTotals.equals(true),
+      );
+
+    return query.watch().map((rows) {
+      final counts = <DateTime, int>{};
+      for (final row in rows) {
+        final date = row.read(transactionsView.occurredAt)!;
+        final day = DateTime(date.year, date.month, date.day);
+        counts[day] = (counts[day] ?? 0) + 1;
+      }
+      return counts;
+    });
+  }
+
   /// Daily signed posting impacts for the heatmap's 3-month window,
   /// excluding transfers (net zero) and reversed rows.
   ///

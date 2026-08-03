@@ -193,6 +193,14 @@
     "description": "Reports screen title"
   },
   "activityHeatmap": "Activity Heatmap",
+  "heatmapNetFlow": "Net flow: {amount}",
+  "@heatmapNetFlow": {
+    "description": "Daily signed net amount shown in a heatmap day tooltip",
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "heatmapZeroNetFlow": "Zero net flow",
+  "heatmapNetInflow": "Net inflow",
+  "heatmapNetOutflow": "Net outflow",
   "@activityHeatmap": {
     "description": "Activity heatmap section title"
   },

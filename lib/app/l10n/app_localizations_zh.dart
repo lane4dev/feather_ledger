@@ -161,6 +161,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get activityHeatmap => '活动热力图';
 
   @override
+  String heatmapNetFlow(String amount) {
+    return '净流量：$amount';
+  }
+
+  @override
+  String get heatmapZeroNetFlow => '净流量为零';
+
+  @override
+  String get heatmapNetInflow => '净流入';
+
+  @override
+  String get heatmapNetOutflow => '净流出';
+
+  @override
   String get incomeBreakdown => '收入明细';
 
   @override
@@ -778,6 +792,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get activityHeatmap => '活动热力图';
 
   @override
+  String heatmapNetFlow(String amount) {
+    return '净流量：$amount';
+  }
+
+  @override
+  String get heatmapZeroNetFlow => '净流量为零';
+
+  @override
+  String get heatmapNetInflow => '净流入';
+
+  @override
+  String get heatmapNetOutflow => '净流出';
+
+  @override
   String get incomeBreakdown => '收入明细';
 
   @override
@@ -1393,6 +1421,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get activityHeatmap => '活動熱力圖';
+
+  @override
+  String heatmapNetFlow(String amount) {
+    return '淨流量：$amount';
+  }
+
+  @override
+  String get heatmapZeroNetFlow => '淨流量為零';
+
+  @override
+  String get heatmapNetInflow => '淨流入';
+
+  @override
+  String get heatmapNetOutflow => '淨流出';
 
   @override
   String get incomeBreakdown => '收入明細';

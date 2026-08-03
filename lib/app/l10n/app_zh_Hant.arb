@@ -193,6 +193,14 @@
     "description": "報表頁面標題"
   },
   "activityHeatmap": "活動熱力圖",
+  "heatmapNetFlow": "淨流量：{amount}",
+  "@heatmapNetFlow": {
+    "description": "Daily signed net amount shown in a heatmap day tooltip",
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "heatmapZeroNetFlow": "淨流量為零",
+  "heatmapNetInflow": "淨流入",
+  "heatmapNetOutflow": "淨流出",
   "@activityHeatmap": {
     "description": "活動熱力圖區塊標題"
   },

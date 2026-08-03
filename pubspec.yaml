@@ -31,7 +31,6 @@ dependencies:
 
   # UI/Charts
   fl_chart: ^1.1.1
-  flutter_heatmap_calendar: ^1.0.5
   intl: ^0.20.2
   package_info_plus: ^9.0.0
   rrule: ^0.2.18

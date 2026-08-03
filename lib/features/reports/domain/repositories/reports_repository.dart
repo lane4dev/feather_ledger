@@ -3,15 +3,13 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import '../entities/reports_entities.dart';
 
 abstract class ReportsRepository {
-  /// Watches heatmap data for the given month.
-  /// [month] should be any date within the desired month.
-  /// Returns a stream of maps where the key is the date and the value is the
-  /// signed posting impact in minor units (transfers and reversed rows
-  /// excluded).
-  Stream<Map<DateTime, int>> watchHeatmapData(DateTime month);
+  /// Daily income/expense transaction counts for the month and its preceding
+  /// two months. Reversed rows and accounts outside ledger totals are excluded;
+  /// one transaction counts once regardless of its number of postings.
+  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month);
 
-  /// Watches heatmap amount data for the given month — same projection
-  /// source as [watchHeatmapData].
+  /// Daily signed posting impacts in minor units over the same window and
+  /// with the same exclusions as [watchHeatmapFrequencyData].
   Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month);
 
   /// Watches the category breakdown for the given month and transaction

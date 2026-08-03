@@ -18,7 +18,6 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedDate = ref.watch(selectedDateProvider);
-    final heatmapAsync = ref.watch(heatmapDataProvider);
     final incomeAsync = ref.watch(incomeChartDataProvider);
     final expenseAsync = ref.watch(expenseChartDataProvider);
     final totalsAsync = ref.watch(monthlySummaryProvider);
@@ -104,10 +103,7 @@ class ReportsScreen extends ConsumerWidget {
             SizedBox(height: spacing.lg),
 
             // 2. Heatmap Section
-            ReportHeatmapView(
-              selectedDate: selectedDate,
-              heatmapAsync: heatmapAsync,
-            ),
+            const ReportHeatmapView(),
             SizedBox(height: spacing.xl),
           ],
         ),

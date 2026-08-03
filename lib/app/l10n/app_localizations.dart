@@ -400,6 +400,30 @@ abstract class AppLocalizations {
   /// **'Activity Heatmap'**
   String get activityHeatmap;
 
+  /// Daily signed net amount shown in a heatmap day tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Net flow: {amount}'**
+  String heatmapNetFlow(String amount);
+
+  /// No description provided for @heatmapZeroNetFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Zero net flow'**
+  String get heatmapZeroNetFlow;
+
+  /// No description provided for @heatmapNetInflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Net inflow'**
+  String get heatmapNetInflow;
+
+  /// No description provided for @heatmapNetOutflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Net outflow'**
+  String get heatmapNetOutflow;
+
   /// Income breakdown chart title
   ///
   /// In en, this message translates to:

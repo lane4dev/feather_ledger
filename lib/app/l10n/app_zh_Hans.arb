@@ -193,6 +193,14 @@
     "description": "报表页面标题"
   },
   "activityHeatmap": "活动热力图",
+  "heatmapNetFlow": "净流量：{amount}",
+  "@heatmapNetFlow": {
+    "description": "Daily signed net amount shown in a heatmap day tooltip",
+    "placeholders": {"amount": {"type": "String"}}
+  },
+  "heatmapZeroNetFlow": "净流量为零",
+  "heatmapNetInflow": "净流入",
+  "heatmapNetOutflow": "净流出",
   "@activityHeatmap": {
     "description": "活动热力图板块标题"
   },

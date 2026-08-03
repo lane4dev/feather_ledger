@@ -137,7 +137,7 @@ final class HeatmapDataProvider extends $FunctionalProvider<
   }
 }
 
-String _$heatmapDataHash() => r'dd2560d27c908ed6e37aab4b69c15933b832d394';
+String _$heatmapDataHash() => r'1e05397cdc6a08cc819a8cb0e5223c840a903096';
 
 @ProviderFor(incomeChartData)
 final incomeChartDataProvider = IncomeChartDataProvider._();

@@ -42,7 +42,7 @@ Stream<Map<DateTime, int>> heatmapData(Ref ref) {
   final mode = ref.watch(heatmapModeStateProvider);
 
   return mode == HeatmapMode.frequency
-      ? repo.watchHeatmapData(date)
+      ? repo.watchHeatmapFrequencyData(date)
       : repo.watchHeatmapAmountData(date);
 }
 
@@ -77,11 +77,12 @@ AsyncValue<MonthlySummaryUiModel> monthlySummary(Ref ref) {
   final symbol = AppCurrencies.getSymbol(
       ref.watch(currencyControllerProvider).value ??
           AppCurrencies.defaultCurrency.code);
-  return ref.watch(monthlyTotalsProvider).whenData((totals) =>
-      MonthlySummaryUiModel.of(
-        balanceMinor: totals.balanceMinor,
-        incomeMinor: totals.incomeMinor,
-        expenseMinor: totals.expenseMinor,
-        currencySymbol: symbol,
-      ));
+  return ref
+      .watch(monthlyTotalsProvider)
+      .whenData((totals) => MonthlySummaryUiModel.of(
+            balanceMinor: totals.balanceMinor,
+            incomeMinor: totals.incomeMinor,
+            expenseMinor: totals.expenseMinor,
+            currencySymbol: symbol,
+          ));
 }

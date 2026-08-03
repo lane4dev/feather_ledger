@@ -21,8 +21,8 @@ class ReportsRepositoryImpl implements ReportsRepository {
   ReportsRepositoryImpl(this._dao);
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapData(DateTime month) {
-    return _dao.watchDailyTransactionAmounts(month);
+  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month) {
+    return _dao.watchDailyTransactionCounts(month);
   }
 
   @override
@@ -54,11 +54,13 @@ class ReportsRepositoryImpl implements ReportsRepository {
   @override
   Stream<ReportMonthlyTotals> watchMonthlyTotals(DateTime month,
       {String currencyCode = 'USD'}) {
-    return _dao.watchMonthlyTotals(month, currencyCode: currencyCode).map((row) => ReportMonthlyTotals(
-          incomeMinor: row.incomeMinor,
-          expenseMinor: row.expenseMinor,
-          balanceMinor: row.balanceMinor,
-        ));
+    return _dao
+        .watchMonthlyTotals(month, currencyCode: currencyCode)
+        .map((row) => ReportMonthlyTotals(
+              incomeMinor: row.incomeMinor,
+              expenseMinor: row.expenseMinor,
+              balanceMinor: row.balanceMinor,
+            ));
   }
 }
 
