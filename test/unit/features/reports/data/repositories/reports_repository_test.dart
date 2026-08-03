@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 
 import 'package:feather_ledger/features/reports/data/repositories/reports_repository.dart';
+import 'package:feather_ledger/features/reports/presentation/providers/reports_providers.dart';
 
 import '../../../../../support/fakes/fake_app_database.dart';
 
@@ -54,8 +58,8 @@ void main() {
     int originalEventId = 1,
     List<(String, PostingDirection, int)> postings = const [],
   }) async {
-    await database.transactionsDao.upsertTransaction(
-        TransactionsViewCompanion.insert(
+    await database.transactionsDao
+        .upsertTransaction(TransactionsViewCompanion.insert(
       transactionId: transactionId,
       occurredAt: date,
       kind: kind,
@@ -80,8 +84,8 @@ void main() {
         : postings;
     for (var i = 0; i < legs.length; i++) {
       final leg = legs[i];
-      await database.transactionsDao.upsertPosting(
-          TransactionPostingsViewCompanion.insert(
+      await database.transactionsDao
+          .upsertPosting(TransactionPostingsViewCompanion.insert(
         id: '$transactionId:$i',
         transactionId: transactionId,
         accountId: leg.$1,
@@ -93,7 +97,7 @@ void main() {
     }
   }
 
-  group('watchHeatmapData', () {
+  group('watchHeatmapAmountData', () {
     test('emits daily signed impacts excluding transfers and reversed rows',
         () async {
       final month = DateTime(2024, 1);
@@ -101,9 +105,10 @@ void main() {
       final day2 = DateTime(2024, 1, 20, 18);
       await seedAccount();
 
-      final future = repository.watchHeatmapData(month).firstWhere((map) =>
-          map[DateTime(2024, 1, 15)] == -500 &&
-          map[DateTime(2024, 1, 20)] == -300);
+      final future = repository.watchHeatmapAmountData(month).firstWhere(
+          (map) =>
+              map[DateTime(2024, 1, 15)] == -500 &&
+              map[DateTime(2024, 1, 20)] == -300);
 
       await insertTransaction(
         transactionId: 'txn_1',
@@ -146,6 +151,157 @@ void main() {
       expect(result[DateTime(2024, 1, 20)], equals(-300));
       expect(result[DateTime(2024, 1, 16)], isNull);
       expect(result[DateTime(2024, 1, 17)], isNull);
+    });
+  });
+
+  group('watchHeatmapFrequencyData', () {
+    final month = DateTime(2024, 1);
+    final day = DateTime(2024, 1, 15);
+
+    test(
+        'counts transactions independently of amounts and excludes other kinds',
+        () async {
+      await seedAccount();
+      await seedAccount(id: 'excluded', includeInTotals: false);
+      await insertTransaction(
+        transactionId: 'income',
+        date: day,
+        kind: TransactionKind.income,
+        amountMinor: 10000,
+      );
+      await insertTransaction(
+        transactionId: 'expense',
+        date: day,
+        kind: TransactionKind.expense,
+        amountMinor: 10000,
+      );
+      for (final kind in [
+        TransactionKind.transfer,
+        TransactionKind.openingBalance,
+        TransactionKind.balanceAdjustment
+      ]) {
+        await insertTransaction(
+          transactionId: kind.name,
+          date: day,
+          kind: kind,
+        );
+      }
+      await insertTransaction(
+        transactionId: 'reversed',
+        date: day,
+        kind: TransactionKind.expense,
+        isReversed: true,
+      );
+      await insertTransaction(
+        transactionId: 'excluded',
+        date: day,
+        kind: TransactionKind.expense,
+        postings: [('excluded', PostingDirection.debit, 999999)],
+      );
+      expect(await repository.watchHeatmapFrequencyData(month).first, {day: 2});
+      expect(await repository.watchHeatmapAmountData(month).first, {day: 0});
+    });
+
+    test('counts a transaction once when the join returns multiple postings',
+        () async {
+      await seedAccount();
+      // Deliberately exercise join fan-out with a multi-posting projection.
+      await insertTransaction(
+        transactionId: 'one-transaction',
+        date: day,
+        kind: TransactionKind.expense,
+        postings: [
+          ('acc_1', PostingDirection.debit, 100),
+          ('acc_1', PostingDirection.debit, 200),
+        ],
+      );
+      expect(await repository.watchHeatmapFrequencyData(month).first, {day: 1});
+    });
+
+    test('includes the exact three-month window across a year boundary',
+        () async {
+      await seedAccount();
+      final dates = [
+        DateTime(2023, 10, 31, 23, 59, 59),
+        DateTime(2023, 11, 1),
+        DateTime(2024, 1, 31, 23, 59, 59, 999),
+        DateTime(2024, 2, 1),
+      ];
+      for (var index = 0; index < dates.length; index++) {
+        await insertTransaction(
+          transactionId: 'boundary-$index',
+          date: dates[index],
+          kind: TransactionKind.expense,
+        );
+      }
+      expect(await repository.watchHeatmapFrequencyData(month).first,
+          {DateTime(2023, 11, 1): 1, DateTime(2024, 1, 31): 1});
+    });
+
+    test('reacts to inclusion, reversal and new transactions; archival counts',
+        () async {
+      await seedAccount();
+      await insertTransaction(
+        transactionId: 'original',
+        date: day,
+        kind: TransactionKind.expense,
+      );
+      await (database.update(database.accountsView)
+            ..where((account) => account.id.equals('acc_1')))
+          .write(const AccountsViewCompanion(archived: Value(true)));
+      final iterator =
+          StreamIterator(repository.watchHeatmapFrequencyData(month));
+      addTearDown(iterator.cancel);
+      Future<Map<DateTime, int>> next() async {
+        expect(await iterator.moveNext().timeout(const Duration(seconds: 5)),
+            isTrue);
+        return iterator.current;
+      }
+
+      expect(await next(), {day: 1});
+      await (database.update(database.accountsView)
+            ..where((account) => account.id.equals('acc_1')))
+          .write(const AccountsViewCompanion(includeInTotals: Value(false)));
+      expect(await next(), isEmpty);
+      await (database.update(database.accountsView)
+            ..where((account) => account.id.equals('acc_1')))
+          .write(const AccountsViewCompanion(includeInTotals: Value(true)));
+      expect(await next(), {day: 1});
+      await database.transactionsDao.markTransactionAsReversed('original');
+      expect(await next(), isEmpty);
+      await database.transaction(() => insertTransaction(
+            transactionId: 'new',
+            date: day,
+            kind: TransactionKind.income,
+          ));
+      expect(await next(), {day: 1});
+    });
+
+    test('switching modes subscribes to counts and net amounts respectively',
+        () async {
+      await seedAccount();
+      await insertTransaction(
+        transactionId: 'expense',
+        date: day,
+        kind: TransactionKind.expense,
+        amountMinor: 7500,
+      );
+      final container = ProviderContainer(overrides: [
+        reportsRepositoryProvider.overrideWithValue(repository),
+      ]);
+      addTearDown(container.dispose);
+      container.read(selectedDateProvider.notifier).setMonth(month);
+      final subscription = container.listen(heatmapDataProvider, (_, __) {});
+      addTearDown(subscription.close);
+      expect(await container.read(heatmapDataProvider.future), {day: 1});
+      container
+          .read(heatmapModeStateProvider.notifier)
+          .setMode(HeatmapMode.amount);
+      expect(await container.read(heatmapDataProvider.future), {day: -7500});
+      container
+          .read(heatmapModeStateProvider.notifier)
+          .setMode(HeatmapMode.frequency);
+      expect(await container.read(heatmapDataProvider.future), {day: 1});
     });
   });
 
@@ -257,8 +413,8 @@ void main() {
   });
 
   group('watchMonthlyTotals', () {
-    Future<void> seedSnapshot(String accountId, int income, int expense,
-            int closing) =>
+    Future<void> seedSnapshot(
+            String accountId, int income, int expense, int closing) =>
         database.monthlySnapshotDao
             .upsert(MonthlyAccountBalanceSnapshotsCompanion.insert(
           accountId: accountId,
@@ -344,7 +500,7 @@ void main() {
     test('is missing from the heatmap', () async {
       await seedExcludedExpense();
 
-      final heatmap = await repository.watchHeatmapData(month).first;
+      final heatmap = await repository.watchHeatmapAmountData(month).first;
 
       expect(heatmap[DateTime(2024, 1, 15)], -10000,
           reason: 'only the account that counts');

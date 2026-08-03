@@ -323,6 +323,18 @@ class FakeAppLocalizations implements AppLocalizations {
   String get activityHeatmap => 'Activity Heatmap';
 
   @override
+  String heatmapNetFlow(String amount) => 'Net flow: $amount';
+
+  @override
+  String get heatmapZeroNetFlow => 'Zero net flow';
+
+  @override
+  String get heatmapNetInflow => 'Net inflow';
+
+  @override
+  String get heatmapNetOutflow => 'Net outflow';
+
+  @override
   String get incomeBreakdown => 'Income Breakdown';
 
   @override
