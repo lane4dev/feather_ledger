@@ -2,6 +2,8 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
+import 'account_card_theme.dart';
+
 @immutable
 class AppSpacing extends ThemeExtension<AppSpacing> {
   const AppSpacing({
@@ -145,6 +147,7 @@ class AppTheme {
     extensions: const <ThemeExtension<dynamic>>[
       spacing,
       _semanticsLight,
+      AccountCardTheme.light,
     ],
     dialogTheme: dialogTheme,
   );
@@ -159,6 +162,7 @@ class AppTheme {
     extensions: const <ThemeExtension<dynamic>>[
       spacing,
       _semanticsDark,
+      AccountCardTheme.dark,
     ],
     dialogTheme: dialogTheme,
   );
