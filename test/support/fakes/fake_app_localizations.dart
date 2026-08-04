@@ -386,6 +386,24 @@ class FakeAppLocalizations implements AppLocalizations {
   String get accountType => 'Account Type';
 
   @override
+  String get accountTypeCash => 'Cash';
+
+  @override
+  String get accountTypeBank => 'Bank account';
+
+  @override
+  String get accountTypeCredit => 'Credit card';
+
+  @override
+  String get accountTypeOther => 'Other account';
+
+  @override
+  String get accountExcludedFromTotals => 'Excluded from totals';
+
+  @override
+  String get accountArchived => 'Archived';
+
+  @override
   String get initialBalance => 'Initial Balance';
 
   @override
