@@ -232,6 +232,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountType => '账户类型';
 
   @override
+  String get accountTypeCash => '现金';
+
+  @override
+  String get accountTypeBank => '银行账户';
+
+  @override
+  String get accountTypeCredit => '信用卡';
+
+  @override
+  String get accountTypeOther => '其他账户';
+
+  @override
+  String get accountExcludedFromTotals => '不计入合计';
+
+  @override
+  String get accountArchived => '已归档';
+
+  @override
   String get initialBalance => '初始余额';
 
   @override
@@ -863,6 +881,24 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accountType => '账户类型';
 
   @override
+  String get accountTypeCash => '现金';
+
+  @override
+  String get accountTypeBank => '银行账户';
+
+  @override
+  String get accountTypeCredit => '信用卡';
+
+  @override
+  String get accountTypeOther => '其他账户';
+
+  @override
+  String get accountExcludedFromTotals => '不计入合计';
+
+  @override
+  String get accountArchived => '已归档';
+
+  @override
   String get initialBalance => '初始余额';
 
   @override
@@ -1492,6 +1528,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get accountType => '帳戶類型';
+
+  @override
+  String get accountTypeCash => '現金';
+
+  @override
+  String get accountTypeBank => '銀行帳戶';
+
+  @override
+  String get accountTypeCredit => '信用卡';
+
+  @override
+  String get accountTypeOther => '其他帳戶';
+
+  @override
+  String get accountExcludedFromTotals => '不計入合計';
+
+  @override
+  String get accountArchived => '已封存';
 
   @override
   String get initialBalance => '初始餘額';

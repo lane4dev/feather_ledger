@@ -277,6 +277,12 @@
     "description": "Account name field label"
   },
   "accountType": "Account Type",
+  "accountTypeCash": "Cash",
+  "accountTypeBank": "Bank account",
+  "accountTypeCredit": "Credit card",
+  "accountTypeOther": "Other account",
+  "accountExcludedFromTotals": "Excluded from totals",
+  "accountArchived": "Archived",
   "@accountType": {
     "description": "Account type field label"
   },

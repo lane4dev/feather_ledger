@@ -277,6 +277,12 @@
     "description": "账户名称字段标签"
   },
   "accountType": "账户类型",
+  "accountTypeCash": "现金",
+  "accountTypeBank": "银行账户",
+  "accountTypeCredit": "信用卡",
+  "accountTypeOther": "其他账户",
+  "accountExcludedFromTotals": "不计入合计",
+  "accountArchived": "已归档",
   "@accountType": {
     "description": "账户类型字段标签"
   },

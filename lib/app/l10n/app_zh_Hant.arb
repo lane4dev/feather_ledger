@@ -277,6 +277,12 @@
     "description": "帳戶名稱欄位標籤"
   },
   "accountType": "帳戶類型",
+  "accountTypeCash": "現金",
+  "accountTypeBank": "銀行帳戶",
+  "accountTypeCredit": "信用卡",
+  "accountTypeOther": "其他帳戶",
+  "accountExcludedFromTotals": "不計入合計",
+  "accountArchived": "已封存",
   "@accountType": {
     "description": "帳戶類型欄位標籤"
   },

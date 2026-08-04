@@ -538,6 +538,42 @@ abstract class AppLocalizations {
   /// **'Account Type'**
   String get accountType;
 
+  /// No description provided for @accountTypeCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get accountTypeCash;
+
+  /// No description provided for @accountTypeBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank account'**
+  String get accountTypeBank;
+
+  /// No description provided for @accountTypeCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit card'**
+  String get accountTypeCredit;
+
+  /// No description provided for @accountTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other account'**
+  String get accountTypeOther;
+
+  /// No description provided for @accountExcludedFromTotals.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded from totals'**
+  String get accountExcludedFromTotals;
+
+  /// No description provided for @accountArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get accountArchived;
+
   /// Initial balance field label
   ///
   /// In en, this message translates to:

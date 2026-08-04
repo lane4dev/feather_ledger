@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -31,11 +32,15 @@ class AccountManagementScreen extends ConsumerWidget {
           if (accounts.isEmpty) {
             return Center(child: Text(l10n.noAccountsFound));
           }
-          return ListView.builder(
+          return ListView.separated(
+            padding: EdgeInsets.fromLTRB(context.spacing.md, context.spacing.md,
+                context.spacing.md, context.spacing.xl * 3),
+            separatorBuilder: (_, __) => SizedBox(height: context.spacing.md),
             itemCount: accounts.length,
             itemBuilder: (context, index) {
               final account = accounts[index];
               return AccountTile(
+                key: ValueKey(account.account.id),
                 account: account,
                 onTap: () => _showAccountSheet(context, account.account),
               );
