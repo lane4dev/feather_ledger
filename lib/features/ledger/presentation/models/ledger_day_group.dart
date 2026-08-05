@@ -30,8 +30,9 @@ class LedgerDayGroup {
 
   bool get isEmpty => transactions.isEmpty;
 
-  /// Groups [transactions] by calendar day, totalling each day's income and
-  /// expense as it goes.
+  /// Sorts all rows newest first and groups them by calendar day, totalling
+  /// each day's posted income and expense as it goes. Pending bills keep
+  /// their place by date but do not contribute to the totals.
   ///
   /// Transfers are counted as neither. Their two legs are one movement
   /// between the user's own accounts, so a day that only moved money around
@@ -51,8 +52,9 @@ class LedgerDayGroup {
     final byDay = <DateTime, List<TransactionTileUiModel>>{};
     final income = <DateTime, int>{};
     final expense = <DateTime, int>{};
+    final sorted = [...transactions]..sort((a, b) => b.date.compareTo(a.date));
 
-    for (final tx in transactions) {
+    for (final tx in sorted) {
       final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
       if (!byDay.containsKey(day)) {
         order.add(day);
@@ -62,7 +64,7 @@ class LedgerDayGroup {
       }
       byDay[day]!.add(tx);
 
-      if (!tx.account.includeInTotals) continue;
+      if (tx.isPending || !tx.account.includeInTotals) continue;
 
       // Tile amounts are unsigned — the kind is what says which way the money
       // went, so the kind is what decides which column this lands in.

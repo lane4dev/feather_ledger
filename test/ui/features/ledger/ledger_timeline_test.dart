@@ -10,6 +10,7 @@ import 'package:feather_ledger/features/ledger/presentation/models/transaction_t
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_timeline.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/time_anchor.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/transaction_tile.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 void main() {
   const account = AccountEntity(
@@ -102,6 +103,50 @@ void main() {
     await tester.pumpAndSettle();
     return Scrollable.of(tester.element(find.byType(TransactionTile).first))
         .position;
+  }
+
+  for (final scenario in [
+    (name: 'pending-only', pending: [true, true], dividers: 0),
+    (name: 'posted-only', pending: [false, false], dividers: 1),
+    (name: 'mixed', pending: [false, true], dividers: 1),
+  ]) {
+    testWidgets('${scenario.name} day shows the appropriate day divider',
+        (tester) async {
+      final rows = [
+        for (var index = 0; index < scenario.pending.length; index++)
+          TransactionTileUiModel(
+            id: 'row-$index',
+            amount: 100,
+            type: TransactionKind.expense,
+            date: DateTime(2026, 11, 24),
+            note: 'Row $index',
+            account: account,
+            displayAmount: '1.00',
+            displaySign: '-',
+            isPending: scenario.pending[index],
+          ),
+      ];
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('en')],
+        home: Scaffold(
+          body: CustomScrollView(slivers: [
+            LedgerTimeline(days: [
+              // No totals: divider visibility depends on posting status,
+              // including for posted rows excluded from the ledger totals.
+              LedgerDayGroup(date: DateTime(2026, 11, 24), transactions: rows),
+            ]),
+          ]),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FeatherDivider), findsNWidgets(scenario.dividers));
+      expect(anchor(11, 24), findsOneWidget);
+      expect(find.byType(TransactionTile), findsNWidgets(rows.length));
+      expect(tester.takeException(), isNull);
+    });
   }
 
   for (final count in [1, 5]) {

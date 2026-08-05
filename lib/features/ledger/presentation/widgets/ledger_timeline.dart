@@ -85,6 +85,7 @@ class _DayGroup extends StatelessWidget {
             return _DailySummary(
               displayIncome: day.displayIncome,
               displayExpense: day.displayExpense,
+              showDivider: transactions.any((tx) => !tx.isPending),
             );
           }
 
@@ -105,8 +106,13 @@ class _DayGroup extends StatelessWidget {
 class _DailySummary extends StatelessWidget {
   final String? displayIncome;
   final String? displayExpense;
+  final bool showDivider;
 
-  const _DailySummary({this.displayIncome, this.displayExpense});
+  const _DailySummary({
+    this.displayIncome,
+    this.displayExpense,
+    required this.showDivider,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +128,7 @@ class _DailySummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const FeatherDivider(),
+          if (showDivider) const FeatherDivider(),
           Padding(
             padding: EdgeInsets.only(top: context.spacing.sm),
             child: Row(
