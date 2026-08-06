@@ -135,12 +135,12 @@ final class MonthlyPendingTransactionsFamily extends $Family
   String toString() => r'monthlyPendingTransactionsProvider';
 }
 
-/// The month's ledger rows: what happened, then what is coming.
+/// The month's posted transactions and pending bills, newest first.
 ///
 /// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
-/// Within a day the posted rows stay first — the list reads as history and
-/// then as forecast.
+/// Both kinds follow the same descending date order, including within a day.
+/// Only posted transactions contribute to each day's totals.
 ///
 /// The grouping and each day's totals are built here rather than in the
 /// timeline, which is the only place that knows the display currency without
@@ -149,12 +149,12 @@ final class MonthlyPendingTransactionsFamily extends $Family
 @ProviderFor(ledgerMonthlyTransactions)
 final ledgerMonthlyTransactionsProvider = LedgerMonthlyTransactionsFamily._();
 
-/// The month's ledger rows: what happened, then what is coming.
+/// The month's posted transactions and pending bills, newest first.
 ///
 /// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
-/// Within a day the posted rows stay first — the list reads as history and
-/// then as forecast.
+/// Both kinds follow the same descending date order, including within a day.
+/// Only posted transactions contribute to each day's totals.
 ///
 /// The grouping and each day's totals are built here rather than in the
 /// timeline, which is the only place that knows the display currency without
@@ -167,12 +167,12 @@ final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
     with
         $FutureModifier<List<LedgerDayGroup>>,
         $StreamProvider<List<LedgerDayGroup>> {
-  /// The month's ledger rows: what happened, then what is coming.
+  /// The month's posted transactions and pending bills, newest first.
   ///
   /// Pending bills are merged into the same day grouping so a bill dated the
   /// 1st sits under the 1st, beside whatever real transactions share that day.
-  /// Within a day the posted rows stay first — the list reads as history and
-  /// then as forecast.
+  /// Both kinds follow the same descending date order, including within a day.
+  /// Only posted transactions contribute to each day's totals.
   ///
   /// The grouping and each day's totals are built here rather than in the
   /// timeline, which is the only place that knows the display currency without
@@ -228,12 +228,12 @@ final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
 String _$ledgerMonthlyTransactionsHash() =>
     r'0c120c820b286762c95fa4439334af0a294e46a1';
 
-/// The month's ledger rows: what happened, then what is coming.
+/// The month's posted transactions and pending bills, newest first.
 ///
 /// Pending bills are merged into the same day grouping so a bill dated the
 /// 1st sits under the 1st, beside whatever real transactions share that day.
-/// Within a day the posted rows stay first — the list reads as history and
-/// then as forecast.
+/// Both kinds follow the same descending date order, including within a day.
+/// Only posted transactions contribute to each day's totals.
 ///
 /// The grouping and each day's totals are built here rather than in the
 /// timeline, which is the only place that knows the display currency without
@@ -250,12 +250,12 @@ final class LedgerMonthlyTransactionsFamily extends $Family
           isAutoDispose: true,
         );
 
-  /// The month's ledger rows: what happened, then what is coming.
+  /// The month's posted transactions and pending bills, newest first.
   ///
   /// Pending bills are merged into the same day grouping so a bill dated the
   /// 1st sits under the 1st, beside whatever real transactions share that day.
-  /// Within a day the posted rows stay first — the list reads as history and
-  /// then as forecast.
+  /// Both kinds follow the same descending date order, including within a day.
+  /// Only posted transactions contribute to each day's totals.
   ///
   /// The grouping and each day's totals are built here rather than in the
   /// timeline, which is the only place that knows the display currency without

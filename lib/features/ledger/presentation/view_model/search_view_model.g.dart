@@ -59,7 +59,7 @@ final class SearchViewModelProvider
   }
 }
 
-String _$searchViewModelHash() => r'063af027da41e296dbb3fa7c58553f5164aeda73';
+String _$searchViewModelHash() => r'5fe329d0f6afab02e7d0da6364991795a189ad6e';
 
 /// The active filter (spec 004, US3).
 ///
@@ -115,4 +115,4 @@ final class SearchResultsProvider extends $FunctionalProvider<
   }
 }
 
-String _$searchResultsHash() => r'8c2d2837e12455a0e0b6c7cdfe2464753750c691';
+String _$searchResultsHash() => r'a0bc84ac01e05e9e800a9c8819da95564fd3d30b';

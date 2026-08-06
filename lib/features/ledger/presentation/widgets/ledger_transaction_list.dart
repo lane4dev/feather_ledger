@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import 'pending_bill_sheet.dart';
-import 'transaction_detail_sheet.dart';
+import 'show_transaction_detail_sheet.dart';
 import '../view_model/ledger_view_model.dart';
 
 import 'ledger_empty.dart';
@@ -54,9 +51,7 @@ class LedgerTransactionList extends ConsumerWidget {
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 currencySymbol: currency,
                 onTransactionTap: (tx) {
-                  // A pending bill has no event stream and cannot be edited;
-                  // the only honest actions are to record it, skip it, or
-                  // stop the series behind it.
+                  // Pending bills retain their own post/edit/delete flow.
                   if (tx.isPending) {
                     showModalBottomSheet(
                       context: context,
@@ -71,58 +66,11 @@ class LedgerTransactionList extends ConsumerWidget {
                     return;
                   }
 
-                  showModalBottomSheet(
+                  showTransactionDetailSheet(
                     context: context,
-                    isScrollControlled: true,
-                    useRootNavigator: true,
-                    useSafeArea: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => TransactionDetailSheet(
-                      transaction: tx,
-                      currencySymbol: currency,
-                      onEdit: () {
-                        Navigator.of(context).pop();
-                        context.push('/ledger/edit', extra: tx);
-                      },
-                      onDelete: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text('${l10n.delete}?'),
-                            content: Text(l10n.deleteTransactionConfirmation),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(l10n.cancel),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: TextButton.styleFrom(
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.error,
-                                ),
-                                child: Text(l10n.delete),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirmed == true && context.mounted) {
-                          Navigator.of(context).pop(); // Close sheet
-                          final result = await ref
-                              .read(ledgerViewModelProvider.notifier)
-                              .deleteTransaction(tx.id);
-                          if (result case final Failure<void> failure) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(failure.code.message(l10n))),
-                              );
-                            }
-                          }
-                        }
-                      },
-                    ),
+                    ref: ref,
+                    transaction: tx,
+                    currencySymbol: currency,
                   );
                 },
               );
