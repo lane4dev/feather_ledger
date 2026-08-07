@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../theme/account_card_theme.dart';
+import '../theme/app_theme.dart';
 
 /// M3 surface entry point for feature UI. Shape, elevation and colours are
 /// read from ThemeData, so callers do not create local visual systems.
@@ -12,11 +13,30 @@ class AppCard extends StatelessWidget {
   final AccountType? _accountType;
   final bool _archived;
   final VoidCallback? _onTap;
+  final bool _outlined;
+  final bool _group;
 
   const AppCard({super.key, required this.child, this.padding})
       : _accountType = null,
         _archived = false,
-        _onTap = null;
+        _onTap = null,
+        _outlined = false,
+        _group = false;
+
+  const AppCard.outlined({super.key, required this.child, this.padding})
+      : _accountType = null,
+        _archived = false,
+        _onTap = null,
+        _outlined = true,
+        _group = false;
+
+  const AppCard.group({super.key, required this.child})
+      : padding = EdgeInsets.zero,
+        _accountType = null,
+        _archived = false,
+        _onTap = null,
+        _outlined = false,
+        _group = true;
 
   /// A subdued financial surface. Decoration and touch feedback share the
   /// same clipped Material, so the texture never covers the ripple or text.
@@ -29,14 +49,34 @@ class AppCard extends StatelessWidget {
     this.padding,
   })  : _accountType = type,
         _archived = archived,
-        _onTap = onTap;
+        _onTap = onTap,
+        _outlined = false,
+        _group = false;
 
   @override
   Widget build(BuildContext context) {
     final content =
-        padding == null ? child : Padding(padding: padding!, child: child);
+        Padding(padding: padding ?? context.metrics.cardPadding, child: child);
     final type = _accountType;
-    if (type == null) return Card(child: content);
+    if (type == null) {
+      return Card(
+        color: _outlined ? Theme.of(context).colorScheme.surface : null,
+        shape: _outlined
+            ? RoundedRectangleBorder(
+                borderRadius: context.metrics.cardBorderRadius,
+                side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant),
+              )
+            : null,
+        child: _group
+            ? ListTileTheme(
+                data: ListTileTheme.of(context)
+                    .copyWith(contentPadding: context.metrics.fieldPadding),
+                child: content,
+              )
+            : content,
+      );
+    }
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -48,11 +88,11 @@ class AppCard extends StatelessWidget {
         : dark
             ? 0.08
             : 0.055;
-    final radius = BorderRadius.circular(tokens.radius);
+    final radius = context.metrics.cardBorderRadius;
 
     return Card(
       margin: EdgeInsets.zero,
-      elevation: tokens.elevation,
+      elevation: context.metrics.subtleElevation,
       color: scheme.surfaceContainerLow,
       surfaceTintColor: scheme.surfaceContainerLow,
       shadowColor: scheme.shadow.withValues(alpha: dark ? 0.18 : 0.08),
