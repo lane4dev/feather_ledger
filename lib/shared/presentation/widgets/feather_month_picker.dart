@@ -1,3 +1,5 @@
+import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -33,10 +35,6 @@ class FeatherMonthPicker extends StatefulWidget {
     return showDialog(
       context: context,
       builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
         child: FeatherMonthPicker(
           initialDate: initialDate,
           firstDate: firstDate,
@@ -80,7 +78,6 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final dateFormat = DateFormat.MMM(locale);
@@ -95,7 +92,7 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
+              AppIconButton(
                 onPressed: _canGoBack
                     ? () => _pageController.previousPage(
                           duration: const Duration(milliseconds: 300),
@@ -107,11 +104,9 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
               ),
               Text(
                 '$_displayedYear',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.balance(context),
               ),
-              IconButton(
+              AppIconButton(
                 onPressed: _canGoForward
                     ? () => _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
@@ -212,19 +207,18 @@ class _MonthTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: context.metrics.iconBorderRadius,
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: context.metrics.iconBorderRadius,
           border: Border.all(color: borderColor, width: 1.5),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: theme.textTheme.labelLarge?.copyWith(
+          style: AppTypography.sectionTitle(context).copyWith(
             color: foregroundColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),

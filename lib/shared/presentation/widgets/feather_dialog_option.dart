@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -42,10 +43,13 @@ class FeatherDialogOption<T> extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? colorScheme.primary : null,
-                ),
+                style: (isSelected
+                        ? AppTypography.selectedLabel(context)
+                        : Theme.of(context).textTheme.bodyLarge!)
+                    .copyWith(
+                        color: isSelected
+                            ? colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface),
               ),
             ),
             if (isSelected)
