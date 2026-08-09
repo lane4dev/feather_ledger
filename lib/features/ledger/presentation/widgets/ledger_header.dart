@@ -1,3 +1,5 @@
+import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -34,8 +36,8 @@ class LedgerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-          context.spacing.md, 0, context.spacing.md, context.spacing.md),
+      padding:
+          context.pagePadding.add(EdgeInsets.only(bottom: context.spacing.md)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,19 +81,26 @@ class LedgerAppBarTitle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (collapsed)
-          Text(
+          Flexible(
+              child: Text(
             DateFormat.yMMM(locale).format(selectedDate),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium,
-          )
+          ))
         else
-          LedgerMonthSwitcher(
+          Expanded(
+              child: LedgerMonthSwitcher(
             selectedDate: selectedDate,
             onChanged: onMonthChanged,
             onTap: onMonthTap,
-          ),
+          )),
         if (collapsed) ...[
           SizedBox(width: context.spacing.md),
-          LedgerCompactBalance(summaryAsync: summaryAsync),
+          Flexible(
+              child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: LedgerCompactBalance(summaryAsync: summaryAsync))),
         ],
       ],
     );
@@ -113,16 +122,14 @@ class LedgerCompactBalance extends ConsumerWidget {
     return summaryAsync.when(
       data: (summary) => Text(
         showBalance ? summary.displayBalance : '******',
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+        style: AppTypography.amount(context),
       ),
       loading: () => Container(
         width: 60,
         height: 16,
         decoration: BoxDecoration(
           color: LedgerTheme.skeletonFill(context),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: context.metrics.chipBorderRadius,
         ),
       ),
       error: (_, __) => const SizedBox(),
@@ -147,25 +154,28 @@ class LedgerMonthSwitcher extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     return Row(
       children: [
-        IconButton(
+        AppIconButton(
           icon: const Icon(LucideIcons.chevronLeft),
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
                   DateTime(selectedDate.year, selectedDate.month - 1)),
         ),
-        InkWell(
+        Expanded(
+            child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.metrics.chipBorderRadius,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Text(
-              DateFormat.yMMMM(locale).format(selectedDate),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  DateFormat.yMMMM(locale).format(selectedDate),
+                  style: Theme.of(context).textTheme.titleLarge,
+                )),
           ),
-        ),
-        IconButton(
+        )),
+        AppIconButton(
           icon: const Icon(LucideIcons.chevronRight),
           onPressed: onChanged == null
               ? null
@@ -178,125 +188,70 @@ class LedgerMonthSwitcher extends StatelessWidget {
 }
 
 class _BalanceSummary extends ConsumerWidget {
-  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
-
   const _BalanceSummary({required this.summaryAsync});
+  final AsyncValue<MonthlySummaryUiModel> summaryAsync;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(LedgerTheme.cardRadius),
-      ),
+    return AppCard(
       child: summaryAsync.when(
-        data: (summary) => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
+        data: (summary) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Main Balance
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      l10n.totalBalance,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => ref
-                          .read(balanceVisibilityControllerProvider.notifier)
-                          .toggle(),
-                      child: Icon(
-                        showBalance
-                            ? LucideIcons.eye
-                            : LucideIcons.eyeOff,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  showBalance ? summary.displayBalance : '******',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
+            Row(children: [
+              Expanded(
+                  child: Text(l10n.totalBalance,
+                      style: AppTypography.meta(context), maxLines: 2)),
+              AppIconButton(
+                icon: Icon(showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
+                tooltip: l10n.totalBalance,
+                onPressed: () => ref
+                    .read(balanceVisibilityControllerProvider.notifier)
+                    .toggle(),
+              ),
+            ]),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(showBalance ? summary.displayBalance : '******',
+                  style: AppTypography.balance(context)),
             ),
-            // Income & Expense Stats
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _IncomeExpenseCompact(
-                  label: l10n.income,
-                  displayAmount: summary.displayIncome,
-                  color: context.colors.income,
-                  icon: LucideIcons.arrowDown,
-                  showBalance: showBalance,
-                ),
-                const SizedBox(height: 8),
-                _IncomeExpenseCompact(
-                  label: l10n.expense,
-                  displayAmount: summary.displayExpense,
-                  color: context.colors.expense,
-                  icon: LucideIcons.arrowUp,
-                  showBalance: showBalance,
-                ),
-              ],
-            ),
+            SizedBox(height: context.spacing.md),
+            Row(children: [
+              Expanded(
+                  child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: _IncomeExpenseCompact(
+                        label: l10n.income,
+                        displayAmount: summary.displayIncome,
+                        color: context.colors.income,
+                        icon: LucideIcons.arrowDown,
+                        showBalance: showBalance,
+                      ))),
+              SizedBox(width: context.spacing.md),
+              Expanded(
+                  child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: _IncomeExpenseCompact(
+                        label: l10n.expense,
+                        displayAmount: summary.displayExpense,
+                        color: context.colors.expense,
+                        icon: LucideIcons.arrowUp,
+                        showBalance: showBalance,
+                      ))),
+            ]),
           ],
         ),
-        loading: () => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _skeleton(context, width: 60, height: 12),
-                const SizedBox(height: 8),
-                _skeleton(context, width: 120, height: 28),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _skeleton(context, width: 80, height: 24),
-                const SizedBox(height: 8),
-                _skeleton(context, width: 80, height: 24),
-              ],
-            ),
-          ],
-        ),
-        error: (e, _) => Center(child: Text(l10n.errorPrefix('$e'))),
-      ),
-    );
-  }
-
-  Widget _skeleton(BuildContext context,
-      {required double width, required double height}) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: LedgerTheme.skeletonFill(context),
-        borderRadius: BorderRadius.circular(4),
+        loading: () => SizedBox(
+            height: context.spacing.xl * 4,
+            child: Center(
+                child: LinearProgressIndicator(
+                    color: Theme.of(context).colorScheme.outlineVariant))),
+        error: (error, _) => Text(l10n.errorPrefix('$error')),
       ),
     );
   }
@@ -322,41 +277,41 @@ class _IncomeExpenseCompact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 12,
-            color: color,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+    return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              showBalance ? displayAmount : '******',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 12,
+                color: color,
               ),
             ),
-            Text(
-              label,
-              style: LedgerTheme.denseLabel(context).copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  showBalance ? displayAmount : '******',
+                  style: AppTypography.amount(context)
+                      .copyWith(color: theme.colorScheme.onSurface),
+                ),
+                Text(
+                  label,
+                  style: LedgerTheme.denseLabel(context).copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    );
+        ));
   }
 }

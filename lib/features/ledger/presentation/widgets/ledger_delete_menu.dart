@@ -33,7 +33,11 @@ class LedgerDeleteMenu extends StatelessWidget {
             children: [
               Icon(LucideIcons.trash2, color: error, size: 20),
               SizedBox(width: context.spacing.sm),
-              Text(l10n.delete, style: TextStyle(color: error)),
+              Text(l10n.delete,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge!
+                      .copyWith(color: error)),
             ],
           ),
         ),

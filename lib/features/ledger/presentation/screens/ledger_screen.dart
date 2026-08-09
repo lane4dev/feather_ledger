@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,7 +25,12 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   );
 
   bool _isCollapsed = false;
-  static const double _kExpandedHeight = 180.0;
+  static const double _kExpandedHeight = 280.0;
+
+  double get _expandedHeight {
+    final scaled = MediaQuery.textScalerOf(context).scale(120);
+    return _kExpandedHeight + (scaled > 120 ? scaled - 120 : 0);
+  }
 
   // Base date for PageView index mapping
   static final DateTime _baseDate = DateTime(2000, 1);
@@ -66,7 +72,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     // expansion — and its offset stops exactly where the header is done
     // collapsing, which is why that boundary is a named function.
     final isCollapsed = _scrollController.hasClients &&
-        isHeaderCollapsed(_scrollController.offset, _kExpandedHeight);
+        isHeaderCollapsed(_scrollController.offset, _expandedHeight);
 
     if (isCollapsed != _isCollapsed) {
       setState(() {
@@ -140,13 +146,13 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: SliverAppBar(
                 pinned: true,
-                expandedHeight: _kExpandedHeight,
+                expandedHeight: _expandedHeight,
                 forceElevated: innerBoxIsScrolled,
                 // The FAB goes straight to the form, which carries all three
                 // kinds — a transfer is one tap away on its type selector, so
                 // it needs no separate entry point here.
                 actions: [
-                  IconButton(
+                  AppIconButton(
                     icon: const Icon(LucideIcons.search),
                     tooltip: l10n.searchHint,
                     onPressed: () => context.push('/ledger/search'),

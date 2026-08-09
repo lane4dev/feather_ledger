@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
@@ -53,11 +54,8 @@ class LedgerTransactionList extends ConsumerWidget {
                 onTransactionTap: (tx) {
                   // Pending bills retain their own post/edit/delete flow.
                   if (tx.isPending) {
-                    showModalBottomSheet(
+                    showAppReceiptSheet(
                       context: context,
-                      isScrollControlled: true,
-                      useRootNavigator: true,
-                      useSafeArea: true,
                       builder: (context) => PendingBillSheet(
                         transaction: tx,
                         currencySymbol: currency,

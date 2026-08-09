@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -139,7 +140,8 @@ class _TransactionFilterSheetState
               child: InkWell(
                 onTap: _pickRange,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding:
+                      EdgeInsets.symmetric(vertical: context.metrics.rowInset),
                   child: Text(
                     _rangeLabel(l10n),
                     style: Theme.of(context).textTheme.bodyLarge,
@@ -309,14 +311,14 @@ class _EntityPicker<T> extends StatelessWidget {
             ),
           ),
           if (selected != null)
-            IconButton(
+            AppIconButton(
               icon: const Icon(LucideIcons.x),
               onPressed: onClear,
               tooltip: placeholder,
             ),
           const SizedBox(width: 4),
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: EdgeInsets.only(top: context.metrics.rowInset),
             child: Icon(LucideIcons.chevronRight, color: theme.hintColor),
           ),
         ],

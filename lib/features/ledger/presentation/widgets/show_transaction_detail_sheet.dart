@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -20,14 +21,9 @@ Future<void> showTransactionDetailSheet({
   required TransactionTileUiModel transaction,
   String? currencySymbol,
 }) async {
-  FocusManager.instance.primaryFocus?.unfocus();
   final l10n = AppLocalizations.of(context)!;
-  final action = await showModalBottomSheet<_DetailAction>(
+  final action = await showAppReceiptSheet<_DetailAction>(
     context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0),
     builder: (sheetContext) => TransactionDetailSheet(
       transaction: transaction,
       currencySymbol: currencySymbol,

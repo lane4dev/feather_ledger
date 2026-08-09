@@ -112,7 +112,7 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
       height: height,
       decoration: BoxDecoration(
         color: LedgerTheme.skeletonFill(context),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: context.metrics.cellBorderRadius,
       ),
     );
   }

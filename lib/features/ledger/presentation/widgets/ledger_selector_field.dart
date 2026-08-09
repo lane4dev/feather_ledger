@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/ledger_theme.dart';
@@ -45,7 +46,7 @@ class LedgerSelectorField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: context.metrics.rowInset),
           child: Row(
             children: [
               if (label != null) ...[

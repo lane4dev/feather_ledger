@@ -1,7 +1,10 @@
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -19,6 +22,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
+import '../models/transaction_date_label.dart';
+import '../widgets/ledger_note_field.dart';
 import '../theme/ledger_theme.dart';
 import '../view_model/recurring_view_model.dart';
 import '../widgets/ledger_amount_input.dart';
@@ -88,66 +93,70 @@ class _RecurringBillFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final currency = AppCurrencies.defaultCurrency.symbol;
+    final accounts =
+        ref.watch(accountUiListProvider).value ?? const <AccountUiModel>[];
+    final selected =
+        accounts.where((item) => item.account.id == _accountId).firstOrNull;
+    final currency = AppCurrencies.getSymbol(selected?.account.currencyCode ??
+        widget.transaction.account.currencyCode);
+    final labelWidth = LedgerTheme.transactionFormLabelWidth(context);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(LucideIcons.x),
-          onPressed: () => context.pop(),
+        leading: AppIconButton(
+            icon: const Icon(LucideIcons.x),
+            onPressed: () => context.pop(),
+            tooltip: l10n.cancel),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(l10n.editTransaction,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            SizedBox(width: context.spacing.sm),
+            AppBadge(label: l10n.pendingBill),
+          ],
         ),
-        title: Text(l10n.editRecurringTitle),
       ),
-      body: SingleChildScrollView(
-        // No horizontal padding: a row insets its own contents so its ripple
-        // can reach the edge, and padding it from out here would clip that
-        // ripple. Everything in the column that is not a row is wrapped in
-        // [_inset].
-        padding: EdgeInsets.symmetric(vertical: context.spacing.md),
+      body: SafeArea(
+        top: false,
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _inset(
-                LedgerAmountInput(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(vertical: context.spacing.lg),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _inset(LedgerAmountInput(
                   controller: _amount,
                   type: widget.transaction.type,
-                  currencySymbol: currency,
-                ),
-              ),
+                  currencySymbol: currency)),
               SizedBox(height: context.spacing.lg),
               _inset(const FeatherDivider()),
-              SizedBox(height: context.spacing.md),
-              _dateRow(l10n),
               SizedBox(height: context.spacing.sm),
-              _categoryRow(l10n),
+              _dateRow(l10n, labelWidth),
               SizedBox(height: context.spacing.sm),
-              _accountRow(l10n),
+              _inset(const FeatherDivider()),
               SizedBox(height: context.spacing.sm),
-              LedgerFormRow(
-                icon: LucideIcons.notebookPen,
-                child: TextFormField(
-                  controller: _note,
-                  decoration: InputDecoration(
-                    hintText: l10n.note,
-                    border: InputBorder.none,
-                  ),
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ),
+              _accountRow(l10n, labelWidth),
+              SizedBox(height: context.spacing.sm),
+              _categoryRow(l10n, labelWidth),
+              SizedBox(height: context.spacing.sm),
+              _inset(const FeatherDivider()),
+              SizedBox(height: context.spacing.sm),
+              LedgerNoteField(controller: _note, labelWidth: labelWidth),
               SizedBox(height: context.spacing.xl),
-              _inset(
-                FilledButton(
-                  onPressed: _submit,
-                  child: Text(l10n.save),
-                ),
-              ),
-            ],
+            ]),
           ),
         ),
       ),
+      bottomNavigationBar: AppBottomActionBar(
+          child: AppButton(
+        onPressed: _submit,
+        child: Text(l10n.save),
+      )),
     );
   }
 
@@ -159,25 +168,23 @@ class _RecurringBillFormScreenState
         child: child,
       );
 
-  Widget _dateRow(AppLocalizations l10n) {
-    final locale = Localizations.localeOf(context).toString();
-    return LedgerFormRow(
-      icon: LucideIcons.calendar,
-      child: InkWell(
+  Widget _dateRow(AppLocalizations l10n, double labelWidth) => LedgerFormRow(
+        icon: LucideIcons.calendar,
         onTap: _pickDate,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            DateFormat.yMMMMEEEEd(locale).format(_date),
-            style: Theme.of(context).textTheme.bodyLarge,
+        child: LedgerSelectorField(
+          label: l10n.date,
+          labelWidth: labelWidth,
+          text: transactionDateLabel(
+            date: _date,
+            today: DateTime.now(),
+            locale: Localizations.localeOf(context).toString(),
+            l10n: l10n,
+            includeTime: false,
           ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _categoryRow(AppLocalizations l10n) {
+  Widget _categoryRow(AppLocalizations l10n, double labelWidth) {
     final theme = Theme.of(context);
     final categoryType = widget.transaction.type == TransactionKind.income
         ? CategoryType.income
@@ -211,19 +218,21 @@ class _RecurringBillFormScreenState
           final selected =
               categories.where((c) => c.id == _categoryId).firstOrNull;
           return LedgerSelectorField(
+            label: l10n.category,
+            labelWidth: labelWidth,
             text: selected?.name ?? l10n.category,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
           );
         },
-        loading: () => const SizedBox(height: 24),
-        error: (_, __) => const SizedBox(height: 24),
+        loading: () => SizedBox(height: context.metrics.controlHeight),
+        error: (_, __) => SizedBox(height: context.metrics.controlHeight),
       ),
     );
   }
 
-  Widget _accountRow(AppLocalizations l10n) {
+  Widget _accountRow(AppLocalizations l10n, double labelWidth) {
     final theme = Theme.of(context);
 
     final accounts = ref.watch(accountUiListProvider);
@@ -254,14 +263,16 @@ class _RecurringBillFormScreenState
           final selected =
               accounts.where((a) => a.account.id == _accountId).firstOrNull;
           return LedgerSelectorField(
+            label: l10n.account,
+            labelWidth: labelWidth,
             text: selected?.account.name ?? l10n.account,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
           );
         },
-        loading: () => const SizedBox(height: 24),
-        error: (_, __) => const SizedBox(height: 24),
+        loading: () => SizedBox(height: context.metrics.controlHeight),
+        error: (_, __) => SizedBox(height: context.metrics.controlHeight),
       ),
     );
   }

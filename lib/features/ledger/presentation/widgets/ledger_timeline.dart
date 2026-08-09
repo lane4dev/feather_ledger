@@ -142,10 +142,9 @@ class _DailySummary extends StatelessWidget {
                   ),
                   Text(
                     displayIncome!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.colors.income,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: AppTypography.meta(context).copyWith(
+                      color: context.colors.income,
+                    ),
                   ),
                 ],
                 // Expense
@@ -157,10 +156,9 @@ class _DailySummary extends StatelessWidget {
                   ),
                   Text(
                     displayExpense!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.colors.expense,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: AppTypography.meta(context).copyWith(
+                      color: context.colors.expense,
+                    ),
                   ),
                 ],
               ],

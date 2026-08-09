@@ -1,3 +1,6 @@
+import 'package:feather_ledger/app/design_system/app_badge.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'ledger_sheet_handle.dart';
@@ -61,12 +64,7 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                     leading: leading ??
                         (icon != null
                             ? (color != null
-                                ? CircleAvatar(
-                                    backgroundColor: color.withAlpha(
-                                        50), // Using withAlpha for consistency
-                                    foregroundColor: color,
-                                    child: Icon(icon, size: 20),
-                                  )
+                                ? AppIconBadge(icon: icon, color: color)
                                 : Icon(
                                     icon,
                                     color: Theme.of(context)
@@ -76,13 +74,13 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
                             : null),
                     title: Text(
                       getLabel(option),
-                      style: TextStyle(
-                        fontWeight:
-                            selected ? FontWeight.bold : FontWeight.normal,
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
+                      style: (selected
+                              ? AppTypography.selectedLabel(context)
+                              : Theme.of(context).textTheme.bodyLarge!)
+                          .copyWith(
+                              color: selected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface),
                     ),
                     trailing: getTrailing != null
                         ? getTrailing!(context, option)
@@ -98,16 +96,16 @@ class LedgerSelectionSheet<T> extends StatelessWidget {
             if (onManageTap != null && manageButtonText != null) ...[
               const Divider(),
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(context.spacing.md),
                 child: SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  child: AppButton.outlined(
                     onPressed: () {
                       Navigator.pop(context); // Close the current sheet
                       onManageTap!(); // Execute the manage action
                     },
                     icon: const Icon(LucideIcons.settings),
-                    label: Text(manageButtonText!),
+                    child: Text(manageButtonText!),
                   ),
                 ),
               ),

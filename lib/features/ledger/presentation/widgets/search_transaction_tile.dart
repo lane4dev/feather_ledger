@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -51,12 +52,9 @@ class SearchTransactionTile extends StatelessWidget {
       _ => Theme.of(context).colorScheme.onSurface,
     };
 
-    return ListTile(
+    return AppCard.group(
+        child: ListTile(
       onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: context.spacing.md,
-        vertical: context.spacing.sm,
-      ),
       title: Text(
         title,
         maxLines: 2,
@@ -82,6 +80,6 @@ class SearchTransactionTile extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

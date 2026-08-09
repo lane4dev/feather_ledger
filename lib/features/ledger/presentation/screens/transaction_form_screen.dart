@@ -1,3 +1,7 @@
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
+import '../widgets/ledger_note_field.dart';
+import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -137,17 +141,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     // value starts at the same x — including the rows this kind does not
     // render, because switching kinds must not move the column under the
     // values that were already on screen.
-    final labelWidth = LedgerTheme.formLabelWidth(context, [
-      l10n.transactionType,
-      l10n.date,
-      l10n.repeat,
-      l10n.account,
-      l10n.transferFrom,
-      l10n.transferTo,
-      l10n.category,
-      l10n.note,
-      l10n.attachments,
-    ]);
+    final labelWidth = LedgerTheme.transactionFormLabelWidth(context);
 
     // Same currency is an aggregate invariant, so the eligible destinations
     // are narrowed rather than letting the pair be chosen and refused. The
@@ -158,7 +152,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leading: IconButton(
+        leading: AppIconButton(
           icon: const Icon(LucideIcons.x),
           onPressed: () => context.pop(),
           tooltip: l10n.cancel,
@@ -361,49 +355,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 // 6. Note. Named in the same column as every other field, and
                 //    typed from the same edge as every other value — it is a
                 //    value like the rest, not a right-aligned caption.
-                LedgerFormRow(
-                  icon: LucideIcons.stickyNote,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: SizedBox(
-                          width: labelWidth,
-                          child: Text(
-                            l10n.note,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: LedgerTheme.formLabelGap),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _noteController,
-                          onChanged: vm.setNote,
-                          decoration: InputDecoration(
-                            // The name is in the column to the left, so the
-                            // hint says what to write rather than repeating it
-                            // — and in the same low-emphasis grey the other
-                            // rows use for "nothing chosen yet".
-                            hintText: l10n.noteHint,
-                            hintStyle: theme.textTheme.bodyLarge
-                                ?.copyWith(color: theme.hintColor),
-                            border: InputBorder.none,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 12),
-                            isDense: true,
-                          ),
-                          minLines: 1,
-                          maxLines: 3,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                LedgerNoteField(
+                    controller: _noteController,
+                    labelWidth: labelWidth,
+                    onChanged: vm.setNote),
 
                 SizedBox(height: context.spacing.sm),
 
@@ -421,27 +376,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AnimatedPadding(
-        duration: kThemeAnimationDuration,
-        curve: Curves.easeOut,
-        padding: EdgeInsets.fromLTRB(
-          context.spacing.lg,
-          context.spacing.sm,
-          context.spacing.lg,
-          MediaQuery.viewInsetsOf(context).bottom + context.spacing.sm,
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 52,
-            width: double.infinity,
-            child: AppButton(
-              onPressed: _submit,
-              child: Text(l10n.save),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: AppBottomActionBar(
+          child: AppButton(onPressed: _submit, child: Text(l10n.save))),
     );
   }
 
@@ -497,7 +433,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         // under the field's name rather than under the icon.
         _inset(
           Padding(
-            padding: const EdgeInsets.only(left: 48),
+            padding: EdgeInsets.only(
+                left: context.metrics.iconSize + context.metrics.pageGutter),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -534,7 +471,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             child:
                 Text(fileName, style: Theme.of(context).textTheme.bodyMedium),
           ),
-          IconButton(
+          AppIconButton(
             onPressed: onRemove,
             icon: const Icon(LucideIcons.x),
             tooltip: removeTooltip,
@@ -761,11 +698,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           title: Text(l10n.overdraftWarningTitle),
           content: Text(l10n.overdraftWarningMessage),
           actions: [
-            TextButton(
+            AppButton.text(
               onPressed: () => Navigator.pop(context, false),
               child: Text(l10n.cancel),
             ),
-            TextButton(
+            AppButton.text(
               onPressed: () => Navigator.pop(context, true),
               child: Text(l10n.save),
             ),
@@ -813,18 +750,13 @@ class _TransactionFormModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: context.spacing.sm,
-      runSpacing: context.spacing.sm,
-      children: [
+    return AppChoiceChips<TransactionFormMode>(
+      choices: [
         for (final mode in TransactionFormMode.values)
-          ChoiceChip(
-            label: Text(_label(mode)),
-            selected: selected == mode,
-            showCheckmark: false,
-            onSelected: (_) => onSelected(mode),
-          ),
+          ButtonSegment(value: mode, label: Text(_label(mode)))
       ],
+      selected: selected,
+      onSelected: onSelected,
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -88,28 +89,17 @@ class LedgerAmountInput extends StatelessWidget {
           // not yet tapped — the symbol was simply absent.
           Text(
             '$currencySymbol ',
-            style: theme.textTheme.displayMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTypography.amountInput(context)
+                .copyWith(color: colorScheme.onSurfaceVariant),
           ),
           Flexible(
-            child: TextFormField(
+            child: AppTextField(
               controller: controller,
               autofocus: autofocus,
-              decoration: InputDecoration(
-                hintText: '0.00',
-                hintStyle: theme.textTheme.displayMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: theme.textTheme.displayMedium?.copyWith(
-                color: typeColor,
-                fontWeight: FontWeight.bold,
-              ),
+              variant: AppFieldVariant.amount,
+              hintText: '0.00',
+              style:
+                  AppTypography.amountInput(context).copyWith(color: typeColor),
               keyboardType: TextInputType.numberWithOptions(
                 decimal: true,
                 // Without this the keypad has no minus to press, and the

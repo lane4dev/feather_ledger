@@ -4,6 +4,7 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
 /// The value the transaction form's date row shows: "今天 14:30",
 /// "9月18日 14:30", "2025年9月18日 14:30".
+/// Pending bills use [includeTime] = false because only their day is editable.
 ///
 /// [today] is passed in rather than read here — the rule is then a function of
 /// its two dates, which is what makes "yesterday" testable at all.
@@ -20,15 +21,14 @@ String transactionDateLabel({
   required DateTime today,
   required String locale,
   required AppLocalizations l10n,
+  bool includeTime = true,
 }) {
-  final time = DateFormat.Hm(locale).format(date);
   final relative = _relativeDay(date, today, l10n);
-  if (relative != null) return '$relative $time';
-
-  final day = date.year == today.year
-      ? DateFormat.MMMd(locale).format(date)
-      : DateFormat.yMMMd(locale).format(date);
-  return '$day $time';
+  final day = relative ??
+      (date.year == today.year
+          ? DateFormat.MMMd(locale).format(date)
+          : DateFormat.yMMMd(locale).format(date));
+  return includeTime ? '$day ${DateFormat.Hm(locale).format(date)}' : day;
 }
 
 /// The same calendar day, or the one either side of it — compared as year,

@@ -1,10 +1,11 @@
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/value_objects/transaction_filter.dart';
@@ -41,19 +42,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
+        leading: AppIconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => context.pop(),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         ),
-        title: AppTextField(
+        title: AppTextField.search(
           controller: _queryController,
           hintText: l10n.searchHint,
           onChanged: (value) =>
               ref.read(searchViewModelProvider.notifier).setQuery(value),
         ),
         actions: [
-          IconButton(
+          AppIconButton(
             icon: Icon(
                 filter.isNotEmpty ? LucideIcons.filter : LucideIcons.filter),
             tooltip: l10n.filterTitle,
@@ -69,10 +70,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   return Center(child: Text(l10n.noSearchResults));
                 }
                 return ListView.separated(
+                  padding: context.pagePadding
+                      .add(EdgeInsets.symmetric(vertical: context.spacing.md)),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   itemCount: results.tiles.length,
-                  separatorBuilder: (context, index) => const FeatherDivider(),
+                  separatorBuilder: (context, index) =>
+                      SizedBox(height: context.spacing.sm),
                   itemBuilder: (_, index) {
                     final transaction = results.tiles[index];
                     return SearchTransactionTile(

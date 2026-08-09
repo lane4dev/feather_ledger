@@ -1,3 +1,6 @@
+import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,19 +9,13 @@ import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
-import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../view_model/recurring_view_model.dart';
-import 'ledger_delete_menu.dart';
-import 'ledger_detail_row.dart';
-import 'ledger_sheet_handle.dart';
+import 'ledger_receipt_content.dart';
 import 'recurring_scope_dialog.dart';
 
 /// What you can do with an upcoming recurring bill (spec 004, US2).
@@ -40,82 +37,22 @@ class PendingBillSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final currency = currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        context.spacing.lg,
-        0,
-        context.spacing.lg,
-        context.spacing.lg,
+    final currency = currencySymbol ??
+        AppCurrencies.getSymbol(transaction.account.currencyCode);
+    return AppReceiptSheet(
+      toolbar: LedgerReceiptToolbar(
+        onEdit: () => _edit(context),
+        onDelete: () => _delete(context, ref, l10n),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const LedgerSheetHandle(),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(LucideIcons.x),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: l10n.cancel,
-              ),
-              const Spacer(),
-              // Edit and delete sit where a recorded transaction's sheet puts
-              // them: the pencil beside the overflow menu.
-              IconButton(
-                icon: const Icon(LucideIcons.squarePen),
-                onPressed: () => _edit(context),
-                tooltip: l10n.edit,
-              ),
-              LedgerDeleteMenu(onDelete: () => _delete(context, ref, l10n)),
-            ],
-          ),
-          Text(
-            '${transaction.displaySign} $currency${transaction.displayAmount}',
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: switch (transaction.type) {
-                TransactionKind.expense => context.colors.expense,
-                TransactionKind.income => context.colors.income,
-                TransactionKind.transfer =>
-                  Theme.of(context).colorScheme.onSurface,
-                TransactionKind.openingBalance ||
-                TransactionKind.balanceAdjustment =>
-                  Theme.of(context).colorScheme.onSurface,
-              },
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: context.spacing.md),
-          const FeatherDivider(),
-          SizedBox(height: context.spacing.md),
-          LedgerDetailRow(
-            label: l10n.date,
-            value: _formatDate(transaction.date),
-          ),
-          SizedBox(height: context.spacing.md),
-          LedgerDetailRow(
-            label: l10n.category,
-            value: transaction.category!.name,
-          ),
-          SizedBox(height: context.spacing.md),
-          LedgerDetailRow(
-            label: l10n.account,
-            value: transaction.account.name,
-          ),
-          if (transaction.note != null && transaction.note!.isNotEmpty) ...[
-            SizedBox(height: context.spacing.md),
-            LedgerDetailRow(label: l10n.note, value: transaction.note!),
-          ],
-          SizedBox(height: context.spacing.lg),
-          FilledButton(
-            onPressed: () => _post(context, ref, l10n),
-            child: Text(l10n.postInstance),
-          ),
-        ],
+      footer: AppBottomActionBar(
+          child: AppButton(
+        onPressed: () => _post(context, ref, l10n),
+        child: Text(l10n.postInstance),
+      )),
+      child: LedgerReceiptContent(
+        transaction: transaction,
+        currencySymbol: currency,
+        status: l10n.pendingBill,
       ),
     );
   }
@@ -132,11 +69,11 @@ class PendingBillSheet extends ConsumerWidget {
         title: Text(l10n.postInstanceTitle),
         content: Text(l10n.postInstanceConfirm),
         actions: [
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.postInstance),
           ),
@@ -216,8 +153,4 @@ class PendingBillSheet extends ConsumerWidget {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(success)));
   }
-
-  static String _formatDate(DateTime date) => '${date.year}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 }

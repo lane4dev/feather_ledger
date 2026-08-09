@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -72,19 +73,13 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppButton.text(
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        TextButton(
+        AppButton(
           onPressed: () => Navigator.pop(context, _scope),
-          // A destructive confirm wears the error colour a recorded
-          // transaction's delete does; "next" is not destructive and does not.
-          style: widget.destructive
-              ? TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                )
-              : null,
+          destructive: widget.destructive,
           child: Text(widget.confirmLabel),
         ),
       ],
