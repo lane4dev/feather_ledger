@@ -14,7 +14,7 @@ class ReportTheme {
     final neutral = Theme.of(context).colorScheme.surfaceContainerHighest;
     if (direction == ReportHeatmapDirection.zero) return neutral;
     final color = scale == ReportHeatmapScale.frequency
-        ? Theme.of(context).colorScheme.primary
+        ? context.colors.frequency
         : direction == ReportHeatmapDirection.positive
             ? context.colors.income
             : context.colors.expense;
@@ -22,10 +22,16 @@ class ReportTheme {
   }
 
   static Color heatmapTextColor(BuildContext context, Color background) {
-    final theme = Theme.of(context);
-    return ThemeData.estimateBrightnessForColor(background) == theme.brightness
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.surface;
+    final scheme = Theme.of(context).colorScheme;
+    double contrast(Color foreground) {
+      final a = background.computeLuminance();
+      final b = foreground.computeLuminance();
+      return a > b ? (a + 0.05) / (b + 0.05) : (b + 0.05) / (a + 0.05);
+    }
+
+    return contrast(scheme.onSurface) >= contrast(scheme.surface)
+        ? scheme.onSurface
+        : scheme.surface;
   }
 
   static double heatmapCellSize(BuildContext context) {

@@ -1,10 +1,11 @@
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -31,7 +32,7 @@ class ReportsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.reports),
         actions: [
-          IconButton(
+          AppIconButton(
             icon: const Icon(LucideIcons.calendarDays),
             onPressed: () {
               FeatherMonthPicker.show(
@@ -48,7 +49,8 @@ class ReportsScreen extends ConsumerWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(spacing.md),
+        padding:
+            context.pagePadding.add(EdgeInsets.symmetric(vertical: spacing.md)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -66,44 +68,45 @@ class ReportsScreen extends ConsumerWidget {
             // shows; the balance is not — the header's is the ledger's
             // running total, this one is where the month ended.
             totalsAsync.when(
-              data: (totals) => Row(
+              data: (totals) => AppCard(
+                  child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _TotalsColumn(
+                  Expanded(
+                      child: _TotalsColumn(
                     label: l10n.income,
                     displayAmount: totals.displayIncome,
                     color: context.colors.income,
-                  ),
-                  _TotalsColumn(
+                  )),
+                  Expanded(
+                      child: _TotalsColumn(
                     label: l10n.expense,
                     displayAmount: totals.displayExpense,
                     color: context.colors.expense,
-                  ),
-                  _TotalsColumn(
+                  )),
+                  Expanded(
+                      child: _TotalsColumn(
                     label: l10n.monthEndBalance,
                     displayAmount: totals.displayBalance,
                     color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                  )),
                 ],
-              ),
+              )),
               loading: () => const LinearProgressIndicator(),
               error: (_, __) => const SizedBox(),
             ),
-            SizedBox(height: spacing.lg),
-            const FeatherDivider(),
-            SizedBox(height: spacing.lg),
+            SizedBox(height: context.metrics.sectionGap),
 
             // 1. Breakdown Section
-            ReportBreakdownTabs(
+            AppCard(
+                child: ReportBreakdownTabs(
               incomeAsync: incomeAsync,
               expenseAsync: expenseAsync,
-            ),
-            SizedBox(height: spacing.lg),
-            const FeatherDivider(),
-            SizedBox(height: spacing.lg),
+            )),
+            SizedBox(height: context.metrics.sectionGap),
 
             // 2. Heatmap Section
-            const ReportHeatmapView(),
+            const AppCard(child: ReportHeatmapView()),
             SizedBox(height: spacing.xl),
           ],
         ),
@@ -130,13 +133,12 @@ class _TotalsColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          displayAmount,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold, color: color),
-        ),
+        FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              displayAmount,
+              style: AppTypography.sectionTitle(context).copyWith(color: color),
+            )),
         const SizedBox(height: 4),
         Text(
           label,

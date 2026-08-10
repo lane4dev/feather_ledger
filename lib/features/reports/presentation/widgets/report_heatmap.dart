@@ -178,7 +178,7 @@ class _HeatmapDay extends StatelessWidget {
       day.level,
       scale: scale,
     );
-    final radius = BorderRadius.circular(context.spacing.xs);
+    final radius = context.metrics.cellBorderRadius;
     return Semantics(
       label: day.tooltip,
       button: onTap != null,
@@ -242,7 +242,7 @@ class _HeatmapLegend extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: BorderRadius.circular(context.spacing.xs / 2),
+                    borderRadius: context.metrics.legendBorderRadius,
                   ),
                   child: SizedBox.square(dimension: context.spacing.sm),
                 ),

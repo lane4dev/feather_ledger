@@ -1,3 +1,5 @@
+import '../theme/report_theme.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,7 +55,7 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
           data,
           currencySymbol: currencySymbol,
           othersLabel: l10n.others,
-          othersColorInt: Colors.grey.toARGB32(),
+          othersColorInt: Theme.of(context).colorScheme.outline.toARGB32(),
         );
 
         return Column(
@@ -93,12 +95,12 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                       value: item.chartValue,
                       title: item.displayShare,
                       radius: isTouched ? 55 : 45,
-                      titleStyle:
-                          Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isTouched ? 14 : 10,
-                              ),
+                      titleStyle: AppTypography.chartLabel(context,
+                              emphasized: isTouched)
+                          .copyWith(
+                        color: ReportTheme.heatmapTextColor(
+                            context, isTouched ? Color(item.colorInt) : color),
+                      ),
                     );
                   }).toList(),
                   sectionsSpace: 2,
@@ -126,7 +128,7 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                         }
                       });
                     },
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.metrics.chipBorderRadius,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           vertical: 4, horizontal: 8),
@@ -136,8 +138,11 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                                 .colorScheme
                                 .primaryContainer
                                 .withValues(alpha: 0.3)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
+                            : Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withValues(alpha: 0),
+                        borderRadius: context.metrics.chipBorderRadius,
                       ),
                       child: Row(
                         children: [
@@ -155,14 +160,9 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                           Expanded(
                             child: Text(
                               item.label,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: isTouched
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
+                              style: isTouched
+                                  ? AppTypography.sectionTitle(context)
+                                  : Theme.of(context).textTheme.bodyMedium,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -170,14 +170,7 @@ class _ReportBreakdownViewState extends ConsumerState<ReportBreakdownView> {
                           const SizedBox(width: 12),
                           Text(
                             item.displayTotal,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  fontWeight: isTouched
-                                      ? FontWeight.bold
-                                      : FontWeight.bold,
-                                ),
+                            style: AppTypography.amount(context),
                           ),
                         ],
                       ),

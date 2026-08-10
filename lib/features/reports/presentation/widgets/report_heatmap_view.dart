@@ -28,10 +28,7 @@ class ReportHeatmapView extends StatelessWidget {
           children: [
             Expanded(
                 child: Text(l10n.activityHeatmap,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold))),
+                    style: AppTypography.sectionTitle(context))),
             const HeatmapModeDropdown(),
           ],
         ),
