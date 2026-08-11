@@ -1,3 +1,5 @@
+import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -38,69 +40,78 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
-        padding: EdgeInsets.symmetric(vertical: spacing.sm),
+        padding:
+            context.pagePadding.add(EdgeInsets.symmetric(vertical: spacing.md)),
         children: [
-          // Theme
-          ListTile(
-            leading: const Icon(LucideIcons.sunMedium),
-            title: Text(l10n.theme),
-            subtitle: Text(_getThemeLabel(themeAsync.value, l10n)),
-            trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () => _showThemeDialog(context, ref, themeAsync.value, l10n),
-          ),
-          const FeatherDivider(),
+          AppCard.group(
+              child: Column(children: [
+            // Theme
+            ListTile(
+              leading: const Icon(LucideIcons.sunMedium),
+              title: Text(l10n.theme),
+              subtitle: Text(_getThemeLabel(themeAsync.value, l10n)),
+              trailing: const Icon(LucideIcons.chevronRight),
+              onTap: () =>
+                  _showThemeDialog(context, ref, themeAsync.value, l10n),
+            ),
+            const FeatherDivider(),
 
-          // Language
-          ListTile(
-            leading: const Icon(LucideIcons.languages),
-            title: Text(l10n.language),
-            subtitle: Text(_getLocaleLabel(localeAsync.value, l10n)),
-            trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () =>
-                _showLanguageDialog(context, ref, localeAsync.value, l10n),
-          ),
-          const FeatherDivider(),
+            // Language
+            ListTile(
+              leading: const Icon(LucideIcons.languages),
+              title: Text(l10n.language),
+              subtitle: Text(_getLocaleLabel(localeAsync.value, l10n)),
+              trailing: const Icon(LucideIcons.chevronRight),
+              onTap: () =>
+                  _showLanguageDialog(context, ref, localeAsync.value, l10n),
+            ),
+            const FeatherDivider(),
 
-          // Currency
-          ListTile(
-            leading: const Icon(LucideIcons.circleDollarSign),
-            title: Text(l10n.currencySymbol),
-            subtitle: Text(currencyAsync.when(
-              data: (key) => AppCurrencies.getName(key, l10n),
-              loading: () => l10n.loading,
-              error: (_, __) => '',
-            )),
-            trailing: const Icon(LucideIcons.chevronRight),
-            onTap: () =>
-                _showCurrencyDialog(context, ref, currencyAsync.value, l10n),
-          ),
-          const FeatherDivider(),
-
-          // Data portability (spec 004, US4).
-          ListTile(
-            leading: const Icon(LucideIcons.databaseBackup),
-            title: Text(l10n.backupNow),
-            subtitle: Text(l10n.backupNowHint),
-            onTap: () => _createBackup(context, ref, l10n),
-          ),
-          const FeatherDivider(),
-          ListTile(
-            leading: const Icon(LucideIcons.history),
-            title: Text(l10n.restoreFromBackup),
-            subtitle: Text(l10n.restoreFromBackupHint),
-            onTap: () => _restoreFromBackup(context, ref, l10n),
-          ),
-          const FeatherDivider(),
-
-          // Developer-only maintenance (spec 003, US8/T059): the rebuild
-          // replays the full event history into the projections. Hidden
-          // behind a long-press so no regular user flow can touch it.
-          ListTile(
-            leading: const Icon(LucideIcons.hardHat),
-            title: Text(l10n.rebuildProjections),
-            subtitle: Text(l10n.rebuildProjectionsHint),
-            onLongPress: () => _confirmRebuild(context, ref, l10n),
-          ),
+            // Currency
+            ListTile(
+              leading: const Icon(LucideIcons.circleDollarSign),
+              title: Text(l10n.currencySymbol),
+              subtitle: Text(currencyAsync.when(
+                data: (key) => AppCurrencies.getName(key, l10n),
+                loading: () => l10n.loading,
+                error: (_, __) => '',
+              )),
+              trailing: const Icon(LucideIcons.chevronRight),
+              onTap: () =>
+                  _showCurrencyDialog(context, ref, currencyAsync.value, l10n),
+            ),
+          ])),
+          SizedBox(height: spacing.lg),
+          AppCard.group(
+              child: Column(children: [
+            // Data portability (spec 004, US4).
+            ListTile(
+              leading: const Icon(LucideIcons.databaseBackup),
+              title: Text(l10n.backupNow),
+              subtitle: Text(l10n.backupNowHint),
+              onTap: () => _createBackup(context, ref, l10n),
+            ),
+            const FeatherDivider(),
+            ListTile(
+              leading: const Icon(LucideIcons.history),
+              title: Text(l10n.restoreFromBackup),
+              subtitle: Text(l10n.restoreFromBackupHint),
+              onTap: () => _restoreFromBackup(context, ref, l10n),
+            ),
+          ])),
+          SizedBox(height: spacing.lg),
+          AppCard.group(
+              child: Column(children: [
+            // Developer-only maintenance (spec 003, US8/T059): the rebuild
+            // replays the full event history into the projections. Hidden
+            // behind a long-press so no regular user flow can touch it.
+            ListTile(
+              leading: const Icon(LucideIcons.hardHat),
+              title: Text(l10n.rebuildProjections),
+              subtitle: Text(l10n.rebuildProjectionsHint),
+              onLongPress: () => _confirmRebuild(context, ref, l10n),
+            ),
+          ])),
         ],
       ),
     );
@@ -161,11 +172,11 @@ class SettingsScreen extends ConsumerWidget {
           info.discardedEventCount,
         )),
         actions: [
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.restoreFromBackup),
           ),
@@ -189,11 +200,11 @@ class SettingsScreen extends ConsumerWidget {
         title: Text(l10n.restoreReadyTitle),
         content: Text(l10n.restoreReadyMessage),
         actions: [
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppButton.text(
             onPressed: () {
               Navigator.pop(context);
               // Android closes the activity; elsewhere the user reopens the
@@ -218,11 +229,11 @@ class SettingsScreen extends ConsumerWidget {
         title: Text(l10n.rebuildProjections),
         content: Text(l10n.rebuildProjectionsConfirm),
         actions: [
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.save),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
 
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/app/theme/category_tokens.dart';
@@ -19,11 +20,7 @@ class CategoryTile extends StatelessWidget {
     final iconData = CategoryTokens.iconFor(category.iconKey);
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color.withValues(alpha: 0.2),
-        foregroundColor: color,
-        child: Icon(iconData, size: 20),
-      ),
+      leading: AppIconBadge(icon: iconData, color: color),
       title: Text(category.name),
       onTap: onTap,
     );

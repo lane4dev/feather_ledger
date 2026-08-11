@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,7 @@ class _CategoryManagementScreenState
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
+        leading: AppIconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,

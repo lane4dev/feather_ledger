@@ -1,3 +1,6 @@
+import 'package:feather_ledger/app/design_system/app_sheet_handle.dart';
+import 'package:feather_ledger/app/design_system/app_text_field.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -60,30 +63,20 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Handle Bar
-          Center(
-            child: Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          const AppSheetHandle(),
 
           // Action Bar
           Row(
             children: [
-              IconButton(
+              AppIconButton(
                 icon: const Icon(LucideIcons.x),
                 onPressed: () => context.pop(),
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
               if (isEditing)
-                IconButton(
+                AppIconButton.destructive(
                   icon: const Icon(LucideIcons.trash2),
-                  color: colorScheme.error,
                   onPressed: _deleteCategory,
                   tooltip: l10n.delete,
                 ),
@@ -118,25 +111,14 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     SizedBox(height: context.spacing.lg),
 
                     // Name Input
-                    TextFormField(
+                    AppTextField(
                       initialValue: _name,
                       textAlign: TextAlign.start,
-                      decoration: InputDecoration(
-                        hintText: l10n.categoryNameHint,
-                        hintStyle: theme.textTheme.displaySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.5),
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        labelText: l10n.name,
-                        floatingLabelBehavior: FloatingLabelBehavior.always,
-                        alignLabelWithHint: true,
-                      ),
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      variant: AppFieldVariant.inline,
+                      hintText: l10n.categoryNameHint,
+                      labelText: l10n.name,
+                      floatingLabel: true,
+                      style: Theme.of(context).textTheme.headlineSmall,
                       validator: (value) => (value == null || value.isEmpty)
                           ? l10n.required
                           : null,
@@ -194,7 +176,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                                 color: isSelected
                                     ? colorScheme.primaryContainer
                                     : null,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: context.metrics.chipBorderRadius,
                               ),
                               child: Icon(
                                 CategoryTokens.iconFor('$iconCode'),
@@ -236,15 +218,18 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         title: Text(l10n.deleteCategoryConfirmationTitle),
         content: Text(l10n.deleteCategoryConfirmationMessage),
         actions: [
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppButton.text(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.delete,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge!
+                  .copyWith(color: Theme.of(context).colorScheme.error),
             ),
           ),
         ],

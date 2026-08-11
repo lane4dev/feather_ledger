@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/account_card_theme.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -34,7 +35,7 @@ class AccountTile extends StatelessWidget {
       type: entity.type,
       archived: entity.archived,
       onTap: onTap,
-      padding: EdgeInsets.all(spacing.lg),
+      padding: context.metrics.cardPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -57,18 +58,10 @@ class AccountTile extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.md),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: tokens.iconBackground(entity.type, scheme,
-                      archived: entity.archived),
-                  borderRadius: BorderRadius.circular(tokens.iconRadius),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(spacing.sm + spacing.xs),
-                  child: Icon(entity.type.icon,
-                      color: tokens.accent(entity.type, scheme,
-                          archived: entity.archived)),
-                ),
+              AppIconBadge(
+                icon: entity.type.icon,
+                color: tokens.accent(entity.type, scheme,
+                    archived: entity.archived),
               ),
             ],
           ),
@@ -105,37 +98,12 @@ class AccountTile extends StatelessWidget {
               runSpacing: spacing.xs,
               children: [
                 if (!entity.includeInTotals)
-                  _AccountStatus(label: l10n.accountExcludedFromTotals),
-                if (entity.archived)
-                  _AccountStatus(label: l10n.accountArchived),
+                  AppBadge(label: l10n.accountExcludedFromTotals),
+                if (entity.archived) AppBadge(label: l10n.accountArchived),
               ],
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _AccountStatus extends StatelessWidget {
-  const _AccountStatus({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(context.spacing.xs),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: context.spacing.sm, vertical: context.spacing.xs),
-        child: Text(label,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       ),
     );
   }

@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 
 class SettingsTheme {
-  static TextStyle accountName(BuildContext context) => Theme.of(context)
-      .textTheme
-      .titleMedium!
-      .copyWith(fontWeight: FontWeight.w600);
-
+  static TextStyle accountName(BuildContext context) =>
+      AppTypography.sectionTitle(context);
   static TextStyle accountBalance(BuildContext context) =>
-      Theme.of(context).textTheme.headlineMedium!.copyWith(
-        fontWeight: FontWeight.w600,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
+      AppTypography.balance(context);
 }
