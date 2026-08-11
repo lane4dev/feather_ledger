@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -86,7 +87,7 @@ void main() {
 
     final name = find.widgetWithText(TextFormField, 'Account Name');
     final balance = find.widgetWithText(TextFormField, 'Initial Balance');
-    final type = find.byType(SegmentedButton<AccountType>);
+    final type = find.byType(AppChoiceChips<AccountType>);
 
     expect(name, findsOneWidget);
     expect(balance, findsOneWidget);
@@ -169,8 +170,7 @@ void main() {
 
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     expect(account.includeInTotals, isFalse);
-    expect(account.balanceMinor, 0,
-        reason: 'a flag moves no money');
+    expect(account.balanceMinor, 0, reason: 'a flag moves no money');
   });
 
   testWidgets('editing shows the account as it stands, and can change it',

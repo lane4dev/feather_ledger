@@ -209,7 +209,7 @@ void main() {
 
   for (final dark in [false, true]) {
     testWidgets(
-        'frequency has a count legend and primary-color scale (dark=$dark)',
+        'frequency has a count legend and dedicated frequency-color scale (dark=$dark)',
         (tester) async {
       await tester.pumpWidget(wrap(
         (_) => const ReportHeatmapView(),
@@ -221,8 +221,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
       final context = tester.element(find.byType(ReportHeatmap));
-      expect(tester.widget<Material>(cell(29)).color,
-          Theme.of(context).colorScheme.primary);
+      expect(tester.widget<Material>(cell(29)).color, context.colors.frequency);
       expect(
           tester.widget<Material>(cell(28)).color,
           ReportTheme.heatmapColor(context, ReportHeatmapDirection.positive, 3,

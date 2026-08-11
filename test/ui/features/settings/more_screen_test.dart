@@ -107,6 +107,8 @@ void main() {
       (tester) async {
     await pumpMore(tester);
 
+    await tester.ensureVisible(find.widgetWithText(ListTile, 'About'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'About'));
     await tester.pumpAndSettle();
 

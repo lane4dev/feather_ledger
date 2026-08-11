@@ -84,4 +84,31 @@ void main() {
       '今天 14:30',
     );
   });
+
+  test('pending bills share date labels while leaving out the rule clock', () {
+    expect(
+        transactionDateLabel(
+            date: today,
+            today: today,
+            locale: 'en',
+            l10n: en,
+            includeTime: false),
+        'Today');
+    expect(
+        transactionDateLabel(
+            date: DateTime(2025, 9, 18, 14, 30),
+            today: today,
+            locale: 'en',
+            l10n: en,
+            includeTime: false),
+        'Sep 18, 2025');
+    expect(
+        transactionDateLabel(
+            date: DateTime(2026, 9, 18, 14, 30),
+            today: today,
+            locale: 'zh',
+            l10n: zh,
+            includeTime: false),
+        '9月18日');
+  });
 }

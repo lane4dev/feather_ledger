@@ -1,3 +1,6 @@
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +84,6 @@ void main() {
           .widgetList<Radio<RecurringScope>>(find.byType(Radio<RecurringScope>))
           .firstWhere((radio) => radio.value == scope);
 
-
   group('the sheet asks how far the edit reaches', () {
     Object? pushed;
 
@@ -124,8 +126,8 @@ void main() {
         ProviderScope(
           overrides: [
             recurringViewModelProvider.overrideWith(() => viewModel),
-            accountUiListProvider.overrideWithValue(
-              AsyncData([AccountUiModel.of(cash)])),
+            accountUiListProvider
+                .overrideWithValue(AsyncData([AccountUiModel.of(cash)])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
                   type == CategoryType.expense ? const [rent, food] : const []),
@@ -176,7 +178,31 @@ void main() {
   group('the form, and the reach asked for at save', () {
     /// The form is a route in the app, and it pops itself on success — so the
     /// test needs a router underneath it, not just a MaterialApp.
-    Future<void> pumpForm(WidgetTester tester) async {
+    Future<void> pumpForm(WidgetTester tester,
+        {String currencyCode = 'USD',
+        double bottomInset = 0,
+        double textScale = 1}) async {
+      final account = AccountEntity(
+          id: cash.id,
+          name: cash.name,
+          type: cash.type,
+          currencyCode: currencyCode,
+          balanceMinor: cash.balanceMinor,
+          archived: false,
+          lastUpdatedEventId: 0);
+      final formTile = TransactionTileUiModel(
+          id: tile.id,
+          amount: tile.amount,
+          type: tile.type,
+          date: tile.date,
+          note: tile.note,
+          category: tile.category,
+          account: account,
+          displayAmount: tile.displayAmount,
+          displaySign: tile.displaySign,
+          isPending: true,
+          seriesId: tile.seriesId);
+
       final router = GoRouter(
         initialLocation: '/ledger/edit-bill',
         routes: [
@@ -187,7 +213,7 @@ void main() {
               GoRoute(
                 path: 'edit-bill',
                 builder: (_, __) =>
-                    RecurringBillFormScreen(transaction: tile),
+                    RecurringBillFormScreen(transaction: formTile),
               ),
             ],
           ),
@@ -198,14 +224,19 @@ void main() {
         ProviderScope(
           overrides: [
             recurringViewModelProvider.overrideWith(() => viewModel),
-            accountUiListProvider.overrideWithValue(
-              AsyncData([AccountUiModel.of(cash)])),
+            accountUiListProvider
+                .overrideWithValue(AsyncData([AccountUiModel.of(account)])),
             categoryListProvider.overrideWith(
               (ref, type) => Stream.value(
                   type == CategoryType.expense ? const [rent, food] : const []),
             ),
           ],
           child: MaterialApp.router(
+            builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                    viewInsets: EdgeInsets.only(bottom: bottomInset),
+                    textScaler: TextScaler.linear(textScale)),
+                child: child!),
             theme: AppTheme.lightTheme,
             routerConfig: router,
             localizationsDelegates: const [
@@ -237,14 +268,61 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets(
+        'uses the shared title, field columns, account currency and fixed save bar',
+        (tester) async {
+      await pumpForm(tester, currencyCode: 'CNY', bottomInset: 220);
+      expect(find.text('Edit Transaction'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(AppBar), matching: find.byType(AppBadge)),
+          findsOneWidget);
+      expect(tester.getTopLeft(find.byType(AppBadge)).dx,
+          greaterThan(tester.getTopRight(find.text('Edit Transaction')).dx));
+      expect(find.byTooltip('Cancel'), findsOneWidget);
+      expect(
+          tester
+              .widget<LedgerAmountInput>(find.byType(LedgerAmountInput))
+              .currencySymbol,
+          '¥');
+      expect(find.byType(AppBottomActionBar), findsOneWidget);
+      final saveButton = find.widgetWithText(AppButton, 'Save');
+      expect(tester.getSize(saveButton).height, 52);
+      expect(tester.getSize(saveButton).width, 752);
+      expect(tester.getBottomLeft(saveButton).dy, closeTo(600 - 220 - 8, 0.01));
+      final date = tester.widget<LedgerSelectorField>(
+          find.widgetWithText(LedgerSelectorField, 'Date'));
+      expect(date.text, isNot(contains(':')),
+          reason: 'pending bills retain date-only editing');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'keeps the title badge on one row on a narrow screen with larger text',
+        (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 740);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await pumpForm(tester, textScale: 1.8);
+      expect(
+          find.descendant(
+              of: find.byType(AppBar), matching: find.text('Pending')),
+          findsOneWidget);
+      expect(tester.getCenter(find.text('Pending')).dy,
+          closeTo(tester.getCenter(find.text('Edit Transaction')).dy, 0.01));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('offers every field, because the scope is not known yet',
         (tester) async {
       await pumpForm(tester);
 
       // Nothing is decided about the reach until Save, so nothing may be
       // hidden on the strength of a decision that has not been made.
-      expect(find.byType(LedgerSelectorField), findsNWidgets(2),
-          reason: 'category and account');
+      expect(find.byType(LedgerSelectorField), findsNWidgets(3),
+          reason: 'date, category and account share labelled rows');
       expect(find.text('Rent'), findsWidgets);
       expect(find.text('Cash'), findsWidgets);
       expect(find.text('Save'), findsOneWidget);
@@ -267,14 +345,17 @@ void main() {
       await pumpForm(tester);
       await save(tester);
 
-      for (final label in ['This bill', 'This and following bills', 'All bills']) {
+      for (final label in [
+        'This bill',
+        'This and following bills',
+        'All bills'
+      ]) {
         final radio = find.byType(Radio<RecurringScope>);
         final index = ['This bill', 'This and following bills', 'All bills']
             .indexOf(label);
         // The radio is not centred against the whole title-plus-hint block:
         // its middle lands on the label's line, not between the two.
-        final radioMiddle =
-            tester.getCenter(radio.at(index)).dy;
+        final radioMiddle = tester.getCenter(radio.at(index)).dy;
         final labelTop = tester.getTopLeft(find.text(label)).dy;
         final labelBottom = tester.getBottomLeft(find.text(label)).dy;
         expect(radioMiddle, greaterThanOrEqualTo(labelTop - 1),
@@ -309,7 +390,9 @@ void main() {
       await save(tester);
       await tester.tap(find.text('This and following bills'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Save'));
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save')));
       await tester.pumpAndSettle();
 
       expect(viewModel.updated, hasLength(1));
@@ -323,7 +406,9 @@ void main() {
       await pumpForm(tester);
 
       await save(tester);
-      await tester.tap(find.widgetWithText(TextButton, 'Save'));
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save')));
       await tester.pumpAndSettle();
 
       expect(viewModel.updated.single.$2, RecurringScope.thisOnly,
@@ -334,7 +419,7 @@ void main() {
       await pumpForm(tester);
 
       await save(tester);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
       await tester.pumpAndSettle();
 
       expect(viewModel.updated, isEmpty);
@@ -346,7 +431,7 @@ void main() {
       await pumpForm(tester);
 
       // Change something only the series can hold.
-      await tester.tap(find.byType(LedgerSelectorField).first);
+      await tester.tap(find.widgetWithText(LedgerSelectorField, 'Category'));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
@@ -384,7 +469,9 @@ void main() {
       await pumpForm(tester);
 
       await save(tester);
-      await tester.tap(find.widgetWithText(TextButton, 'Save'));
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save')));
       await tester.pumpAndSettle();
 
       expect(find.text('This series already has a bill on that date'),

@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,7 +69,8 @@ void main() {
 
   group('the pending row', () {
     testWidgets('is muted and tagged, and posted rows are not', (tester) async {
-      await tester.pumpWidget(wrap(TransactionTile(transaction: tile(isPending: true))));
+      await tester.pumpWidget(
+          wrap(TransactionTile(transaction: tile(isPending: true))));
 
       // Muted as a whole.
       final opacity = tester.widget<Opacity>(find.byType(Opacity));
@@ -77,7 +79,8 @@ void main() {
       expect(find.byIcon(LucideIcons.clock), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
 
-      await tester.pumpWidget(wrap(TransactionTile(transaction: tile(isPending: false))));
+      await tester.pumpWidget(
+          wrap(TransactionTile(transaction: tile(isPending: false))));
 
       expect(find.byType(Opacity), findsNothing,
           reason: 'a posted row pays for no extra layer');
@@ -87,7 +90,8 @@ void main() {
 
     testWidgets('keeps its category tag alongside the pending tag',
         (tester) async {
-      await tester.pumpWidget(wrap(TransactionTile(transaction: tile(isPending: true))));
+      await tester.pumpWidget(
+          wrap(TransactionTile(transaction: tile(isPending: true))));
 
       expect(find.text('Rent'), findsWidgets);
       expect(find.text('Pending'), findsOneWidget);
@@ -127,7 +131,9 @@ void main() {
           reason: 'recording moves money, so it asks first');
       expect(viewModel.posted, isEmpty);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Post'));
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Post')));
       await tester.pumpAndSettle();
 
       expect(viewModel.posted, ['sched_1']);
@@ -138,7 +144,7 @@ void main() {
 
       await tester.tap(find.text('Post'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
       await tester.pumpAndSettle();
 
       expect(viewModel.posted, isEmpty);
@@ -168,7 +174,7 @@ void main() {
       await openDeleteDialog(tester);
       await tester.tap(find.text('This and following bills'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.tap(find.widgetWithText(AppButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(viewModel.deleted, [('sched_1', RecurringScope.thisAndFollowing)]);
@@ -180,7 +186,7 @@ void main() {
       await openDeleteDialog(tester);
       // Confirm without touching the radios: it must not take more than the
       // bill that was opened.
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.tap(find.widgetWithText(AppButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(viewModel.deleted, [('sched_1', RecurringScope.thisOnly)]);
@@ -190,7 +196,7 @@ void main() {
       await pumpSheet(tester);
 
       await openDeleteDialog(tester);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
       await tester.pumpAndSettle();
 
       expect(viewModel.deleted, isEmpty);
@@ -203,7 +209,7 @@ void main() {
       await pumpSheet(tester);
 
       await openDeleteDialog(tester);
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.tap(find.widgetWithText(AppButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(find.text('This scheduled transaction was already posted'),
