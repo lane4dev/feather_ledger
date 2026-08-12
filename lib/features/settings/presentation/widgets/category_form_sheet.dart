@@ -2,6 +2,10 @@ import 'package:feather_ledger/app/design_system/app_sheet_handle.dart';
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
+import 'category_icon_import.dart';
+import 'category_icon_crop_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +37,14 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   late String _name;
   late int _colorInt;
   late String _iconKey;
+
+  bool get _hasChanges {
+    final category = widget.category;
+    return category == null ||
+        _name != category.name ||
+        _colorInt != category.colorInt ||
+        _iconKey != category.iconKey;
+  }
 
   @override
   void initState() {
@@ -98,14 +110,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                         backgroundColor:
                             Color(_colorInt).withValues(alpha: 0.2),
                         foregroundColor: Color(_colorInt),
-                        // Through the one place that knows the icon font: a
-                        // stored key is a Lucide code point since the
-                        // migration, and naming MaterialIcons here drew the
-                        // wrong glyph (or threw on an unparseable key).
-                        child: Icon(
-                          CategoryTokens.iconFor(_iconKey),
-                          size: 32,
-                        ),
+                        child: CategoryIcon(iconKey: _iconKey, size: 32),
                       ),
                     ),
                     SizedBox(height: context.spacing.lg),
@@ -122,6 +127,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       validator: (value) => (value == null || value.isEmpty)
                           ? l10n.required
                           : null,
+                      onChanged: (value) => setState(() => _name = value),
                       onSaved: (value) => _name = value!,
                     ),
                     SizedBox(height: context.spacing.lg),
@@ -129,9 +135,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     const FeatherDivider(),
                     SizedBox(height: context.spacing.md),
 
-                    // Color Picker — creation only (spec 003 has no recolor
-                    // event; edits rename only)
-                    if (!isEditing) ...[
+                    // Color and icon pickers
+                    ...[
                       Text(l10n.color, style: theme.textTheme.titleMedium),
                       SizedBox(height: context.spacing.sm),
                       Wrap(
@@ -162,31 +167,53 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       Text(l10n.icon, style: theme.textTheme.titleMedium),
                       SizedBox(height: context.spacing.sm),
                       Wrap(
+                        alignment: WrapAlignment.spaceBetween,
                         spacing: 8,
                         runSpacing: 8,
-                        children: CategoryTokens.defaultIcons.map((iconCode) {
-                          final isSelected = _iconKey == iconCode.toString();
-                          return GestureDetector(
-                            onTap: () =>
-                                setState(() => _iconKey = iconCode.toString()),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? colorScheme.primaryContainer
-                                    : null,
-                                borderRadius: context.metrics.chipBorderRadius,
+                        children: [
+                          ...CategoryTokens.defaultIcons.map((iconCode) {
+                            final isSelected = _iconKey == iconCode.toString();
+                            return GestureDetector(
+                              onTap: () => setState(
+                                  () => _iconKey = iconCode.toString()),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? colorScheme.primaryContainer
+                                      : null,
+                                  borderRadius:
+                                      context.metrics.chipBorderRadius,
+                                ),
+                                child: Icon(
+                                  CategoryTokens.iconFor('$iconCode'),
+                                  color: isSelected
+                                      ? colorScheme.onPrimaryContainer
+                                      : colorScheme.onSurface,
+                                ),
                               ),
-                              child: Icon(
-                                CategoryTokens.iconFor('$iconCode'),
-                                color: isSelected
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurface,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          }),
+                        ],
+                      ),
+                      SizedBox(height: context.spacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: AppButton.dashed(
+                          onPressed: _importIcon,
+                          icon: const Icon(LucideIcons.imagePlus),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(l10n.uploadCategoryIcon),
+                              Text(l10n.categoryIconUploadHint,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant)),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
 
@@ -196,7 +223,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     SizedBox(
                       width: double.infinity,
                       child: AppButton(
-                        onPressed: _save,
+                        onPressed: _hasChanges ? _save : null,
                         child: Text(l10n.save),
                       ),
                     ),
@@ -208,6 +235,36 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         ],
       ),
     );
+  }
+
+  Future<void> _importIcon() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final file = await openFile(acceptedTypeGroups: [
+        XTypeGroup(
+            label: l10n.categoryIconFileType,
+            extensions: ['png', 'jpg', 'jpeg']),
+      ]);
+      if (file == null) return;
+      if (await file.length() > 5 * 1024 * 1024) throw const FormatException();
+      final image = await decodeCategoryIcon(await file.readAsBytes());
+      try {
+        if (!mounted) return;
+        final crop = await showDialog<Rect>(
+          context: context,
+          builder: (context) => CategoryIconCropDialog(image: image),
+        );
+        if (crop == null || !mounted) return;
+        final icon = await encodeCategoryIcon(image, crop);
+        if (mounted) setState(() => _iconKey = icon);
+      } finally {
+        image.dispose();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.invalidCategoryIcon)));
+    }
   }
 
   Future<void> _deleteCategory() async {
@@ -260,12 +317,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
 
       Result<void> result;
       if (widget.category != null) {
-        // Only the name is editable after creation (spec 003: no
-        // icon/color events exist).
-        result = await service.renameCategory(
+        result = await service.updateCategory(
           commandId: const Uuid().v4(),
           categoryId: widget.category!.id,
           name: _name,
+          iconKey: _iconKey,
+          colorInt: _colorInt,
         );
       } else {
         result = await service.createCategory(

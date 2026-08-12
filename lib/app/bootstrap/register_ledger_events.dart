@@ -85,6 +85,10 @@ void registerLedgerEvents() {
     },
   );
   ledgerEventRegistry.registerFactory(
+    eventType: 'CategoryAppearanceChanged',
+    factory: (json) => CategoryAppearanceChanged.fromJson(json).toJson(),
+  );
+  ledgerEventRegistry.registerFactory(
     eventType: 'CategoryRenamed',
     factory: (json) => CategoryRenamed.fromJson(json).toJson(),
   );

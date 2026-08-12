@@ -651,6 +651,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String attachmentCount(int count) {
     return '$count 个附件';
   }
+
+  @override
+  String get uploadCategoryIcon => '上传图标';
+
+  @override
+  String get categoryIconFileType => '图片';
+
+  @override
+  String get cropCategoryIcon => '裁剪图标';
+
+  @override
+  String get categoryIconCropDescription => '拖动图片调整位置，双指捏合或使用滑块缩放。';
+
+  @override
+  String get invalidCategoryIcon => '请选择不超过 5 MB、宽高至少为 32 像素的 PNG 或 JPEG 图片。';
+
+  @override
+  String get categoryIconZoom => '缩放';
+
+  @override
+  String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1300,6 +1321,27 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String attachmentCount(int count) {
     return '$count 个附件';
   }
+
+  @override
+  String get uploadCategoryIcon => '上传图标';
+
+  @override
+  String get categoryIconFileType => '图片';
+
+  @override
+  String get cropCategoryIcon => '裁剪图标';
+
+  @override
+  String get categoryIconCropDescription => '拖动图片调整位置，双指捏合或使用滑块缩放。';
+
+  @override
+  String get invalidCategoryIcon => '请选择不超过 5 MB、宽高至少为 32 像素的 PNG 或 JPEG 图片。';
+
+  @override
+  String get categoryIconZoom => '缩放';
+
+  @override
+  String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1949,4 +1991,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String attachmentCount(int count) {
     return '$count 個附件';
   }
+
+  @override
+  String get uploadCategoryIcon => '上傳圖示';
+
+  @override
+  String get categoryIconFileType => '圖片';
+
+  @override
+  String get cropCategoryIcon => '裁剪圖示';
+
+  @override
+  String get categoryIconCropDescription => '拖動圖片調整位置，雙指捏合或使用滑桿縮放。';
+
+  @override
+  String get invalidCategoryIcon => '請選擇不超過 5 MB、寬高至少為 32 像素的 PNG 或 JPEG 圖片。';
+
+  @override
+  String get categoryIconZoom => '縮放';
+
+  @override
+  String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
 }

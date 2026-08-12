@@ -12,7 +12,7 @@ import 'package:feather_ledger/features/ledger/domain/projections/ledger_project
 
 part 'rename_category_command.g.dart';
 
-/// Renames a category via `CategoryRenamed` (spec 003, US3/T028).
+/// Saves a category name and, when supplied, its appearance atomically.
 class RenameCategoryCommand {
   final EventStore _eventStore;
   final LedgerProjector _projector;
@@ -23,22 +23,34 @@ class RenameCategoryCommand {
     required String commandId,
     required String categoryId,
     required String name,
+    String? iconKey,
+    int? colorInt,
   }) async {
+    if ((iconKey == null) != (colorInt == null)) {
+      throw ArgumentError('Icon and color must be provided together');
+    }
     if (!await _categoryExists(categoryId)) {
       throw CommandRejected(
           LedgerErrorCode.categoryNotFound, 'Category $categoryId not found');
     }
 
-    final event = CategoryRenamed(categoryId: categoryId, name: name);
+    final version = await nextStreamVersion(_eventStore, categoryId);
+    final events = <LedgerEventPayload>[
+      CategoryRenamed(categoryId: categoryId, name: name),
+      if (iconKey != null && colorInt != null)
+        CategoryAppearanceChanged(
+            categoryId: categoryId, iconKey: iconKey, colorInt: colorInt),
+    ];
     await _eventStore.append(
       [
-        envelopeFor(
-          event,
-          aggregateType: AggregateType.category,
-          streamVersion: await nextStreamVersion(_eventStore, categoryId),
-          commandId: commandId,
-          eventId: const Uuid().v4(),
-        ),
+        for (var i = 0; i < events.length; i++)
+          envelopeFor(
+            events[i],
+            aggregateType: AggregateType.category,
+            streamVersion: version + i,
+            commandId: commandId,
+            eventId: const Uuid().v4(),
+          ),
       ],
       options: AppendOptions(apply: _projector.applyAll),
     );

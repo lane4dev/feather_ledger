@@ -1,3 +1,4 @@
+import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import '../widgets/ledger_note_field.dart';
 import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
@@ -7,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:feather_ledger/app/theme/category_tokens.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
@@ -499,7 +500,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         title: l10n.category,
         options: options,
         getLabel: (c) => c.name,
-        getIcon: (c) => CategoryTokens.iconFor(c.iconKey),
+        getLeading: (context, c) => AppIconBadge(
+            color: Color(c.colorInt),
+            child: CategoryIcon(
+                iconKey: c.iconKey,
+                size: context.metrics.iconSize,
+                color: Color(c.colorInt))),
         getColor: (c) => Color(c.colorInt),
         isSelected: (c) =>
             c.id ==

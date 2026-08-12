@@ -669,4 +669,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String attachmentCount(int count) {
     return '$count attachments';
   }
+
+  @override
+  String get uploadCategoryIcon => 'Upload icon';
+
+  @override
+  String get categoryIconFileType => 'Images';
+
+  @override
+  String get cropCategoryIcon => 'Crop icon';
+
+  @override
+  String get categoryIconCropDescription =>
+      'Drag to move the image; pinch or use the slider to zoom.';
+
+  @override
+  String get invalidCategoryIcon =>
+      'Choose a PNG or JPEG between 32 pixels and 5 MB.';
+
+  @override
+  String get categoryIconZoom => 'Zoom';
+
+  @override
+  String get categoryIconUploadHint => 'PNG or JPEG · up to 5 MB';
 }

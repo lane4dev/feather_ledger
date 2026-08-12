@@ -55,6 +55,21 @@ class CategoryService {
         commandId: commandId, categoryId: categoryId, name: name));
   }
 
+  Future<Result<void>> updateCategory({
+    required String commandId,
+    required String categoryId,
+    required String name,
+    required String iconKey,
+    required int colorInt,
+  }) {
+    return guard(() => _renameCategoryCommand.execute(
+        commandId: commandId,
+        categoryId: categoryId,
+        name: name,
+        iconKey: iconKey,
+        colorInt: colorInt));
+  }
+
   Future<Result<void>> archiveCategory({
     required String commandId,
     required String categoryId,

@@ -73,6 +73,9 @@ class LedgerProjectorImpl implements LedgerProjector {
       case 'CategoryCreated':
         await _applyCategoryCreated(
             envelope, CategoryCreated.fromJson(payload));
+      case 'CategoryAppearanceChanged':
+        await _applyCategoryAppearanceChanged(
+            envelope, CategoryAppearanceChanged.fromJson(payload));
       case 'CategoryRenamed':
         await _applyCategoryRenamed(
             envelope, CategoryRenamed.fromJson(payload));
@@ -209,6 +212,24 @@ class LedgerProjectorImpl implements LedgerProjector {
       systemCode: Value(p.systemCode),
       lastUpdatedEventId: gsn,
       projectionVersion: const Value(ledgerProjectionVersion),
+    ));
+  }
+
+  Future<void> _applyCategoryAppearanceChanged(
+      EventEnvelope e, CategoryAppearanceChanged p) async {
+    final gsn = e.globalSequenceNumber!;
+    final existing = await _db.categoriesDao.getCategoryById(p.categoryId);
+    if (existing == null) {
+      throw StateError(
+          'CategoryAppearanceChanged for unknown category ${p.categoryId} '
+          '(event ${e.eventId})');
+    }
+    if (existing.lastUpdatedEventId >= gsn) return;
+    await _db.categoriesDao.updateRow(CategoriesViewCompanion(
+      id: Value(p.categoryId),
+      iconKey: Value(p.iconKey),
+      colorInt: Value(p.colorInt),
+      lastUpdatedEventId: Value(gsn),
     ));
   }
 

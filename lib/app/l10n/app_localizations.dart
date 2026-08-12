@@ -1366,6 +1366,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} attachments'**
   String attachmentCount(int count);
+
+  /// No description provided for @uploadCategoryIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload icon'**
+  String get uploadCategoryIcon;
+
+  /// No description provided for @categoryIconFileType.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get categoryIconFileType;
+
+  /// No description provided for @cropCategoryIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop icon'**
+  String get cropCategoryIcon;
+
+  /// No description provided for @categoryIconCropDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to move the image; pinch or use the slider to zoom.'**
+  String get categoryIconCropDescription;
+
+  /// No description provided for @invalidCategoryIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a PNG or JPEG between 32 pixels and 5 MB.'**
+  String get invalidCategoryIcon;
+
+  /// No description provided for @categoryIconZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom'**
+  String get categoryIconZoom;
+
+  /// No description provided for @categoryIconUploadHint.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG or JPEG · up to 5 MB'**
+  String get categoryIconUploadHint;
 }
 
 class _AppLocalizationsDelegate

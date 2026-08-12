@@ -619,5 +619,12 @@
   "attachments": "附件",
   "removeAttachment": "移除附件",
   "select": "請選擇",
-  "attachmentCount": "{count} 個附件"
+  "attachmentCount": "{count} 個附件",
+  "uploadCategoryIcon": "上傳圖示",
+  "categoryIconFileType": "圖片",
+  "cropCategoryIcon": "裁剪圖示",
+  "categoryIconCropDescription": "拖動圖片調整位置，雙指捏合或使用滑桿縮放。",
+  "invalidCategoryIcon": "請選擇不超過 5 MB、寬高至少為 32 像素的 PNG 或 JPEG 圖片。",
+  "categoryIconZoom": "縮放",
+  "categoryIconUploadHint": "PNG 或 JPEG，最大 5 MB"
 }

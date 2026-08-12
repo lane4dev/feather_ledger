@@ -356,6 +356,39 @@ class CategoryCreated implements LedgerEventPayload {
       );
 }
 
+/// A category's current appearance; transaction snapshots remain unchanged.
+class CategoryAppearanceChanged implements LedgerEventPayload {
+  final String categoryId;
+  final String iconKey;
+  final int colorInt;
+
+  CategoryAppearanceChanged(
+      {required this.categoryId,
+      required this.iconKey,
+      required this.colorInt});
+
+  @override
+  String get eventType => 'CategoryAppearanceChanged';
+
+  @override
+  String get streamId => categoryId;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'schemaVersion': 1,
+        'categoryId': categoryId,
+        'iconKey': iconKey,
+        'colorInt': colorInt,
+      };
+
+  factory CategoryAppearanceChanged.fromJson(Map<String, dynamic> json) =>
+      CategoryAppearanceChanged(
+        categoryId: json['categoryId'] as String,
+        iconKey: json['iconKey'] as String,
+        colorInt: json['colorInt'] as int,
+      );
+}
+
 class CategoryRenamed implements LedgerEventPayload {
   final String categoryId;
   final String name;

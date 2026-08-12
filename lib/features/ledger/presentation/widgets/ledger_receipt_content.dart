@@ -7,7 +7,7 @@ import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/app/theme/category_tokens.dart';
+import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../models/transaction_tile_ui_model.dart';
@@ -138,7 +138,7 @@ class _CategoryHeading extends StatelessWidget {
             backgroundColor: categoryColor?.withValues(alpha: 0.16) ??
                 theme.colorScheme.surfaceContainerHighest,
             foregroundColor: categoryColor ?? theme.colorScheme.onSurface,
-            child: Icon(CategoryTokens.iconFor(iconKey!), size: 24),
+            child: CategoryIcon(iconKey: iconKey!, size: 24),
           ),
         if (iconKey != null) SizedBox(width: context.spacing.md),
         Flexible(

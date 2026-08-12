@@ -689,5 +689,12 @@
         "type": "int"
       }
     }
-  }
+  },
+  "uploadCategoryIcon": "Upload icon",
+  "categoryIconFileType": "Images",
+  "cropCategoryIcon": "Crop icon",
+  "categoryIconCropDescription": "Drag to move the image; pinch or use the slider to zoom.",
+  "invalidCategoryIcon": "Choose a PNG or JPEG between 32 pixels and 5 MB.",
+  "categoryIconZoom": "Zoom",
+  "categoryIconUploadHint": "PNG or JPEG · up to 5 MB"
 }

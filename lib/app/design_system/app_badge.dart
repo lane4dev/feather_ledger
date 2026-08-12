@@ -30,8 +30,10 @@ class AppBadge extends StatelessWidget {
 }
 
 class AppIconBadge extends StatelessWidget {
-  const AppIconBadge({super.key, required this.icon, this.color});
-  final IconData icon;
+  const AppIconBadge({super.key, this.icon, this.child, this.color})
+      : assert(icon != null || child != null);
+  final IconData? icon;
+  final Widget? child;
   final Color? color;
 
   @override
@@ -45,7 +47,8 @@ class AppIconBadge extends StatelessWidget {
       ),
       child: Padding(
         padding: EdgeInsets.all(context.metrics.rowInset),
-        child: Icon(icon, size: context.metrics.iconSize, color: accent),
+        child:
+            child ?? Icon(icon, size: context.metrics.iconSize, color: accent),
       ),
     );
   }
