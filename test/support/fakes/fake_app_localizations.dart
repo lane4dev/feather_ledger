@@ -4,6 +4,21 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 // Used for testing purposes where a real BuildContext is not available.
 class FakeAppLocalizations implements AppLocalizations {
   @override
+  String get categoryIconUploadHint => 'PNG or JPEG · up to 5 MB';
+  @override
+  String get categoryIconZoom => 'Zoom';
+  @override
+  String get uploadCategoryIcon => 'Upload icon';
+  @override
+  String get categoryIconFileType => 'Images';
+  @override
+  String get cropCategoryIcon => 'Crop icon';
+  @override
+  String get categoryIconCropDescription => 'Centered square';
+  @override
+  String get invalidCategoryIcon => 'Invalid image';
+
+  @override
   String get localeName => 'en'; // Added missing concrete implementation
 
   @override
