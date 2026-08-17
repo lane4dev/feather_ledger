@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 
-enum AppFieldVariant { filled, search, inline, amount }
+enum AppFieldVariant { filled, search, inline, amount, compact }
 
 /// M3 form-field entry point. Validation and state remain in the caller;
 /// this module owns only the standard visual shell.
@@ -113,12 +113,15 @@ class AppTextField extends StatelessWidget {
         focusedBorder: inline ? InputBorder.none : null,
         errorBorder: inline ? InputBorder.none : null,
         focusedErrorBorder: inline ? InputBorder.none : null,
-        isDense: inline,
-        contentPadding: amount
-            ? EdgeInsets.zero
-            : inline
-                ? EdgeInsets.symmetric(vertical: context.metrics.rowInset)
-                : null,
+        isDense: inline || variant == AppFieldVariant.compact,
+        contentPadding: variant == AppFieldVariant.compact
+            ? EdgeInsets.symmetric(
+                horizontal: context.spacing.sm, vertical: context.spacing.sm)
+            : amount
+                ? EdgeInsets.zero
+                : inline
+                    ? EdgeInsets.symmetric(vertical: context.metrics.rowInset)
+                    : null,
       ),
     );
   }
