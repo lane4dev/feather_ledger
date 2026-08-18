@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +88,9 @@ class AppDatabase extends _$AppDatabase {
           // every existing row, so no upcaster and no projection bump.
           if (from < 5) {
             await m.addColumn(recurringSeries, recurringSeries.autoPost);
+          }
+          if (from < 6) {
+            await m.addColumn(recurringSeries, recurringSeries.reminderMinutes);
           }
         },
       );

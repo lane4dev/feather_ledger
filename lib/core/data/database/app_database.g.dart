@@ -2645,6 +2645,12 @@ class $RecurringSeriesTable extends RecurringSeries
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("auto_post" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _reminderMinutesMeta =
+      const VerificationMeta('reminderMinutes');
+  @override
+  late final GeneratedColumn<int> reminderMinutes = GeneratedColumn<int>(
+      'reminder_minutes', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2659,7 +2665,8 @@ class $RecurringSeriesTable extends RecurringSeries
         categoryId,
         accountId,
         type,
-        autoPost
+        autoPost,
+        reminderMinutes
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2742,6 +2749,12 @@ class $RecurringSeriesTable extends RecurringSeries
       context.handle(_autoPostMeta,
           autoPost.isAcceptableOrUnknown(data['auto_post']!, _autoPostMeta));
     }
+    if (data.containsKey('reminder_minutes')) {
+      context.handle(
+          _reminderMinutesMeta,
+          reminderMinutes.isAcceptableOrUnknown(
+              data['reminder_minutes']!, _reminderMinutesMeta));
+    }
     return context;
   }
 
@@ -2778,6 +2791,8 @@ class $RecurringSeriesTable extends RecurringSeries
           .read(DriftSqlType.int, data['${effectivePrefix}type'])!),
       autoPost: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}auto_post'])!,
+      reminderMinutes: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}reminder_minutes']),
     );
   }
 
@@ -2809,6 +2824,9 @@ class RecurringSeriesRow extends DataClass
   /// unchanged — this only says who confirms each instance: the app, or the
   /// user tapping 记入.
   final bool autoPost;
+
+  /// Minutes before each scheduled occurrence; null means no reminder.
+  final int? reminderMinutes;
   const RecurringSeriesRow(
       {required this.id,
       required this.rrule,
@@ -2822,7 +2840,8 @@ class RecurringSeriesRow extends DataClass
       required this.categoryId,
       required this.accountId,
       required this.type,
-      required this.autoPost});
+      required this.autoPost,
+      this.reminderMinutes});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2848,6 +2867,9 @@ class RecurringSeriesRow extends DataClass
           Variable<int>($RecurringSeriesTable.$convertertype.toSql(type));
     }
     map['auto_post'] = Variable<bool>(autoPost);
+    if (!nullToAbsent || reminderMinutes != null) {
+      map['reminder_minutes'] = Variable<int>(reminderMinutes);
+    }
     return map;
   }
 
@@ -2872,6 +2894,9 @@ class RecurringSeriesRow extends DataClass
       accountId: Value(accountId),
       type: Value(type),
       autoPost: Value(autoPost),
+      reminderMinutes: reminderMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderMinutes),
     );
   }
 
@@ -2893,6 +2918,7 @@ class RecurringSeriesRow extends DataClass
       type: $RecurringSeriesTable.$convertertype
           .fromJson(serializer.fromJson<int>(json['type'])),
       autoPost: serializer.fromJson<bool>(json['autoPost']),
+      reminderMinutes: serializer.fromJson<int?>(json['reminderMinutes']),
     );
   }
   @override
@@ -2913,6 +2939,7 @@ class RecurringSeriesRow extends DataClass
       'type': serializer
           .toJson<int>($RecurringSeriesTable.$convertertype.toJson(type)),
       'autoPost': serializer.toJson<bool>(autoPost),
+      'reminderMinutes': serializer.toJson<int?>(reminderMinutes),
     };
   }
 
@@ -2929,7 +2956,8 @@ class RecurringSeriesRow extends DataClass
           String? categoryId,
           String? accountId,
           RecurringSeriesKind? type,
-          bool? autoPost}) =>
+          bool? autoPost,
+          Value<int?> reminderMinutes = const Value.absent()}) =>
       RecurringSeriesRow(
         id: id ?? this.id,
         rrule: rrule ?? this.rrule,
@@ -2944,6 +2972,9 @@ class RecurringSeriesRow extends DataClass
         accountId: accountId ?? this.accountId,
         type: type ?? this.type,
         autoPost: autoPost ?? this.autoPost,
+        reminderMinutes: reminderMinutes.present
+            ? reminderMinutes.value
+            : this.reminderMinutes,
       );
   RecurringSeriesRow copyWithCompanion(RecurringSeriesCompanion data) {
     return RecurringSeriesRow(
@@ -2964,6 +2995,9 @@ class RecurringSeriesRow extends DataClass
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       type: data.type.present ? data.type.value : this.type,
       autoPost: data.autoPost.present ? data.autoPost.value : this.autoPost,
+      reminderMinutes: data.reminderMinutes.present
+          ? data.reminderMinutes.value
+          : this.reminderMinutes,
     );
   }
 
@@ -2982,7 +3016,8 @@ class RecurringSeriesRow extends DataClass
           ..write('categoryId: $categoryId, ')
           ..write('accountId: $accountId, ')
           ..write('type: $type, ')
-          ..write('autoPost: $autoPost')
+          ..write('autoPost: $autoPost, ')
+          ..write('reminderMinutes: $reminderMinutes')
           ..write(')'))
         .toString();
   }
@@ -3001,7 +3036,8 @@ class RecurringSeriesRow extends DataClass
       categoryId,
       accountId,
       type,
-      autoPost);
+      autoPost,
+      reminderMinutes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3018,7 +3054,8 @@ class RecurringSeriesRow extends DataClass
           other.categoryId == this.categoryId &&
           other.accountId == this.accountId &&
           other.type == this.type &&
-          other.autoPost == this.autoPost);
+          other.autoPost == this.autoPost &&
+          other.reminderMinutes == this.reminderMinutes);
 }
 
 class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
@@ -3035,6 +3072,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
   final Value<String> accountId;
   final Value<RecurringSeriesKind> type;
   final Value<bool> autoPost;
+  final Value<int?> reminderMinutes;
   final Value<int> rowid;
   const RecurringSeriesCompanion({
     this.id = const Value.absent(),
@@ -3050,6 +3088,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.accountId = const Value.absent(),
     this.type = const Value.absent(),
     this.autoPost = const Value.absent(),
+    this.reminderMinutes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecurringSeriesCompanion.insert({
@@ -3066,6 +3105,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     required String accountId,
     required RecurringSeriesKind type,
     this.autoPost = const Value.absent(),
+    this.reminderMinutes = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         rrule = Value(rrule),
@@ -3090,6 +3130,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     Expression<String>? accountId,
     Expression<int>? type,
     Expression<bool>? autoPost,
+    Expression<int>? reminderMinutes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3106,6 +3147,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       if (accountId != null) 'account_id': accountId,
       if (type != null) 'type': type,
       if (autoPost != null) 'auto_post': autoPost,
+      if (reminderMinutes != null) 'reminder_minutes': reminderMinutes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3124,6 +3166,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       Value<String>? accountId,
       Value<RecurringSeriesKind>? type,
       Value<bool>? autoPost,
+      Value<int?>? reminderMinutes,
       Value<int>? rowid}) {
     return RecurringSeriesCompanion(
       id: id ?? this.id,
@@ -3139,6 +3182,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       accountId: accountId ?? this.accountId,
       type: type ?? this.type,
       autoPost: autoPost ?? this.autoPost,
+      reminderMinutes: reminderMinutes ?? this.reminderMinutes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3186,6 +3230,9 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     if (autoPost.present) {
       map['auto_post'] = Variable<bool>(autoPost.value);
     }
+    if (reminderMinutes.present) {
+      map['reminder_minutes'] = Variable<int>(reminderMinutes.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3208,6 +3255,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
           ..write('accountId: $accountId, ')
           ..write('type: $type, ')
           ..write('autoPost: $autoPost, ')
+          ..write('reminderMinutes: $reminderMinutes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5859,6 +5907,7 @@ typedef $$RecurringSeriesTableCreateCompanionBuilder = RecurringSeriesCompanion
   required String accountId,
   required RecurringSeriesKind type,
   Value<bool> autoPost,
+  Value<int?> reminderMinutes,
   Value<int> rowid,
 });
 typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
@@ -5876,6 +5925,7 @@ typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
   Value<String> accountId,
   Value<RecurringSeriesKind> type,
   Value<bool> autoPost,
+  Value<int?> reminderMinutes,
   Value<int> rowid,
 });
 
@@ -5954,6 +6004,10 @@ class $$RecurringSeriesTableFilterComposer
   ColumnFilters<bool> get autoPost => $composableBuilder(
       column: $table.autoPost, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<int> get reminderMinutes => $composableBuilder(
+      column: $table.reminderMinutes,
+      builder: (column) => ColumnFilters(column));
+
   Expression<bool> scheduledTransactionsViewRefs(
       Expression<bool> Function(
               $$ScheduledTransactionsViewTableFilterComposer f)
@@ -6026,6 +6080,10 @@ class $$RecurringSeriesTableOrderingComposer
 
   ColumnOrderings<bool> get autoPost => $composableBuilder(
       column: $table.autoPost, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get reminderMinutes => $composableBuilder(
+      column: $table.reminderMinutes,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$RecurringSeriesTableAnnotationComposer
@@ -6075,6 +6133,9 @@ class $$RecurringSeriesTableAnnotationComposer
 
   GeneratedColumn<bool> get autoPost =>
       $composableBuilder(column: $table.autoPost, builder: (column) => column);
+
+  GeneratedColumn<int> get reminderMinutes => $composableBuilder(
+      column: $table.reminderMinutes, builder: (column) => column);
 
   Expression<T> scheduledTransactionsViewRefs<T extends Object>(
       Expression<T> Function(
@@ -6138,6 +6199,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<String> accountId = const Value.absent(),
             Value<RecurringSeriesKind> type = const Value.absent(),
             Value<bool> autoPost = const Value.absent(),
+            Value<int?> reminderMinutes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion(
@@ -6154,6 +6216,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             accountId: accountId,
             type: type,
             autoPost: autoPost,
+            reminderMinutes: reminderMinutes,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -6170,6 +6233,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             required String accountId,
             required RecurringSeriesKind type,
             Value<bool> autoPost = const Value.absent(),
+            Value<int?> reminderMinutes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion.insert(
@@ -6186,6 +6250,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             accountId: accountId,
             type: type,
             autoPost: autoPost,
+            reminderMinutes: reminderMinutes,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -6205,17 +6270,19 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (scheduledTransactionsViewRefs)
-                    await $_getPrefetchedData<RecurringSeriesRow,
-                            $RecurringSeriesTable, ScheduledTransactionViewRow>(
+                    await $_getPrefetchedDataByColumns<
+                            RecurringSeriesRow,
+                            $RecurringSeriesTable,
+                            ScheduledTransactionViewRow,
+                            $ScheduledTransactionsViewTable>(
                         currentTable: table,
                         referencedTable: $$RecurringSeriesTableReferences
                             ._scheduledTransactionsViewRefsTable(db),
                         managerFromTypedResult: (p0) =>
                             $$RecurringSeriesTableReferences(db, table, p0)
                                 .scheduledTransactionsViewRefs,
-                        referencedItemsForCurrentItem: (item,
-                                referencedItems) =>
-                            referencedItems.where((e) => e.seriesId == item.id),
+                        currentColumn: 'id',
+                        referencedColumn: 'series_id',
                         typedResults: items)
                 ];
               },

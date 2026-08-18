@@ -40,6 +40,12 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     return into(scheduledTransactionsView).insertOnConflictUpdate(entry);
   }
 
+  /// Atomically claim a pending bill for skipping without overwriting a post.
+  Future<int> skipIfScheduled(String id) => (update(scheduledTransactionsView)
+        ..where((t) => t.id.equals(id) & t.status.equals('scheduled')))
+      .write(
+          const ScheduledTransactionsViewCompanion(status: Value('skipped')));
+
   Future<void> saveSeries(RecurringSeriesCompanion entry) {
     return into(recurringSeries).insertOnConflictUpdate(entry);
   }

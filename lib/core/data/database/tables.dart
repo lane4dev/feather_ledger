@@ -131,8 +131,9 @@ class RecurringSeries extends Table {
   DateTimeColumn get endDate => dateTime().nullable()();
   TextColumn get frequency => text()(); // e.g. DAILY, WEEKLY
   IntColumn get interval => integer().nullable()();
-  IntColumn get countLimit => integer()
-      .nullable()(); // 'limit' is a reserved keyword in SQL often, using countLimit
+
+  /// 'limit' is a reserved keyword in SQL often, using countLimit
+  IntColumn get countLimit => integer().nullable()();
 
   // Template Data
   IntColumn get amountMinor => integer()();
@@ -147,6 +148,9 @@ class RecurringSeries extends Table {
   /// unchanged — this only says who confirms each instance: the app, or the
   /// user tapping 记入.
   BoolColumn get autoPost => boolean().withDefault(const Constant(false))();
+
+  /// Minutes before each scheduled occurrence; null means no reminder.
+  IntColumn get reminderMinutes => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
