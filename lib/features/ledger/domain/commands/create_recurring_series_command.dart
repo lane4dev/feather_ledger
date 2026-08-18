@@ -37,8 +37,15 @@ class CreateRecurringSeriesCommand {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    int? countLimit,
+    List<int> weekdays = const [],
     bool autoPost = false,
+    int? reminderMinutes,
   }) async {
+    if (reminderMinutes != null && reminderMinutes <= 0) {
+      throw const CommandRejected(
+          LedgerErrorCode.invalidAmount, 'Reminder must be positive');
+    }
     if (amountMinor <= 0) {
       throw const CommandRejected(
           LedgerErrorCode.invalidAmount, 'Series amount must be positive');
@@ -46,6 +53,13 @@ class CreateRecurringSeriesCommand {
     if (interval < 1) {
       throw const CommandRejected(
           LedgerErrorCode.invalidAmount, 'Series interval must be at least 1');
+    }
+    if ((countLimit != null && countLimit < 1) ||
+        (countLimit != null && endDate != null) ||
+        weekdays.any((d) => d < 1 || d > 7) ||
+        (weekdays.isNotEmpty && frequency.toUpperCase() != 'WEEKLY')) {
+      throw const CommandRejected(
+          LedgerErrorCode.invalidAmount, 'Invalid recurrence rule');
     }
     if (endDate != null && endDate.isBefore(startDate)) {
       // Equal is the one-shot series (计划): UNTIL is inclusive, so a rule
@@ -71,9 +85,12 @@ class CreateRecurringSeriesCommand {
           frequency: normalizedFrequency,
           interval: interval,
           endDate: endDate,
+          countLimit: countLimit,
+          weekdays: weekdays,
         ),
         startDate: startDate,
         endDate: Value(endDate),
+        countLimit: Value(countLimit),
         frequency: normalizedFrequency,
         interval: Value(interval),
         amountMinor: amountMinor,
@@ -82,6 +99,7 @@ class CreateRecurringSeriesCommand {
         accountId: accountId,
         type: type,
         autoPost: Value(autoPost),
+        reminderMinutes: Value(reminderMinutes),
       ),
     );
   }
@@ -96,9 +114,16 @@ class CreateRecurringSeriesCommand {
     required String frequency,
     required int interval,
     DateTime? endDate,
+    int? countLimit,
+    List<int> weekdays = const [],
   }) {
     final buffer = StringBuffer('FREQ=$frequency');
     if (interval != 1) buffer.write(';INTERVAL=$interval');
+    if (countLimit != null) buffer.write(';COUNT=$countLimit');
+    if (weekdays.isNotEmpty) {
+      const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+      buffer.write(';BYDAY=${weekdays.map((day) => days[day - 1]).join(',')}');
+    }
     if (endDate != null) {
       final utc = endDate.toUtc();
       buffer.write(';UNTIL=${utc.year.toString().padLeft(4, '0')}'

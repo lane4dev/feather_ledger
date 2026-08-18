@@ -23,6 +23,9 @@ abstract class RecurringRepository {
   Future<void> insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion entry);
 
+  /// Changes a scheduled bill to skipped only if it is still scheduled.
+  Future<int> skipIfScheduled(String id);
+
   /// Retrieves all recurring series.
   /// Returns a list of [RecurringSeriesRow].
   Future<List<RecurringSeriesRow>> getAllRecurringSeries();

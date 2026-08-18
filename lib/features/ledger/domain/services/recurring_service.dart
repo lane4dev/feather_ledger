@@ -55,7 +55,10 @@ class RecurringService {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    int? countLimit,
+    List<int> weekdays = const [],
     bool autoPost = false,
+    int? reminderMinutes,
   }) {
     return guard(() async {
       await _createSeries.execute(
@@ -69,7 +72,10 @@ class RecurringService {
         interval: interval,
         startDate: startDate,
         endDate: endDate,
+        countLimit: countLimit,
+        weekdays: weekdays,
         autoPost: autoPost,
+        reminderMinutes: reminderMinutes,
       );
       await materialize();
     });
@@ -122,9 +128,20 @@ class RecurringService {
   /// [commandId] is normally left null and minted per call. It stays a
   /// parameter so a caller that already owns an idempotency key — a retry, or
   /// a test asserting on one — can supply its own.
-  Future<Result<void>> postInstance(String scheduledId, {String? commandId}) {
-    return guard(() => _postInstance.execute(scheduledId,
+  Future<Result<void>> postInstance(String scheduledId,
+      {String? commandId}) async {
+    final result = await guard(() => _postInstance.execute(scheduledId,
         commandId: commandId ?? const Uuid().v4()));
+    if (result is Success<void>) {
+      // The transaction has committed; a refill failure must not report the
+      // already-posted transaction as failed. The next launch retries it.
+      try {
+        await materialize();
+      } catch (_) {
+        // Materialization is also retried on launch.
+      }
+    }
+    return result;
   }
 
   /// Rolls the 90-day window forward for every series. Idempotent, so it is
@@ -149,7 +166,8 @@ class RecurringService {
       if (instance.date.isAfter(now)) continue;
       // postInstance returns Result and never throws; ignoring it *is* the
       // "continue on failure" policy above.
-      await postInstance(instance.id, commandId: 'autopost-${instance.id}');
+      await guard(() => _postInstance.execute(instance.id,
+          commandId: 'autopost-${instance.id}'));
     }
   }
 }

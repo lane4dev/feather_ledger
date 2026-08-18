@@ -11,8 +11,8 @@ part 'project_recurring_events_command.g.dart';
 /// Materializes the upcoming instances of every recurring series
 /// (spec 004, US2).
 ///
-/// **The policy is a rolling 90-day window, clamped to [3, 12] pending
-/// instances.** Fill the window; if the window holds fewer than three, keep
+/// Finite rules produce all occurrences. Never-ending rules use a rolling
+/// 90-day window clamped to [3, 12] pending instances. Fill the window; if the window holds fewer than three, keep
 /// going until it does; never materialize more than twelve. That yields the
 /// numbers a person expects without a per-frequency rule:
 ///
@@ -56,20 +56,33 @@ class ProjectRecurringEventsCommand {
     final startUtc = series.startDate.toUtc();
     final windowEndUtc = windowEnd.toUtc();
 
-    final rule = RecurrenceRule(
-      frequency: _mapFrequency(series.frequency),
-      interval: series.interval,
-      until: series.endDate?.toUtc(),
-      count: series.countLimit,
-    );
+    final rule = ruleForSeries(series);
 
     // One read for the whole series rather than a probe per candidate date.
     // Keyed by the derived instance id, which is exactly what identity means
     // here — comparing dates would have to re-derive the same normalization.
     final existing = {
-      for (final row in await _recurringRepository.scheduledForSeries(series.id))
+      for (final row
+          in await _recurringRepository.scheduledForSeries(series.id))
         row.id: decodeScheduledStatus(row.status),
     };
+
+    if (series.endDate != null || series.countLimit != null) {
+      final before = series.endDate == null
+          ? DateTime.utc(9999, 12, 31)
+          : series.endDate!.toUtc().add(const Duration(days: 1));
+      if (before.isAfter(startUtc)) {
+        await _fill(
+            series: series,
+            rule: rule,
+            startUtc: startUtc,
+            beforeUtc: before,
+            existing: existing,
+            budget: 0x7fffffff,
+            capped: false);
+      }
+      return;
+    }
 
     var kept = 0;
 
@@ -130,6 +143,7 @@ class ProjectRecurringEventsCommand {
     required Map<String, ScheduledTransactionStatus> existing,
     required int budget,
     DateTime? afterUtc,
+    bool capped = true,
   }) async {
     // `before` bounds the generator itself, and it is load-bearing:
     // getInstances only stops at before, until, count or year 9999, so
@@ -150,6 +164,13 @@ class ProjectRecurringEventsCommand {
       final status = existing[id];
 
       if (status == null) {
+        if (capped &&
+            existing.values
+                    .where((s) => s == ScheduledTransactionStatus.scheduled)
+                    .length >=
+                maxKeep) {
+          break;
+        }
         await _recurringRepository.insertOrUpdateScheduled(
           ScheduledTransactionsViewCompanion(
             id: Value(id),
@@ -169,7 +190,30 @@ class ProjectRecurringEventsCommand {
     return kept;
   }
 
-  Frequency _mapFrequency(String freq) {
+  static RecurrenceRule ruleForSeries(RecurringSeriesRow series) =>
+      RecurrenceRule(
+        frequency: _mapFrequency(series.frequency),
+        interval: series.interval,
+        until: series.countLimit == null ? series.endDate?.toUtc() : null,
+        count: series.countLimit,
+        byWeekDays: _weekdays(series.rrule, series.startDate),
+      );
+
+  static List<ByWeekDayEntry> _weekdays(String text, DateTime start) {
+    final match = RegExp(r'(?:^|;)BYDAY=([^;]+)').firstMatch(text);
+    if (match == null) return const [];
+    const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+    final shift = start.toUtc().weekday - start.toLocal().weekday;
+    return match
+        .group(1)!
+        .split(',')
+        .map((d) => days.indexOf(d) + 1)
+        .where((d) => d > 0)
+        .map((d) => ByWeekDayEntry((d - 1 + shift) % 7 + 1))
+        .toList();
+  }
+
+  static Frequency _mapFrequency(String freq) {
     switch (freq.toUpperCase()) {
       case 'DAILY':
         return Frequency.daily;

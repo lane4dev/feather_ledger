@@ -49,11 +49,7 @@ class ConvertScheduledToPostedCommand {
       throw const CommandRejected(
           LedgerErrorCode.transactionNotFound, 'Scheduled instance not found');
     }
-    if (decodeScheduledStatus(scheduled.status) ==
-        ScheduledTransactionStatus.posted) {
-      throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
-          'Scheduled instance already posted');
-    }
+    _requirePending(scheduled.status);
 
     final series = await _recurringRepository.getSeries(scheduled.seriesId);
     if (series == null) {
@@ -109,6 +105,14 @@ class ConvertScheduledToPostedCommand {
         ),
       ],
       options: AppendOptions(apply: (persisted) async {
+        // Recheck after acquiring the append transaction: another action may
+        // have posted or skipped the bill while context was being resolved.
+        final current = await _recurringRepository.getScheduled(scheduledId);
+        if (current == null) {
+          throw const CommandRejected(LedgerErrorCode.transactionNotFound,
+              'Scheduled instance not found');
+        }
+        _requirePending(current.status);
         // Projection + the CRUD-exempt status flip share this transaction.
         await _projector.applyAll(persisted);
         await _recurringRepository.insertOrUpdateScheduled(
@@ -123,6 +127,18 @@ class ConvertScheduledToPostedCommand {
         );
       }),
     );
+  }
+
+  static void _requirePending(String status) {
+    final value = decodeScheduledStatus(status);
+    if (value == ScheduledTransactionStatus.posted) {
+      throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
+          'Scheduled instance already posted');
+    }
+    if (value != ScheduledTransactionStatus.scheduled) {
+      throw const CommandRejected(LedgerErrorCode.transactionNotFound,
+          'Scheduled instance no longer pending');
+    }
   }
 }
 

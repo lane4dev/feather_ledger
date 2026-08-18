@@ -53,21 +53,22 @@ class DeleteRecurringBillCommand {
 
     switch (scope) {
       case RecurringScope.thisOnly:
-        await _recurringRepository.insertOrUpdateScheduled(
-          ScheduledTransactionsViewCompanion(
-            id: Value(scheduled.id),
-            seriesId: Value(scheduled.seriesId),
-            date: Value(scheduled.date),
-            amountMinor: Value(scheduled.amountMinor),
-            status: Value(ScheduledTransactionStatus.skipped.toStorage()),
-            transactionId: Value(scheduled.transactionId),
-          ),
-        );
+        if (await _recurringRepository.skipIfScheduled(scheduledId) == 0) {
+          final current = await _recurringRepository.getScheduled(scheduledId);
+          if (current != null &&
+              decodeScheduledStatus(current.status) ==
+                  ScheduledTransactionStatus.posted) {
+            throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
+                'Scheduled instance already posted');
+          }
+          throw const CommandRejected(LedgerErrorCode.transactionNotFound,
+              'Scheduled instance no longer pending');
+        }
       case RecurringScope.thisAndFollowing:
         await _truncate(scheduled);
       case RecurringScope.all:
-        await _recurringRepository.deleteSeriesWithInstances(
-            scheduled.seriesId);
+        await _recurringRepository
+            .deleteSeriesWithInstances(scheduled.seriesId);
     }
   }
 
@@ -101,8 +102,8 @@ class DeleteRecurringBillCommand {
       ),
     );
 
-    await _recurringRepository.deletePending(
-        scheduled.seriesId, from: scheduled.date);
+    await _recurringRepository.deletePending(scheduled.seriesId,
+        from: scheduled.date);
   }
 
   static DateTime _dayBefore(DateTime date) =>

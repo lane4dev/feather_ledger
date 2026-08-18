@@ -195,6 +195,7 @@ class RecurringTransactionSeriesEntity {
   /// a construction site cannot silently drop it — the flag rides every
   /// series rewrite (edit scopes) or the split series loses auto-posting.
   final bool autoPost;
+  final int? reminderMinutes;
 
   const RecurringTransactionSeriesEntity({
     required this.id,
@@ -209,5 +210,6 @@ class RecurringTransactionSeriesEntity {
     this.interval,
     this.limit,
     required this.autoPost,
+    this.reminderMinutes,
   });
 }

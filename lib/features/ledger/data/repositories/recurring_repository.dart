@@ -19,8 +19,8 @@ class RecurringRepositoryImpl implements RecurringRepository {
   final CategoriesDao _categoriesDao;
   final AccountDao _accountsDao;
 
-  RecurringRepositoryImpl(this._recurringDao, this._categoriesDao,
-      this._accountsDao);
+  RecurringRepositoryImpl(
+      this._recurringDao, this._categoriesDao, this._accountsDao);
 
   @override
   Future<ScheduledTransactionViewRow?> getScheduled(String id) {
@@ -88,7 +88,8 @@ class RecurringRepositoryImpl implements RecurringRepository {
       // Archived categories and accounts still resolve: a pending bill
       // outlives the account it was set up against, and hiding it would
       // hide money the user expects to move.
-      final category = await _categoriesDao.getCategoryById(seriesRow.categoryId);
+      final category =
+          await _categoriesDao.getCategoryById(seriesRow.categoryId);
       final account = await _accountsDao.getAccountById(seriesRow.accountId);
 
       for (final row in entry.value) {
@@ -131,6 +132,9 @@ class RecurringRepositoryImpl implements RecurringRepository {
       );
 
   @override
+  Future<int> skipIfScheduled(String id) => _recurringDao.skipIfScheduled(id);
+
+  @override
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
     return _recurringDao.getAllSeries();
   }
@@ -154,6 +158,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         interval: row.interval,
         limit: row.countLimit,
         autoPost: row.autoPost,
+        reminderMinutes: row.reminderMinutes,
       );
 }
 

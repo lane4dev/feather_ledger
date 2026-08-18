@@ -40,6 +40,7 @@ class GetScheduledTransactionQuery {
         interval: seriesRow.interval,
         limit: seriesRow.countLimit,
         autoPost: seriesRow.autoPost,
+        reminderMinutes: seriesRow.reminderMinutes,
       ),
     );
   }

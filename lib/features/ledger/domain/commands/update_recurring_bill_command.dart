@@ -1,3 +1,4 @@
+import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -8,8 +9,6 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
-
-import 'create_recurring_series_command.dart';
 
 part 'update_recurring_bill_command.g.dart';
 
@@ -163,6 +162,16 @@ class UpdateRecurringBillCommand {
     // the same part of the day as the old ones did.
     final restart = _atTimeOf(date, cut);
 
+    final priorOccurrences = series.countLimit == null ||
+            !cut.toUtc().isAfter(series.startDate.toUtc())
+        ? 0
+        : ProjectRecurringEventsCommand.ruleForSeries(series)
+            .getInstances(start: series.startDate.toUtc(), before: cut.toUtc())
+            .length;
+    final remainingCount = series.countLimit == null
+        ? null
+        : (series.countLimit! - priorOccurrences).clamp(1, series.countLimit!);
+
     await _recurringRepository.saveSeries(
       _series(series, endDate: Value(_dayBefore(cut))),
     );
@@ -170,17 +179,15 @@ class UpdateRecurringBillCommand {
 
     await _recurringRepository.saveSeries(RecurringSeriesCompanion.insert(
       id: newSeriesId,
-      rrule: CreateRecurringSeriesCommand.rruleText(
-        frequency: series.frequency,
-        interval: series.interval ?? 1,
-        endDate: series.endDate,
-      ),
+      // Retain BYDAY and the original rule metadata across a split.
+      rrule: _shiftWeekdays(series.rrule, _daysBetween(cut, restart)),
       startDate: restart,
       // Inherited as-is. If the edit moves the bill past the old end date the
       // new rule simply produces nothing, which is what the dates say.
       endDate: Value(series.endDate),
       frequency: series.frequency,
       interval: Value(series.interval),
+      countLimit: Value(remainingCount),
       amountMinor: amountMinor,
       description: description,
       categoryId: categoryId,
@@ -188,12 +195,14 @@ class UpdateRecurringBillCommand {
       type: series.type,
       // The split is an edit of the same subscription, not a new series.
       autoPost: Value(series.autoPost),
+      reminderMinutes: Value(series.reminderMinutes),
     ));
 
     // A bill the old rule already recorded must not be billed again by the
     // new one. A skipped row is the tombstone materialization respects, and
     // the recorded transaction itself is left alone.
-    for (final row in await _recurringRepository.scheduledForSeries(series.id)) {
+    for (final row
+        in await _recurringRepository.scheduledForSeries(series.id)) {
       if (decodeScheduledStatus(row.status) !=
           ScheduledTransactionStatus.posted) {
         continue;
@@ -234,6 +243,7 @@ class UpdateRecurringBillCommand {
       _series(
         series,
         startDate: _addDays(series.startDate, shift),
+        rrule: _shiftWeekdays(series.rrule, shift),
         amountMinor: amountMinor,
         categoryId: categoryId,
         accountId: accountId,
@@ -278,7 +288,8 @@ class UpdateRecurringBillCommand {
         seriesId: Value(row.seriesId),
         date: Value(row.date),
         amountMinor: Value(amountMinor ?? row.amountMinor),
-        status: Value((status ?? decodeScheduledStatus(row.status)).toStorage()),
+        status:
+            Value((status ?? decodeScheduledStatus(row.status)).toStorage()),
         transactionId: Value(row.transactionId),
       );
 
@@ -286,6 +297,7 @@ class UpdateRecurringBillCommand {
   static RecurringSeriesCompanion _series(
     RecurringSeriesRow series, {
     DateTime? startDate,
+    String? rrule,
     Value<DateTime?>? endDate,
     int? amountMinor,
     String? categoryId,
@@ -294,7 +306,7 @@ class UpdateRecurringBillCommand {
   }) =>
       RecurringSeriesCompanion(
         id: Value(series.id),
-        rrule: Value(series.rrule),
+        rrule: Value(rrule ?? series.rrule),
         startDate: Value(startDate ?? series.startDate),
         endDate: endDate ?? Value(series.endDate),
         frequency: Value(series.frequency),
@@ -306,7 +318,20 @@ class UpdateRecurringBillCommand {
         accountId: Value(accountId ?? series.accountId),
         type: Value(series.type),
         autoPost: Value(series.autoPost),
+        reminderMinutes: Value(series.reminderMinutes),
       );
+
+  static String _shiftWeekdays(String rule, int shift) {
+    if (shift == 0) return rule;
+    const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+    return rule.replaceAllMapped(RegExp(r'(^|;)BYDAY=([^;]+)'), (match) {
+      final shifted = match.group(2)!.split(',').map((day) {
+        final index = days.indexOf(day);
+        return index < 0 ? day : days[(index + shift) % 7];
+      }).join(',');
+      return '${match.group(1)}BYDAY=$shifted';
+    });
+  }
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;

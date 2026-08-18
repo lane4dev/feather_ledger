@@ -176,6 +176,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
               interval: seriesRow.interval,
               limit: seriesRow.countLimit,
               autoPost: seriesRow.autoPost,
+              reminderMinutes: seriesRow.reminderMinutes,
             ),
           ));
         }
@@ -213,6 +214,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         interval: seriesRow.interval,
         limit: seriesRow.countLimit,
         autoPost: seriesRow.autoPost,
+        reminderMinutes: seriesRow.reminderMinutes,
       ),
     );
   }
@@ -236,6 +238,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       interval: seriesRow.interval,
       limit: seriesRow.countLimit,
       autoPost: seriesRow.autoPost,
+      reminderMinutes: seriesRow.reminderMinutes,
     );
   }
 
@@ -256,6 +259,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         interval: seriesRow.interval,
         limit: seriesRow.countLimit,
         autoPost: seriesRow.autoPost,
+        reminderMinutes: seriesRow.reminderMinutes,
       );
     }).toList();
   }
