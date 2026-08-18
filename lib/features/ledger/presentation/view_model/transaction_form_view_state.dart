@@ -6,6 +6,7 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../models/transaction_tile_ui_model.dart';
+import '../models/custom_recurrence.dart';
 
 /// What the entry IS: a record, a plan, or a schedule.
 ///
@@ -34,6 +35,8 @@ class TransactionFormViewState {
 
   /// [repeatNever], or a code from [repeatOptions].
   final String repeat;
+  final CustomRecurrence? customRecurrence;
+  final int? reminderMinutes;
 
   /// What this entry is: a record, a plan, or a schedule. Only meaningful
   /// where [canRepeat] holds — the selector is not rendered otherwise.
@@ -60,6 +63,8 @@ class TransactionFormViewState {
     required this.amountText,
     required this.note,
     required this.repeat,
+    this.customRecurrence,
+    this.reminderMinutes,
     required this.mode,
     required this.accountId,
     required this.categoryId,
@@ -129,6 +134,8 @@ class TransactionFormViewState {
     String? amountText,
     String? note,
     String? repeat,
+    Object? customRecurrence = _unset,
+    Object? reminderMinutes = _unset,
     TransactionFormMode? mode,
     Object? accountId = _unset,
     Object? categoryId = _unset,
@@ -143,9 +150,16 @@ class TransactionFormViewState {
         amountText: amountText ?? this.amountText,
         note: note ?? this.note,
         repeat: repeat ?? this.repeat,
+        reminderMinutes: identical(reminderMinutes, _unset)
+            ? this.reminderMinutes
+            : reminderMinutes as int?,
+        customRecurrence: identical(customRecurrence, _unset)
+            ? this.customRecurrence
+            : customRecurrence as CustomRecurrence?,
         mode: mode ?? this.mode,
-        accountId:
-            identical(accountId, _unset) ? this.accountId : accountId as String?,
+        accountId: identical(accountId, _unset)
+            ? this.accountId
+            : accountId as String?,
         categoryId: identical(categoryId, _unset)
             ? this.categoryId
             : categoryId as String?,
@@ -163,8 +177,7 @@ class TransactionFormViewState {
   /// Whether this form can start a series at all: a series has one account, so
   /// a transfer cannot be one (ADR-0002), and a corrected entry does not touch
   /// its series.
-  bool get canRepeat =>
-      !isTransfer && !isBalancePurpose && original == null;
+  bool get canRepeat => !isTransfer && !isBalancePurpose && original == null;
 
   /// Whether the frequency row shows: only a series mode has a frequency, and
   /// only where [canRepeat] holds. Default and 计划 have none — the picker
@@ -185,8 +198,9 @@ class TransactionFormViewState {
 
   // Categories are typed by CategoryType, which has no transfer member; a
   // transfer has no category at all.
-  CategoryType get categoryType =>
-      type == TransactionKind.income ? CategoryType.income : CategoryType.expense;
+  CategoryType get categoryType => type == TransactionKind.income
+      ? CategoryType.income
+      : CategoryType.expense;
 
   /// What the field's formatter admits. Re-checked here so that reading the
   /// amount is total: [parseMinor] rejects sub-cent precision by throwing, and
@@ -197,7 +211,8 @@ class TransactionFormViewState {
   /// The amount in minor units — signed for a balance purpose, whose direction
   /// is the number itself. Null while the field is empty or not yet a number.
   int? get amountMinor {
-    if (!(isBalancePurpose ? _signedMoneyText : _moneyText).hasMatch(amountText)) {
+    if (!(isBalancePurpose ? _signedMoneyText : _moneyText)
+        .hasMatch(amountText)) {
       return null;
     }
     final parsed = double.tryParse(amountText);
@@ -228,8 +243,8 @@ class TransactionFormViewState {
     final from = selectedAccount(active)?.account;
     return active
         .where((a) => a.account.id != accountId)
-        .where((a) =>
-            from == null || a.account.currencyCode == from.currencyCode)
+        .where(
+            (a) => from == null || a.account.currencyCode == from.currencyCode)
         .toList();
   }
 }

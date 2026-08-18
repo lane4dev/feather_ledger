@@ -4,7 +4,6 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
 /// The value the transaction form's date row shows: "今天 14:30",
 /// "9月18日 14:30", "2025年9月18日 14:30".
-/// Pending bills use [includeTime] = false because only their day is editable.
 ///
 /// [today] is passed in rather than read here — the rule is then a function of
 /// its two dates, which is what makes "yesterday" testable at all.

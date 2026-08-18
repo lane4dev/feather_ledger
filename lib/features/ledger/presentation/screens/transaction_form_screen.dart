@@ -1,3 +1,5 @@
+import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
+import '../widgets/custom_reminder_dialog.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import '../widgets/ledger_note_field.dart';
@@ -29,6 +31,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../models/transaction_date_label.dart';
 import '../models/transaction_tile_ui_model.dart';
+import '../models/custom_recurrence.dart';
+import '../widgets/custom_recurrence_dialog.dart';
 
 import '../view_model/transaction_form_view_model.dart';
 import '../view_model/transaction_form_view_state.dart';
@@ -182,7 +186,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     LedgerTypeSelector(
                       selectedType: state.type,
                       onSelectionChanged: vm.setType,
-                      widthFactor: 0.72,
                     ),
                   ),
                 SizedBox(height: context.spacing.xl),
@@ -234,6 +237,20 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 if (state.showsRepeatRow) ...[
                   const SizedBox(height: 8),
                   _repeatRow(l10n, labelWidth, state),
+                ],
+
+                if (state.canRepeat &&
+                    state.mode != TransactionFormMode.defaultMode) ...[
+                  const SizedBox(height: 8),
+                  LedgerFormRow(
+                    icon: LucideIcons.bell,
+                    onTap: () => _pickReminder(state.reminderMinutes),
+                    child: LedgerSelectorField(
+                      label: l10n.reminder,
+                      labelWidth: labelWidth,
+                      text: _reminderLabel(l10n, state.reminderMinutes),
+                    ),
+                  ),
                 ],
 
                 SizedBox(height: context.spacing.sm),
@@ -521,6 +538,71 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     _vm.selectCategory(result);
   }
 
+  static String _reminderLabel(AppLocalizations l10n, int? minutes) =>
+      switch (minutes) {
+        null => l10n.reminderNone,
+        5 => l10n.reminder5,
+        10 => l10n.reminder10,
+        15 => l10n.reminder15,
+        30 => l10n.reminder30,
+        60 => l10n.reminderHour,
+        1440 => l10n.reminderDay,
+        _ => l10n.reminderMinutesValue(minutes),
+      };
+
+  Future<void> _pickReminder(int? current) async {
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showDialog<int>(
+        context: context,
+        builder: (context) => SimpleDialog(
+              title: Text(l10n.reminder),
+              children: [
+                for (final minutes in [0, 5, 10, 15, 30, 60, 1440])
+                  FeatherDialogOption<int>(
+                      label:
+                          _reminderLabel(l10n, minutes == 0 ? null : minutes),
+                      value: minutes,
+                      groupValue: current ?? 0,
+                      onChanged: (value) => Navigator.pop(context, value)),
+                SimpleDialogOption(
+                    onPressed: () => Navigator.pop(context, -1),
+                    child: Text(l10n.reminderCustom)),
+              ],
+            ));
+    if (!mounted || choice == null) return;
+    final minutes = choice == -1
+        ? await showDialog<int>(
+            context: context, builder: (_) => const CustomReminderDialog())
+        : choice;
+    if (!mounted || minutes == null) return;
+    if (minutes == 0) {
+      _vm.setReminderMinutes(null);
+      return;
+    }
+    var granted = false;
+    try {
+      final reminders = ref.read(recurringRemindersProvider);
+      granted = await reminders.requestPermission(
+          postLabel: l10n.postInstance, skipLabel: l10n.notificationSkip);
+      if (granted) {
+        await reminders.start(
+            title: l10n.reminderNotificationTitle,
+            channelName: l10n.reminderChannel,
+            postLabel: l10n.postInstance,
+            skipLabel: l10n.notificationSkip);
+      }
+    } catch (_) {
+      granted = false;
+    }
+    if (!mounted) return;
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.reminderPermissionRequired)));
+      return;
+    }
+    _vm.setReminderMinutes(minutes);
+  }
+
   /// The repeat picker. Shaped like [_accountRow] because it is the same
   /// gesture, but over plain frequency strings rather than entities.
   Widget _repeatRow(
@@ -553,7 +635,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       builder: (context) => SimpleDialog(
         title: Text(l10n.repeat),
         children: [
-          for (final option in TransactionFormViewState.repeatFrequencies)
+          for (final option in [
+            ...TransactionFormViewState.repeatFrequencies,
+            'CUSTOM'
+          ])
             FeatherDialogOption<String>(
               label: _repeatOptionLabel(l10n, option),
               value: option,
@@ -563,7 +648,27 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         ],
       ),
     );
-    if (result != null) _vm.setRepeat(result);
+    if (!mounted || result == null) return;
+    if (result != 'CUSTOM') {
+      _vm.setRepeat(result);
+      return;
+    }
+    final state =
+        ref.read(transactionFormViewModelProvider(widget.transaction));
+    final existing = state.customRecurrence;
+    final start = TransactionFormViewModel.nextOccurrence(
+        state.date, state.repeat == 'CUSTOM' ? 'MONTHLY' : state.repeat);
+    final selected = await showDialog<CustomRecurrence>(
+        context: context,
+        builder: (_) => CustomRecurrenceDialog(
+            initial: existing ??
+                CustomRecurrence(
+                    frequency:
+                        state.repeat == 'CUSTOM' ? 'MONTHLY' : state.repeat,
+                    interval: 1,
+                    startDate: start,
+                    weekdays: [start.weekday])));
+    if (selected != null && mounted) _vm.setCustomRecurrence(selected);
   }
 
   /// What the row shows for a rule, and what its option says — one source, so
@@ -575,6 +680,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   static String _frequencyLabel(AppLocalizations l10n, String frequency) =>
       switch (frequency) {
+        'CUSTOM' => l10n.customRepeat,
         'DAILY' => l10n.frequencyDaily,
         'WEEKLY' => l10n.frequencyWeekly,
         'YEARLY' => l10n.frequencyYearly,
@@ -763,6 +869,7 @@ class _TransactionFormModeSelector extends StatelessWidget {
       ],
       selected: selected,
       onSelected: onSelected,
+      scrollable: true,
     );
   }
 

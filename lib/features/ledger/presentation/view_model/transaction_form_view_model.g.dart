@@ -123,7 +123,7 @@ final class TransactionFormViewModelProvider extends $NotifierProvider<
 }
 
 String _$transactionFormViewModelHash() =>
-    r'896152a3f50e6a95c4db8528855a8a2af9e7803a';
+    r'054028dcbe5e09ec055cafd27f12a78d6f172b9f';
 
 /// The form's state and the rules that read it.
 ///

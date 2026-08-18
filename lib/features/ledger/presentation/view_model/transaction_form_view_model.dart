@@ -12,6 +12,7 @@ import 'package:feather_ledger/features/ledger/domain/services/ledger_service.da
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
 import '../models/transaction_tile_ui_model.dart';
+import '../models/custom_recurrence.dart';
 import 'transaction_form_view_state.dart';
 
 part 'transaction_form_view_model.g.dart';
@@ -77,11 +78,18 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
 
   void setAmountText(String text) => state = state.copyWith(amountText: text);
 
+  void setReminderMinutes(int? minutes) =>
+      state = state.copyWith(reminderMinutes: minutes);
+
   void setNote(String note) => state = state.copyWith(note: note);
 
   void setDate(DateTime date) => state = state.copyWith(date: date);
 
-  void setRepeat(String frequency) => state = state.copyWith(repeat: frequency);
+  void setRepeat(String frequency) =>
+      state = state.copyWith(repeat: frequency, customRecurrence: null);
+
+  void setCustomRecurrence(CustomRecurrence rule) =>
+      state = state.copyWith(repeat: 'CUSTOM', customRecurrence: rule);
 
   void selectCategory(String id) => state = state.copyWith(categoryId: id);
 
@@ -97,6 +105,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         mode == TransactionFormMode.subscription;
     state = state.copyWith(
       mode: mode,
+      customRecurrence: wantsFrequency ? state.customRecurrence : null,
       repeat: wantsFrequency
           ? (state.repeat == TransactionFormViewState.repeatNever
               ? 'MONTHLY'
@@ -120,6 +129,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         toAccountId: null,
         mode: TransactionFormMode.defaultMode,
         repeat: TransactionFormViewState.repeatNever,
+        customRecurrence: null,
       );
       return;
     }
@@ -159,7 +169,9 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// own money, so it is left alone until that is decided.
   bool wouldOverdraft() {
     final amount = state.amountMinor;
-    if (state.mode == TransactionFormMode.planned) return false; // no money moves
+    if (state.mode == TransactionFormMode.planned) {
+      return false; // no money moves
+    }
     if (state.type != TransactionKind.expense ||
         state.accountId == null ||
         amount == null) {
@@ -224,7 +236,8 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
               note: form.note,
               attachments: attachments,
             ),
-      TransactionKind.openingBalance || TransactionKind.balanceAdjustment =>
+      TransactionKind.openingBalance ||
+      TransactionKind.balanceAdjustment =>
         ledger.updateBalancePurpose(
           commandId: const Uuid().v4(),
           id: original!.id,
@@ -313,14 +326,17 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           accountId: form.accountId!,
           categoryId: form.categoryId!,
           description: _seriesDescription(form),
-          frequency: form.repeat,
-          // The form's repeat row has no interval control: every rule is
-          // "every one".
-          interval: 1,
-          startDate: nextOccurrence(form.date, form.repeat),
+          frequency: form.customRecurrence?.frequency ?? form.repeat,
+          interval: form.customRecurrence?.interval ?? 1,
+          startDate: form.customRecurrence?.startDate ??
+              nextOccurrence(form.date, form.repeat),
+          endDate: form.customRecurrence?.endDate,
+          countLimit: form.customRecurrence?.countLimit,
+          weekdays: form.customRecurrence?.weekdays ?? const [],
           // 订阅: the app confirms each due instance at launch instead of
           // waiting for the user's 记入.
           autoPost: form.mode == TransactionFormMode.subscription,
+          reminderMinutes: form.reminderMinutes,
         );
   }
 
@@ -345,6 +361,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           interval: 1,
           startDate: form.date,
           endDate: form.date,
+          reminderMinutes: form.reminderMinutes,
         );
   }
 
@@ -364,11 +381,26 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   ///
   /// Calendar arithmetic, so 31 Jan rolls to 28/29 Feb rather than spilling
   /// into March.
-  static DateTime nextOccurrence(DateTime from, String frequency) =>
-      switch (frequency) {
-        'DAILY' => DateTime(from.year, from.month, from.day + 1),
-        'WEEKLY' => DateTime(from.year, from.month, from.day + 7),
-        'YEARLY' => DateTime(from.year + 1, from.month, from.day),
-        _ => DateTime(from.year, from.month + 1, from.day),
-      };
+  static DateTime nextOccurrence(DateTime from, String frequency) {
+    if (frequency == 'DAILY') {
+      return DateTime(from.year, from.month, from.day + 1, from.hour,
+          from.minute, from.second, from.millisecond, from.microsecond);
+    }
+    if (frequency == 'WEEKLY') {
+      return DateTime(from.year, from.month, from.day + 7, from.hour,
+          from.minute, from.second, from.millisecond, from.microsecond);
+    }
+    final month = frequency == 'YEARLY' ? from.month : from.month + 1;
+    final year = frequency == 'YEARLY' ? from.year + 1 : from.year;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(
+        year,
+        month,
+        from.day > lastDay ? lastDay : from.day,
+        from.hour,
+        from.minute,
+        from.second,
+        from.millisecond,
+        from.microsecond);
+  }
 }

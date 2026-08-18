@@ -179,7 +179,6 @@ class _RecurringBillFormScreenState
             today: DateTime.now(),
             locale: Localizations.localeOf(context).toString(),
             l10n: l10n,
-            includeTime: false,
           ),
         ),
       );
@@ -286,8 +285,7 @@ class _RecurringBillFormScreenState
     );
     if (picked == null || !mounted) return;
 
-    // Day only. The bill keeps the rule's clock time, which is an artefact of
-    // when the series was created and not something the user set.
+    // Moving a bill to another date preserves its scheduled time.
     setState(() {
       _date = DateTime(
           picked.year, picked.month, picked.day, _date.hour, _date.minute);
