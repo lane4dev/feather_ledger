@@ -672,6 +672,101 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
+
+  @override
+  String get customRepeat => '自定义';
+
+  @override
+  String get repeatEvery => '每';
+
+  @override
+  String get repeatInterval => '间隔';
+
+  @override
+  String get repeatStart => '开始时间';
+
+  @override
+  String get repeatEnds => '何时结束重复';
+
+  @override
+  String get repeatNeverEnds => '永不结束';
+
+  @override
+  String get repeatUntil => '在此日期结束';
+
+  @override
+  String get repeatCount => '重复次数';
+
+  @override
+  String get repeatCountPrefix => '重复';
+
+  @override
+  String get repeatCountSuffix => '次';
+
+  @override
+  String get reminder => '提醒';
+
+  @override
+  String get reminderNone => '不提醒';
+
+  @override
+  String get reminder5 => '提前 5 分钟';
+
+  @override
+  String get reminder10 => '提前 10 分钟';
+
+  @override
+  String get reminder15 => '提前 15 分钟';
+
+  @override
+  String get reminder30 => '提前 30 分钟';
+
+  @override
+  String get reminderHour => '提前 1 小时';
+
+  @override
+  String get reminderDay => '提前 1 天';
+
+  @override
+  String get reminderCustom => '自定义';
+
+  @override
+  String get reminderUnitMinutes => '分钟';
+
+  @override
+  String get reminderUnitHours => '小时';
+
+  @override
+  String get reminderUnitDays => '天';
+
+  @override
+  String get reminderPermissionRequired => '请允许通知和精确提醒，以使用提醒功能。';
+
+  @override
+  String get reminderNotificationTitle => '待入账交易提醒';
+
+  @override
+  String get reminderChannel => '交易提醒';
+
+  @override
+  String get reminderCustomTitle => '自定义提醒';
+
+  @override
+  String get reminderAmount => '数量';
+
+  @override
+  String reminderMinutesValue(int count) {
+    return '提前 $count 分钟';
+  }
+
+  @override
+  String get notificationSkip => '跳过';
+
+  @override
+  String get notificationSkipped => '已跳过这笔账单';
+
+  @override
+  String get notificationUnavailable => '这笔账单已不可用。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1342,6 +1437,101 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
+
+  @override
+  String get customRepeat => '自定义';
+
+  @override
+  String get repeatEvery => '每';
+
+  @override
+  String get repeatInterval => '间隔';
+
+  @override
+  String get repeatStart => '开始时间';
+
+  @override
+  String get repeatEnds => '何时结束重复';
+
+  @override
+  String get repeatNeverEnds => '永不结束';
+
+  @override
+  String get repeatUntil => '在此日期结束';
+
+  @override
+  String get repeatCount => '重复次数';
+
+  @override
+  String get repeatCountPrefix => '重复';
+
+  @override
+  String get repeatCountSuffix => '次';
+
+  @override
+  String get reminder => '提醒';
+
+  @override
+  String get reminderNone => '不提醒';
+
+  @override
+  String get reminder5 => '提前 5 分钟';
+
+  @override
+  String get reminder10 => '提前 10 分钟';
+
+  @override
+  String get reminder15 => '提前 15 分钟';
+
+  @override
+  String get reminder30 => '提前 30 分钟';
+
+  @override
+  String get reminderHour => '提前 1 小时';
+
+  @override
+  String get reminderDay => '提前 1 天';
+
+  @override
+  String get reminderCustom => '自定义';
+
+  @override
+  String get reminderUnitMinutes => '分钟';
+
+  @override
+  String get reminderUnitHours => '小时';
+
+  @override
+  String get reminderUnitDays => '天';
+
+  @override
+  String get reminderPermissionRequired => '请允许通知和精确提醒，以使用提醒功能。';
+
+  @override
+  String get reminderNotificationTitle => '待入账交易提醒';
+
+  @override
+  String get reminderChannel => '交易提醒';
+
+  @override
+  String get reminderCustomTitle => '自定义提醒';
+
+  @override
+  String get reminderAmount => '数量';
+
+  @override
+  String reminderMinutesValue(int count) {
+    return '提前 $count 分钟';
+  }
+
+  @override
+  String get notificationSkip => '跳过';
+
+  @override
+  String get notificationSkipped => '已跳过这笔账单';
+
+  @override
+  String get notificationUnavailable => '这笔账单已不可用。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2012,4 +2202,99 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get categoryIconUploadHint => 'PNG 或 JPEG，最大 5 MB';
+
+  @override
+  String get customRepeat => '自訂';
+
+  @override
+  String get repeatEvery => '每';
+
+  @override
+  String get repeatInterval => '間隔';
+
+  @override
+  String get repeatStart => '開始時間';
+
+  @override
+  String get repeatEnds => '何時結束重複';
+
+  @override
+  String get repeatNeverEnds => '永不結束';
+
+  @override
+  String get repeatUntil => '在此日期結束';
+
+  @override
+  String get repeatCount => '重複次數';
+
+  @override
+  String get repeatCountPrefix => '重複';
+
+  @override
+  String get repeatCountSuffix => '次';
+
+  @override
+  String get reminder => '提醒';
+
+  @override
+  String get reminderNone => '不提醒';
+
+  @override
+  String get reminder5 => '提前 5 分鐘';
+
+  @override
+  String get reminder10 => '提前 10 分鐘';
+
+  @override
+  String get reminder15 => '提前 15 分鐘';
+
+  @override
+  String get reminder30 => '提前 30 分鐘';
+
+  @override
+  String get reminderHour => '提前 1 小時';
+
+  @override
+  String get reminderDay => '提前 1 天';
+
+  @override
+  String get reminderCustom => '自訂';
+
+  @override
+  String get reminderUnitMinutes => '分鐘';
+
+  @override
+  String get reminderUnitHours => '小時';
+
+  @override
+  String get reminderUnitDays => '天';
+
+  @override
+  String get reminderPermissionRequired => '請允許通知和精確提醒，以使用提醒功能。';
+
+  @override
+  String get reminderNotificationTitle => '待入帳交易提醒';
+
+  @override
+  String get reminderChannel => '交易提醒';
+
+  @override
+  String get reminderCustomTitle => '自訂提醒';
+
+  @override
+  String get reminderAmount => '數量';
+
+  @override
+  String reminderMinutesValue(int count) {
+    return '提前 $count 分鐘';
+  }
+
+  @override
+  String get notificationSkip => '略過';
+
+  @override
+  String get notificationSkipped => '已略過這筆帳單';
+
+  @override
+  String get notificationUnavailable => '這筆帳單已無法使用。';
 }

@@ -1408,6 +1408,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PNG or JPEG · up to 5 MB'**
   String get categoryIconUploadHint;
+
+  /// No description provided for @customRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get customRepeat;
+
+  /// No description provided for @repeatEvery.
+  ///
+  /// In en, this message translates to:
+  /// **'Every'**
+  String get repeatEvery;
+
+  /// No description provided for @repeatInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval'**
+  String get repeatInterval;
+
+  /// No description provided for @repeatStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get repeatStart;
+
+  /// No description provided for @repeatEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'When to end'**
+  String get repeatEnds;
+
+  /// No description provided for @repeatNeverEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get repeatNeverEnds;
+
+  /// No description provided for @repeatUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'On date'**
+  String get repeatUntil;
+
+  /// No description provided for @repeatCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of occurrences'**
+  String get repeatCount;
+
+  /// No description provided for @repeatCountPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get repeatCountPrefix;
+
+  /// No description provided for @repeatCountSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'times'**
+  String get repeatCountSuffix;
+
+  /// No description provided for @reminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get reminder;
+
+  /// No description provided for @reminderNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get reminderNone;
+
+  /// No description provided for @reminder5.
+  ///
+  /// In en, this message translates to:
+  /// **'5 minutes before'**
+  String get reminder5;
+
+  /// No description provided for @reminder10.
+  ///
+  /// In en, this message translates to:
+  /// **'10 minutes before'**
+  String get reminder10;
+
+  /// No description provided for @reminder15.
+  ///
+  /// In en, this message translates to:
+  /// **'15 minutes before'**
+  String get reminder15;
+
+  /// No description provided for @reminder30.
+  ///
+  /// In en, this message translates to:
+  /// **'30 minutes before'**
+  String get reminder30;
+
+  /// No description provided for @reminderHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour before'**
+  String get reminderHour;
+
+  /// No description provided for @reminderDay.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day before'**
+  String get reminderDay;
+
+  /// No description provided for @reminderCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get reminderCustom;
+
+  /// No description provided for @reminderUnitMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get reminderUnitMinutes;
+
+  /// No description provided for @reminderUnitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get reminderUnitHours;
+
+  /// No description provided for @reminderUnitDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get reminderUnitDays;
+
+  /// No description provided for @reminderPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications and precise alarms to use reminders.'**
+  String get reminderPermissionRequired;
+
+  /// No description provided for @reminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming transaction'**
+  String get reminderNotificationTitle;
+
+  /// No description provided for @reminderChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction reminders'**
+  String get reminderChannel;
+
+  /// No description provided for @reminderCustomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom reminder'**
+  String get reminderCustomTitle;
+
+  /// No description provided for @reminderAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get reminderAmount;
+
+  /// No description provided for @reminderMinutesValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} minutes before'**
+  String reminderMinutesValue(int count);
+
+  /// No description provided for @notificationSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get notificationSkip;
+
+  /// No description provided for @notificationSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill skipped'**
+  String get notificationSkipped;
+
+  /// No description provided for @notificationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This bill is no longer available.'**
+  String get notificationUnavailable;
 }
 
 class _AppLocalizationsDelegate

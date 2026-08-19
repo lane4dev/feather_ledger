@@ -18,6 +18,8 @@ import 'core/presentation/providers/locale_provider.dart';
 import 'features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'features/ledger/domain/services/recurring_service.dart';
+import 'features/ledger/data/notifications/recurring_reminders.dart';
+import 'features/ledger/presentation/notifications/reminder_response_handler.dart';
 import 'features/settings/domain/services/category_service.dart';
 
 void setupEdgeToEdge() async {
@@ -104,26 +106,39 @@ void main() async {
     debugPrint('recurring catch-up failed: $e');
   }
 
-  // 订阅 catch-up: auto-posting series post their due instances now. Runs
-  // after materialize (which put the due instances on the table) and is
-  // awaited for the same reason — the first frame reads the transactions it
-  // writes. A post that fails leaves its instance pending in the list; the
-  // deterministic commandId means a re-run can never double-post.
-  try {
-    await container.read(recurringServiceProvider).catchUpAutoPosted();
-  } catch (e) {
-    debugPrint('recurring auto-post catch-up failed: $e');
-  }
-
-  // Preferences that arrived with a restored backup. Applied exactly once, on
-  // the launch AFTER staging — never in the run that staged the restore.
-  // SharedPreferences caches in memory per process, so applying them any
-  // earlier would be reading and writing a store the swap is about to
-  // replace. See applyPendingRestore's return value.
+  // Apply restored preferences before resolving the notification language.
   if (restoredPreferences != null) {
     final preferences =
         await container.read(preferencesRepositoryProvider.future);
     await preferences.importAll(restoredPreferences);
+  }
+
+  final reminders = container.read(recurringRemindersProvider);
+  try {
+    final preferredLocale =
+        await container.read(localeControllerProvider.future);
+    final notificationL10n =
+        await AppLocalizations.delegate.load(preferredLocale ?? seedLocale);
+    await reminders.start(
+      title: notificationL10n.reminderNotificationTitle,
+      channelName: notificationL10n.reminderChannel,
+      postLabel: notificationL10n.postInstance,
+      skipLabel: notificationL10n.notificationSkip,
+    );
+  } catch (e) {
+    debugPrint('Reminder startup failed: $e');
+  }
+
+  // A cold-start notification action must win over subscription catch-up:
+  // otherwise pressing Skip could post the very bill the user just skipped.
+  if (reminders.hasPendingResponses) {
+    reminders.deferAutoPostCatchUp();
+  } else {
+    try {
+      await container.read(recurringServiceProvider).catchUpAutoPosted();
+    } catch (e) {
+      debugPrint('recurring auto-post catch-up failed: $e');
+    }
   }
 
   setupEdgeToEdge();
@@ -150,6 +165,7 @@ class FeatherLedgerApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeAsync.value ?? ThemeMode.system,
       routerConfig: router,
+      builder: (context, child) => ReminderResponseHandler(child: child!),
       locale: localeAsync.value,
       localeResolutionCallback: (deviceLocale, supportedLocales) {
         if (localeAsync.value != null) {
