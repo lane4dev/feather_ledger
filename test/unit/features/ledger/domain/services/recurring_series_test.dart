@@ -55,10 +55,8 @@ void main() {
     final accounts = await harness.db.accountDao.getAllAccounts();
     accountId = accounts.single.id;
     final categories = await harness.db.categoriesDao.getAllCategories();
-    expenseCategoryId =
-        categories.firstWhere((c) => c.name == 'Rent').id;
-    incomeCategoryId =
-        categories.firstWhere((c) => c.name == 'Salary').id;
+    expenseCategoryId = categories.firstWhere((c) => c.name == 'Rent').id;
+    incomeCategoryId = categories.firstWhere((c) => c.name == 'Salary').id;
   }
 
   /// A monthly series starting well in the past, so it has due instances.
@@ -128,7 +126,8 @@ void main() {
       isTrue,
     );
     expect(instances.every((i) => i.amountMinor == 50000), isTrue);
-    expect(instances.every((i) => i.recurringTransactionSeries != null), isTrue);
+    expect(
+        instances.every((i) => i.recurringTransactionSeries != null), isTrue);
   });
 
   test('creating a series writes no event', () async {
@@ -213,8 +212,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.categoryTypeMismatch),
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.categoryTypeMismatch),
     );
     expect(await harness.db.recurringDao.getAllSeries(), isEmpty);
   });
@@ -306,11 +305,46 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.scheduledAlreadyPosted),
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.scheduledAlreadyPosted),
       reason: 'this used to report transactionAlreadyReversed, which told the '
           'user their transaction had been reversed',
     );
+  });
+
+  test('concurrent post and skip cannot both succeed', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final before = (await harness.eventStore.readAll()).events.length;
+    final results = await Future.wait([
+      harness.recurringService.postInstance(instance.id),
+      harness.recurringService
+          .deleteBill(instance.id, scope: RecurringScope.thisOnly),
+    ]);
+    expect(results.whereType<Success<void>>(), hasLength(1));
+    final row = (await harness.db.recurringDao.getScheduled(instance.id))!;
+    final added = (await harness.eventStore.readAll()).events.length - before;
+    expect(
+        row.status == 'posted'
+            ? added == 1
+            : row.status == 'skipped' && added == 0,
+        isTrue);
+  });
+
+  test('a skipped instance cannot be posted or resurrected', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final skipped = await harness.recurringService
+        .deleteBill(instance.id, scope: RecurringScope.thisOnly);
+    expect(skipped, isA<Success<void>>());
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+    final posted = await harness.recurringService.postInstance(instance.id);
+    expect(posted, isA<Failure<void>>());
+    expect((await harness.db.recurringDao.getScheduled(instance.id))!.status,
+        'skipped');
+    expect((await harness.eventStore.readAll()).events.length, eventsBefore);
   });
 
   test('deleting one bill writes no event and moves no money', () async {
@@ -360,8 +394,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.scheduledAlreadyPosted),
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.scheduledAlreadyPosted),
     );
   });
 
@@ -370,14 +404,14 @@ void main() {
 
     expect(
       await harness.recurringService.postInstance('nope'),
-      isA<Failure<void>>().having(
-          (f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
     );
     expect(
       await harness.recurringService
           .deleteBill('nope', scope: RecurringScope.thisOnly),
-      isA<Failure<void>>().having(
-          (f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
     );
   });
 
@@ -532,15 +566,14 @@ void main() {
         reason: 'editing a forecast moves no money');
   });
 
-  test('moving one bill leaves a tombstone the window cannot refill',
-      () async {
+  test('moving one bill leaves a tombstone the window cannot refill', () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
     final moved = DateTime(2026, 2, 15);
 
-    final result = await editBill(instance,
-        scope: RecurringScope.thisOnly, date: moved);
+    final result =
+        await editBill(instance, scope: RecurringScope.thisOnly, date: moved);
     expect(result, isA<Success<void>>());
 
     // The rule still produces the original date; a skipped row is what stops
@@ -580,8 +613,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having(
-          (f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
     );
   });
 
@@ -606,8 +639,8 @@ void main() {
     final old = series.firstWhere((s) => s.id == cut.seriesId);
     // Relative to the cut, not a literal date: which day the cut lands on is
     // the rule's business, and the contract is only "the day before it".
-    expect(old.endDate,
-        DateTime(cut.date.year, cut.date.month, cut.date.day - 1),
+    expect(
+        old.endDate, DateTime(cut.date.year, cut.date.month, cut.date.day - 1),
         reason: 'the old rule ends the day before the bill it lost');
 
     final fresh = series.firstWhere((s) => s.id != cut.seriesId);
@@ -657,8 +690,8 @@ void main() {
     await createMonthly();
     final instance = await firstScheduled();
 
-    final result = await editBill(instance,
-        scope: RecurringScope.all, amountMinor: 60000);
+    final result =
+        await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
 
     expect(result, isA<Success<void>>());
     final series = await seriesRow();
@@ -701,15 +734,13 @@ void main() {
     final balance = await accountBalance();
     final events = (await harness.eventStore.readAll()).events.length;
 
-    await editBill(instance,
-        scope: RecurringScope.all, amountMinor: 60000);
+    await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
 
     expect(await accountBalance(), balance);
     expect((await harness.eventStore.readAll()).events.length, events);
     expect((await harness.db.recurringDao.getScheduled(other.id))!.status,
         'posted');
-    expect(
-        (await harness.db.recurringDao.getScheduled(other.id))!.amountMinor,
+    expect((await harness.db.recurringDao.getScheduled(other.id))!.amountMinor,
         50000,
         reason: 'what was recorded stays what was recorded');
   });
@@ -725,8 +756,8 @@ void main() {
 
     expect(
       result,
-      isA<Failure<void>>().having((f) => f.code, 'code',
-          LedgerErrorCode.scheduledAlreadyPosted),
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.scheduledAlreadyPosted),
     );
   });
 
@@ -776,8 +807,8 @@ void main() {
     final instances = await scheduled();
     final due = instances.where((i) => !i.date.isAfter(DateTime.now()));
     expect(due, isNotEmpty, reason: 'fixture precondition');
-    expect(due.every((i) => i.status == ScheduledTransactionStatus.posted),
-        isTrue,
+    expect(
+        due.every((i) => i.status == ScheduledTransactionStatus.posted), isTrue,
         reason: 'the due instances posted themselves');
     expect(
         instances
@@ -846,8 +877,8 @@ void main() {
     expect(await createMonthly(autoPost: true), isA<Success<void>>());
     final instance = await firstScheduled();
 
-    final result = await editBill(instance,
-        scope: RecurringScope.all, amountMinor: 60000);
+    final result =
+        await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
 
     expect(result, isA<Success<void>>());
     expect((await seriesRow()).autoPost, isTrue);

@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(5));
+      expect(database.schemaVersion, equals(6));
     });
 
     test('migrates a v1 database by adding the column, keeping its rows',
@@ -47,6 +47,8 @@ void main() {
           'ALTER TABLE transactions_view DROP COLUMN attachments_json');
       await v1.customStatement(
           'ALTER TABLE recurring_series DROP COLUMN auto_post');
+      await v1.customStatement(
+          'ALTER TABLE recurring_series DROP COLUMN reminder_minutes');
       await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
@@ -71,12 +73,12 @@ void main() {
           reason: 'every account that predates the flag counts toward the '
               'totals — nobody had opted out before it existed');
 
-      final series =
-          await upgraded.recurringDao.getSeries('ser_v1');
+      final series = await upgraded.recurringDao.getSeries('ser_v1');
       expect(series, isNotNull,
           reason: 'the CRUD-exempt table is not rebuilt, so the migration is '
               'the only chance its rows have');
-      expect(series!.autoPost, isFalse,
+      expect(series!.reminderMinutes, isNull);
+      expect(series.autoPost, isFalse,
           reason: 'no series predated the flag, so none auto-posts');
     });
 

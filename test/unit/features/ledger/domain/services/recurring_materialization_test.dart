@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 
@@ -58,10 +59,8 @@ void main() {
     bool materialize = false,
   }) async {
     await seedAccountAndCategory(categoryType);
-    final accountId =
-        (await harness.db.accountDao.getAllAccounts()).single.id;
-    final categoryId =
-        await harness.userCategoryId();
+    final accountId = (await harness.db.accountDao.getAllAccounts()).single.id;
+    final categoryId = await harness.userCategoryId();
 
     final result = await harness.recurringService.createSeries(
       type: kind,
@@ -83,6 +82,156 @@ void main() {
       (await harness.recurringService.watchScheduled().first)
           .where((i) => i.status == ScheduledTransactionStatus.scheduled)
           .toList();
+
+  for (final kind in ['planned', 'subscription', 'repeating']) {
+    test('$kind preserves its scheduled time through posting', () async {
+      await seedAccountAndCategory(CategoryType.expense);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      final day = fromNow(1);
+      final start = DateTime(day.year, day.month, day.day, 14, 35);
+      final result = await harness.recurringService.createSeries(
+          type: RecurringSeriesKind.expense,
+          amountMinor: 100,
+          accountId: account.id,
+          categoryId: await harness.userCategoryId(),
+          description: 'Time check',
+          frequency: 'DAILY',
+          interval: 1,
+          startDate: start,
+          endDate: kind == 'planned' ? start : null,
+          autoPost: kind == 'subscription');
+      expect(result, isA<Success<void>>());
+      final bills = await pending()
+        ..sort((a, b) => a.date.compareTo(b.date));
+      expect(bills.first.date, start);
+      expect(await harness.recurringService.postInstance(bills.first.id),
+          isA<Success<void>>());
+      final events = (await harness.eventStore.readAll()).events;
+      final recorded = TransactionRecorded.fromJson(events
+          .lastWhere((e) => e.eventType == 'TransactionRecorded')
+          .payloadJson);
+      expect(recorded.occurredAt.toLocal(), start);
+    });
+  }
+
+  test('a finite weekly rule generates all selected weekdays and honors count',
+      () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final categoryId = await harness.userCategoryId();
+    final start = fromNow(1);
+    final weekday = start.weekday;
+    final other = weekday == 7 ? 1 : weekday + 1;
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Test',
+        frequency: 'WEEKLY',
+        interval: 2,
+        startDate: start,
+        countLimit: 16,
+        weekdays: [weekday, other]);
+    expect(result, isA<Success<void>>());
+    final bills = await pending();
+    expect(bills, hasLength(16));
+    expect(
+        bills
+            .every((b) => b.date.weekday == weekday || b.date.weekday == other),
+        isTrue);
+    await harness.recurringService.materialize();
+    expect(await pending(), hasLength(16));
+  });
+
+  test('splitting a count-limited rule retains only its remaining occurrences',
+      () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final categoryId = await harness.userCategoryId();
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Test',
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: fromNow(1),
+        countLimit: 16);
+    expect(result, isA<Success<void>>());
+    final before = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final fourth = before[3];
+    final edited = await harness.recurringService.updateBill(fourth.id,
+        scope: RecurringScope.thisAndFollowing,
+        amountMinor: 200,
+        date: fourth.date,
+        categoryId: categoryId,
+        accountId: account.id,
+        description: 'Changed');
+    expect(edited, isA<Success<void>>());
+    final after = await pending();
+    expect(after, hasLength(16));
+    expect(after.where((item) => item.amountMinor == 200), hasLength(13));
+    await harness.recurringService.materialize();
+    expect(await pending(), hasLength(16));
+  });
+
+  test('a date-limited rule creates bills through its inclusive end date',
+      () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final start = fromNow(1);
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: await harness.userCategoryId(),
+        description: 'Test',
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: start,
+        endDate: start.add(const Duration(days: 15)));
+    expect(result, isA<Success<void>>());
+    expect(await pending(), hasLength(16));
+  });
+
+  test('reminder setting survives materialization and splitting a series',
+      () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final category = await harness.userCategoryId();
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: category,
+        description: 'Rent',
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: fromNow(1),
+        countLimit: 4,
+        reminderMinutes: 15);
+    expect(result, isA<Success<void>>());
+    final bills = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(
+        bills.every((b) => b.recurringTransactionSeries?.reminderMinutes == 15),
+        isTrue);
+    final edited = await harness.recurringService.updateBill(bills[1].id,
+        scope: RecurringScope.thisAndFollowing,
+        amountMinor: 200,
+        date: bills[1].date,
+        categoryId: category,
+        accountId: account.id,
+        description: 'Changed');
+    expect(edited, isA<Success<void>>());
+    expect(
+        (await pending())
+            .every((b) => b.recurringTransactionSeries?.reminderMinutes == 15),
+        isTrue);
+  });
 
   test('a monthly series keeps three upcoming bills', () async {
     // 90 days holds exactly three monthly occurrences — which is where the
@@ -109,8 +258,7 @@ void main() {
     expect(count, 3);
 
     final instances = await pending();
-    final dates = instances.map((i) => i.date).toList()
-      ..sort();
+    final dates = instances.map((i) => i.date).toList()..sort();
     // Three consecutive years, not three arbitrary dates.
     expect(dates[1].year - dates[0].year, 1);
     expect(dates[2].year - dates[1].year, 1);
@@ -126,10 +274,9 @@ void main() {
     // idempotent. Change it, or the date normalization, and every run
     // duplicates every future bill.
     await createSeries(frequency: 'WEEKLY', startInDays: 3);
-    final before =
-        (await harness.db.recurringDao.watchAllScheduled().first)
-            .map((r) => r.id)
-            .toSet();
+    final before = (await harness.db.recurringDao.watchAllScheduled().first)
+        .map((r) => r.id)
+        .toSet();
 
     await harness.recurringService.materialize();
     await harness.recurringService.materialize();
@@ -140,7 +287,7 @@ void main() {
     expect(after, before);
   });
 
-  test('posting one refills the floor on the next run', () async {
+  test('posting one immediately refills the floor', () async {
     // The rolling part: a bill the user acted on stops counting, so the next
     // run reaches one period further out.
     await createSeries(frequency: 'MONTHLY', startInDays: 5);
@@ -148,11 +295,20 @@ void main() {
 
     final first = (await pending()).first;
     await harness.recurringService.postInstance(first.id);
-    expect(await pending(), hasLength(2), reason: 'one was decided');
-
-    await harness.recurringService.materialize();
-
     expect(await pending(), hasLength(3), reason: 'the floor is restored');
+  });
+
+  test('posting a daily bill refills without exceeding twelve pending',
+      () async {
+    await createSeries(frequency: 'DAILY', startInDays: 1);
+    final before = await pending();
+    expect(before, hasLength(12));
+    expect(await harness.recurringService.postInstance(before.first.id),
+        isA<Success<void>>());
+    final after = await pending();
+    expect(after, hasLength(12));
+    expect(after.map((bill) => bill.id).toSet().length, 12);
+    expect(after.map((bill) => bill.id), isNot(contains(before.first.id)));
   });
 
   test('a bill deleted on its own is neither resurrected nor counted',
@@ -189,10 +345,8 @@ void main() {
     // steps — ~37 seconds per series, on a command that runs at startup.
     // The bound is loose: the fixed path is well under a second.
     await seedAccountAndCategory(CategoryType.expense);
-    final accountId =
-        (await harness.db.accountDao.getAllAccounts()).single.id;
-    final categoryId =
-        await harness.userCategoryId();
+    final accountId = (await harness.db.accountDao.getAllAccounts()).single.id;
+    final categoryId = await harness.userCategoryId();
     await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 50000,
@@ -217,9 +371,10 @@ void main() {
 
     await harness.recurringService
         .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
-    final afterDelete = (await harness.db.recurringDao.watchAllScheduled().first)
-        .map((r) => r.id)
-        .toSet();
+    final afterDelete =
+        (await harness.db.recurringDao.watchAllScheduled().first)
+            .map((r) => r.id)
+            .toSet();
 
     await harness.recurringService.materialize();
 

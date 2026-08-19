@@ -204,7 +204,10 @@ class RecordingRecurringService implements RecurringService {
     required int interval,
     required DateTime startDate,
     DateTime? endDate,
+    int? countLimit,
+    List<int> weekdays = const [],
     bool autoPost = false,
+    int? reminderMinutes,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     created.add({
@@ -217,7 +220,10 @@ class RecordingRecurringService implements RecurringService {
       'interval': interval,
       'startDate': startDate,
       'endDate': endDate,
+      'countLimit': countLimit,
+      'weekdays': weekdays,
       'autoPost': autoPost,
+      'reminderMinutes': reminderMinutes,
     });
     return unitResult;
   }

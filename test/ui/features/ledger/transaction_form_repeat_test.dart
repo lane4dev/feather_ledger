@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +103,7 @@ void main() {
           ),
           ledgerServiceProvider.overrideWithValue(ledger),
           recurringServiceProvider.overrideWithValue(recurring),
+          recurringRemindersProvider.overrideWithValue(_FakeReminders()),
         ],
         child: MaterialApp.router(
           theme: AppTheme.lightTheme,
@@ -233,6 +236,87 @@ void main() {
     await teardownTree(tester);
   });
 
+  testWidgets('custom repeat settings are saved for a subscription',
+      (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Subscription');
+    await chooseRepeat(tester, 'Custom');
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.byType(DropdownButton<String>));
+    await settle(tester);
+    await tester.tap(find.text('week').last);
+    await settle(tester);
+    expect(find.byType(FilterChip), findsNWidgets(7));
+    await tester.enterText(
+        find.descendant(
+            of: find.byKey(const ValueKey('repeat-interval')),
+            matching: find.byType(TextFormField)),
+        '2');
+    final countOption = find.byWidgetPredicate(
+        (widget) => widget is Radio<int> && widget.value == 2);
+    await tester.tap(countOption);
+    await settle(tester);
+    await tester.enterText(
+        find.descendant(
+            of: find.byKey(const ValueKey('repeat-count')),
+            matching: find.byType(TextFormField)),
+        '16');
+    await settle(tester);
+    final dialogSave = find.descendant(
+        of: find.byType(AlertDialog), matching: find.text('Save'));
+    await tester.tap(dialogSave);
+    await settle(tester);
+    expect(find.text('Custom'), findsOneWidget);
+    await save(tester);
+    expect(recurring.created.single['frequency'], 'WEEKLY');
+    expect(recurring.created.single['weekdays'], isNotEmpty);
+    expect(recurring.created.single['interval'], 2);
+    expect(recurring.created.single['countLimit'], 16);
+    expect(recurring.created.single['autoPost'], isTrue);
+    await teardownTree(tester);
+  });
+
+  testWidgets('planned transaction stores the selected reminder',
+      (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Planned');
+    await tester.tap(find.text('None'));
+    await settle(tester);
+    await tester.tap(find.text('15 minutes before'));
+    await settle(tester);
+    expect(find.text('15 minutes before'), findsOneWidget);
+    await save(tester);
+    expect(recurring.created.single['reminderMinutes'], 15);
+    expect(ledger.addedTransactions, isEmpty);
+    await teardownTree(tester);
+  });
+
+  testWidgets(
+      'custom reminder is converted to minutes for a repeating transaction',
+      (tester) async {
+    await pumpForm(tester);
+    await fillExpense(tester);
+    await chooseMode(tester, 'Repeating');
+    await tester.tap(find.text('None'));
+    await settle(tester);
+    await tester.tap(find.text('Custom').last);
+    await settle(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '2');
+    await tester.tap(find.byType(DropdownButton<int>));
+    await settle(tester);
+    await tester.tap(find.text('Hours').last);
+    await settle(tester);
+    await tester.tap(find.descendant(
+        of: find.byType(AlertDialog), matching: find.text('Save')));
+    await settle(tester);
+    expect(find.text('120 minutes before'), findsOneWidget);
+    await save(tester);
+    expect(recurring.created.single['reminderMinutes'], 120);
+    await teardownTree(tester);
+  });
+
   testWidgets('a transfer cannot repeat', (tester) async {
     // A series has one account, so a transfer is not representable
     // (ADR-0002) — the row, and the modes that would need it, are absent
@@ -301,8 +385,12 @@ void main() {
 
     // The series starts one period AFTER the entry just recorded, so the two
     // never describe the same month.
-    final now = DateTime.now();
-    expect(series['startDate'], DateTime(now.year, now.month + 1, now.day));
+    final recorded = ledger.addedTransactions.single['date']! as DateTime;
+    final start = series['startDate']! as DateTime;
+    expect(DateTime(start.year, start.month, start.day),
+        DateTime(recorded.year, recorded.month + 1, recorded.day));
+    expect(start.hour, recorded.hour);
+    expect(start.minute, recorded.minute);
 
     await teardownTree(tester);
   });
@@ -317,9 +405,9 @@ void main() {
 
     expect(ledger.addedTransactions, hasLength(1));
     expect(recurring.created.single['frequency'], 'WEEKLY');
-    final now = DateTime.now();
+    final recorded = ledger.addedTransactions.single['date']! as DateTime;
     expect(recurring.created.single['startDate'],
-        DateTime(now.year, now.month, now.day + 7));
+        recorded.add(const Duration(days: 7)));
 
     await teardownTree(tester);
   });
@@ -384,8 +472,12 @@ void main() {
     expect(series['frequency'], 'MONTHLY');
     expect(series['autoPost'], isTrue,
         reason: '订阅 posts its due instances at launch, without asking');
-    final now = DateTime.now();
-    expect(series['startDate'], DateTime(now.year, now.month + 1, now.day));
+    final recorded = ledger.addedTransactions.single['date']! as DateTime;
+    final start = series['startDate']! as DateTime;
+    expect(DateTime(start.year, start.month, start.day),
+        DateTime(recorded.year, recorded.month + 1, recorded.day));
+    expect(start.hour, recorded.hour);
+    expect(start.minute, recorded.minute);
 
     await teardownTree(tester);
   });
@@ -448,4 +540,34 @@ void main() {
 
     await teardownTree(tester);
   });
+}
+
+class _FakeReminders implements RecurringReminders {
+  @override
+  bool get supported => true;
+  @override
+  Future<void> initialize(
+      {String postLabel = 'Post', String skipLabel = 'Skip'}) async {}
+  @override
+  Future<bool> requestPermission(
+          {String postLabel = 'Post', String skipLabel = 'Skip'}) async =>
+      true;
+  @override
+  Future<void> start(
+      {required String title,
+      required String channelName,
+      String postLabel = 'Post',
+      String skipLabel = 'Skip'}) async {}
+  @override
+  bool get hasPendingResponses => false;
+  @override
+  void deferAutoPostCatchUp() {}
+  @override
+  bool takeDeferredAutoPostCatchUp() => false;
+  @override
+  Stream<void> get responsesChanged => const Stream.empty();
+  @override
+  List<NotificationResponse> takeResponses() => [];
+  @override
+  void dispose() {}
 }

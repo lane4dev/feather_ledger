@@ -4,6 +4,71 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 // Used for testing purposes where a real BuildContext is not available.
 class FakeAppLocalizations implements AppLocalizations {
   @override
+  String get notificationSkip => 'Skip';
+  @override
+  String get notificationSkipped => 'Bill skipped';
+  @override
+  String get notificationUnavailable => 'This bill is no longer available.';
+
+  @override
+  String get reminder => 'Reminder';
+  @override
+  String get reminderNone => 'None';
+  @override
+  String get reminder5 => '5 minutes before';
+  @override
+  String get reminder10 => '10 minutes before';
+  @override
+  String get reminder15 => '15 minutes before';
+  @override
+  String get reminder30 => '30 minutes before';
+  @override
+  String get reminderHour => '1 hour before';
+  @override
+  String get reminderDay => '1 day before';
+  @override
+  String get reminderCustom => 'Custom';
+  @override
+  String get reminderUnitMinutes => 'Minutes';
+  @override
+  String get reminderUnitHours => 'Hours';
+  @override
+  String get reminderUnitDays => 'Days';
+  @override
+  String get reminderPermissionRequired => 'Allow notifications and precise alarms to use reminders.';
+  @override
+  String get reminderNotificationTitle => 'Upcoming transaction';
+  @override
+  String get reminderChannel => 'Transaction reminders';
+  @override
+  String get reminderCustomTitle => 'Custom reminder';
+  @override
+  String get reminderAmount => 'Amount';
+  @override
+  String reminderMinutesValue(int count) => '$count minutes before';
+
+  @override
+  String get repeatCountPrefix => 'Repeat';
+  @override
+  String get repeatCountSuffix => 'times';
+  @override
+  String get customRepeat => 'Custom';
+  @override
+  String get repeatEvery => 'Every';
+  @override
+  String get repeatInterval => 'Interval';
+  @override
+  String get repeatStart => 'Start';
+  @override
+  String get repeatEnds => 'When to end';
+  @override
+  String get repeatNeverEnds => 'Never';
+  @override
+  String get repeatUntil => 'On date';
+  @override
+  String get repeatCount => 'Number of occurrences';
+
+  @override
   String get categoryIconUploadHint => 'PNG or JPEG · up to 5 MB';
   @override
   String get categoryIconZoom => 'Zoom';

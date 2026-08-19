@@ -45,7 +45,7 @@ void main() {
         id: isPending ? 'sched_1' : 'tx_1',
         amount: 500000,
         type: TransactionKind.expense,
-        date: DateTime(2026, 11, 1),
+        date: DateTime(2026, 11, 1, 14, 35),
         note: 'Rent',
         category: rent,
         account: cash,
@@ -112,6 +112,11 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('shows the scheduled time in the bill details', (tester) async {
+      await pumpSheet(tester);
+      expect(find.textContaining('14:35'), findsOneWidget);
+    });
 
     /// Delete lives in the top-right overflow menu, so reaching the scope
     /// dialog is two taps: the menu, then the item.

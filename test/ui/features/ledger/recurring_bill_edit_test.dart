@@ -293,8 +293,8 @@ void main() {
       expect(tester.getBottomLeft(saveButton).dy, closeTo(600 - 220 - 8, 0.01));
       final date = tester.widget<LedgerSelectorField>(
           find.widgetWithText(LedgerSelectorField, 'Date'));
-      expect(date.text, isNot(contains(':')),
-          reason: 'pending bills retain date-only editing');
+      expect(date.text, contains(':'),
+          reason: 'pending bills show their saved time');
       expect(tester.takeException(), isNull);
     });
 
