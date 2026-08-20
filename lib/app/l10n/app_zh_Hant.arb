@@ -1,6 +1,6 @@
 {
   "@@locale": "zh_Hant",
-  "appTitle": "輕羽帳本",
+  "appTitle": "記然",
   "@appTitle": {
     "description": "應用程式標題"
   },
@@ -303,11 +303,11 @@
   "@balanceChangeDetectedMessage": {
     "description": "餘額變更確認對話框內容"
   },
-  "accountBalanceAdjustmentDescription": "帳戶餘額調整",
+  "accountBalanceAdjustmentDescription": "餘額調整",
   "@accountBalanceAdjustmentDescription": {
     "description": "帳戶餘額自動調整交易的描述"
   },
-  "accountInitialBalanceNote": "差額",
+  "accountInitialBalanceNote": "初始餘額",
   "@accountInitialBalanceNote": {
     "description": "新建帳戶的期初餘額交易的備註"
   },
@@ -319,7 +319,7 @@
   "@accountIncludeInTotalsHint": {
     "description": "開關下方的說明：關掉之後影響什麼、不影響什麼"
   },
-  "accountBalanceAdjustmentNotes": "因帳戶餘額變更自動調整。",
+  "accountBalanceAdjustmentNotes": "餘額修正",
   "@accountBalanceAdjustmentNotes": {
     "description": "帳戶餘額自動調整交易的備註"
   },
@@ -553,7 +553,7 @@
   "previousYear": "上一年",
   "nextYear": "下一年",
   "errorInvalidTransactionShape": "交易無效，未儲存",
-  "backupFileTypeLabel": "輕羽帳本 備份",
+  "backupFileTypeLabel": "記然 備份",
   "@backupFileTypeLabel": {
     "description": "開啟備份檔案對話框時，檔案類型篩選器的標籤"
   },
@@ -578,7 +578,7 @@
     }
   },
   "restoreReadyTitle": "還原已就緒",
-  "restoreReadyMessage": "請完全關閉 Feather Ledger 後重新開啟，以完成還原。",
+  "restoreReadyMessage": "請完全關閉記然 後重新開啟，以完成還原。",
   "exitNow": "現在結束",
   "postInstanceTitle": "記入這筆",
   "postInstanceConfirm": "把這筆帳單記為交易？",
@@ -658,5 +658,23 @@
   "@reminderMinutesValue": {"placeholders": {"count": {"type": "int"}}},
   "notificationSkip": "略過",
   "notificationSkipped": "已略過這筆帳單",
-  "notificationUnavailable": "這筆帳單已無法使用。"
+  "notificationUnavailable": "這筆帳單已無法使用。",
+  "accountArchiveAction": "封存帳戶",
+  "accountRestoreAction": "恢復帳戶",
+  "accountArchivedSection": "已封存帳戶",
+  "accountArchiveExplanation": "封存將刪除此帳戶的週期規則和未來待入帳帳單，並取消相應提醒。已到期的待入帳帳單和已入帳交易會保留。恢復帳戶後，已刪除的規則和帳單不會恢復。",
+  "accountDeleteExplanation": "確定刪除此帳戶嗎？事件歷史會保留。",
+  "accountUsageTransactions": "關聯交易",
+  "accountUsageSeries": "週期規則",
+  "accountUsagePending": "待入帳帳單",
+  "errorAccountHasReferences": "此帳戶仍有未刪除的交易或週期規則。可選擇封存，或先處理關聯記錄。",
+  "errorAccountHasActiveSchedules": "此帳戶有仍在進行的週期規則或待入帳帳單，請先處理。",
+  "accountDeleteChooseAction": "此帳戶有關聯交易或週期規則，請選擇處理方式。",
+  "accountDeleteArchivedChooseAction": "請選擇刪除關聯交易及週期規則，或將它們轉移到其他帳戶。",
+  "accountMoveAndDelete": "轉移記錄並刪除",
+  "accountDeleteWithTransactions": "刪除帳戶及記錄",
+  "accountSelectDestination": "選擇目標帳戶",
+  "accountNoDestination": "沒有可用的同幣種其他正常帳戶。",
+  "accountDeleteImpact": "初始餘額和餘額調整會被沖銷。刪除轉帳會同時影響另一帳戶的餘額；轉移記錄會改變目標帳戶餘額。週期規則將按所選方式處理。",
+  "accountConfirmOperation": "確認"
 }

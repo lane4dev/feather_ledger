@@ -3,5 +3,5 @@
     <!-- The launcher label the ARB cannot reach: `zh_Hant` is a supported
          locale in-app, so a zh-TW device must not fall back to the English
          name on the home screen. Mirrors `appTitle` in app_zh_Hant.arb. -->
-    <string name="app_name">輕羽帳本</string>
+    <string name="app_name">記然</string>
 </resources>

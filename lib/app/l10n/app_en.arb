@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Feather Ledger",
+  "appTitle": "Accounted For",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -303,11 +303,11 @@
   "@balanceChangeDetectedMessage": {
     "description": "Message for balance change confirmation dialog"
   },
-  "accountBalanceAdjustmentDescription": "Account balance adjustment",
+  "accountBalanceAdjustmentDescription": "Balance adjustment",
   "@accountBalanceAdjustmentDescription": {
     "description": "Description for automated account balance adjustment transaction"
   },
-  "accountInitialBalanceNote": "Difference",
+  "accountInitialBalanceNote": "Initial Balance",
   "@accountInitialBalanceNote": {
     "description": "Note on the transaction recording a new account's starting balance"
   },
@@ -319,7 +319,7 @@
   "@accountIncludeInTotalsHint": {
     "description": "Explanation under the include-in-totals switch, saying what turning it off does and does not do"
   },
-  "accountBalanceAdjustmentNotes": "Automated adjustment for account balance change.",
+  "accountBalanceAdjustmentNotes": "Balance correction",
   "@accountBalanceAdjustmentNotes": {
     "description": "Notes for automated account balance adjustment transaction"
   },
@@ -568,7 +568,7 @@
   "@nextYear": {
     "description": "Tooltip for the month picker's next-year button"
   },
-  "backupFileTypeLabel": "Feather Ledger backup",
+  "backupFileTypeLabel": "Accounted For backup",
   "@backupFileTypeLabel": {
     "description": "File type label for the .flbackup filter in the platform file dialog"
   },
@@ -615,7 +615,7 @@
   "@restoreReadyTitle": {
     "description": "Title shown once a restore has been staged"
   },
-  "restoreReadyMessage": "Close Feather Ledger completely and open it again to finish restoring.",
+  "restoreReadyMessage": "Close Accounted For completely and open it again to finish restoring.",
   "@restoreReadyMessage": {
     "description": "Explains why a restart is needed: the database cannot be swapped while it is open"
   },
@@ -728,5 +728,23 @@
   "@reminderMinutesValue": {"placeholders": {"count": {"type": "int"}}},
   "notificationSkip": "Skip",
   "notificationSkipped": "Bill skipped",
-  "notificationUnavailable": "This bill is no longer available."
+  "notificationUnavailable": "This bill is no longer available.",
+  "accountArchiveAction": "Archive account",
+  "accountRestoreAction": "Restore account",
+  "accountArchivedSection": "Archived accounts",
+  "accountArchiveExplanation": "Archiving permanently deletes this account’s recurring rules and future pending bills, and cancels their reminders. Overdue pending bills and recorded transactions are kept. Restoring the account will not restore the deleted rules or bills.",
+  "accountDeleteExplanation": "Delete this account? Its event history is retained.",
+  "accountUsageTransactions": "Transactions",
+  "accountUsageSeries": "Recurring rules",
+  "accountUsagePending": "Pending bills",
+  "errorAccountHasReferences": "This account has active transactions or recurring rules. Archive it instead, or resolve the linked records first.",
+  "errorAccountHasActiveSchedules": "This account has active recurring rules or pending bills. Resolve them before archiving.",
+  "accountDeleteChooseAction": "This account has transactions or scheduled rules. Choose how to proceed.",
+  "accountDeleteArchivedChooseAction": "Choose whether to delete the associated transactions and scheduled rules or move them to another account.",
+  "accountMoveAndDelete": "Move records and delete",
+  "accountDeleteWithTransactions": "Delete account and records",
+  "accountSelectDestination": "Select a destination account",
+  "accountNoDestination": "No other active account with the same currency is available.",
+  "accountDeleteImpact": "Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.",
+  "accountConfirmOperation": "Confirm"
 }

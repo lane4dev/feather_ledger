@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In en, this message translates to:
-  /// **'Feather Ledger'**
+  /// **'Accounted For'**
   String get appTitle;
 
   /// Title for ledger screen
@@ -607,13 +607,13 @@ abstract class AppLocalizations {
   /// Description for automated account balance adjustment transaction
   ///
   /// In en, this message translates to:
-  /// **'Account balance adjustment'**
+  /// **'Balance adjustment'**
   String get accountBalanceAdjustmentDescription;
 
   /// Note on the transaction recording a new account's starting balance
   ///
   /// In en, this message translates to:
-  /// **'Difference'**
+  /// **'Initial Balance'**
   String get accountInitialBalanceNote;
 
   /// Switch on the account form: whether this account counts toward the ledger's aggregate figures
@@ -631,7 +631,7 @@ abstract class AppLocalizations {
   /// Notes for automated account balance adjustment transaction
   ///
   /// In en, this message translates to:
-  /// **'Automated adjustment for account balance change.'**
+  /// **'Balance correction'**
   String get accountBalanceAdjustmentNotes;
 
   /// Confirmation message for deleting an account
@@ -1063,7 +1063,7 @@ abstract class AppLocalizations {
   /// File type label for the .flbackup filter in the platform file dialog
   ///
   /// In en, this message translates to:
-  /// **'Feather Ledger backup'**
+  /// **'Accounted For backup'**
   String get backupFileTypeLabel;
 
   /// Settings entry that exports the ledger (spec 004, US4)
@@ -1118,7 +1118,7 @@ abstract class AppLocalizations {
   /// Explains why a restart is needed: the database cannot be swapped while it is open
   ///
   /// In en, this message translates to:
-  /// **'Close Feather Ledger completely and open it again to finish restoring.'**
+  /// **'Close Accounted For completely and open it again to finish restoring.'**
   String get restoreReadyMessage;
 
   /// Button that closes the app so the staged restore can run
@@ -1594,6 +1594,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This bill is no longer available.'**
   String get notificationUnavailable;
+
+  /// No description provided for @accountArchiveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive account'**
+  String get accountArchiveAction;
+
+  /// No description provided for @accountRestoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore account'**
+  String get accountRestoreAction;
+
+  /// No description provided for @accountArchivedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived accounts'**
+  String get accountArchivedSection;
+
+  /// No description provided for @accountArchiveExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Archiving permanently deletes this account’s recurring rules and future pending bills, and cancels their reminders. Overdue pending bills and recorded transactions are kept. Restoring the account will not restore the deleted rules or bills.'**
+  String get accountArchiveExplanation;
+
+  /// No description provided for @accountDeleteExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this account? Its event history is retained.'**
+  String get accountDeleteExplanation;
+
+  /// No description provided for @accountUsageTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions'**
+  String get accountUsageTransactions;
+
+  /// No description provided for @accountUsageSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring rules'**
+  String get accountUsageSeries;
+
+  /// No description provided for @accountUsagePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending bills'**
+  String get accountUsagePending;
+
+  /// No description provided for @errorAccountHasReferences.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has active transactions or recurring rules. Archive it instead, or resolve the linked records first.'**
+  String get errorAccountHasReferences;
+
+  /// No description provided for @errorAccountHasActiveSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has active recurring rules or pending bills. Resolve them before archiving.'**
+  String get errorAccountHasActiveSchedules;
+
+  /// No description provided for @accountDeleteChooseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has transactions or scheduled rules. Choose how to proceed.'**
+  String get accountDeleteChooseAction;
+
+  /// No description provided for @accountDeleteArchivedChooseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether to delete the associated transactions and scheduled rules or move them to another account.'**
+  String get accountDeleteArchivedChooseAction;
+
+  /// No description provided for @accountMoveAndDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Move records and delete'**
+  String get accountMoveAndDelete;
+
+  /// No description provided for @accountDeleteWithTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account and records'**
+  String get accountDeleteWithTransactions;
+
+  /// No description provided for @accountSelectDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a destination account'**
+  String get accountSelectDestination;
+
+  /// No description provided for @accountNoDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'No other active account with the same currency is available.'**
+  String get accountNoDestination;
+
+  /// No description provided for @accountDeleteImpact.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.'**
+  String get accountDeleteImpact;
+
+  /// No description provided for @accountConfirmOperation.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get accountConfirmOperation;
 }
 
 class _AppLocalizationsDelegate

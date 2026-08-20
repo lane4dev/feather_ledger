@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Feather Ledger';
+  String get appTitle => 'Accounted For';
 
   @override
   String get ledgerTitle => 'Ledger';
@@ -267,11 +267,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Balance has changed. A correction transaction will be created. Continue?';
 
   @override
-  String get accountBalanceAdjustmentDescription =>
-      'Account balance adjustment';
+  String get accountBalanceAdjustmentDescription => 'Balance adjustment';
 
   @override
-  String get accountInitialBalanceNote => 'Difference';
+  String get accountInitialBalanceNote => 'Initial Balance';
 
   @override
   String get accountIncludeInTotals => 'Include in totals';
@@ -281,8 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Off: this account is left out of the total balance and the income and expense totals. Its transactions still show in the ledger.';
 
   @override
-  String get accountBalanceAdjustmentNotes =>
-      'Automated adjustment for account balance change.';
+  String get accountBalanceAdjustmentNotes => 'Balance correction';
 
   @override
   String get deleteAccountConfirmation =>
@@ -509,7 +507,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextYear => 'Next Year';
 
   @override
-  String get backupFileTypeLabel => 'Feather Ledger backup';
+  String get backupFileTypeLabel => 'Accounted For backup';
 
   @override
   String get backupNow => 'Back up now';
@@ -540,7 +538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreReadyMessage =>
-      'Close Feather Ledger completely and open it again to finish restoring.';
+      'Close Accounted For completely and open it again to finish restoring.';
 
   @override
   String get exitNow => 'Exit now';
@@ -788,4 +786,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationUnavailable => 'This bill is no longer available.';
+
+  @override
+  String get accountArchiveAction => 'Archive account';
+
+  @override
+  String get accountRestoreAction => 'Restore account';
+
+  @override
+  String get accountArchivedSection => 'Archived accounts';
+
+  @override
+  String get accountArchiveExplanation =>
+      'Archiving permanently deletes this account’s recurring rules and future pending bills, and cancels their reminders. Overdue pending bills and recorded transactions are kept. Restoring the account will not restore the deleted rules or bills.';
+
+  @override
+  String get accountDeleteExplanation =>
+      'Delete this account? Its event history is retained.';
+
+  @override
+  String get accountUsageTransactions => 'Transactions';
+
+  @override
+  String get accountUsageSeries => 'Recurring rules';
+
+  @override
+  String get accountUsagePending => 'Pending bills';
+
+  @override
+  String get errorAccountHasReferences =>
+      'This account has active transactions or recurring rules. Archive it instead, or resolve the linked records first.';
+
+  @override
+  String get errorAccountHasActiveSchedules =>
+      'This account has active recurring rules or pending bills. Resolve them before archiving.';
+
+  @override
+  String get accountDeleteChooseAction =>
+      'This account has transactions or scheduled rules. Choose how to proceed.';
+
+  @override
+  String get accountDeleteArchivedChooseAction =>
+      'Choose whether to delete the associated transactions and scheduled rules or move them to another account.';
+
+  @override
+  String get accountMoveAndDelete => 'Move records and delete';
+
+  @override
+  String get accountDeleteWithTransactions => 'Delete account and records';
+
+  @override
+  String get accountSelectDestination => 'Select a destination account';
+
+  @override
+  String get accountNoDestination =>
+      'No other active account with the same currency is available.';
+
+  @override
+  String get accountDeleteImpact =>
+      'Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.';
+
+  @override
+  String get accountConfirmOperation => 'Confirm';
 }

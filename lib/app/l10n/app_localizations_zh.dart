@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => '轻羽账本';
+  String get appTitle => '记然';
 
   @override
   String get ledgerTitle => '账本';
@@ -265,10 +265,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get balanceChangeDetectedMessage => '余额已更改，将创建一笔更正交易。是否继续？';
 
   @override
-  String get accountBalanceAdjustmentDescription => '账户余额调整';
+  String get accountBalanceAdjustmentDescription => '余额调整';
 
   @override
-  String get accountInitialBalanceNote => '差额';
+  String get accountInitialBalanceNote => '初始余额';
 
   @override
   String get accountIncludeInTotals => '纳入余额统计';
@@ -277,7 +277,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountIncludeInTotalsHint => '关闭后，此账户不计入总余额与收支合计，但它的交易仍会显示在账本里。';
 
   @override
-  String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
+  String get accountBalanceAdjustmentNotes => '余额修正';
 
   @override
   String get deleteAccountConfirmation => '确定要删除此账户吗？';
@@ -493,7 +493,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nextYear => '下一年';
 
   @override
-  String get backupFileTypeLabel => '轻羽账本 备份';
+  String get backupFileTypeLabel => '记然 备份';
 
   @override
   String get backupNow => '立即备份';
@@ -523,7 +523,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreReadyTitle => '恢复已就绪';
 
   @override
-  String get restoreReadyMessage => '请完全关闭 Feather Ledger 后重新打开，以完成恢复。';
+  String get restoreReadyMessage => '请完全关闭记然 后重新打开，以完成恢复。';
 
   @override
   String get exitNow => '现在退出';
@@ -767,6 +767,62 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationUnavailable => '这笔账单已不可用。';
+
+  @override
+  String get accountArchiveAction => '归档账户';
+
+  @override
+  String get accountRestoreAction => '恢复账户';
+
+  @override
+  String get accountArchivedSection => '已归档账户';
+
+  @override
+  String get accountArchiveExplanation =>
+      '归档将删除此账户的周期规则和未来待入账账单，并取消对应提醒。已到期的待入账账单和已入账交易会保留。恢复账户后，已删除的规则和账单不会恢复。';
+
+  @override
+  String get accountDeleteExplanation => '确定删除此账户吗？事件历史会保留。';
+
+  @override
+  String get accountUsageTransactions => '关联交易';
+
+  @override
+  String get accountUsageSeries => '周期规则';
+
+  @override
+  String get accountUsagePending => '待入账账单';
+
+  @override
+  String get errorAccountHasReferences => '此账户仍有未删除的交易或周期规则。可选择归档，或先处理关联记录。';
+
+  @override
+  String get errorAccountHasActiveSchedules => '此账户有仍在进行的周期规则或待入账账单，请先处理。';
+
+  @override
+  String get accountDeleteChooseAction => '此账户有关联交易或周期规则，请选择处理方式。';
+
+  @override
+  String get accountDeleteArchivedChooseAction => '请选择删除关联交易及周期规则，或将它们转移到其他账户。';
+
+  @override
+  String get accountMoveAndDelete => '转移记录并删除';
+
+  @override
+  String get accountDeleteWithTransactions => '删除账户及记录';
+
+  @override
+  String get accountSelectDestination => '选择目标账户';
+
+  @override
+  String get accountNoDestination => '没有可用的同币种其他正常账户。';
+
+  @override
+  String get accountDeleteImpact =>
+      '初始余额和余额调整会被冲销。删除转账会同时影响另一账户的余额；转移记录会改变目标账户余额。周期规则将按所选方式处理。';
+
+  @override
+  String get accountConfirmOperation => '确认';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -774,7 +830,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   AppLocalizationsZhHans() : super('zh_Hans');
 
   @override
-  String get appTitle => '轻羽账本';
+  String get appTitle => '记然';
 
   @override
   String get ledgerTitle => '账本';
@@ -1030,10 +1086,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get balanceChangeDetectedMessage => '余额已更改，将创建一笔更正交易。是否继续？';
 
   @override
-  String get accountBalanceAdjustmentDescription => '账户余额调整';
+  String get accountBalanceAdjustmentDescription => '余额调整';
 
   @override
-  String get accountInitialBalanceNote => '差额';
+  String get accountInitialBalanceNote => '初始余额';
 
   @override
   String get accountIncludeInTotals => '纳入余额统计';
@@ -1042,7 +1098,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get accountIncludeInTotalsHint => '关闭后，此账户不计入总余额与收支合计，但它的交易仍会显示在账本里。';
 
   @override
-  String get accountBalanceAdjustmentNotes => '因账户余额变更自动调整。';
+  String get accountBalanceAdjustmentNotes => '余额修正';
 
   @override
   String get deleteAccountConfirmation => '确定要删除此账户吗？';
@@ -1258,7 +1314,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get nextYear => '下一年';
 
   @override
-  String get backupFileTypeLabel => '轻羽账本 备份';
+  String get backupFileTypeLabel => '记然 备份';
 
   @override
   String get backupNow => '立即备份';
@@ -1288,7 +1344,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get restoreReadyTitle => '恢复已就绪';
 
   @override
-  String get restoreReadyMessage => '请完全关闭 Feather Ledger 后重新打开，以完成恢复。';
+  String get restoreReadyMessage => '请完全关闭记然 后重新打开，以完成恢复。';
 
   @override
   String get exitNow => '现在退出';
@@ -1532,6 +1588,62 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get notificationUnavailable => '这笔账单已不可用。';
+
+  @override
+  String get accountArchiveAction => '归档账户';
+
+  @override
+  String get accountRestoreAction => '恢复账户';
+
+  @override
+  String get accountArchivedSection => '已归档账户';
+
+  @override
+  String get accountArchiveExplanation =>
+      '归档将删除此账户的周期规则和未来待入账账单，并取消对应提醒。已到期的待入账账单和已入账交易会保留。恢复账户后，已删除的规则和账单不会恢复。';
+
+  @override
+  String get accountDeleteExplanation => '确定删除此账户吗？事件历史会保留。';
+
+  @override
+  String get accountUsageTransactions => '关联交易';
+
+  @override
+  String get accountUsageSeries => '周期规则';
+
+  @override
+  String get accountUsagePending => '待入账账单';
+
+  @override
+  String get errorAccountHasReferences => '此账户仍有未删除的交易或周期规则。可选择归档，或先处理关联记录。';
+
+  @override
+  String get errorAccountHasActiveSchedules => '此账户有仍在进行的周期规则或待入账账单，请先处理。';
+
+  @override
+  String get accountDeleteChooseAction => '此账户有关联交易或周期规则，请选择处理方式。';
+
+  @override
+  String get accountDeleteArchivedChooseAction => '请选择删除关联交易及周期规则，或将它们转移到其他账户。';
+
+  @override
+  String get accountMoveAndDelete => '转移记录并删除';
+
+  @override
+  String get accountDeleteWithTransactions => '删除账户及记录';
+
+  @override
+  String get accountSelectDestination => '选择目标账户';
+
+  @override
+  String get accountNoDestination => '没有可用的同币种其他正常账户。';
+
+  @override
+  String get accountDeleteImpact =>
+      '初始余额和余额调整会被冲销。删除转账会同时影响另一账户的余额；转移记录会改变目标账户余额。周期规则将按所选方式处理。';
+
+  @override
+  String get accountConfirmOperation => '确认';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1539,7 +1651,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
 
   @override
-  String get appTitle => '輕羽帳本';
+  String get appTitle => '記然';
 
   @override
   String get ledgerTitle => '帳本';
@@ -1795,10 +1907,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get balanceChangeDetectedMessage => '餘額已更改，將建立一筆更正交易。是否繼續？';
 
   @override
-  String get accountBalanceAdjustmentDescription => '帳戶餘額調整';
+  String get accountBalanceAdjustmentDescription => '餘額調整';
 
   @override
-  String get accountInitialBalanceNote => '差額';
+  String get accountInitialBalanceNote => '初始餘額';
 
   @override
   String get accountIncludeInTotals => '納入餘額統計';
@@ -1807,7 +1919,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get accountIncludeInTotalsHint => '關閉後，此帳戶不計入總餘額與收支合計，但它的交易仍會顯示在帳本裡。';
 
   @override
-  String get accountBalanceAdjustmentNotes => '因帳戶餘額變更自動調整。';
+  String get accountBalanceAdjustmentNotes => '餘額修正';
 
   @override
   String get deleteAccountConfirmation => '確定要刪除此帳戶嗎？';
@@ -2023,7 +2135,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get nextYear => '下一年';
 
   @override
-  String get backupFileTypeLabel => '輕羽帳本 備份';
+  String get backupFileTypeLabel => '記然 備份';
 
   @override
   String get backupNow => '立即備份';
@@ -2053,7 +2165,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get restoreReadyTitle => '還原已就緒';
 
   @override
-  String get restoreReadyMessage => '請完全關閉 Feather Ledger 後重新開啟，以完成還原。';
+  String get restoreReadyMessage => '請完全關閉記然 後重新開啟，以完成還原。';
 
   @override
   String get exitNow => '現在結束';
@@ -2297,4 +2409,60 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notificationUnavailable => '這筆帳單已無法使用。';
+
+  @override
+  String get accountArchiveAction => '封存帳戶';
+
+  @override
+  String get accountRestoreAction => '恢復帳戶';
+
+  @override
+  String get accountArchivedSection => '已封存帳戶';
+
+  @override
+  String get accountArchiveExplanation =>
+      '封存將刪除此帳戶的週期規則和未來待入帳帳單，並取消相應提醒。已到期的待入帳帳單和已入帳交易會保留。恢復帳戶後，已刪除的規則和帳單不會恢復。';
+
+  @override
+  String get accountDeleteExplanation => '確定刪除此帳戶嗎？事件歷史會保留。';
+
+  @override
+  String get accountUsageTransactions => '關聯交易';
+
+  @override
+  String get accountUsageSeries => '週期規則';
+
+  @override
+  String get accountUsagePending => '待入帳帳單';
+
+  @override
+  String get errorAccountHasReferences => '此帳戶仍有未刪除的交易或週期規則。可選擇封存，或先處理關聯記錄。';
+
+  @override
+  String get errorAccountHasActiveSchedules => '此帳戶有仍在進行的週期規則或待入帳帳單，請先處理。';
+
+  @override
+  String get accountDeleteChooseAction => '此帳戶有關聯交易或週期規則，請選擇處理方式。';
+
+  @override
+  String get accountDeleteArchivedChooseAction => '請選擇刪除關聯交易及週期規則，或將它們轉移到其他帳戶。';
+
+  @override
+  String get accountMoveAndDelete => '轉移記錄並刪除';
+
+  @override
+  String get accountDeleteWithTransactions => '刪除帳戶及記錄';
+
+  @override
+  String get accountSelectDestination => '選擇目標帳戶';
+
+  @override
+  String get accountNoDestination => '沒有可用的同幣種其他正常帳戶。';
+
+  @override
+  String get accountDeleteImpact =>
+      '初始餘額和餘額調整會被沖銷。刪除轉帳會同時影響另一帳戶的餘額；轉移記錄會改變目標帳戶餘額。週期規則將按所選方式處理。';
+
+  @override
+  String get accountConfirmOperation => '確認';
 }

@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "轻羽账本",
+  "appTitle": "记然",
   "@appTitle": {
     "description": "应用程序标题"
   },
@@ -303,11 +303,11 @@
   "@balanceChangeDetectedMessage": {
     "description": "余额变更确认弹窗内容"
   },
-  "accountBalanceAdjustmentDescription": "账户余额调整",
+  "accountBalanceAdjustmentDescription": "余额调整",
   "@accountBalanceAdjustmentDescription": {
     "description": "账户余额自动调整交易的描述"
   },
-  "accountInitialBalanceNote": "差额",
+  "accountInitialBalanceNote": "初始余额",
   "@accountInitialBalanceNote": {
     "description": "新建账户的期初余额交易的备注"
   },
@@ -319,7 +319,7 @@
   "@accountIncludeInTotalsHint": {
     "description": "开关下方的说明：关掉之后影响什么、不影响什么"
   },
-  "accountBalanceAdjustmentNotes": "因账户余额变更自动调整。",
+  "accountBalanceAdjustmentNotes": "余额修正",
   "@accountBalanceAdjustmentNotes": {
     "description": "账户余额自动调整交易的备注"
   },
@@ -553,7 +553,7 @@
   "previousYear": "上一年",
   "nextYear": "下一年",
   "errorInvalidTransactionShape": "交易无效，未保存",
-  "backupFileTypeLabel": "轻羽账本 备份",
+  "backupFileTypeLabel": "记然 备份",
   "@backupFileTypeLabel": {
     "description": "打开备份文件对话框时，文件类型筛选器的标签"
   },
@@ -578,7 +578,7 @@
     }
   },
   "restoreReadyTitle": "恢复已就绪",
-  "restoreReadyMessage": "请完全关闭 Feather Ledger 后重新打开，以完成恢复。",
+  "restoreReadyMessage": "请完全关闭记然 后重新打开，以完成恢复。",
   "exitNow": "现在退出",
   "postInstanceTitle": "记入这笔",
   "postInstanceConfirm": "把这笔账单记为交易？",
@@ -658,5 +658,23 @@
   "@reminderMinutesValue": {"placeholders": {"count": {"type": "int"}}},
   "notificationSkip": "跳过",
   "notificationSkipped": "已跳过这笔账单",
-  "notificationUnavailable": "这笔账单已不可用。"
+  "notificationUnavailable": "这笔账单已不可用。",
+  "accountArchiveAction": "归档账户",
+  "accountRestoreAction": "恢复账户",
+  "accountArchivedSection": "已归档账户",
+  "accountArchiveExplanation": "归档将删除此账户的周期规则和未来待入账账单，并取消对应提醒。已到期的待入账账单和已入账交易会保留。恢复账户后，已删除的规则和账单不会恢复。",
+  "accountDeleteExplanation": "确定删除此账户吗？事件历史会保留。",
+  "accountUsageTransactions": "关联交易",
+  "accountUsageSeries": "周期规则",
+  "accountUsagePending": "待入账账单",
+  "errorAccountHasReferences": "此账户仍有未删除的交易或周期规则。可选择归档，或先处理关联记录。",
+  "errorAccountHasActiveSchedules": "此账户有仍在进行的周期规则或待入账账单，请先处理。",
+  "accountDeleteChooseAction": "此账户有关联交易或周期规则，请选择处理方式。",
+  "accountDeleteArchivedChooseAction": "请选择删除关联交易及周期规则，或将它们转移到其他账户。",
+  "accountMoveAndDelete": "转移记录并删除",
+  "accountDeleteWithTransactions": "删除账户及记录",
+  "accountSelectDestination": "选择目标账户",
+  "accountNoDestination": "没有可用的同币种其他正常账户。",
+  "accountDeleteImpact": "初始余额和余额调整会被冲销。删除转账会同时影响另一账户的余额；转移记录会改变目标账户余额。周期规则将按所选方式处理。",
+  "accountConfirmOperation": "确认"
 }
