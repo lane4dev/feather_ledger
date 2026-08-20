@@ -43,7 +43,8 @@ class ProjectRecurringEventsCommand {
   static const int _floorLookaheadYears = 3;
 
   Future<void> execute() async {
-    final seriesList = await _recurringRepository.getAllRecurringSeries();
+    final seriesList =
+        await _recurringRepository.getMaterializableRecurringSeries();
     final windowEnd = DateTime.now().add(horizon);
 
     for (final series in seriesList) {
@@ -171,7 +172,7 @@ class ProjectRecurringEventsCommand {
                 maxKeep) {
           break;
         }
-        await _recurringRepository.insertOrUpdateScheduled(
+        await _recurringRepository.insertMaterializedIfActive(
           ScheduledTransactionsViewCompanion(
             id: Value(id),
             seriesId: Value(series.id),

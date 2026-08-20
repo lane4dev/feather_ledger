@@ -30,6 +30,13 @@ abstract class RecurringRepository {
   /// Returns a list of [RecurringSeriesRow].
   Future<List<RecurringSeriesRow>> getAllRecurringSeries();
 
+  /// Series eligible to generate bills; archived accounts pause generation.
+  Future<List<RecurringSeriesRow>> getMaterializableRecurringSeries();
+
+  /// Insert a generated instance only while its account remains active.
+  Future<void> insertMaterializedIfActive(
+      ScheduledTransactionsViewCompanion entry);
+
   /// Inserts or updates a series (spec 004, US2). `recurring_series` is
   /// CRUD-exempt — this writes the table directly and emits no event.
   Future<void> saveSeries(RecurringSeriesCompanion entry);

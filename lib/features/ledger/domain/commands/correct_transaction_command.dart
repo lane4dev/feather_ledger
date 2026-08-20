@@ -269,7 +269,11 @@ class CorrectTransactionCommand {
           eventId: const Uuid().v4(),
         ),
       ],
-      options: AppendOptions(apply: _projector.applyAll),
+      options: AppendOptions(apply: (events) async {
+        await _context
+            .requireLiveAccounts(replacement.postings.map((p) => p.accountId));
+        await _projector.applyAll(events);
+      }),
     );
   }
 }

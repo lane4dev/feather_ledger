@@ -61,6 +61,9 @@ class TransactionRecorded implements LedgerEventPayload {
   final String? notes;
   final List<Posting> postings;
   final List<TransactionAttachment> attachments;
+  final String? categorySnapshotName;
+  final String? categorySnapshotIcon;
+  final String? categorySnapshotColor;
 
   TransactionRecorded({
     required this.transactionId,
@@ -70,6 +73,9 @@ class TransactionRecorded implements LedgerEventPayload {
     this.notes,
     required this.postings,
     this.attachments = const [],
+    this.categorySnapshotName,
+    this.categorySnapshotIcon,
+    this.categorySnapshotColor,
   });
 
   @override
@@ -80,7 +86,7 @@ class TransactionRecorded implements LedgerEventPayload {
 
   @override
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'transactionId': transactionId,
         'occurredAt': occurredAt.toIso8601String(),
         'kind': kind.name,
@@ -88,6 +94,12 @@ class TransactionRecorded implements LedgerEventPayload {
         if (notes != null) 'notes': notes,
         'postings': postings.map((p) => p.toJson()).toList(),
         'attachments': attachments.map((a) => a.toJson()).toList(),
+        if (categorySnapshotName != null)
+          'categorySnapshot': {
+            'name': categorySnapshotName,
+            'icon': categorySnapshotIcon,
+            'color': categorySnapshotColor,
+          },
       };
 
   factory TransactionRecorded.fromJson(Map<String, dynamic> json) =>
@@ -97,6 +109,12 @@ class TransactionRecorded implements LedgerEventPayload {
         kind: TransactionKind.values.byName(json['kind'] as String),
         description: json['description'] as String,
         notes: json['notes'] as String?,
+        categorySnapshotName:
+            (json['categorySnapshot'] as Map?)?['name'] as String?,
+        categorySnapshotIcon:
+            (json['categorySnapshot'] as Map?)?['icon'] as String?,
+        categorySnapshotColor:
+            (json['categorySnapshot'] as Map?)?['color'] as String?,
         postings: (json['postings'] as List)
             .map((e) => Posting.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -255,6 +273,32 @@ class AccountArchived implements LedgerEventPayload {
 
   factory AccountArchived.fromJson(Map<String, dynamic> json) =>
       AccountArchived(accountId: json['accountId'] as String);
+}
+
+class AccountRestored implements LedgerEventPayload {
+  final String accountId;
+  AccountRestored({required this.accountId});
+  @override
+  String get eventType => 'AccountRestored';
+  @override
+  String get streamId => accountId;
+  @override
+  Map<String, dynamic> toJson() => {'schemaVersion': 1, 'accountId': accountId};
+  factory AccountRestored.fromJson(Map<String, dynamic> json) =>
+      AccountRestored(accountId: json['accountId'] as String);
+}
+
+class AccountDeleted implements LedgerEventPayload {
+  final String accountId;
+  AccountDeleted({required this.accountId});
+  @override
+  String get eventType => 'AccountDeleted';
+  @override
+  String get streamId => accountId;
+  @override
+  Map<String, dynamic> toJson() => {'schemaVersion': 1, 'accountId': accountId};
+  factory AccountDeleted.fromJson(Map<String, dynamic> json) =>
+      AccountDeleted(accountId: json['accountId'] as String);
 }
 
 /// An account was included in, or taken out of, the **ledger totals**

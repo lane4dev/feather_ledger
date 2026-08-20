@@ -140,6 +140,15 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<List<RecurringSeriesRow>> getMaterializableRecurringSeries() =>
+      _recurringDao.getMaterializableSeries();
+
+  @override
+  Future<void> insertMaterializedIfActive(
+          ScheduledTransactionsViewCompanion entry) =>
+      _recurringDao.insertMaterializedIfActive(entry);
+
+  @override
   Future<void> saveSeries(RecurringSeriesCompanion entry) {
     return _recurringDao.saveSeries(entry);
   }

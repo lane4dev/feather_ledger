@@ -7,6 +7,7 @@ List<ScheduledTransactionEntity> upcomingReminders(
   final pending = bills.where((bill) {
     final minutes = bill.recurringTransactionSeries?.reminderMinutes;
     return bill.status == ScheduledTransactionStatus.scheduled &&
+        bill.account?.archived != true &&
         minutes != null &&
         minutes > 0 &&
         bill.date.subtract(Duration(minutes: minutes)).isAfter(now);

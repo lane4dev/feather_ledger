@@ -74,7 +74,7 @@ class WatchMonthlySnapshotQuery {
       // [accounts], so the check is against all of them, not the survivors.
       final excluded = {
         for (final account in accounts)
-          if (!account.includeInTotals) account.id,
+          if (!account.includeInTotals || account.deleted) account.id,
       };
 
       var income = 0;
@@ -89,7 +89,7 @@ class WatchMonthlySnapshotQuery {
       var balance = 0;
       for (final account in accounts) {
         if (account.currencyCode != currencyCode) continue;
-        if (!account.includeInTotals) continue;
+        if (!account.includeInTotals || account.deleted) continue;
         balance += account.balanceMinor;
       }
 

@@ -157,10 +157,12 @@ class RecurringService {
   /// the ledger list — that pending tile is the report — and does not stop the
   /// other instances. Runs after [materialize], which is what puts the due
   /// instances on the table.
-  Future<void> catchUpAutoPosted() async {
+  Future<void> catchUpAutoPosted({String? accountId}) async {
     final instances = await _watchScheduled.execute().first;
     final now = DateTime.now();
     for (final instance in instances) {
+      if (instance.account?.archived != false) continue;
+      if (accountId != null && instance.account?.id != accountId) continue;
       if (instance.recurringTransactionSeries?.autoPost != true) continue;
       if (instance.status != ScheduledTransactionStatus.scheduled) continue;
       if (instance.date.isAfter(now)) continue;

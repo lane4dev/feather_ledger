@@ -67,6 +67,14 @@ class LedgerProjectorImpl implements LedgerProjector {
       case 'AccountArchived':
         await _applyAccountArchived(
             envelope, AccountArchived.fromJson(payload));
+      case 'AccountRestored':
+        await _applyAccountState(
+            envelope, AccountRestored.fromJson(payload).accountId,
+            restored: true);
+      case 'AccountDeleted':
+        await _applyAccountState(
+            envelope, AccountDeleted.fromJson(payload).accountId,
+            restored: false);
       case 'AccountTotalsInclusionChanged':
         await _applyAccountTotalsInclusionChanged(
             envelope, AccountTotalsInclusionChanged.fromJson(payload));
@@ -150,6 +158,22 @@ class LedgerProjectorImpl implements LedgerProjector {
     await _db.accountDao.updateRow(AccountsViewCompanion(
       id: Value(p.accountId),
       archived: const Value(true),
+      lastUpdatedEventId: Value(gsn),
+    ));
+  }
+
+  Future<void> _applyAccountState(EventEnvelope e, String id,
+      {required bool restored}) async {
+    final existing = await _db.accountDao.getAccountById(id);
+    if (existing == null)
+      throw StateError(
+          'Account state for unknown account $id (event ${e.eventId})');
+    final gsn = e.globalSequenceNumber!;
+    if (existing.lastUpdatedEventId >= gsn) return;
+    await _db.accountDao.updateRow(AccountsViewCompanion(
+      id: Value(id),
+      archived: restored ? const Value(false) : const Value.absent(),
+      deleted: restored ? const Value.absent() : const Value(true),
       lastUpdatedEventId: Value(gsn),
     ));
   }
@@ -324,9 +348,10 @@ class LedgerProjectorImpl implements LedgerProjector {
       occurredAt: p.occurredAt,
       kind: kind,
       description: p.description,
-      categoryName: Value(category?.name),
-      categoryIcon: Value(category?.iconKey),
-      categoryColorInt: Value(category?.colorInt.toRadixString(16)),
+      categoryName: Value(p.categorySnapshotName ?? category?.name),
+      categoryIcon: Value(p.categorySnapshotIcon ?? category?.iconKey),
+      categoryColorInt: Value(
+          p.categorySnapshotColor ?? category?.colorInt.toRadixString(16)),
       attachmentsJson: Value(jsonEncode(
           p.attachments.map((attachment) => attachment.toJson()).toList())),
       originalEventId: gsn,

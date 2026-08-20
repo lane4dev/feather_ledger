@@ -113,6 +113,8 @@ class ConvertScheduledToPostedCommand {
               'Scheduled instance not found');
         }
         _requirePending(current.status);
+        await _context
+            .requireLiveAccounts(transaction.postings.map((p) => p.accountId));
         // Projection + the CRUD-exempt status flip share this transaction.
         await _projector.applyAll(persisted);
         await _recurringRepository.insertOrUpdateScheduled(

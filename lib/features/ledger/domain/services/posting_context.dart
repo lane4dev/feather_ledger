@@ -93,9 +93,15 @@ class PostingContextResolver {
   }) async =>
       PostingContext(account: await _requireLiveAccount(accountId));
 
+  Future<void> requireLiveAccounts(Iterable<String> ids) async {
+    for (final id in ids.toSet()) {
+      await _requireLiveAccount(id);
+    }
+  }
+
   Future<AccountEntity> _requireLiveAccount(String id) async {
     final account = await _accounts.getAccount(id);
-    if (account == null) {
+    if (account == null || account.deleted) {
       throw CommandRejected(
           LedgerErrorCode.accountNotFound, 'Account $id not found');
     }

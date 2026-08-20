@@ -37,7 +37,7 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// 5: transaction attachment metadata is projected from `TransactionRecorded`
 /// v2, so rows written before this field existed are replayed with an empty
 /// attachment list and current rows retain their event-backed references.
-const int ledgerProjectionVersion = 5;
+const int ledgerProjectionVersion = 6;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the
