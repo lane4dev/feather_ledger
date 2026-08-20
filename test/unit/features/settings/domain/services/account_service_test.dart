@@ -54,15 +54,14 @@ void main() {
           reason: 'an account opened empty records nothing to correct');
     });
 
-    test('a starting balance is recorded as an opening-balance transaction',
-        () async {
+    test('a starting balance is recorded as a balance adjustment', () async {
       final result = await harness.accountService.createAccount(
         commandId: 'cmd_create_savings',
         name: 'Savings',
         type: AccountType.bank,
         initialBalanceMinor: 200000,
         currencyCode: 'USD',
-        initialBalanceNote: 'Difference',
+        initialBalanceNote: 'Initial Balance',
       );
 
       expect(result, isA<Success<void>>());
@@ -73,9 +72,9 @@ void main() {
           await harness.ledgerService.watchTransactions(DateTime.now()).first;
       expect(transactions, hasLength(1));
       final correction = transactions.single;
-      expect(correction.type, TransactionKind.openingBalance);
+      expect(correction.type, TransactionKind.balanceAdjustment);
       expect(correction.amount, 200000);
-      expect(correction.note, 'Difference');
+      expect(correction.note, 'Initial Balance');
       expect(correction.category, isNull);
       expect(correction.account.id, account.id);
     });
@@ -95,7 +94,7 @@ void main() {
 
       final transactions =
           await harness.ledgerService.watchTransactions(DateTime.now()).first;
-      expect(transactions.single.type, TransactionKind.openingBalance);
+      expect(transactions.single.type, TransactionKind.balanceAdjustment);
       expect(transactions.single.category, isNull);
     });
 
@@ -131,18 +130,18 @@ void main() {
         commandId: 'cmd_reconcile',
         accountId: account.id,
         newBalanceMinor: 12500,
-        description: 'Statement matched',
-        notes: 'ignored presentation helper',
+        notes: 'Balance correction',
       );
 
       expect(result, isA<Success<void>>());
       final rows =
           await harness.ledgerService.watchTransactions(DateTime.now()).first;
-      final adjustment = rows.singleWhere((transaction) =>
-          transaction.type == TransactionKind.balanceAdjustment);
+      final adjustment = rows.singleWhere(
+          (transaction) => transaction.note == 'Balance correction');
+      expect(adjustment.type, TransactionKind.balanceAdjustment);
       expect(adjustment.amount, 2500);
       expect(adjustment.category, isNull);
-      expect(adjustment.note, 'Statement matched');
+      expect(adjustment.note, 'Balance correction');
 
       final snapshot = await harness.db.monthlySnapshotDao
           .getForAccount(account.id, DateTime.now().year, DateTime.now().month);
@@ -181,7 +180,7 @@ void main() {
           12000);
       final live =
           await harness.ledgerService.watchTransactions(DateTime.now()).first;
-      expect(live.single.type, TransactionKind.openingBalance);
+      expect(live.single.type, TransactionKind.balanceAdjustment);
       expect(live.single.note, 'Corrected opening');
       expect(
           (await allEvents())

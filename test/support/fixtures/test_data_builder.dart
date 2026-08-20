@@ -96,6 +96,7 @@ class TestDataBuilder {
       currencyCode: currencyCode,
       balanceMinor: balanceMinor,
       archived: archived,
+      deleted: false,
       includeInTotals: includeInTotals,
       lastUpdatedEventId: lastUpdatedEventId,
       projectionVersion: projectionVersion,

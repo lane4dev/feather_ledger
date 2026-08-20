@@ -131,6 +131,120 @@ void main() {
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     expect(account.balanceMinor, -50000,
         reason: 'a negative opening balance is a real balance');
+    final transaction = (await tester.runAsync(
+      () => harness.ledgerService.watchTransactions(DateTime.now()).first,
+    ))!
+        .single;
+    expect(transaction.type, TransactionKind.balanceAdjustment);
+    expect(transaction.note, 'Initial Balance');
+  });
+
+  testWidgets('editing a balance records a balance correction note',
+      (tester) async {
+    await harness.accountService.createAccount(
+      commandId: 'cmd_seed_balance',
+      name: 'Wallet',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'USD',
+    );
+    final id = (await harness.db.accountDao.getAllAccounts()).single.id;
+    await pumpForm(tester, accountId: id);
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Initial Balance'), '25');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save').last);
+    await tester.pumpAndSettle();
+
+    final transaction = (await tester.runAsync(
+      () => harness.ledgerService.watchTransactions(DateTime.now()).first,
+    ))!
+        .single;
+    expect(transaction.type, TransactionKind.balanceAdjustment);
+    expect(transaction.note, 'Balance correction');
+  });
+
+  testWidgets('an account with transactions offers archive through deletion',
+      (tester) async {
+    await harness.accountService.createAccount(
+        commandId: 'archive_seed',
+        name: 'Wallet',
+        type: AccountType.cash,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD');
+    final id = (await harness.db.accountDao.getAllAccounts()).single.id;
+    await harness.categoryService.createCategory(
+        commandId: 'cat',
+        name: 'Food',
+        iconKey: '1',
+        colorInt: 0,
+        type: CategoryType.expense);
+    final category = (await harness.db.categoriesDao.getAllCategories())
+        .firstWhere((c) => c.systemCode == null)
+        .id;
+    await harness.ledgerService.addTransaction(
+        commandId: 'expense',
+        amountMinor: 100,
+        type: TransactionKind.expense,
+        date: DateTime.now(),
+        categoryId: category,
+        accountId: id);
+    await pumpForm(tester, accountId: id);
+    expect(find.byTooltip('Archive account'), findsNothing);
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Move records and delete'), findsOneWidget);
+    await tester.tap(find.text('Archive account').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('permanently deletes this account'),
+        findsOneWidget);
+    expect(find.textContaining('Overdue pending bills'), findsOneWidget);
+    await tester.tap(find.text('Archive account').last);
+    await tester.pumpAndSettle();
+    expect((await harness.db.accountDao.getAccountById(id))!.archived, isTrue);
+  });
+
+  testWidgets('balance-only account can be deleted directly', (tester) async {
+    await harness.accountService.createAccount(
+        commandId: 'linked_seed',
+        name: 'Wallet',
+        type: AccountType.cash,
+        initialBalanceMinor: 100,
+        currencyCode: 'USD');
+    final id = (await harness.db.accountDao.getAllAccounts()).single.id;
+    await pumpForm(tester, accountId: id);
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Move records and delete'), findsNothing);
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    expect((await harness.db.accountDao.getAccountById(id))!.deleted, isTrue);
+  });
+
+  testWidgets('archived account offers record deletion and migration',
+      (tester) async {
+    await harness.accountService.createAccount(
+      commandId: 'seed_archived',
+      name: 'Wallet',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'USD',
+    );
+    final id = (await harness.db.accountDao.getAllAccounts()).single.id;
+    await harness.accountService
+        .archiveAccount(commandId: 'archive', accountId: id);
+    await pumpForm(tester, accountId: id);
+    expect(find.byTooltip('Restore account'), findsOneWidget);
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete account and records'), findsOneWidget);
+    expect(find.text('Move records and delete'), findsOneWidget);
+    await tester.tap(find.text('Delete account and records'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    expect((await harness.db.accountDao.getAccountById(id))!.deleted, isTrue);
   });
 
   testWidgets('an existing debt stays editable', (tester) async {

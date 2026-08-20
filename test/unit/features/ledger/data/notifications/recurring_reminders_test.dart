@@ -117,6 +117,12 @@ void main() {
         .add([item.copyWith(status: ScheduledTransactionStatus.posted)]);
     await tester.pumpAndSettle();
     expect(pending, isEmpty);
+    bills.controller.add([item]);
+    await tester.pumpAndSettle();
+    expect(pending, hasLength(1));
+    bills.controller.add([]);
+    await tester.pumpAndSettle();
+    expect(pending, isEmpty, reason: 'removing bills cancels their reminders');
     debugDefaultTargetPlatformOverride = null;
   });
   testWidgets('Android reminders include foreground post and skip actions',

@@ -24,7 +24,25 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(6));
+      expect(database.schemaVersion, equals(8));
+    });
+
+    test('v6 archived accounts remain archived after upgrade', () async {
+      final file = File(p.join(
+          Directory.systemTemp.createTempSync('feather_v6').path, 'v6.sqlite'));
+      final old = AppDatabase.internal(NativeDatabase(file));
+      await old.customStatement('SELECT 1');
+      await old
+          .customStatement('ALTER TABLE accounts_view DROP COLUMN deleted');
+      await old.customStatement(
+          "INSERT INTO accounts_view (id, name, type, currency_code, balance_minor, archived, last_updated_event_id) VALUES ('archived', 'Cash', 0, 'USD', 0, 1, 1)");
+      await old.customStatement('PRAGMA user_version = 6');
+      await old.close();
+      final upgraded = AppDatabase.internal(NativeDatabase(file));
+      addTearDown(upgraded.close);
+      final row = (await upgraded.accountDao.getAccountById('archived'))!;
+      expect(row.archived, isTrue);
+      expect(row.deleted, isFalse);
     });
 
     test('migrates a v1 database by adding the column, keeping its rows',
@@ -41,6 +59,7 @@ void main() {
           Directory.systemTemp.createTempSync('feather_v1').path, 'v1.sqlite'));
       final v1 = AppDatabase.internal(NativeDatabase(file));
       await v1.customStatement('SELECT 1'); // opens it, running createAll
+      await v1.customStatement('ALTER TABLE accounts_view DROP COLUMN deleted');
       await v1.customStatement(
           'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
       await v1.customStatement(
@@ -69,6 +88,7 @@ void main() {
       expect(row, isNotNull,
           reason: 'a migration must not drop the rows it migrates');
       expect(row!.balanceMinor, 5000);
+      expect(row.deleted, isFalse);
       expect(row.includeInTotals, isTrue,
           reason: 'every account that predates the flag counts toward the '
               'totals — nobody had opted out before it existed');

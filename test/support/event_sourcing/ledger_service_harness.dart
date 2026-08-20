@@ -28,7 +28,7 @@ import 'package:feather_ledger/features/ledger/domain/services/ledger_service.da
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
-import 'package:feather_ledger/features/settings/domain/commands/archive_account_command.dart';
+import 'package:feather_ledger/features/settings/domain/commands/account_lifecycle_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/set_account_totals_inclusion_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/create_account_command.dart';
 import 'package:feather_ledger/features/settings/domain/commands/rename_account_command.dart';
@@ -121,11 +121,12 @@ class LedgerServiceHarness {
     accountService = AccountService(
       CreateAccountCommand(eventStore, projector),
       RenameAccountCommand(eventStore, projector),
-      ArchiveAccountCommand(eventStore, projector),
+      AccountLifecycleCommand(db, eventStore, projector),
       WatchAllAccountsQuery(accountRepository),
       GetAccountByIdQuery(accountRepository),
       recordCommand,
       SetAccountTotalsInclusionCommand(eventStore, projector),
+      recurringService,
     );
 
     categoryService = CategoryService(

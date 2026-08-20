@@ -90,7 +90,7 @@ class _Recurring implements RecurringService {
   }
 
   @override
-  Future<void> catchUpAutoPosted() async {
+  Future<void> catchUpAutoPosted({String? accountId}) async {
     calls.add('catchup');
     if (bill.status == ScheduledTransactionStatus.scheduled) {
       bill = bill.copyWith(

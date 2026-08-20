@@ -254,7 +254,7 @@ class RecordingRecurringService implements RecurringService {
   Future<void> materialize() async {}
 
   @override
-  Future<void> catchUpAutoPosted() async {}
+  Future<void> catchUpAutoPosted({String? accountId}) async {}
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled() =>

@@ -1,4 +1,5 @@
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/notifications/reminder_schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ void main() {
   final now = DateTime(2026, 11, 15, 10);
   ScheduledTransactionEntity bill(String id, DateTime date,
           {int? minutes,
+          AccountEntity? account,
           ScheduledTransactionStatus status =
               ScheduledTransactionStatus.scheduled}) =>
       ScheduledTransactionEntity(
@@ -15,6 +17,7 @@ void main() {
           amountMinor: 100,
           date: date,
           status: status,
+          account: account,
           recurringTransactionSeries: RecurringTransactionSeriesEntity(
               id: 'series',
               description: 'Rent',
@@ -49,5 +52,23 @@ void main() {
     expect(result, hasLength(60));
     expect(result.first.id, '0');
     expect(result.last.id, '59');
+  });
+
+  test('archived account reminders are paused', () {
+    const archived = AccountEntity(
+      id: 'a',
+      name: 'Cash',
+      type: AccountType.cash,
+      currencyCode: 'USD',
+      balanceMinor: 0,
+      archived: true,
+      lastUpdatedEventId: 1,
+    );
+    expect(
+        upcomingReminders([
+          bill('archived', now.add(const Duration(hours: 1)),
+              minutes: 5, account: archived),
+        ], now),
+        isEmpty);
   });
 }

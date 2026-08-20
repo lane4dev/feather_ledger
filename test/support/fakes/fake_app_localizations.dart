@@ -35,7 +35,8 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get reminderUnitDays => 'Days';
   @override
-  String get reminderPermissionRequired => 'Allow notifications and precise alarms to use reminders.';
+  String get reminderPermissionRequired =>
+      'Allow notifications and precise alarms to use reminders.';
   @override
   String get reminderNotificationTitle => 'Upcoming transaction';
   @override
@@ -99,7 +100,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get transactionModeRepeating => 'Repeating';
 
   @override
-  String get appTitle => 'Feather Ledger';
+  String get appTitle => 'Accounted For';
 
   @override
   String get followSystem => 'Follow system';
@@ -616,7 +617,7 @@ class FakeAppLocalizations implements AppLocalizations {
   // Backup and restore (spec 004, US4). The message mirrors the real ARB's
   // shape so a test asserting on it sees the same interpolation.
   @override
-  String get backupFileTypeLabel => 'Feather Ledger backup';
+  String get backupFileTypeLabel => 'Accounted For backup';
 
   @override
   String get backupNow => 'Back up now';
@@ -647,7 +648,7 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get restoreReadyMessage =>
-      'Close Feather Ledger completely and open it again to finish restoring.';
+      'Close Accounted For completely and open it again to finish restoring.';
 
   @override
   String get exitNow => 'Exit now';
@@ -749,4 +750,48 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String repeatSetupFailed(String error) =>
       'Saved. The repeat could not be set up: $error';
+  @override
+  String get accountArchiveAction => "Archive account";
+  @override
+  String get accountRestoreAction => "Restore account";
+  @override
+  String get accountArchivedSection => "Archived accounts";
+  @override
+  String get accountArchiveExplanation =>
+      "Archiving permanently deletes this account’s recurring rules and future pending bills, and cancels their reminders. Overdue pending bills and recorded transactions are kept. Restoring the account will not restore the deleted rules or bills.";
+  @override
+  String get accountDeleteExplanation =>
+      "Delete this account? Its event history is retained.";
+  @override
+  String get accountUsageTransactions => "Transactions";
+  @override
+  String get accountUsageSeries => "Recurring rules";
+  @override
+  String get accountUsagePending => "Pending bills";
+  @override
+  String get errorAccountHasReferences =>
+      "This account has active transactions or recurring rules. Archive it instead, or resolve the linked records first.";
+  @override
+  String get errorAccountHasActiveSchedules =>
+      "This account has active recurring rules or pending bills. Resolve them before archiving.";
+  @override
+  String get accountDeleteChooseAction =>
+      "This account has transactions or scheduled rules. Choose how to proceed.";
+  @override
+  String get accountDeleteArchivedChooseAction =>
+      "Choose whether to delete the associated transactions and scheduled rules or move them to another account.";
+  @override
+  String get accountMoveAndDelete => "Move records and delete";
+  @override
+  String get accountDeleteWithTransactions => "Delete account and records";
+  @override
+  String get accountSelectDestination => "Select a destination account";
+  @override
+  String get accountNoDestination =>
+      "No other active account with the same currency is available.";
+  @override
+  String get accountDeleteImpact =>
+      "Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.";
+  @override
+  String get accountConfirmOperation => "Confirm";
 }
