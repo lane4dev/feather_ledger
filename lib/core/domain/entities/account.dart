@@ -9,6 +9,7 @@ class AccountEntity {
   final String currencyCode;
   final int balanceMinor;
   final bool archived;
+  final bool deleted;
 
   /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
   /// Independent of [archived] and pointed the other way: an archived account
@@ -25,6 +26,7 @@ class AccountEntity {
     required this.currencyCode,
     required this.balanceMinor,
     required this.archived,
+    this.deleted = false,
     this.includeInTotals = true,
     required this.lastUpdatedEventId,
   });

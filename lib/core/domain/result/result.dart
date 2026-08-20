@@ -13,6 +13,8 @@ library;
 enum LedgerErrorCode {
   accountNotFound,
   accountArchived,
+  accountHasReferences,
+  accountHasActiveSchedules,
   categoryNotFound,
   categoryArchived,
   categoryTypeMismatch,

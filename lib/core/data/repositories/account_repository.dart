@@ -17,7 +17,7 @@ class AccountRepositoryImpl implements AccountRepository {
   @override
   Stream<List<AccountEntity>> watchAccounts() {
     return _accountDao.watchAllAccounts().map((rows) {
-      return rows.map(_toEntity).toList();
+      return rows.where((row) => !row.deleted).map(_toEntity).toList();
     });
   }
 
@@ -34,6 +34,7 @@ class AccountRepositoryImpl implements AccountRepository {
         currencyCode: row.currencyCode,
         balanceMinor: row.balanceMinor,
         archived: row.archived,
+        deleted: row.deleted,
         includeInTotals: row.includeInTotals,
         lastUpdatedEventId: row.lastUpdatedEventId,
       );

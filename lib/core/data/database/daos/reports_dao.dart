@@ -96,7 +96,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
               TransactionKind.expense.index,
             ]) &
             transactionsView.isReversed.equals(false) &
-            accountsView.includeInTotals.equals(true),
+            (accountsView.includeInTotals.equals(true) &
+                accountsView.deleted.equals(false)),
       );
 
     return query.watch().map((rows) {
@@ -133,7 +134,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     ])
       ..where(transactionsView.occurredAt.isBetweenValues(start, end) &
           transactionsView.isReversed.equals(false) &
-          accountsView.includeInTotals.equals(true));
+          (accountsView.includeInTotals.equals(true) &
+              accountsView.deleted.equals(false)));
 
     return query.watch().map((rows) {
       final map = <DateTime, int>{};
@@ -172,7 +174,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       ..where(transactionsView.occurredAt.isBetweenValues(start, end) &
           transactionsView.isReversed.equals(false) &
           transactionsView.kind.equals(kind.index) &
-          accountsView.includeInTotals.equals(true));
+          (accountsView.includeInTotals.equals(true) &
+              accountsView.deleted.equals(false)));
 
     return query.watch().map((rows) {
       final grouped = <String, ReportCategoryRow>{};
@@ -206,7 +209,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           ..where(monthlyAccountBalanceSnapshots.year.equals(datetime.year) &
               monthlyAccountBalanceSnapshots.month.equals(datetime.month) &
               monthlyAccountBalanceSnapshots.currencyCode.equals(currencyCode) &
-              accountsView.includeInTotals.equals(true)))
+              (accountsView.includeInTotals.equals(true) &
+                  accountsView.deleted.equals(false))))
         .watch()
         .map((joined) {
       var income = 0;

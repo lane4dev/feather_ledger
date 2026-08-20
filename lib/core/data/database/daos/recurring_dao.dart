@@ -1,3 +1,4 @@
+import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
@@ -12,6 +13,30 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
 
   Future<List<RecurringSeriesRow>> getAllSeries() =>
       select(recurringSeries).get();
+
+  Future<List<RecurringSeriesRow>> getMaterializableSeries() async {
+    final query = select(recurringSeries).join([
+      innerJoin(db.accountsView,
+          db.accountsView.id.equalsExp(recurringSeries.accountId)),
+    ])
+      ..where(db.accountsView.archived.equals(false) &
+          db.accountsView.deleted.equals(false));
+    return (await query.get())
+        .map((row) => row.readTable(recurringSeries))
+        .toList();
+  }
+
+  Future<void> insertMaterializedIfActive(
+      ScheduledTransactionsViewCompanion entry) async {
+    await db.transaction(() async {
+      final series = await getSeries(entry.seriesId.value);
+      if (series == null) return;
+      final account = await db.accountDao.getAccountById(series.accountId);
+      if (account == null || account.archived || account.deleted) return;
+      await into(scheduledTransactionsView)
+          .insert(entry, mode: InsertMode.insertOrIgnore);
+    });
+  }
 
   Future<ScheduledTransactionViewRow?> getScheduled(String id) {
     return (select(scheduledTransactionsView)..where((t) => t.id.equals(id)))
@@ -46,8 +71,22 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       .write(
           const ScheduledTransactionsViewCompanion(status: Value('skipped')));
 
-  Future<void> saveSeries(RecurringSeriesCompanion entry) {
-    return into(recurringSeries).insertOnConflictUpdate(entry);
+  Future<void> saveSeries(RecurringSeriesCompanion entry) async {
+    await db.transaction(() async {
+      if (entry.accountId.present) {
+        final account =
+            await db.accountDao.getAccountById(entry.accountId.value);
+        if (account == null || account.deleted) {
+          throw const CommandRejected(
+              LedgerErrorCode.accountNotFound, 'Account not found');
+        }
+        if (account.archived) {
+          throw const CommandRejected(
+              LedgerErrorCode.accountArchived, 'Account is archived');
+        }
+      }
+      await into(recurringSeries).insertOnConflictUpdate(entry);
+    });
   }
 
   /// Deletes instance rows of one series.
@@ -74,6 +113,13 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
   }
 
   Stream<List<ScheduledTransactionViewRow>> watchAllScheduled() {
-    return select(scheduledTransactionsView).watch();
+    final query = select(scheduledTransactionsView).join([
+      innerJoin(recurringSeries,
+          recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId)),
+      innerJoin(db.accountsView,
+          db.accountsView.id.equalsExp(recurringSeries.accountId)),
+    ]);
+    return query.watch().map((rows) =>
+        rows.map((row) => row.readTable(scheduledTransactionsView)).toList());
   }
 }

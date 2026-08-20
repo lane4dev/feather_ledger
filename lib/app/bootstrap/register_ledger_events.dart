@@ -40,6 +40,11 @@ void registerLedgerEvents() {
     fromVersion: 1,
     upcaster: (old) => {...old, 'schemaVersion': 2, 'attachments': const []},
   );
+  ledgerEventRegistry.registerUpcaster(
+    eventType: 'TransactionRecorded',
+    fromVersion: 2,
+    upcaster: (old) => {...old, 'schemaVersion': 3},
+  );
   ledgerEventRegistry.registerFactory(
     eventType: 'TransactionReversed',
     factory: (json) => TransactionReversed.fromJson(json).toJson(),
@@ -57,6 +62,14 @@ void registerLedgerEvents() {
   ledgerEventRegistry.registerFactory(
     eventType: 'AccountArchived',
     factory: (json) => AccountArchived.fromJson(json).toJson(),
+  );
+  ledgerEventRegistry.registerFactory(
+    eventType: 'AccountRestored',
+    factory: (json) => AccountRestored.fromJson(json).toJson(),
+  );
+  ledgerEventRegistry.registerFactory(
+    eventType: 'AccountDeleted',
+    factory: (json) => AccountDeleted.fromJson(json).toJson(),
   );
   ledgerEventRegistry.registerFactory(
     eventType: 'AccountTotalsInclusionChanged',

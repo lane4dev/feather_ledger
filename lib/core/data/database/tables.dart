@@ -37,6 +37,7 @@ class AccountsView extends Table {
   TextColumn get currencyCode => text()();
   IntColumn get balanceMinor => integer()(); // Minor units
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
   /// Not the same switch as [archived], and pointed the other way: archiving

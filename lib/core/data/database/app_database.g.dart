@@ -564,6 +564,16 @@ class $AccountsViewTable extends AccountsView
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("archived" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _includeInTotalsMeta =
       const VerificationMeta('includeInTotals');
   @override
@@ -596,6 +606,7 @@ class $AccountsViewTable extends AccountsView
         currencyCode,
         balanceMinor,
         archived,
+        deleted,
         includeInTotals,
         lastUpdatedEventId,
         projectionVersion
@@ -641,6 +652,10 @@ class $AccountsViewTable extends AccountsView
       context.handle(_archivedMeta,
           archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta));
     }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
     if (data.containsKey('include_in_totals')) {
       context.handle(
           _includeInTotalsMeta,
@@ -683,6 +698,8 @@ class $AccountsViewTable extends AccountsView
           .read(DriftSqlType.int, data['${effectivePrefix}balance_minor'])!,
       archived: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}archived'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       includeInTotals: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}include_in_totals'])!,
       lastUpdatedEventId: attachedDatabase.typeMapping.read(
@@ -708,6 +725,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
   final String currencyCode;
   final int balanceMinor;
   final bool archived;
+  final bool deleted;
 
   /// Whether this account counts toward the **ledger totals** (CONTEXT.md).
   /// Not the same switch as [archived], and pointed the other way: archiving
@@ -726,6 +744,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       required this.currencyCode,
       required this.balanceMinor,
       required this.archived,
+      required this.deleted,
       required this.includeInTotals,
       required this.lastUpdatedEventId,
       required this.projectionVersion});
@@ -741,6 +760,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
     map['currency_code'] = Variable<String>(currencyCode);
     map['balance_minor'] = Variable<int>(balanceMinor);
     map['archived'] = Variable<bool>(archived);
+    map['deleted'] = Variable<bool>(deleted);
     map['include_in_totals'] = Variable<bool>(includeInTotals);
     map['last_updated_event_id'] = Variable<int>(lastUpdatedEventId);
     map['projection_version'] = Variable<int>(projectionVersion);
@@ -755,6 +775,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       currencyCode: Value(currencyCode),
       balanceMinor: Value(balanceMinor),
       archived: Value(archived),
+      deleted: Value(deleted),
       includeInTotals: Value(includeInTotals),
       lastUpdatedEventId: Value(lastUpdatedEventId),
       projectionVersion: Value(projectionVersion),
@@ -772,6 +793,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       currencyCode: serializer.fromJson<String>(json['currencyCode']),
       balanceMinor: serializer.fromJson<int>(json['balanceMinor']),
       archived: serializer.fromJson<bool>(json['archived']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       includeInTotals: serializer.fromJson<bool>(json['includeInTotals']),
       lastUpdatedEventId: serializer.fromJson<int>(json['lastUpdatedEventId']),
       projectionVersion: serializer.fromJson<int>(json['projectionVersion']),
@@ -788,6 +810,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
       'currencyCode': serializer.toJson<String>(currencyCode),
       'balanceMinor': serializer.toJson<int>(balanceMinor),
       'archived': serializer.toJson<bool>(archived),
+      'deleted': serializer.toJson<bool>(deleted),
       'includeInTotals': serializer.toJson<bool>(includeInTotals),
       'lastUpdatedEventId': serializer.toJson<int>(lastUpdatedEventId),
       'projectionVersion': serializer.toJson<int>(projectionVersion),
@@ -801,6 +824,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           String? currencyCode,
           int? balanceMinor,
           bool? archived,
+          bool? deleted,
           bool? includeInTotals,
           int? lastUpdatedEventId,
           int? projectionVersion}) =>
@@ -811,6 +835,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
         currencyCode: currencyCode ?? this.currencyCode,
         balanceMinor: balanceMinor ?? this.balanceMinor,
         archived: archived ?? this.archived,
+        deleted: deleted ?? this.deleted,
         includeInTotals: includeInTotals ?? this.includeInTotals,
         lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
         projectionVersion: projectionVersion ?? this.projectionVersion,
@@ -827,6 +852,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           ? data.balanceMinor.value
           : this.balanceMinor,
       archived: data.archived.present ? data.archived.value : this.archived,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       includeInTotals: data.includeInTotals.present
           ? data.includeInTotals.value
           : this.includeInTotals,
@@ -848,6 +874,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           ..write('currencyCode: $currencyCode, ')
           ..write('balanceMinor: $balanceMinor, ')
           ..write('archived: $archived, ')
+          ..write('deleted: $deleted, ')
           ..write('includeInTotals: $includeInTotals, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion')
@@ -856,8 +883,17 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, type, currencyCode, balanceMinor,
-      archived, includeInTotals, lastUpdatedEventId, projectionVersion);
+  int get hashCode => Object.hash(
+      id,
+      name,
+      type,
+      currencyCode,
+      balanceMinor,
+      archived,
+      deleted,
+      includeInTotals,
+      lastUpdatedEventId,
+      projectionVersion);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -868,6 +904,7 @@ class AccountViewRow extends DataClass implements Insertable<AccountViewRow> {
           other.currencyCode == this.currencyCode &&
           other.balanceMinor == this.balanceMinor &&
           other.archived == this.archived &&
+          other.deleted == this.deleted &&
           other.includeInTotals == this.includeInTotals &&
           other.lastUpdatedEventId == this.lastUpdatedEventId &&
           other.projectionVersion == this.projectionVersion);
@@ -880,6 +917,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
   final Value<String> currencyCode;
   final Value<int> balanceMinor;
   final Value<bool> archived;
+  final Value<bool> deleted;
   final Value<bool> includeInTotals;
   final Value<int> lastUpdatedEventId;
   final Value<int> projectionVersion;
@@ -891,6 +929,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     this.currencyCode = const Value.absent(),
     this.balanceMinor = const Value.absent(),
     this.archived = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.includeInTotals = const Value.absent(),
     this.lastUpdatedEventId = const Value.absent(),
     this.projectionVersion = const Value.absent(),
@@ -903,6 +942,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     required String currencyCode,
     required int balanceMinor,
     this.archived = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.includeInTotals = const Value.absent(),
     required int lastUpdatedEventId,
     this.projectionVersion = const Value.absent(),
@@ -920,6 +960,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     Expression<String>? currencyCode,
     Expression<int>? balanceMinor,
     Expression<bool>? archived,
+    Expression<bool>? deleted,
     Expression<bool>? includeInTotals,
     Expression<int>? lastUpdatedEventId,
     Expression<int>? projectionVersion,
@@ -932,6 +973,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       if (currencyCode != null) 'currency_code': currencyCode,
       if (balanceMinor != null) 'balance_minor': balanceMinor,
       if (archived != null) 'archived': archived,
+      if (deleted != null) 'deleted': deleted,
       if (includeInTotals != null) 'include_in_totals': includeInTotals,
       if (lastUpdatedEventId != null)
         'last_updated_event_id': lastUpdatedEventId,
@@ -947,6 +989,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       Value<String>? currencyCode,
       Value<int>? balanceMinor,
       Value<bool>? archived,
+      Value<bool>? deleted,
       Value<bool>? includeInTotals,
       Value<int>? lastUpdatedEventId,
       Value<int>? projectionVersion,
@@ -958,6 +1001,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
       currencyCode: currencyCode ?? this.currencyCode,
       balanceMinor: balanceMinor ?? this.balanceMinor,
       archived: archived ?? this.archived,
+      deleted: deleted ?? this.deleted,
       includeInTotals: includeInTotals ?? this.includeInTotals,
       lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
       projectionVersion: projectionVersion ?? this.projectionVersion,
@@ -987,6 +1031,9 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (includeInTotals.present) {
       map['include_in_totals'] = Variable<bool>(includeInTotals.value);
     }
@@ -1011,6 +1058,7 @@ class AccountsViewCompanion extends UpdateCompanion<AccountViewRow> {
           ..write('currencyCode: $currencyCode, ')
           ..write('balanceMinor: $balanceMinor, ')
           ..write('archived: $archived, ')
+          ..write('deleted: $deleted, ')
           ..write('includeInTotals: $includeInTotals, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion, ')
@@ -2813,6 +2861,8 @@ class RecurringSeriesRow extends DataClass
   final DateTime? endDate;
   final String frequency;
   final int? interval;
+
+  /// 'limit' is a reserved keyword in SQL often, using countLimit
   final int? countLimit;
   final int amountMinor;
   final String description;
@@ -4893,6 +4943,7 @@ typedef $$AccountsViewTableCreateCompanionBuilder = AccountsViewCompanion
   required String currencyCode,
   required int balanceMinor,
   Value<bool> archived,
+  Value<bool> deleted,
   Value<bool> includeInTotals,
   required int lastUpdatedEventId,
   Value<int> projectionVersion,
@@ -4906,6 +4957,7 @@ typedef $$AccountsViewTableUpdateCompanionBuilder = AccountsViewCompanion
   Value<String> currencyCode,
   Value<int> balanceMinor,
   Value<bool> archived,
+  Value<bool> deleted,
   Value<bool> includeInTotals,
   Value<int> lastUpdatedEventId,
   Value<int> projectionVersion,
@@ -4940,6 +4992,9 @@ class $$AccountsViewTableFilterComposer
 
   ColumnFilters<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get includeInTotals => $composableBuilder(
       column: $table.includeInTotals,
@@ -4983,6 +5038,9 @@ class $$AccountsViewTableOrderingComposer
   ColumnOrderings<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get includeInTotals => $composableBuilder(
       column: $table.includeInTotals,
       builder: (column) => ColumnOrderings(column));
@@ -5022,6 +5080,9 @@ class $$AccountsViewTableAnnotationComposer
 
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<bool> get includeInTotals => $composableBuilder(
       column: $table.includeInTotals, builder: (column) => column);
@@ -5065,6 +5126,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             Value<String> currencyCode = const Value.absent(),
             Value<int> balanceMinor = const Value.absent(),
             Value<bool> archived = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
             Value<bool> includeInTotals = const Value.absent(),
             Value<int> lastUpdatedEventId = const Value.absent(),
             Value<int> projectionVersion = const Value.absent(),
@@ -5077,6 +5139,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             currencyCode: currencyCode,
             balanceMinor: balanceMinor,
             archived: archived,
+            deleted: deleted,
             includeInTotals: includeInTotals,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
@@ -5089,6 +5152,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             required String currencyCode,
             required int balanceMinor,
             Value<bool> archived = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
             Value<bool> includeInTotals = const Value.absent(),
             required int lastUpdatedEventId,
             Value<int> projectionVersion = const Value.absent(),
@@ -5101,6 +5165,7 @@ class $$AccountsViewTableTableManager extends RootTableManager<
             currencyCode: currencyCode,
             balanceMinor: balanceMinor,
             archived: archived,
+            deleted: deleted,
             includeInTotals: includeInTotals,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
