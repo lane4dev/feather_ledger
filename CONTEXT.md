@@ -28,8 +28,19 @@ _Avoid_: deletion, cancellation, void, undo
 
 **Archive**:
 Withdrawing an account or category from active use while preserving every historical reference to it.
+An archived account can be restored and still participates in totals according to its inclusion setting.
+Recurring rules and already-due bills remain while an account is archived; future pending bills are
+marked skipped, and generation, posting and reminders pause. Restoring resumes the rules without
+reviving the skipped bills.
 Not a delete.
 _Avoid_: delete, deactivate, soft delete
+
+**Account deletion**:
+Removing an unused account from ordinary lists and selectors. The account and its deletion remain in
+the event stream and projection for replay. Active transactions and recurring series can be moved to
+another account, or deleted together with an archived account. Balance-purpose transactions are
+reversed when their account is deleted. Reversed transactions do not prevent deletion.
+_Avoid_: archive, physical erasure
 
 **Opening balance**:
 The non-zero amount an account already has when it is first brought into the ledger. It is a
