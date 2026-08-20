@@ -30,22 +30,39 @@ class AccountManagementScreen extends ConsumerWidget {
       ),
       body: accountsAsync.when(
         data: (accounts) {
-          if (accounts.isEmpty) {
+          final active =
+              accounts.where((account) => !account.account.archived).toList();
+          final archived =
+              accounts.where((account) => account.account.archived).toList();
+          if (accounts.isEmpty)
             return Center(child: Text(l10n.noAccountsFound));
-          }
-          return ListView.separated(
+          return ListView(
             padding: EdgeInsets.fromLTRB(context.spacing.md, context.spacing.md,
                 context.spacing.md, context.spacing.xl * 3),
-            separatorBuilder: (_, __) => SizedBox(height: context.spacing.md),
-            itemCount: accounts.length,
-            itemBuilder: (context, index) {
-              final account = accounts[index];
-              return AccountTile(
-                key: ValueKey(account.account.id),
-                account: account,
-                onTap: () => _showAccountSheet(context, account.account),
-              );
-            },
+            children: [
+              for (final account in active) ...[
+                AccountTile(
+                    key: ValueKey(account.account.id),
+                    account: account,
+                    onTap: () => _showAccountSheet(context, account.account)),
+                SizedBox(height: context.spacing.md),
+              ],
+              if (archived.isNotEmpty)
+                ExpansionTile(
+                  title: Text(
+                      '${l10n.accountArchivedSection} (${archived.length})'),
+                  children: [
+                    for (final account in archived) ...[
+                      AccountTile(
+                          key: ValueKey(account.account.id),
+                          account: account,
+                          onTap: () =>
+                              _showAccountSheet(context, account.account)),
+                      SizedBox(height: context.spacing.md),
+                    ],
+                  ],
+                ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

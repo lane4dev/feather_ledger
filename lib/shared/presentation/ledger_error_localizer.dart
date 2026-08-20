@@ -16,10 +16,12 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
   String message(AppLocalizations l10n) => switch (this) {
         LedgerErrorCode.accountNotFound => l10n.errorAccountNotFound,
         LedgerErrorCode.accountArchived => l10n.errorAccountArchived,
+        LedgerErrorCode.accountHasReferences => l10n.errorAccountHasReferences,
+        LedgerErrorCode.accountHasActiveSchedules =>
+          l10n.errorAccountHasActiveSchedules,
         LedgerErrorCode.categoryNotFound => l10n.errorCategoryNotFound,
         LedgerErrorCode.categoryArchived => l10n.errorCategoryArchived,
-        LedgerErrorCode.categoryTypeMismatch =>
-          l10n.errorCategoryTypeMismatch,
+        LedgerErrorCode.categoryTypeMismatch => l10n.errorCategoryTypeMismatch,
         LedgerErrorCode.currencyMismatch => l10n.errorCurrencyMismatch,
         LedgerErrorCode.sameAccountTransfer => l10n.errorSameAccountTransfer,
         LedgerErrorCode.systemCategoryProtected =>

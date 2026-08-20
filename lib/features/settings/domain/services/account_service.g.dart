@@ -48,4 +48,4 @@ final class AccountServiceProvider
   }
 }
 
-String _$accountServiceHash() => r'779ae0d6d6251fa6e612614f5f2fec8a39e2a519';
+String _$accountServiceHash() => r'626509b5858a16c5328eb627c2b979b899a4e961';

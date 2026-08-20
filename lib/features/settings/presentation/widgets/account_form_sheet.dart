@@ -84,6 +84,12 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                 tooltip: l10n.cancel,
               ),
               const Spacer(),
+              if (isEditing && widget.account!.archived)
+                AppIconButton(
+                  icon: const Icon(LucideIcons.archiveRestore),
+                  onPressed: () => _accountAction('restore'),
+                  tooltip: l10n.accountRestoreAction,
+                ),
               if (isEditing)
                 AppIconButton.destructive(
                   icon: const Icon(LucideIcons.trash2),
@@ -221,37 +227,167 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
   Future<void> _deleteAccount() async {
     final l10n = AppLocalizations.of(context)!;
+    final account = widget.account!;
+    final service = ref.read(accountServiceProvider);
+    final usage = await service.accountUsage(account.id);
+    if (!mounted) return;
+    final hasRecords = usage.transactions > 0 || usage.series > 0;
+    var action = 'delete';
+    if (account.archived || hasRecords) {
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.deleteAccountConfirmation),
+          content: Text(account.archived
+              ? l10n.accountDeleteArchivedChooseAction
+              : l10n.accountDeleteChooseAction),
+          actions: [
+            AppButton.text(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel)),
+            AppButton.text(
+                onPressed: () => Navigator.pop(
+                    context, account.archived ? 'deleteAll' : 'archive'),
+                child: Text(account.archived
+                    ? l10n.accountDeleteWithTransactions
+                    : l10n.accountArchiveAction)),
+            AppButton.text(
+                onPressed: () => Navigator.pop(context, 'move'),
+                child: Text(l10n.accountMoveAndDelete)),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+      action = selected;
+    }
+    if (action == 'archive') {
+      await _accountAction('archive');
+      return;
+    }
+    String? targetId;
+    if (action == 'move') {
+      final accounts = await service.watchAllAccounts().first;
+      if (!mounted) return;
+      final targets = accounts
+          .where((a) =>
+              a.id != account.id &&
+              !a.archived &&
+              !a.deleted &&
+              a.currencyCode == account.currencyCode)
+          .toList();
+      targetId = await showDialog<String>(
+          context: context,
+          builder: (context) => SimpleDialog(
+                title: Text(l10n.accountSelectDestination),
+                children: targets.isEmpty
+                    ? [
+                        Padding(
+                            padding: EdgeInsets.all(context.spacing.md),
+                            child: Text(l10n.accountNoDestination))
+                      ]
+                    : [
+                        for (final target in targets)
+                          SimpleDialogOption(
+                              onPressed: () =>
+                                  Navigator.pop(context, target.id),
+                              child: Text(target.name))
+                      ],
+              ));
+      if (targetId == null || !mounted) return;
+    }
+    final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text(l10n.deleteAccountConfirmation),
+              content: Text(l10n.accountDeleteImpact),
+              actions: [
+                AppButton.text(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel)),
+                AppButton.text(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(l10n.accountConfirmOperation)),
+              ],
+            ));
+    if (confirm != true || !mounted) return;
+    final commandId = const Uuid().v4();
+    final result = switch (action) {
+      'move' => await service.moveAccountTransactions(
+          commandId: commandId,
+          accountId: account.id,
+          targetAccountId: targetId!),
+      'deleteAll' => await service.deleteAccountWithTransactions(
+          commandId: commandId, accountId: account.id),
+      _ => await service.deleteAccount(
+          commandId: commandId, accountId: account.id),
+    };
+    if (!mounted) return;
+    if (result case Failure(:final code)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+      return;
+    }
+    context.pop();
+  }
+
+  Future<void> _accountAction(String action) async {
+    final l10n = AppLocalizations.of(context)!;
+    final service = ref.read(accountServiceProvider);
+    final account = widget.account!;
+    final usage = await service.accountUsage(account.id);
+    if (!mounted) return;
+    final title = switch (action) {
+      'archive' => l10n.accountArchiveAction,
+      'restore' => l10n.accountRestoreAction,
+      _ => l10n.deleteAccountConfirmation,
+    };
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.deleteAccountConfirmation),
+        title: Text(title),
+        content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(action == 'archive'
+                  ? l10n.accountArchiveExplanation
+                  : action == 'delete'
+                      ? l10n.accountDeleteExplanation
+                      : l10n.accountRestoreAction),
+              if (action != 'restore') ...[
+                SizedBox(height: context.spacing.md),
+                Text('${l10n.accountUsageTransactions}: ${usage.transactions}'),
+                Text('${l10n.accountUsageSeries}: ${usage.series}'),
+                Text('${l10n.accountUsagePending}: ${usage.pending}'),
+              ],
+            ]),
         actions: [
           AppButton.text(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel)),
           AppButton.text(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              l10n.delete,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge!
-                  .copyWith(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(action == 'delete' ? l10n.delete : title)),
         ],
       ),
     );
-
-    if (confirm == true) {
-      if (!mounted) return;
-      await ref.read(accountServiceProvider).archiveAccount(
-            commandId: const Uuid().v4(),
-            accountId: widget.account!.id,
-          );
-      if (mounted) context.pop();
+    if (confirm != true || !mounted) return;
+    final commandId = const Uuid().v4();
+    final result = switch (action) {
+      'archive' => await service.archiveAccount(
+          commandId: commandId, accountId: account.id),
+      'restore' => await service.restoreAccount(
+          commandId: commandId, accountId: account.id),
+      _ => await service.deleteAccount(
+          commandId: commandId, accountId: account.id),
+    };
+    if (!mounted) return;
+    if (result case Failure(:final code)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+      return;
     }
+    context.pop();
   }
 
   Future<void> _save() async {
@@ -299,7 +435,6 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
             commandId: const Uuid().v4(),
             accountId: widget.account!.id,
             newBalanceMinor: _balanceMinor,
-            description: l10n.accountBalanceAdjustmentDescription,
             notes: l10n.accountBalanceAdjustmentNotes,
           );
         }
@@ -324,8 +459,6 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
           type: _selectedType,
           initialBalanceMinor: _balanceMinor,
           currencyCode: currencyKey,
-          // A new account's whole balance is the difference from nothing, and
-          // the row says so rather than looking like income.
           initialBalanceNote: l10n.accountInitialBalanceNote,
           includeInTotals: _includeInTotals,
         );
