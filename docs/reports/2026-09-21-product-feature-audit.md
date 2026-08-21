@@ -1,4 +1,4 @@
-# Feather Ledger 产品功能审查与 ezBookkeeping 对比
+# Accounted For 产品功能审查与 ezBookkeeping 对比
 
 **审查日期：** 2026-09-21  
 **范围：** 当前工作区的 Flutter/Dart 实现、测试与规格文档；ezBookkeeping 的官方 README、功能清单、使用/API/导入导出文档。  
@@ -9,11 +9,11 @@
 - 本地逐项检查了 `lib/` 的 ledger/reports/settings、Drift 表与 DAO、Event Store、Projector/Rebuild、路由、ARB、服务/命令/查询及测试。README 仍是 Flutter 初始模板，不能用作功能依据。
 - ezBookkeeping 以其[官方功能清单](https://ezbookkeeping.mayswind.net/features/)、[基本使用说明](https://ezbookkeeping.mayswind.net/basic_usage/)、[交易 API](https://ezbookkeeping.mayswind.net/httpapi/transaction_api)、[导入导出说明](https://ezbookkeeping.mayswind.net/export_and_import/)和[官方 README](https://github.com/mayswind/ezbookkeeping/blob/main/README.md)为准。功能清单包含标注到 2.0.0 的能力，而 GitHub 当时最新 Release 为 1.6.1；故本文的“ez 有”表示当前官方文档已声明，而非保证每个旧版本均有。
 - 质量核验：`flutter test` 通过（192 项），`flutter analyze` 为 `No issues found`。它们支持事件/投影逻辑的可信度，但不证明 UI 产品闭环。
-- 不把 Docker、Server、多用户、OIDC、HTTP API、CLI、管理员后台、NAS 或对象存储列为 Feather Ledger 缺口；它们属于 ezBookkeeping 自托管产品边界。
+- 不把 Docker、Server、多用户、OIDC、HTTP API、CLI、管理员后台、NAS 或对象存储列为 Accounted For 缺口；它们属于 ezBookkeeping 自托管产品边界。
 
 ## 一、执行摘要
 
-Feather Ledger 已有扎实但仍偏 MVP 的本地账本核心：收入/支出记账、账户与一级收支分类管理、交易编辑/删除、按月流水、分类饼图和活动热力图；写路径是可重建的 Event Store + 同事务 Projection，账户余额与月度快照也有良好测试。对于个人本地优先产品，这是比“功能数量”更难补的可靠基础。
+Accounted For 已有扎实但仍偏 MVP 的本地账本核心：收入/支出记账、账户与一级收支分类管理、交易编辑/删除、按月流水、分类饼图和活动热力图；写路径是可重建的 Event Store + 同事务 Projection，账户余额与月度快照也有良好测试。对于个人本地优先产品，这是比“功能数量”更难补的可靠基础。
 
 最大空白不是服务器能力，而是以下五个会直接影响日常使用的产品环：
 
@@ -21,13 +21,13 @@ Feather Ledger 已有扎实但仍偏 MVP 的本地账本核心：收入/支出�
 2. **周期交易没有闭环。** 有 RRULE、系列/实例表、未来实例物化命令和“转正”命令，却没有系列创建/管理、启动 catch-up、列表展示或用户确认入口。
 3. **检索与数据可携带性为零。** 没有搜索、筛选、导入、导出、备份恢复或数据清除；这比复杂自定义报表更早成为长期使用门槛。
 4. **账户能力尚浅。** 没有层级、对账、账户余额趋势/资产分布，且所谓多币种只是每账户保存币种；没有汇率、基准币或跨币种转账。
-5. **预算和报告尚未进入计划/分析产品。** 月度分类汇总与热力图存在，但没有预算、趋势、时间范围、同比环比或资产分析。值得注意的是：ezBookkeeping 官方资料也**未**证明有预算或原生拆分交易，因此这些是 Feather Ledger 自主产品选择，不是机械补齐。
+5. **预算和报告尚未进入计划/分析产品。** 月度分类汇总与热力图存在，但没有预算、趋势、时间范围、同比环比或资产分析。值得注意的是：ezBookkeeping 官方资料也**未**证明有预算或原生拆分交易，因此这些是 Accounted For 自主产品选择，不是机械补齐。
 
 不影响当前定位的缺口包括多用户、部署、服务端认证、Web API/CLI、常驻调度服务、AI/MCP、对象存储和多地图服务。相反，最高价值的本地功能是：转账 UI、轻量周期账单、搜索/筛选、CSV 导出与受保护备份、对账、预算和账户/资产趋势。
 
 ## 二、完整功能差异矩阵
 
-| 领域功能 | ezBookkeeping | Feather Ledger | 状态 | Feather Ledger 代码证据 | 说明 |
+| 领域功能 | ezBookkeeping | Accounted For | 状态 | Accounted For 代码证据 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | **核心记账：收入/支出** | 有 | 表单可新增 | ✅ 已实现 | `features/ledger/presentation/screens/transaction_form_screen.dart`；`domain/commands/record_transaction_command.dart` | 表单、校验、事件 `TransactionRecorded`、投影和月列表均接通。 |
 | 交易时间 | 有日期、时间、时区/UTC offset | 可选日期与时分 | ✅ 已实现 | `transaction_form_screen.dart:_pickDateTime`；`domain/model/transaction.dart:occurredAt` | 保存业务时间；无用户可配时区，见国际化行。 |
@@ -105,7 +105,7 @@ Feather Ledger 已有扎实但仍偏 MVP 的本地账本核心：收入/支出�
 | **产品边界：Server、Docker、NAS、DB server、多用户、OIDC、HTTP API、CLI、管理员** | ez 的核心自托管能力 | 本地 Flutter app 无 | ⚪ 不适用 / 不建议实现 | `main.dart` + `AppDatabase` 为本地 SQLite | 除非未来明确做同步/共享，否则不是功能缺口。 |
 | AI 收据识别、MCP、外部对象存储、多地图服务 | ez 有/声明相关整合 | 无 | ⚪ 不适用 / 不建议实现 | 无对应依赖或 feature | 附件本体可独立于 AI 和云存储先做。 |
 
-## 三、真正值得 Feather Ledger 增加的功能
+## 三、真正值得 Accounted For 增加的功能
 
 ### P0 — 基础财务能力缺口
 
@@ -192,7 +192,7 @@ Feather Ledger 已有扎实但仍偏 MVP 的本地账本核心：收入/支出�
 
 ## 最终回答
 
-若目标是“完整但轻量”的本地个人记账应用，Feather Ledger **不需要**复制 ezBookkeeping 的服务端体系。它真正欠缺的是：可用的转账、可用的周期账单、历史检索和可携带数据、可靠的本地恢复与保护、账户对账/资产视图，以及适度的预算和趋势分析。现有事件溯源与月度快照并不是障碍，反而为这些功能提供了可靠基础；接下来的优先级应当从“把已有底层能力接到用户手上”开始，而不是继续添加只存在于模型或表中的新名词。
+若目标是“完整但轻量”的本地个人记账应用，Accounted For **不需要**复制 ezBookkeeping 的服务端体系。它真正欠缺的是：可用的转账、可用的周期账单、历史检索和可携带数据、可靠的本地恢复与保护、账户对账/资产视图，以及适度的预算和趋势分析。现有事件溯源与月度快照并不是障碍，反而为这些功能提供了可靠基础；接下来的优先级应当从“把已有底层能力接到用户手上”开始，而不是继续添加只存在于模型或表中的新名词。
 
 ### 附：ezBookkeeping 研究原始证据
 

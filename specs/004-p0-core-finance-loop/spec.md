@@ -8,7 +8,7 @@ Status: ready-for-agent
 
 ## Background / 背景与问题陈述
 
-`docs/reports/2026-09-21-product-feature-audit.md` 逐项核对了 Feather Ledger 与 ezBookkeeping，结论是：Feather 已有扎实的本地账本核心（可重建的 Event Store + 同事务 Projection、账户余额与月度快照测试良好），最大的空白不是服务器能力，而是**五个会直接影响日常使用的产品环**。
+`docs/reports/2026-09-21-product-feature-audit.md` 逐项核对了 Accounted For 与 ezBookkeeping，结论是：Feather 已有扎实的本地账本核心（可重建的 Event Store + 同事务 Projection、账户余额与月度快照测试良好），最大的空白不是服务器能力，而是**五个会直接影响日常使用的产品环**。
 
 其中被列为 P0 的四个缺口有共同形状：不是「缺底层能力」，而是**底层已经存在、但用户够不到**。
 

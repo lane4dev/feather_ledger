@@ -1,4 +1,4 @@
-# Feather Ledger
+# Accounted For
 
 A personal bookkeeping ledger (记账). Every money movement is recorded once as an event, and every
 balance, total and report is derived from that record.

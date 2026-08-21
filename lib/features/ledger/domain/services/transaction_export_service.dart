@@ -31,7 +31,7 @@ class TransactionExportService {
     return guard(() async {
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final file =
-          File(p.join(_tempDir.path, 'feather_ledger_$stamp.csv'));
+          File(p.join(_tempDir.path, 'accounted_for_$stamp.csv'));
       await file.writeAsString(transactionsToCsv(rows), flush: true);
 
       await SharePlus.instance.share(

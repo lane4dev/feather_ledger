@@ -227,7 +227,7 @@ These tokens apply specifically to the Ledger feature to ensure the "premium" fe
 
 ## Phase 0: Research & Preparation
 *(Already largely covered by local investigation, but formalizing)*
--   **Task**: Validate `SliverMainAxisGroup` availability (Flutter 3.13+). *Confirmed: Feather Ledger uses Latest Stable.*
+-   **Task**: Validate `SliverMainAxisGroup` availability (Flutter 3.13+). *Confirmed: Accounted For uses Latest Stable.*
 -   **Task**: Define exact color palette mapping from Material 3 roles.
 
 ## Phase 1: Design & Contracts

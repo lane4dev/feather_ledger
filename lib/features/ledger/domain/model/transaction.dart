@@ -22,7 +22,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 export 'package:feather_ledger/core/domain/enums.dart'
     show TransactionKind, PostingDirection;
 
-/// Metadata for a file copied into Feather Ledger's private attachment store.
+/// Metadata for a file copied into Accounted For's private attachment store.
 ///
 /// The bytes deliberately stay out of the event store: an event records the
 /// immutable business reference while the app-owned file keeps the payloads

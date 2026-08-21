@@ -106,7 +106,7 @@ class BackupService {
 
       final output = File(p.join(
         workDir.path,
-        'feather_ledger_backup_${_timestamp(manifest.exportedAt)}.flbackup',
+        'accounted_for_backup_${_timestamp(manifest.exportedAt)}.flbackup',
       ));
       await output.writeAsBytes(ZipEncoder().encodeBytes(archive));
       return output.path;
@@ -285,7 +285,7 @@ class BackupService {
         await probe.eventsDao.countAll();
       } catch (e) {
         throw BackupFormatException(
-            'Backup is a Feather Ledger database this version cannot read '
+            'Backup is an Accounted For database this version cannot read '
             '(its schema predates the event store): $e');
       }
     } finally {

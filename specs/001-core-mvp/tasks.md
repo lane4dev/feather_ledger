@@ -1,8 +1,8 @@
 ---
-description: "Task list for Feather Ledger Core MVP"
+description: "Task list for Accounted For Core MVP"
 ---
 
-# Tasks: Feather Ledger - Core MVP
+# Tasks: Accounted For - Core MVP
 
 **Input**: Design documents from `specs/001-core-mvp/`
 **Prerequisites**: plan.md, spec.md, data-model.md, research.md

@@ -1,7 +1,7 @@
 # 期初余额与余额更正：主流产品模式调研
 
 **调研日期：** 2026-09-22  
-**目的：** 为 Feather Ledger 的「创建账户时非零余额会生成一笔使用系统分类
+**目的：** 为 Accounted For 的「创建账户时非零余额会生成一笔使用系统分类
 “余额更正”的普通收支交易」这一体验问题，梳理可验证的上游做法。本文只记录一手
 文档与上游源码；没有证据的 UI 细节会明确标注，不能据此推断。
 
@@ -65,7 +65,7 @@
   只在创建账户时设置；后续必须记收入/支出，或在 Reconciliation Statement 的 Update Closing Balance
   由系统计算差额、预填一笔新交易。
 
-## 归纳：适合 Feather Ledger 的最佳实践
+## 归纳：适合 Accounted For 的最佳实践
 
 这不是“要不要留下可追溯交易”的二选一。较好的最小产品模型是：**可见的专用业务目的，稳定的系统身份，
 受约束的编辑入口，以及不会误导日常收支的报表语义**。
@@ -99,7 +99,7 @@
    重建相同 purpose 的 replacement，并保留 `TransactionReversed(correction)` 审计链。这样与当前
    Feather 的不可变 event store 自然兼容。
 
-## 对当前 Feather Ledger 的直接含义
+## 对当前 Accounted For 的直接含义
 
 按仓库 `AGENTS.md` 的现状说明，`AccountService.createAccount` 对非零期初余额和
 `adjustAccountBalance` 都走同一个系统分类、普通 `TransactionRecorded` 路径；起始余额还会进入当月

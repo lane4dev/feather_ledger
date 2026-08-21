@@ -66,7 +66,7 @@ class BackupManifest {
     final format = json['format'];
     if (format != formatName) {
       throw BackupFormatException(
-          'Not a Feather Ledger backup (format: $format)');
+          'Not an Accounted For backup (format: $format)');
     }
 
     final version = json['formatVersion'];

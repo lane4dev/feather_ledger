@@ -19,7 +19,7 @@ Follow-up TODOs:
 - Review analysis_options.yaml for stricter lint rules.
 -->
 
-# Feather Ledger Constitution
+# Accounted For Constitution
 
 ## Core Principles
 
@@ -113,7 +113,7 @@ The ledger's write model is the `ledger_events` event store; all projections der
 
 ## Governance
 
-This Constitution acts as the supreme source of truth for engineering decisions within the Feather Ledger project.
+This Constitution acts as the supreme source of truth for engineering decisions within the Accounted For project.
 
 1.  **Amendments**: Changes to this document require a Pull Request with explicit rationale and team approval.
 2.  **Compliance**: All code reviews MUST verify adherence to these principles. Violations are blocking issues.

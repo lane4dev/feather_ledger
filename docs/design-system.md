@@ -1,4 +1,4 @@
-# Feather Ledger design system
+# Accounted For design system
 
 The application uses neutral Material 3 surfaces, restrained semantic color and
 one shared set of geometry and typography roles. Business state, translated

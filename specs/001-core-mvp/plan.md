@@ -5,7 +5,7 @@
 
 ## Summary
 
-Implement the Core MVP of Feather Ledger, a local-first Flutter personal finance app. This includes the bottom navigation shell, Ledger feature (transaction CRUD + monthly grouping), Reports feature (Heatmap + Donut charts), and Settings (Theme/Locale). The app will be built using strict MVVM architecture with Riverpod for state management and Drift (SQLite) for persistence.
+Implement the Core MVP of Accounted For, a local-first Flutter personal finance app. This includes the bottom navigation shell, Ledger feature (transaction CRUD + monthly grouping), Reports feature (Heatmap + Donut charts), and Settings (Theme/Locale). The app will be built using strict MVVM architecture with Riverpod for state management and Drift (SQLite) for persistence.
 
 ## Technical Context
 
