@@ -5,7 +5,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-configure<com.android.build.api.dsl.ApplicationExtension> {
+android {
     namespace = "com.example.feather_ledger"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion

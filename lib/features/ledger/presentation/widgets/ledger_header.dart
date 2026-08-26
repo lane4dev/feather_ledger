@@ -124,13 +124,9 @@ class LedgerCompactBalance extends ConsumerWidget {
         showBalance ? summary.displayBalance : '******',
         style: AppTypography.amount(context),
       ),
-      loading: () => Container(
-        width: 60,
-        height: 16,
-        decoration: BoxDecoration(
-          color: LedgerTheme.skeletonFill(context),
-          borderRadius: context.metrics.chipBorderRadius,
-        ),
+      loading: () => Text(
+        showBalance ? '—' : '******',
+        style: AppTypography.amount(context),
       ),
       error: (_, __) => const SizedBox(),
     );
@@ -196,9 +192,7 @@ class _BalanceSummary extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
-    return AppCard(
-      child: summaryAsync.when(
-        data: (summary) => Column(
+    Widget summaryContent(MonthlySummaryUiModel? summary) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -217,7 +211,8 @@ class _BalanceSummary extends ConsumerWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
-              child: Text(showBalance ? summary.displayBalance : '******',
+              child: Text(
+                  showBalance ? summary?.displayBalance ?? '—' : '******',
                   style: AppTypography.balance(context)),
             ),
             SizedBox(height: context.spacing.md),
@@ -227,7 +222,7 @@ class _BalanceSummary extends ConsumerWidget {
                       alignment: AlignmentDirectional.centerStart,
                       child: _IncomeExpenseCompact(
                         label: l10n.income,
-                        displayAmount: summary.displayIncome,
+                        displayAmount: summary?.displayIncome ?? '—',
                         color: context.colors.income,
                         icon: LucideIcons.arrowDown,
                         showBalance: showBalance,
@@ -238,19 +233,18 @@ class _BalanceSummary extends ConsumerWidget {
                       alignment: AlignmentDirectional.centerEnd,
                       child: _IncomeExpenseCompact(
                         label: l10n.expense,
-                        displayAmount: summary.displayExpense,
+                        displayAmount: summary?.displayExpense ?? '—',
                         color: context.colors.expense,
                         icon: LucideIcons.arrowUp,
                         showBalance: showBalance,
                       ))),
             ]),
           ],
-        ),
-        loading: () => SizedBox(
-            height: context.spacing.xl * 4,
-            child: Center(
-                child: LinearProgressIndicator(
-                    color: Theme.of(context).colorScheme.outlineVariant))),
+        );
+    return AppCard(
+      child: summaryAsync.when(
+        data: summaryContent,
+        loading: () => summaryContent(null),
         error: (error, _) => Text(l10n.errorPrefix('$error')),
       ),
     );

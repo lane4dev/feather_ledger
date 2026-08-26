@@ -19,18 +19,12 @@ class LedgerScreen extends ConsumerStatefulWidget {
 }
 
 class _LedgerScreenState extends ConsumerState<LedgerScreen> {
-  final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController(
     initialPage: _getIndex(DateTime.now()),
   );
 
-  bool _isCollapsed = false;
-  static const double _kExpandedHeight = 280.0;
-
-  double get _expandedHeight {
-    final scaled = MediaQuery.textScalerOf(context).scale(120);
-    return _kExpandedHeight + (scaled > 120 ? scaled - 120 : 0);
-  }
+  int _monthNavigation = 0;
+  bool _programmaticMonthChange = false;
 
   // Base date for PageView index mapping
   static final DateTime _baseDate = DateTime(2000, 1);
@@ -46,8 +40,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-
     // Synchronize initial page with selected date if different
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final selectedDate = ref.read(ledgerViewModelProvider).selectedDate;
@@ -61,52 +53,39 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    // With NestedScrollView, the outer controller monitors the header
-    // expansion — and its offset stops exactly where the header is done
-    // collapsing, which is why that boundary is a named function.
-    final isCollapsed = _scrollController.hasClients &&
-        isHeaderCollapsed(_scrollController.offset, _expandedHeight);
-
-    if (isCollapsed != _isCollapsed) {
-      setState(() {
-        _isCollapsed = isCollapsed;
-      });
-    }
   }
 
   Future<void> _goToMonth(DateTime date) async {
     final current = ref.read(ledgerViewModelProvider).selectedDate;
     if (current.year == date.year && current.month == date.month) return;
 
-    // Update state
+    final navigation = ++_monthNavigation;
+    _programmaticMonthChange = true;
     ref.read(ledgerViewModelProvider.notifier).setMonth(date);
 
-    // Animate PageView
-    if (_pageController.hasClients) {
-      final targetPage = _getIndex(date);
-      if ((_pageController.page?.round() ?? 0) != targetPage) {
-        await _pageController.animateToPage(
-          targetPage,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+    try {
+      if (_pageController.hasClients) {
+        final targetPage = _getIndex(date);
+        final currentPage = _pageController.page?.round() ?? targetPage;
+        if (currentPage != targetPage) {
+          await _pageController.animateToPage(
+            targetPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
       }
-    }
-
-    // Scroll to top to expand header
-    if (_scrollController.hasClients) {
-      await _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+    } finally {
+      if (mounted && navigation == _monthNavigation) {
+        _programmaticMonthChange = false;
+        if (_pageController.hasClients && _pageController.page != null) {
+          ref.read(ledgerViewModelProvider.notifier).setMonth(
+                _getDate(_pageController.page!.round()),
+              );
+        }
+      }
     }
   }
 
@@ -125,11 +104,21 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   @override
   Widget build(BuildContext context) {
     final ledgerState = ref.watch(ledgerViewModelProvider);
-    final selectedDate = ledgerState.selectedDate;
+    final selectedDate =
+        DateTime(ledgerState.selectedDate.year, ledgerState.selectedDate.month);
     // The month's figures are the provider's business, not the view model's:
     // both the month and the ledger's currency feed them, and only Riverpod
     // sees both. See [ledgerMonthlySummaryProvider].
-    final summaryAsync = ref.watch(ledgerMonthlySummaryProvider(selectedDate));
+    // Keep just the neighbouring months subscribed while this screen is open.
+    // All three still react to ledger and currency changes normally.
+    ref.listen(
+        ledgerMonthlySummaryProvider(
+            DateTime(selectedDate.year, selectedDate.month - 1)),
+        (_, __) {});
+    ref.listen(
+        ledgerMonthlySummaryProvider(
+            DateTime(selectedDate.year, selectedDate.month + 1)),
+        (_, __) {});
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -138,65 +127,27 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final currency = ref.watch(displayCurrencySymbolProvider);
 
     return Scaffold(
-      body: NestedScrollView(
-        controller: _scrollController,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverOverlapAbsorber(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              sliver: SliverAppBar(
-                pinned: true,
-                expandedHeight: _expandedHeight,
-                forceElevated: innerBoxIsScrolled,
-                // The FAB goes straight to the form, which carries all three
-                // kinds — a transfer is one tap away on its type selector, so
-                // it needs no separate entry point here.
-                actions: [
-                  AppIconButton(
-                    icon: const Icon(LucideIcons.search),
-                    tooltip: l10n.searchHint,
-                    onPressed: () => context.push('/ledger/search'),
-                  ),
-                ],
-                // The month sits here, in the toolbar, so it shares a centre
-                // line with the search action; once collapsed the balance
-                // joins it. See [LedgerAppBarTitle].
-                title: LedgerAppBarTitle(
-                  selectedDate: selectedDate,
-                  summaryAsync: summaryAsync,
-                  collapsed: _isCollapsed,
-                  onMonthChanged: _goToMonth,
-                  onMonthTap: () => _onMonthTap(selectedDate),
-                ),
-                // Expanded Content (FlexibleSpace)
-                flexibleSpace: FlexibleSpaceBar(
-                  background: SafeArea(
-                    child: LedgerHeader(summaryAsync: summaryAsync),
-                  ),
-                ),
-              ),
-            ),
-          ];
+      body: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          if (_programmaticMonthChange) return;
+          final date = _getDate(index);
+          final current = ref.read(ledgerViewModelProvider).selectedDate;
+          if (current.year != date.year || current.month != date.month) {
+            ref.read(ledgerViewModelProvider.notifier).setMonth(date);
+          }
         },
-        body: PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) {
-            final date = _getDate(index);
-            final current = ref.read(ledgerViewModelProvider).selectedDate;
-            if (current.year != date.year || current.month != date.month) {
-              ref.read(ledgerViewModelProvider.notifier).setMonth(date);
-            }
-          },
-          itemBuilder: (context, index) {
-            final month = _getDate(index);
-            return LedgerTransactionList(
-              key: ValueKey(month),
-              month: month,
-              currency: currency,
-              l10n: l10n,
-            );
-          },
-        ),
+        itemBuilder: (context, index) {
+          final month = _getDate(index);
+          return _LedgerMonthPage(
+            key: ValueKey(month),
+            month: month,
+            currency: currency,
+            l10n: l10n,
+            onMonthChanged: _goToMonth,
+            onMonthTap: () => _onMonthTap(month),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -204,6 +155,92 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         },
         child: const Icon(LucideIcons.plus),
       ),
+    );
+  }
+}
+
+class _LedgerMonthPage extends ConsumerStatefulWidget {
+  const _LedgerMonthPage(
+      {super.key,
+      required this.month,
+      required this.currency,
+      required this.l10n,
+      required this.onMonthChanged,
+      required this.onMonthTap});
+
+  final DateTime month;
+  final String currency;
+  final AppLocalizations l10n;
+  final ValueChanged<DateTime> onMonthChanged;
+  final VoidCallback onMonthTap;
+
+  @override
+  ConsumerState<_LedgerMonthPage> createState() => _LedgerMonthPageState();
+}
+
+class _LedgerMonthPageState extends ConsumerState<_LedgerMonthPage> {
+  final _scrollController = ScrollController();
+  bool _isCollapsed = false;
+  static const double _baseExpandedHeight = 280;
+
+  double get _expandedHeight {
+    final scaled = MediaQuery.textScalerOf(context).scale(120);
+    return _baseExpandedHeight + (scaled > 120 ? scaled - 120 : 0);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final collapsed = _scrollController.hasClients &&
+        isHeaderCollapsed(_scrollController.offset, _expandedHeight);
+    if (collapsed != _isCollapsed) setState(() => _isCollapsed = collapsed);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = ref.watch(ledgerMonthlySummaryProvider(widget.month));
+    return NestedScrollView(
+      controller: _scrollController,
+      headerSliverBuilder: (context, innerBoxIsScrolled) => [
+        SliverOverlapAbsorber(
+          handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          sliver: SliverAppBar(
+            pinned: true,
+            expandedHeight: _expandedHeight,
+            forceElevated: innerBoxIsScrolled,
+            actions: [
+              AppIconButton(
+                icon: const Icon(LucideIcons.search),
+                tooltip: widget.l10n.searchHint,
+                onPressed: () => context.push('/ledger/search'),
+              ),
+            ],
+            title: LedgerAppBarTitle(
+              selectedDate: widget.month,
+              summaryAsync: summary,
+              collapsed: _isCollapsed,
+              onMonthChanged: widget.onMonthChanged,
+              onMonthTap: widget.onMonthTap,
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: SafeArea(child: LedgerHeader(summaryAsync: summary)),
+            ),
+          ),
+        ),
+      ],
+      body: LedgerTransactionList(
+          month: widget.month, currency: widget.currency, l10n: widget.l10n),
     );
   }
 }

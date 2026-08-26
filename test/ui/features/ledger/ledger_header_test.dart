@@ -96,6 +96,21 @@ void main() {
   });
 
   group('once collapsed', () {
+    testWidgets('keeps the month and masks the amount while loading',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        LedgerAppBarTitle(
+          selectedDate: DateTime(2026, 11),
+          summaryAsync: const AsyncLoading(),
+          collapsed: true,
+        ),
+        showBalance: false,
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Nov 2026'), findsOneWidget);
+      expect(find.text('******'), findsOneWidget);
+    });
+
     Future<void> pump(WidgetTester tester, {bool showBalance = true}) async {
       await tester.pumpWidget(wrap(
         LedgerAppBarTitle(
