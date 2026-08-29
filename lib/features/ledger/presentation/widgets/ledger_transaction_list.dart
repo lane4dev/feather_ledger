@@ -11,17 +11,22 @@ import '../view_model/ledger_view_model.dart';
 import 'ledger_empty.dart';
 import 'ledger_skeleton.dart';
 import 'ledger_timeline.dart';
+import 'ledger_header.dart';
 
 class LedgerTransactionList extends ConsumerWidget {
   final DateTime month;
   final String currency;
   final AppLocalizations l10n;
+  final ScrollController controller;
+  final double headerHeight;
 
   const LedgerTransactionList({
     super.key,
     required this.month,
     required this.currency,
     required this.l10n,
+    required this.controller,
+    required this.headerHeight,
   });
 
   @override
@@ -33,10 +38,15 @@ class LedgerTransactionList extends ConsumerWidget {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: CustomScrollView(
-        // NestedScrollView injects the PrimaryScrollController
+        controller: controller,
+        key: PageStorageKey(month),
         slivers: [
-          SliverOverlapInjector(
-            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: headerHeight,
+              child: LedgerHeader(
+                  summaryAsync: ref.watch(ledgerMonthlySummaryProvider(month))),
+            ),
           ),
           transactionsAsync.when(
             data: (days) {
@@ -48,8 +58,6 @@ class LedgerTransactionList extends ConsumerWidget {
               }
               return LedgerTimeline(
                 days: days,
-                overlapHandle:
-                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 currencySymbol: currency,
                 onTransactionTap: (tx) {
                   // Pending bills retain their own post/edit/delete flow.
