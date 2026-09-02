@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
+
+/// Notifies the app shell when the ledger moves to another month.
+class LedgerMonthChangedNotification extends Notification {
+  const LedgerMonthChangedNotification();
+}
 
 class LedgerScreen extends ConsumerStatefulWidget {
   const LedgerScreen({super.key});
@@ -74,6 +80,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final current = ref.read(ledgerViewModelProvider).selectedDate;
     if (current.year == date.year && current.month == date.month) return;
 
+    const LedgerMonthChangedNotification().dispatch(context);
     final navigation = ++_monthNavigation;
     _programmaticMonthChange = true;
     ref.read(ledgerViewModelProvider.notifier).setMonth(date);
@@ -189,6 +196,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
               final current = ref.read(ledgerViewModelProvider).selectedDate;
               if (current.year != date.year || current.month != date.month) {
                 ref.read(ledgerViewModelProvider.notifier).setMonth(date);
+                const LedgerMonthChangedNotification().dispatch(context);
               }
               _syncHeader(date, headerHeight);
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -216,6 +224,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
           )),
         ],
       ),
+      floatingActionButtonLocation: AppFloatingActionButtonLocation(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.push('/ledger/add');

@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -68,7 +69,9 @@ class AccountManagementScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text(l10n.errorPrefix(e.toString()))),
       ),
+      floatingActionButtonLocation: AppFloatingActionButtonLocation(context),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () => _showAccountSheet(context, null),
         child: const Icon(LucideIcons.plus),
       ),

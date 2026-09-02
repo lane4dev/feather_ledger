@@ -88,6 +88,11 @@ class LedgerTransactionList extends ConsumerWidget {
               child: Center(child: Text(l10n.errorPrefix('$e'))),
             ),
           ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+                height: (NavigationBarTheme.of(context).height ?? 80) +
+                    MediaQuery.viewPaddingOf(context).bottom),
+          ),
         ],
       ),
     );

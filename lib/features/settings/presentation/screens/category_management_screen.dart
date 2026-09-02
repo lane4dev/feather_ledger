@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -63,7 +64,9 @@ class _CategoryManagementScreenState
           CategoryList(type: CategoryType.income), // Removed prefix
         ],
       ),
+      floatingActionButtonLocation: AppFloatingActionButtonLocation(context),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () {
           final type = _tabController.index == 0
               ? CategoryType.expense // Removed prefix
