@@ -1,3 +1,16 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+  errors:
+    # Category icons are user-defined code points stored in the DB, so
+    # IconData(codePoint) is legitimately never const in this app.
+    non_const_argument_for_const_parameter: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:
@@ -26,7 +39,6 @@ linter:
     - prefer_const_constructors
     - prefer_const_declarations
     - prefer_contains
-    - prefer_equal_for_default_values
     - prefer_final_fields
     - prefer_for_elements_to_map_fromIterable
     - prefer_generic_function_type_aliases
