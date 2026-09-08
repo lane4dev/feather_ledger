@@ -1,59 +1,74 @@
 import 'package:uuid/uuid.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/core/domain/entities/account.dart';
-import 'package:feather_ledger/core/data/repositories/account_repository.dart';
-import 'package:feather_ledger/core/data/repositories/event_repository.dart';
-
-import '../../../../core/domain/events/account_event.dart';
+import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
+import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
+import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
+import 'package:feather_ledger/features/ledger/data/projections/ledger_projector.dart';
+import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
+import 'package:feather_ledger/features/ledger/domain/projections/ledger_projection.dart';
 
 part 'create_account_command.g.dart';
 
+/// Creates an account via `AccountCreated` (+ `OpeningBalanceSet` when the
+/// initial balance is non-zero), projected in the same append transaction
+/// (spec 003, US3/T027). The currency defaults to the global setting —
+/// callers pass the effective currency code.
 class CreateAccountCommand {
-  final EventRepository _eventRepository;
-  final AccountRepository _accountRepository;
+  final EventStore _eventStore;
+  final LedgerProjector _projector;
 
-  CreateAccountCommand(this._eventRepository, this._accountRepository);
+  CreateAccountCommand(this._eventStore, this._projector);
 
   Future<void> execute({
+    required String commandId,
     required String name,
     required AccountType type,
-    required double initialBalance,
+    required int initialBalanceMinor,
+    required String currencyCode,
   }) async {
     final accountId = const Uuid().v4();
-    final event = AccountCreated(
-      eventId: const Uuid().v4(),
-      occurredAt: DateTime.now(),
-      recordedAt: DateTime.now(),
+    final created = AccountCreated(
       accountId: accountId,
       name: name,
       type: type,
-      initialBalance: (initialBalance * 100).toInt(),
+      currencyCode: currencyCode,
     );
 
-    await _eventRepository.appendEvent(event);
+    final envelopes = <EventEnvelope>[
+      envelopeFor(
+        created,
+        aggregateType: AggregateType.account,
+        streamVersion: 0,
+        commandId: commandId,
+        eventId: const Uuid().v4(),
+      ),
+      if (initialBalanceMinor != 0)
+        envelopeFor(
+          OpeningBalanceSet(
+            accountId: accountId,
+            amountMinor: initialBalanceMinor,
+            currencyCode: currencyCode,
+          ),
+          aggregateType: AggregateType.account,
+          streamVersion: 1,
+          commandId: commandId,
+          eventId: const Uuid().v4(),
+        ),
+    ];
 
-    // Update read model
-    await _accountRepository.addAccount(AccountEntity(
-      id: event.accountId,
-      name: event.name,
-      type: event.type,
-      postedBalance: event.initialBalance,
-      availableBalance: event.initialBalance,
-      // Temporarily using 0 for lastUpdatedEventId.
-      // This should ideally be the GSN from the event store.
-      // This needs further clarification on how to get GSN from EventRepository.
-      lastUpdatedEventId: 0,
-    ));
+    await _eventStore.append(
+      envelopes,
+      options: AppendOptions(apply: _projector.applyAll),
+    );
   }
 }
 
 @riverpod
 CreateAccountCommand createAccountCommand(Ref ref) {
   return CreateAccountCommand(
-    ref.watch(eventRepositoryProvider),
-    ref.watch(accountRepositoryProvider),
+    ref.watch(driftEventStoreProvider),
+    ref.watch(ledgerProjectorProvider),
   );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 class AccountTile extends StatelessWidget {
   final AccountEntity account;
@@ -29,7 +30,7 @@ class AccountTile extends StatelessWidget {
         style: Theme.of(context).textTheme.bodySmall,
       ),
       trailing: Text(
-        '$currencySymbol${(account.postedBalance / 100.0).toStringAsFixed(2)}',
+        '$currencySymbol${formatMinor(account.balanceMinor)}',
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       onTap: onTap,

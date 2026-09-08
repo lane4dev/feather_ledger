@@ -52,15 +52,15 @@ class _CategoryManagementScreenState
       body: TabBarView(
         controller: _tabController,
         children: const [
-          CategoryList(type: TransactionType.expense), // Removed prefix
-          CategoryList(type: TransactionType.income), // Removed prefix
+          CategoryList(type: CategoryType.expense), // Removed prefix
+          CategoryList(type: CategoryType.income), // Removed prefix
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final type = _tabController.index == 0
-              ? TransactionType.expense // Removed prefix
-              : TransactionType.income; // Removed prefix
+              ? CategoryType.expense // Removed prefix
+              : CategoryType.income; // Removed prefix
           _showCategorySheet(context, null, type);
         },
         child: const Icon(Icons.add),
@@ -69,7 +69,7 @@ class _CategoryManagementScreenState
   }
 
   void _showCategorySheet(
-      BuildContext context, CategoryEntity? category, TransactionType type) {
+      BuildContext context, CategoryEntity? category, CategoryType type) {
     // Removed prefix
     showModalBottomSheet(
       context: context,
@@ -82,7 +82,7 @@ class _CategoryManagementScreenState
 }
 
 class CategoryList extends ConsumerWidget {
-  final TransactionType type; // Removed prefix
+  final CategoryType type; // Removed prefix
 
   const CategoryList({super.key, required this.type});
 
@@ -113,7 +113,7 @@ class CategoryList extends ConsumerWidget {
   }
 
   void _showCategorySheet(
-      BuildContext context, CategoryEntity? category, TransactionType type) {
+      BuildContext context, CategoryEntity? category, CategoryType type) {
     // Removed prefix
     showModalBottomSheet(
       context: context,

@@ -18,7 +18,7 @@ class AccountManagementScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accountsAsync = ref.watch(accountListProvider);
     final currencyKey =
-        ref.watch(currencyControllerProvider).valueOrNull ?? '\$';
+        ref.watch(currencyControllerProvider).value ?? '\$';
     final currency = AppCurrencies.getSymbol(currencyKey);
 
     return Scaffold(

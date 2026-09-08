@@ -6,22 +6,46 @@ part of 'account_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$accountServiceHash() => r'e3c24fd211cb43c6779cbbf797d113e53b4000df';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [accountService].
 @ProviderFor(accountService)
-final accountServiceProvider = AutoDisposeProvider<AccountService>.internal(
-  accountService,
-  name: r'accountServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$accountServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final accountServiceProvider = AccountServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AccountServiceRef = AutoDisposeProviderRef<AccountService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class AccountServiceProvider
+    extends $FunctionalProvider<AccountService, AccountService, AccountService>
+    with $Provider<AccountService> {
+  AccountServiceProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'accountServiceProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$accountServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<AccountService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AccountService create(Ref ref) {
+    return accountService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AccountService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AccountService>(value),
+    );
+  }
+}
+
+String _$accountServiceHash() => r'2513d4692af937c2f7fd72b0e3f03f0efbe287a7';
