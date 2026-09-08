@@ -1,8 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
+import 'package:feather_ledger/core/data/database/daos/reports_dao.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
@@ -13,14 +12,16 @@ export '../../domain/repositories/reports_repository.dart';
 
 part 'reports_repository.g.dart';
 
+/// Report reads go through the snapshot and projection DAOs only (spec 003,
+/// US9/T064): no live category joins, no double totals, no independent
+/// balance arithmetic.
 class ReportsRepositoryImpl implements ReportsRepository {
-  final TransactionsDao _dao;
+  final ReportsDao _dao;
 
   ReportsRepositoryImpl(this._dao);
 
   @override
   Stream<Map<DateTime, int>> watchHeatmapData(DateTime month) {
-    // Original implementation was counts, keeping for compatibility if available
     return _dao.watchDailyTransactionAmounts(month);
   }
 
@@ -31,27 +32,38 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
   @override
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
-      DateTime month, TransactionType type) {
-    return _dao.watchCategoryTotals(month, type).map((rows) {
+      DateTime month, CategoryType type) {
+    return _dao.watchCategoryBreakdown(month, type).map((rows) {
       return rows.map((row) {
         return ReportCategoryTotal(
+          // Write-time snapshot: history keeps rendering archived (or
+          // renamed) categories exactly as recorded.
           category: CategoryEntity(
-            id: row.category.id,
-            name: row.category.name,
-            iconKey: row.category.iconKey,
-            colorInt: row.category.colorInt,
-            type: row.category.type,
-            isDefault: row.category.isDefault,
+            id: row.categoryId,
+            name: row.name,
+            iconKey: row.iconKey,
+            colorInt: int.parse(row.colorHex, radix: 16),
+            type: type,
           ),
-          total: row.total / 100.0,
+          totalMinor: row.totalMinor,
         );
       }).toList();
     });
+  }
+
+  @override
+  Stream<ReportMonthlyTotals> watchMonthlyTotals(DateTime month,
+      {String currencyCode = 'USD'}) {
+    return _dao.watchMonthlyTotals(month, currencyCode: currencyCode).map((row) => ReportMonthlyTotals(
+          incomeMinor: row.incomeMinor,
+          expenseMinor: row.expenseMinor,
+          balanceMinor: row.balanceMinor,
+        ));
   }
 }
 
 @riverpod
 ReportsRepository reportsRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
-  return ReportsRepositoryImpl(db.transactionsDao);
+  return ReportsRepositoryImpl(db.reportsDao);
 }
