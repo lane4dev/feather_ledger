@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart'; // New import
@@ -25,7 +24,7 @@ class GetScheduledTransactionQuery {
       id: scheduledRow.id,
       seriesId: scheduledRow.seriesId,
       date: scheduledRow.date,
-      amount: scheduledRow.amount / 100.0,
+      amountMinor: scheduledRow.amountMinor,
       status: ScheduledTransactionStatus.values.firstWhere(
           (e) => e.toString().split('.').last == scheduledRow.status),
       transactionId: scheduledRow.transactionId,
@@ -34,7 +33,7 @@ class GetScheduledTransactionQuery {
         description: seriesRow.description,
         startDate: seriesRow.startDate,
         endDate: seriesRow.endDate,
-        amount: seriesRow.amount / 100.0,
+        amountMinor: seriesRow.amountMinor,
         categoryId: seriesRow.categoryId,
         accountId: seriesRow.accountId,
         type: seriesRow.type,

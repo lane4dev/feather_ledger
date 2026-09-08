@@ -6,24 +6,49 @@ part of 'recurring_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(recurringRepository)
+final recurringRepositoryProvider = RecurringRepositoryProvider._();
+
+final class RecurringRepositoryProvider extends $FunctionalProvider<
+    RecurringRepository,
+    RecurringRepository,
+    RecurringRepository> with $Provider<RecurringRepository> {
+  RecurringRepositoryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'recurringRepositoryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$recurringRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<RecurringRepository> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RecurringRepository create(Ref ref) {
+    return recurringRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RecurringRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RecurringRepository>(value),
+    );
+  }
+}
+
 String _$recurringRepositoryHash() =>
     r'de418fc8af53a0a9d3cf62a8e67858ac70713a10';
-
-/// See also [recurringRepository].
-@ProviderFor(recurringRepository)
-final recurringRepositoryProvider =
-    AutoDisposeProvider<RecurringRepository>.internal(
-  recurringRepository,
-  name: r'recurringRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$recurringRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef RecurringRepositoryRef = AutoDisposeProviderRef<RecurringRepository>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

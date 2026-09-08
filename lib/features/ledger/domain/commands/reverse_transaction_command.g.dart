@@ -6,25 +6,49 @@ part of 'reverse_transaction_command.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$reverseTransactionCommandHash() =>
-    r'd251c1c27c8e352fd33f6ae49fec04ccfcccf637';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [reverseTransactionCommand].
 @ProviderFor(reverseTransactionCommand)
-final reverseTransactionCommandProvider =
-    AutoDisposeProvider<ReverseTransactionCommand>.internal(
-  reverseTransactionCommand,
-  name: r'reverseTransactionCommandProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$reverseTransactionCommandHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final reverseTransactionCommandProvider = ReverseTransactionCommandProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ReverseTransactionCommandRef
-    = AutoDisposeProviderRef<ReverseTransactionCommand>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class ReverseTransactionCommandProvider extends $FunctionalProvider<
+    ReverseTransactionCommand,
+    ReverseTransactionCommand,
+    ReverseTransactionCommand> with $Provider<ReverseTransactionCommand> {
+  ReverseTransactionCommandProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'reverseTransactionCommandProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$reverseTransactionCommandHash();
+
+  @$internal
+  @override
+  $ProviderElement<ReverseTransactionCommand> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ReverseTransactionCommand create(Ref ref) {
+    return reverseTransactionCommand(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ReverseTransactionCommand value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ReverseTransactionCommand>(value),
+    );
+  }
+}
+
+String _$reverseTransactionCommandHash() =>
+    r'6644b7a4a17ad97f5a2f34e6d7a5efff4dd94b17';

@@ -6,22 +6,47 @@ part of 'ledger_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$ledgerRepositoryHash() => r'ebdce498c3581a4e4ec4e2ce04a99bb38041d30c';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [ledgerRepository].
 @ProviderFor(ledgerRepository)
-final ledgerRepositoryProvider = Provider<LedgerRepository>.internal(
-  ledgerRepository,
-  name: r'ledgerRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$ledgerRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final ledgerRepositoryProvider = LedgerRepositoryProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LedgerRepositoryRef = ProviderRef<LedgerRepository>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class LedgerRepositoryProvider extends $FunctionalProvider<
+    LedgerRepository,
+    LedgerRepository,
+    LedgerRepository> with $Provider<LedgerRepository> {
+  LedgerRepositoryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'ledgerRepositoryProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$ledgerRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<LedgerRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  LedgerRepository create(Ref ref) {
+    return ledgerRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LedgerRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LedgerRepository>(value),
+    );
+  }
+}
+
+String _$ledgerRepositoryHash() => r'ebdce498c3581a4e4ec4e2ce04a99bb38041d30c';

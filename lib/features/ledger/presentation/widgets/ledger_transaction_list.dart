@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import 'transaction_detail_sheet.dart';
 import '../view_model/ledger_view_model.dart';
@@ -85,14 +87,15 @@ class LedgerTransactionList extends ConsumerWidget {
 
                         if (confirmed == true && context.mounted) {
                           Navigator.of(context).pop(); // Close sheet
-                          try {
-                            await ref
-                                .read(ledgerViewModelProvider.notifier)
-                                .deleteTransaction(tx.id);
-                          } catch (e) {
+                          final result = await ref
+                              .read(ledgerViewModelProvider.notifier)
+                              .deleteTransaction(tx.id);
+                          if (result case final Failure<void> failure) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(
+                                    content: Text(
+                                        failure.code.message(l10n))),
                               );
                             }
                           }

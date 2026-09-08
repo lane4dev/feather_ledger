@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -10,7 +9,6 @@ import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
 import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/value_objects/monthly_summary.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/ledger_repository.dart';
 
 export 'package:feather_ledger/features/ledger/domain/repositories/ledger_repository.dart';
@@ -27,114 +25,97 @@ class LedgerRepositoryImpl implements LedgerRepository {
   );
 
   @override
-  Stream<MonthlySummary> watchMonthlySummary(DateTime datetime) {
-    final monthEnd = DateTime(datetime.year, datetime.month + 1, 0, 23, 59, 59);
-
-    return _transactionsDao
-        .watchMonthlyTotals(datetime)
-        .asyncMap((totals) async {
-      final runningBalanceCents =
-          await _transactionsDao.getRunningBalance(monthEnd);
-
-      return MonthlySummary(
-        datetime: datetime,
-        totalIncome: totals['income'] ?? 0,
-        totalExpense: totals['expense'] ?? 0,
-        runningBalance: runningBalanceCents / 100.0,
-      );
-    });
-  }
-
-  @override
   Stream<List<TransactionEntity>> watchTransactions(DateTime datetime) {
     return _transactionsDao.watchTransactionsByMonth(datetime).map((rows) {
-      return rows.map((row) {
-        return TransactionEntity(
-          id: row.transaction.transactionId,
-          amount: row.transaction.amount,
-          type: row.category.type == TransactionType.income
-              ? TransactionType.income
-              : TransactionType.expense,
-          date: row.transaction.date,
-          note: row.transaction.description,
-          category: CategoryEntity(
-            id: row.category.id,
-            name: row.category.name,
-            iconKey: row.category.iconKey,
-            colorInt: row.category.colorInt,
-            type: row.category.type,
-            isDefault: row.category.isDefault,
-          ),
-          account: AccountEntity(
-            id: row.account.id,
-            name: row.account.name,
-            type: row.account.type,
-            postedBalance: row.account.postedBalance,
-            availableBalance: row.account.availableBalance,
-            lastUpdatedEventId: row.account.lastUpdatedEventId,
-          ),
-          isReversed: row.transaction.isReversed,
-          eventId: row.transaction.originalEventId,
-        );
-      }).toList();
+      return _toTransactionEntities(rows);
     });
   }
 
   @override
   Future<TransactionEntity?> getTransaction(String transactionId) async {
-    final row = await _transactionsDao.getTransaction(transactionId);
-    if (row == null) return null;
+    final rows = await _transactionsDao.getTransactionRows(transactionId);
+    if (rows.isEmpty) return null;
+    return _toTransactionEntities(rows).single;
+  }
 
+  /// Aggregates the posting-level join rows into one entity per
+  /// transaction: a transfer's two postings collapse into a single row
+  /// (spec 003, US5/T042).
+  List<TransactionEntity> _toTransactionEntities(
+      List<TransactionWithDetails> rows) {
+    final grouped = <String, List<TransactionWithDetails>>{};
+    for (final row in rows) {
+      grouped
+          .putIfAbsent(row.transaction.transactionId, () => [])
+          .add(row);
+    }
+    return grouped.values.map(_toTransactionEntity).toList();
+  }
+
+  TransactionEntity _toTransactionEntity(List<TransactionWithDetails> rows) {
+    final tx = rows.first.transaction;
+    final posting = rows.first.posting;
+    final categoryType = tx.kind == TransactionKind.income
+        ? CategoryType.income
+        : CategoryType.expense;
+    final category = CategoryEntity(
+      id: posting.categoryId ?? '',
+      // Write-time snapshot (T033/T037): history renders the archived
+      // category without joining the live row. Transfers have no category.
+      name: tx.categoryName ?? '',
+      iconKey: tx.categoryIcon ?? '',
+      colorInt: tx.categoryColorInt == null
+          ? 0
+          : int.parse(tx.categoryColorInt!, radix: 16),
+      type: categoryType,
+    );
+
+    AccountEntity? toAccount;
+    var amount = postingSignedImpact(posting);
+    if (tx.kind == TransactionKind.transfer) {
+      final debit =
+          rows.firstWhere((r) => r.posting.direction == PostingDirection.debit);
+      final credit = rows
+          .firstWhere((r) => r.posting.direction == PostingDirection.credit);
+      amount = debit.posting.amountMinor; // positive; direction is separate
+      toAccount = _toAccountEntity(credit.account);
+      // The debit side is the "from" account shown as the primary account.
+      return _buildEntity(tx, debit, amount, category, toAccount);
+    }
+
+    return _buildEntity(tx, rows.first, amount, category, null);
+  }
+
+  TransactionEntity _buildEntity(
+    TransactionViewRow tx,
+    TransactionWithDetails row,
+    int amount,
+    CategoryEntity category,
+    AccountEntity? toAccount,
+  ) {
     return TransactionEntity(
-      id: row.transaction.transactionId,
-      amount: row.transaction.amount,
-      type: row.category.type == TransactionType.income
-          ? TransactionType.income
-          : TransactionType.expense,
-      date: row.transaction.date,
-      note: row.transaction.description,
-      category: CategoryEntity(
-        id: row.category.id,
-        name: row.category.name,
-        iconKey: row.category.iconKey,
-        colorInt: row.category.colorInt,
-        type: row.category.type,
-        isDefault: row.category.isDefault,
-      ),
-      account: AccountEntity(
-        id: row.account.id,
-        name: row.account.name,
-        type: row.account.type,
-        postedBalance: row.account.postedBalance,
-        availableBalance: row.account.availableBalance,
-        lastUpdatedEventId: row.account.lastUpdatedEventId,
-      ),
-      isReversed: row.transaction.isReversed,
-      eventId: row.transaction.originalEventId,
+      id: tx.transactionId,
+      amount: amount,
+      type: tx.kind,
+      date: tx.occurredAt,
+      note: tx.description,
+      category: category,
+      account: _toAccountEntity(row.account),
+      toAccount: toAccount,
+      isReversed: tx.isReversed,
+      eventId: tx.originalEventId,
     );
   }
 
-  @override
-  Future<void> insertOrUpdateTransaction(TransactionEntity transaction) async {
-    await _transactionsDao.insertOrReplace(
-      TransactionsViewCompanion(
-          id: Value(transaction.id),
-          transactionId: Value(transaction.id),
-          amount: Value(transaction.amount),
-          date: Value(transaction.date),
-          description: Value(transaction.note ?? ''),
-          categoryId: Value(transaction.category.id),
-          accountId: Value(transaction.account.id),
-          isReversed: Value(transaction.isReversed),
-          originalEventId: Value(transaction.eventId)),
-    );
-  }
-
-  @override
-  Future<void> deleteTransaction(String transactionId) async {
-    // Mark the transaction as reversed
-    await _transactionsDao.markTransactionAsReversed(transactionId);
-  }
+  AccountEntity _toAccountEntity(AccountViewRow row) => AccountEntity(
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        currencyCode: row.currencyCode,
+        balanceMinor: row.balanceMinor,
+        archived: row.archived,
+        lastUpdatedEventId: row.lastUpdatedEventId,
+      );
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() {
@@ -145,7 +126,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         if (seriesRow != null) {
           result.add(ScheduledTransactionEntity(
             id: row.id,
-            amount: row.amount / 100.0,
+            amountMinor: row.amountMinor,
             date: row.date,
             seriesId: row.seriesId,
             status: ScheduledTransactionStatus.values.firstWhere(
@@ -156,7 +137,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
             recurringTransactionSeries: RecurringTransactionSeriesEntity(
               id: seriesRow.id,
               description: seriesRow.description,
-              amount: seriesRow.amount / 100.0,
+              amountMinor: seriesRow.amountMinor,
               type: seriesRow.type,
               categoryId: seriesRow.categoryId,
               accountId: seriesRow.accountId,
@@ -184,7 +165,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
     return ScheduledTransactionEntity(
       id: scheduledRow.id,
-      amount: scheduledRow.amount / 100.0,
+      amountMinor: scheduledRow.amountMinor,
       date: scheduledRow.date,
       seriesId: scheduledRow.seriesId,
       status: ScheduledTransactionStatus.values.firstWhere(
@@ -195,7 +176,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       recurringTransactionSeries: RecurringTransactionSeriesEntity(
         id: seriesRow.id,
         description: seriesRow.description,
-        amount: seriesRow.amount / 100.0,
+        amountMinor: seriesRow.amountMinor,
         type: seriesRow.type,
         categoryId: seriesRow.categoryId,
         accountId: seriesRow.accountId,
@@ -217,7 +198,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
     return RecurringTransactionSeriesEntity(
       id: seriesRow.id,
       description: seriesRow.description,
-      amount: seriesRow.amount / 100.0,
+      amountMinor: seriesRow.amountMinor,
       type: seriesRow.type,
       categoryId: seriesRow.categoryId,
       accountId: seriesRow.accountId,
@@ -236,7 +217,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       return RecurringTransactionSeriesEntity(
         id: seriesRow.id,
         description: seriesRow.description,
-        amount: seriesRow.amount / 100.0,
+        amountMinor: seriesRow.amountMinor,
         type: seriesRow.type,
         categoryId: seriesRow.categoryId,
         accountId: seriesRow.accountId,
@@ -255,7 +236,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
     await _recurringDao.insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion(
         id: Value(scheduled.id),
-        amount: Value((scheduled.amount * 100).toInt()),
+        amountMinor: Value(scheduled.amountMinor),
         date: Value(scheduled.date),
         seriesId: Value(scheduled.seriesId),
         status: Value(scheduled.status.toString().split('.').last),

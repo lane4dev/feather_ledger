@@ -6,6 +6,7 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/sliver_clip_rect.dart';
+import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 import '../theme/ledger_theme.dart';
@@ -64,19 +65,15 @@ class _DayGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Calculate daily totals
-    double totalIncome = 0;
-    double totalExpense = 0;
+    var totalIncomeMinor = 0;
+    var totalExpenseMinor = 0;
     for (var tx in transactions) {
-      if (tx.type == TransactionType.income) {
-        totalIncome += tx.amount.abs();
-      } else if (tx.type == TransactionType.expense) {
-        totalExpense += tx.amount.abs();
+      if (tx.type == TransactionKind.income) {
+        totalIncomeMinor += tx.amount.abs();
+      } else if (tx.type == TransactionKind.expense) {
+        totalExpenseMinor += tx.amount.abs();
       }
     }
-
-    // Convert from cents to dollars
-    totalIncome /= 100.0;
-    totalExpense /= 100.0;
 
     return SliverClipRect(
       sliver: SliverMainAxisGroup(
@@ -97,8 +94,8 @@ class _DayGroup extends StatelessWidget {
             itemBuilder: (context, index) {
               if (index == transactions.length) {
                 return _DailySummary(
-                  income: totalIncome,
-                  expense: totalExpense,
+                  incomeMinor: totalIncomeMinor,
+                  expenseMinor: totalExpenseMinor,
                   currencySymbol: currencySymbol,
                 );
               }
@@ -172,13 +169,13 @@ class _TimeAnchorDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class _DailySummary extends StatelessWidget {
-  final double income;
-  final double expense;
+  final int incomeMinor;
+  final int expenseMinor;
   final String currencySymbol;
 
   const _DailySummary({
-    required this.income,
-    required this.expense,
+    required this.incomeMinor,
+    required this.expenseMinor,
     required this.currencySymbol,
   });
 
@@ -204,13 +201,13 @@ class _DailySummary extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 // Income
-                if (income > 0) ...[
+                if (incomeMinor > 0) ...[
                   Text(
                     '${l10n.income}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
-                    '$currencySymbol${income.toStringAsFixed(2)}',
+                    '$currencySymbol${formatMinor(incomeMinor)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.colors.income,
                           fontWeight: FontWeight.bold,
@@ -218,14 +215,14 @@ class _DailySummary extends StatelessWidget {
                   ),
                 ],
                 // Expense
-                if (expense > 0) ...[
+                if (expenseMinor > 0) ...[
                   SizedBox(width: context.spacing.md),
                   Text(
                     '${l10n.expense}: ',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
-                    '$currencySymbol${expense.toStringAsFixed(2)}',
+                    '$currencySymbol${formatMinor(expenseMinor)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: context.colors.expense,
                           fontWeight: FontWeight.bold,

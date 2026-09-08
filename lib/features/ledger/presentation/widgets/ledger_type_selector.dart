@@ -4,8 +4,8 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 
 class LedgerTypeSelector extends StatelessWidget {
-  final TransactionType selectedType;
-  final ValueChanged<TransactionType> onSelectionChanged;
+  final TransactionKind selectedType;
+  final ValueChanged<TransactionKind> onSelectionChanged;
 
   const LedgerTypeSelector({
     super.key,
@@ -19,19 +19,19 @@ class LedgerTypeSelector extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
-      child: SegmentedButton<TransactionType>(
+      child: SegmentedButton<TransactionKind>(
         segments: [
           ButtonSegment(
-            value: TransactionType.expense,
+            value: TransactionKind.expense,
             label: Text(l10n.expense),
           ),
           ButtonSegment(
-            value: TransactionType.income,
+            value: TransactionKind.income,
             label: Text(l10n.income),
           ),
         ],
         selected: {selectedType},
-        onSelectionChanged: (Set<TransactionType> newSelection) {
+        onSelectionChanged: (Set<TransactionKind> newSelection) {
           onSelectionChanged(newSelection.first);
         },
         showSelectedIcon: false,

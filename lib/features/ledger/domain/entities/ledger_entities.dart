@@ -12,11 +12,16 @@ enum ScheduledTransactionStatus {
 class TransactionEntity {
   final String id;
   final int amount;
-  final TransactionType type;
+  final TransactionKind type;
   final DateTime date;
   final String? note;
   final CategoryEntity category;
+
+  /// Debit-side account (the "from" side for transfers).
   final AccountEntity account;
+
+  /// Credit-side account — set only for kind=transfer (spec 003, US5/T042).
+  final AccountEntity? toAccount;
   final bool isReversed;
   final int eventId;
 
@@ -28,6 +33,7 @@ class TransactionEntity {
     this.note,
     required this.category,
     required this.account,
+    this.toAccount,
     this.isReversed = false,
     required this.eventId,
   });
@@ -35,11 +41,12 @@ class TransactionEntity {
   TransactionEntity copyWith({
     String? id,
     int? amount,
-    TransactionType? type,
+    TransactionKind? type,
     DateTime? date,
     String? note,
     CategoryEntity? category,
     AccountEntity? account,
+    AccountEntity? toAccount,
     bool? isReversed,
     int? eventId,
   }) {
@@ -51,6 +58,7 @@ class TransactionEntity {
       note: note ?? this.note,
       category: category ?? this.category,
       account: account ?? this.account,
+      toAccount: toAccount ?? this.toAccount,
       isReversed: isReversed ?? this.isReversed,
       eventId: eventId ?? this.eventId,
     );
@@ -60,7 +68,7 @@ class TransactionEntity {
 class ScheduledTransactionEntity {
   final String id;
   final String seriesId;
-  final double amount;
+  final int amountMinor;
   final DateTime date;
   final ScheduledTransactionStatus status;
   final String? transactionId;
@@ -69,7 +77,7 @@ class ScheduledTransactionEntity {
   const ScheduledTransactionEntity({
     required this.id,
     required this.seriesId,
-    required this.amount,
+    required this.amountMinor,
     required this.date,
     this.status = ScheduledTransactionStatus.scheduled,
     this.transactionId,
@@ -79,7 +87,7 @@ class ScheduledTransactionEntity {
   ScheduledTransactionEntity copyWith({
     String? id,
     String? seriesId,
-    double? amount,
+    int? amountMinor,
     DateTime? date,
     ScheduledTransactionStatus? status,
     String? transactionId,
@@ -88,7 +96,7 @@ class ScheduledTransactionEntity {
     return ScheduledTransactionEntity(
       id: id ?? this.id,
       seriesId: seriesId ?? this.seriesId,
-      amount: amount ?? this.amount,
+      amountMinor: amountMinor ?? this.amountMinor,
       date: date ?? this.date,
       status: status ?? this.status,
       transactionId: transactionId ?? this.transactionId,
@@ -101,8 +109,8 @@ class ScheduledTransactionEntity {
 class RecurringTransactionSeriesEntity {
   final String id;
   final String description;
-  final double amount;
-  final TransactionType type;
+  final int amountMinor;
+  final TransactionKind type;
   final String categoryId;
   final String accountId;
   final String frequency; // e.g., 'monthly', 'weekly'
@@ -114,7 +122,7 @@ class RecurringTransactionSeriesEntity {
   const RecurringTransactionSeriesEntity({
     required this.id,
     required this.description,
-    required this.amount,
+    required this.amountMinor,
     required this.type,
     required this.categoryId,
     required this.accountId,

@@ -6,25 +6,49 @@ part of 'get_account_balance_query.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(getAccountBalanceQuery)
+final getAccountBalanceQueryProvider = GetAccountBalanceQueryProvider._();
+
+final class GetAccountBalanceQueryProvider extends $FunctionalProvider<
+    GetAccountBalanceQuery,
+    GetAccountBalanceQuery,
+    GetAccountBalanceQuery> with $Provider<GetAccountBalanceQuery> {
+  GetAccountBalanceQueryProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'getAccountBalanceQueryProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$getAccountBalanceQueryHash();
+
+  @$internal
+  @override
+  $ProviderElement<GetAccountBalanceQuery> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GetAccountBalanceQuery create(Ref ref) {
+    return getAccountBalanceQuery(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GetAccountBalanceQuery value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GetAccountBalanceQuery>(value),
+    );
+  }
+}
+
 String _$getAccountBalanceQueryHash() =>
     r'0c246e1c266a05924beb37fcf0ba6c44970b074a';
-
-/// See also [getAccountBalanceQuery].
-@ProviderFor(getAccountBalanceQuery)
-final getAccountBalanceQueryProvider =
-    AutoDisposeProvider<GetAccountBalanceQuery>.internal(
-  getAccountBalanceQuery,
-  name: r'getAccountBalanceQueryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$getAccountBalanceQueryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef GetAccountBalanceQueryRef
-    = AutoDisposeProviderRef<GetAccountBalanceQuery>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/queries/watch_monthly_snapshot_query.dart';
 import '../../domain/value_objects/account_balance.dart';
-import '../../domain/value_objects/monthly_summary.dart';
 
 class LedgerViewState {
   final DateTime selectedDate;
-  final AsyncValue<MonthlySummary> summary;
+  final AsyncValue<MonthlySnapshotTotals> summary;
   final AsyncValue<List<ScheduledTransactionEntity>> scheduledTransactions;
   final Map<String, AsyncValue<AccountBalance>> accountBalances;
 
@@ -29,7 +29,7 @@ class LedgerViewState {
 
   LedgerViewState copyWith({
     DateTime? selectedDate,
-    AsyncValue<MonthlySummary>? summary,
+    AsyncValue<MonthlySnapshotTotals>? summary,
     AsyncValue<List<ScheduledTransactionEntity>>? scheduledTransactions,
     Map<String, AsyncValue<AccountBalance>>? accountBalances,
   }) {
