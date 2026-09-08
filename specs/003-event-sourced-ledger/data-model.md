@@ -1,5 +1,15 @@
 # Data Model: Event-Sourced Ledger
 
+> ⚠️ **迁移前文档（过期标记，T001）**：本 data model 描述迁移前设计，已被已确认规格 [spec.md](spec.md)（2026-09-06 同步）取代，**不可作为实现依据**。过期内容：
+> - **double 金额**：现行与目标代码金额一律 int minor units（分）；规格禁止 double/float 参与任何账务计算。
+> - **旧事件名与 payload**：`TransactionPosted`（legs + outflow/inflow role、signed amount）、`BalanceAdjustmentApplied`（已否决）。终稿九种事件：`AccountCreated` / `AccountRenamed` / `AccountArchived` / `CategoryCreated` / `CategoryRenamed` / `CategoryArchived` / `TransactionRecorded` / `TransactionReversed` / `OpeningBalanceSet`，payload 全为 int minor units，见 spec.md「Event Model / 事件模型」。
+> - **事件信封**：`correlation_id`、`metadata` 列已砍掉。终稿信封含 eventId / streamId / aggregateType / eventType（Dart 类名稳定串，非 runtimeType）/ streamVersion / GSN / payloadJson（内含 schemaVersion）/ occurredAt / recordedAt / commandId，并约束 `unique(streamId, streamVersion)`。
+> - **`accounts_view` 双余额**：`posted_balance` + `available_balance` 已废弃；终稿为单一 `balanceMinor` + `currencyCode` + `archived` + `projection_version`。
+> - **`transactions_view` 逐腿行结构**：终稿拆为 `transactions_view`（transactionId、kind、分类名/图标写时快照）+ `transaction_postings_view`（posting 行，amountMinor 恒正 + direction）。
+> - **`scheduled_transactions_view` 事件投影描述**：终稿中它是 recurring CRUD 豁免表，不参与 rebuild。
+>
+> 表结构终稿见 spec.md「Projection Model / 投影模型」「Snapshot Model / 快照模型」「Command Model / 命令模型」。
+
 **Feature**: `003-event-sourced-ledger`
 
 ## 1. Write Model (The Source of Truth)
