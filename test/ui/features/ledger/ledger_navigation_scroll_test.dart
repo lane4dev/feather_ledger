@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/router/app_router.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -16,6 +18,92 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../support/event_sourcing/ledger_service_harness.dart';
 
 void main() {
+  testWidgets('an empty month cannot scroll or hide navigation',
+      (tester) async {
+    final harness = LedgerServiceHarness();
+    addTearDown(harness.close);
+    final container = ProviderContainer(overrides: [
+      appDatabaseProvider.overrideWithValue(harness.db),
+      accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+      categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+      ledgerMonthlyTransactionsProvider
+          .overrideWith((ref, month) => Stream.value([])),
+      ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+          const MonthlySummaryUiModel(
+              displayBalance: r'$0',
+              displayIncome: r'$0',
+              displayExpense: r'$0'))),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.lightTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales),
+    ));
+    await tester.pumpAndSettle();
+    final list = find.byType(LedgerTransactionList);
+    final controller = tester.widget<LedgerTransactionList>(list).controller;
+    for (final delta in [const Offset(0, -400), const Offset(0, 400)]) {
+      await tester.drag(list, delta);
+      await tester.pumpAndSettle();
+      expect(controller.offset, 0);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    }
+  });
+
+  testWidgets('deleting the last records restores navigation', (tester) async {
+    final harness = LedgerServiceHarness();
+    addTearDown(harness.close);
+    final changes = StreamController<List<LedgerDayGroup>>.broadcast();
+    addTearDown(changes.close);
+    final container = ProviderContainer(overrides: [
+      appDatabaseProvider.overrideWithValue(harness.db),
+      accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+      categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+      ledgerMonthlyTransactionsProvider
+          .overrideWith((ref, month) => changes.stream),
+      ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+          const MonthlySummaryUiModel(
+              displayBalance: r'$0',
+              displayIncome: r'$0',
+              displayExpense: r'$0'))),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+          routerConfig: container.read(goRouterProvider),
+          theme: AppTheme.lightTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales),
+    ));
+    await tester.pump();
+    final now = DateTime.now();
+    changes.add(List.generate(
+        20,
+        (i) => LedgerDayGroup(
+            date: DateTime(now.year, now.month, i + 1),
+            transactions: const [])));
+    await tester.pumpAndSettle();
+    final list = find.byType(LedgerTransactionList);
+    final controller = tester.widget<LedgerTransactionList>(list).controller;
+    await tester.drag(list, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    changes.add([]);
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    await tester.drag(list, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
   testWidgets('management buttons stay in their route during transitions',
       (tester) async {
     final harness = LedgerServiceHarness();

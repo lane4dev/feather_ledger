@@ -33,6 +33,7 @@ class LedgerTransactionList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync =
         ref.watch(ledgerMonthlyTransactionsProvider(month));
+    final isEmpty = transactionsAsync.asData?.value.isEmpty ?? false;
 
     // Wrap in a container with background color to prevent transparency issues during slide
     return Container(
@@ -40,6 +41,7 @@ class LedgerTransactionList extends ConsumerWidget {
       child: CustomScrollView(
         controller: controller,
         key: PageStorageKey(month),
+        physics: isEmpty ? const NeverScrollableScrollPhysics() : null,
         slivers: [
           SliverToBoxAdapter(
             child: SizedBox(
@@ -88,11 +90,12 @@ class LedgerTransactionList extends ConsumerWidget {
               child: Center(child: Text(l10n.errorPrefix('$e'))),
             ),
           ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-                height: (NavigationBarTheme.of(context).height ?? 80) +
-                    MediaQuery.viewPaddingOf(context).bottom),
-          ),
+          if (!isEmpty)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                  height: (NavigationBarTheme.of(context).height ?? 80) +
+                      MediaQuery.viewPaddingOf(context).bottom),
+            ),
         ],
       ),
     );

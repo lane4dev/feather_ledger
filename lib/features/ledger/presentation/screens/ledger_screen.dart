@@ -12,8 +12,13 @@ import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
 
+/// Asks the app shell to reveal its navigation bar.
+class LedgerShowNavigationNotification extends Notification {
+  const LedgerShowNavigationNotification();
+}
+
 /// Notifies the app shell when the ledger moves to another month.
-class LedgerMonthChangedNotification extends Notification {
+class LedgerMonthChangedNotification extends LedgerShowNavigationNotification {
   const LedgerMonthChangedNotification();
 }
 
@@ -33,6 +38,24 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   bool _programmaticMonthChange = false;
   final _monthControllers = <DateTime, ScrollController>{};
   bool _collapsed = false;
+
+  void _resetEmptyMonth(DateTime month) {
+    if (!mounted) return;
+    final selected = ref.read(ledgerViewModelProvider).selectedDate;
+    if (selected.year != month.year ||
+        selected.month != month.month ||
+        ref
+                .read(ledgerMonthlyTransactionsProvider(month))
+                .asData
+                ?.value
+                .isEmpty !=
+            true) return;
+    final controller = _monthControllers[month];
+    if (controller != null && controller.hasClients && controller.offset != 0) {
+      controller.jumpTo(0);
+    }
+    const LedgerShowNavigationNotification().dispatch(context);
+  }
 
   void _syncHeader(DateTime month, double headerHeight) {
     if (!mounted) return;
@@ -126,6 +149,14 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final ledgerState = ref.watch(ledgerViewModelProvider);
     final selectedDate =
         DateTime(ledgerState.selectedDate.year, ledgerState.selectedDate.month);
+    ref.listen(ledgerMonthlyTransactionsProvider(selectedDate),
+        (previous, next) {
+      if (next.asData?.value.isEmpty != true ||
+          previous?.asData?.value.isEmpty == true) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _resetEmptyMonth(selectedDate);
+      });
+    });
     // The month's figures are the provider's business, not the view model's:
     // both the month and the ledger's currency feed them, and only Riverpod
     // sees both. See [ledgerMonthlySummaryProvider].
@@ -188,8 +219,11 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
             onPageChanged: (index) {
               if (_programmaticMonthChange) {
                 final target = ref.read(ledgerViewModelProvider).selectedDate;
-                if (_getIndex(target) == index)
+                if (_getIndex(target) == index) {
                   _syncHeader(_getDate(index), headerHeight);
+                  WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _resetEmptyMonth(_getDate(index)));
+                }
                 return;
               }
               final date = _getDate(index);
@@ -200,7 +234,10 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
               }
               _syncHeader(date, headerHeight);
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _syncHeader(date, headerHeight);
+                if (mounted) {
+                  _resetEmptyMonth(date);
+                  _syncHeader(date, headerHeight);
+                }
               });
             },
             itemBuilder: (context, index) {

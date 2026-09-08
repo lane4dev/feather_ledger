@@ -196,7 +196,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       onPopInvokedWithResult: _handlePopInvokedWithResult,
       child: Scaffold(
         extendBody: widget.navigationShell.currentIndex == 0,
-        body: NotificationListener<LedgerMonthChangedNotification>(
+        body: NotificationListener<LedgerShowNavigationNotification>(
           onNotification: (_) {
             if (!_ledgerNavigationVisible) {
               setState(() => _ledgerNavigationVisible = true);
