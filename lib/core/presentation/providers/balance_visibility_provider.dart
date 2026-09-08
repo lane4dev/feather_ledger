@@ -19,7 +19,7 @@ class BalanceVisibilityController extends _$BalanceVisibilityController {
   }
 
   Future<void> toggle() async {
-    final current = state.valueOrNull ?? true;
+    final current = state.value ?? true;
     await setVisibility(!current);
   }
 }

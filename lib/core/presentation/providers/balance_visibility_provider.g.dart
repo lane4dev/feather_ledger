@@ -6,22 +6,48 @@ part of 'balance_visibility_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$balanceVisibilityControllerHash() =>
-    r'e1b9d30591d1370ec22ec793ed1905f3a361248d';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [BalanceVisibilityController].
 @ProviderFor(BalanceVisibilityController)
-final balanceVisibilityControllerProvider = AutoDisposeAsyncNotifierProvider<
-    BalanceVisibilityController, bool>.internal(
-  BalanceVisibilityController.new,
-  name: r'balanceVisibilityControllerProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$balanceVisibilityControllerHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final balanceVisibilityControllerProvider =
+    BalanceVisibilityControllerProvider._();
 
-typedef _$BalanceVisibilityController = AutoDisposeAsyncNotifier<bool>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class BalanceVisibilityControllerProvider
+    extends $AsyncNotifierProvider<BalanceVisibilityController, bool> {
+  BalanceVisibilityControllerProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'balanceVisibilityControllerProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$balanceVisibilityControllerHash();
+
+  @$internal
+  @override
+  BalanceVisibilityController create() => BalanceVisibilityController();
+}
+
+String _$balanceVisibilityControllerHash() =>
+    r'8d0a0f30e6298e0e53c89a517c81600720e90ccf';
+
+abstract class _$BalanceVisibilityController extends $AsyncNotifier<bool> {
+  FutureOr<bool> build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<bool>, bool>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<bool>, bool>,
+        AsyncValue<bool>,
+        Object?,
+        Object?>;
+    return element.handleCreate(ref, build);
+  }
+}

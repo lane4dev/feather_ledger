@@ -6,157 +6,84 @@ part of 'category_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$categoryListHash() => r'859aa22ca3f051ab49050264d009ef8fe0ece03b';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
-
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-/// See also [categoryList].
 @ProviderFor(categoryList)
-const categoryListProvider = CategoryListFamily();
+final categoryListProvider = CategoryListFamily._();
 
-/// See also [categoryList].
-class CategoryListFamily extends Family<AsyncValue<List<CategoryEntity>>> {
-  /// See also [categoryList].
-  const CategoryListFamily();
-
-  /// See also [categoryList].
-  CategoryListProvider call(
-    TransactionType type,
-  ) {
-    return CategoryListProvider(
-      type,
-    );
-  }
-
-  @override
-  CategoryListProvider getProviderOverride(
-    covariant CategoryListProvider provider,
-  ) {
-    return call(
-      provider.type,
-    );
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'categoryListProvider';
-}
-
-/// See also [categoryList].
-class CategoryListProvider
-    extends AutoDisposeStreamProvider<List<CategoryEntity>> {
-  /// See also [categoryList].
-  CategoryListProvider(
-    TransactionType type,
-  ) : this._internal(
-          (ref) => categoryList(
-            ref as CategoryListRef,
-            type,
-          ),
-          from: categoryListProvider,
+final class CategoryListProvider extends $FunctionalProvider<
+        AsyncValue<List<CategoryEntity>>,
+        List<CategoryEntity>,
+        Stream<List<CategoryEntity>>>
+    with
+        $FutureModifier<List<CategoryEntity>>,
+        $StreamProvider<List<CategoryEntity>> {
+  CategoryListProvider._(
+      {required CategoryListFamily super.from,
+      required CategoryType super.argument})
+      : super(
+          retry: null,
           name: r'categoryListProvider',
-          debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$categoryListHash,
-          dependencies: CategoryListFamily._dependencies,
-          allTransitiveDependencies:
-              CategoryListFamily._allTransitiveDependencies,
-          type: type,
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
         );
 
-  CategoryListProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.type,
-  }) : super.internal();
-
-  final TransactionType type;
+  @override
+  String debugGetCreateSourceHash() => _$categoryListHash();
 
   @override
-  Override overrideWith(
-    Stream<List<CategoryEntity>> Function(CategoryListRef provider) create,
-  ) {
-    return ProviderOverride(
-      origin: this,
-      override: CategoryListProvider._internal(
-        (ref) => create(ref as CategoryListRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        type: type,
-      ),
-    );
+  String toString() {
+    return r'categoryListProvider'
+        ''
+        '($argument)';
   }
 
+  @$internal
   @override
-  AutoDisposeStreamProviderElement<List<CategoryEntity>> createElement() {
-    return _CategoryListProviderElement(this);
+  $StreamProviderElement<List<CategoryEntity>> $createElement(
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<CategoryEntity>> create(Ref ref) {
+    final argument = this.argument as CategoryType;
+    return categoryList(
+      ref,
+      argument,
+    );
   }
 
   @override
   bool operator ==(Object other) {
-    return other is CategoryListProvider && other.type == type;
+    return other is CategoryListProvider && other.argument == argument;
   }
 
   @override
   int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, type.hashCode);
-
-    return _SystemHash.finish(hash);
+    return argument.hashCode;
   }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin CategoryListRef on AutoDisposeStreamProviderRef<List<CategoryEntity>> {
-  /// The parameter `type` of this provider.
-  TransactionType get type;
-}
+String _$categoryListHash() => r'1f148a69c1fb9bb17f7e9741b7a68a54b63432d2';
 
-class _CategoryListProviderElement
-    extends AutoDisposeStreamProviderElement<List<CategoryEntity>>
-    with CategoryListRef {
-  _CategoryListProviderElement(super.provider);
+final class CategoryListFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<CategoryEntity>>, CategoryType> {
+  CategoryListFamily._()
+      : super(
+          retry: null,
+          name: r'categoryListProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  CategoryListProvider call(
+    CategoryType type,
+  ) =>
+      CategoryListProvider._(argument: type, from: this);
 
   @override
-  TransactionType get type => (origin as CategoryListProvider).type;
+  String toString() => r'categoryListProvider';
 }
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

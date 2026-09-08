@@ -1,33 +1,17 @@
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 
+/// Read model for the event-sourced `categories_view` projection. Writes go
+/// through the category commands (spec 003, US3/T028).
 abstract class CategoryRepository {
-  /// Watches all categories of a given [type].
-  /// Returns a stream of lists of [CategoryEntity].
-  Stream<List<CategoryEntity>> watchCategories(TransactionType type);
+  /// Watches non-archived, non-system categories of a given [type]
+  /// (picker view; archived and system rows are retained in the
+  /// projection but not offered here).
+  Stream<List<CategoryEntity>> watchCategories(CategoryType type);
 
-  /// Retrieves a category by its [id].
-  /// Returns a [Future] that completes with the [CategoryEntity] or null if not
-  /// found.
+  /// Retrieves a category by its [id], or null if not found.
   Future<CategoryEntity?> getCategory(String id);
 
-  /// Adds a new category with the given parameters.
-  /// Returns a [Future] that completes when the operation is done.
-  Future<void> addCategory(CategoryEntity category);
-
-  /// Updates an existing category identified by [id] with the given parameters.
-  /// Returns a [Future] that completes when the operation is done.
-  Future<void> updateCategory(CategoryEntity category);
-
-  /// Deletes the category identified by [id].
-  /// Returns a [Future] that completes when the operation is done.
-  /// Deletes the category identified by [id].
-  Future<void> deleteCategory(String id);
-
-  /// Retrieves a category by its system code.
+  /// Retrieves a built-in system category by its [code].
   Future<CategoryEntity?> getBySystemCode(String code);
-
-  /// Retrieves a built-in reversal category by its localized name and type.
-  Future<CategoryEntity?> getReversalCategory(
-      TransactionType type, String localizedName);
 }
