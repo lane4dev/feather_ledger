@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 
@@ -37,20 +37,28 @@ void main() {
         expect(stream, isA<Stream<List<AccountEntity>>>());
       });
 
-      test('should transform Account to AccountEntity', () async {
+      test('should transform AccountViewRow to AccountEntity', () async {
         // Arrange
-        const accounts = [
-          Account(
-            id: 1,
+        const accounts = <AccountViewRow>[
+          AccountViewRow(
+            id: 'acc_1',
             name: 'Cash',
             type: AccountType.cash,
-            initialBalance: 1000.0,
+            currencyCode: 'USD',
+            balanceMinor: 100000,
+            archived: false,
+            lastUpdatedEventId: 1,
+            projectionVersion: 1,
           ),
-          Account(
-            id: 2,
+          AccountViewRow(
+            id: 'acc_2',
             name: 'Bank',
             type: AccountType.bank,
-            initialBalance: 5000.0,
+            currencyCode: 'USD',
+            balanceMinor: 500000,
+            archived: false,
+            lastUpdatedEventId: 1,
+            projectionVersion: 1,
           ),
         ];
 
@@ -64,19 +72,19 @@ void main() {
         // Assert
         expect(result.length, 2);
         expect(result[0], isA<AccountEntity>());
-        expect(result[0].id, 1);
+        expect(result[0].id, 'acc_1');
         expect(result[0].name, 'Cash');
         expect(result[0].type, AccountType.cash);
-        expect(result[0].initialBalance, 1000.0);
-        expect(result[1].id, 2);
+        expect(result[0].balanceMinor, 100000);
+        expect(result[1].id, 'acc_2');
         expect(result[1].name, 'Bank');
         expect(result[1].type, AccountType.bank);
-        expect(result[1].initialBalance, 5000.0);
+        expect(result[1].balanceMinor, 500000);
       });
 
       test('should handle empty account list', () async {
         // Arrange
-        final emptyAccounts = <Account>[];
+        final emptyAccounts = <AccountViewRow>[];
 
         // Subscribe to stream first, then emit
         final streamFuture = repository.watchAccounts().first;
@@ -90,184 +98,40 @@ void main() {
       });
     });
 
-    group('addAccount', () {
-      test('should call dao.addAccount with correct parameters', () async {
+    group('getAccount', () {
+      test('should return AccountEntity when dao returns row', () async {
         // Arrange
-        const name = 'Savings';
-        const type = AccountType.bank;
-        const initialBalance = 2000.0;
-
-        // Act
-        await repository.addAccount(
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
+        const row = AccountViewRow(
+          id: 'acc_1',
+          name: 'Cash',
+          type: AccountType.cash,
+          currencyCode: 'USD',
+          balanceMinor: 100000,
+          archived: false,
+          lastUpdatedEventId: 1,
+          projectionVersion: 1,
         );
-
-        // Assert
-        expect(mockDao.addAccountCallCount, 1);
-        expect(mockDao.lastAddedAccount, isNotNull);
-        expect(mockDao.lastAddedAccount!.name.value, name);
-        expect(mockDao.lastAddedAccount!.type.value, type);
-        expect(mockDao.lastAddedAccount!.initialBalance.value, initialBalance);
-      });
-
-      test('should handle cash account type', () async {
-        // Arrange
-        const name = 'Petty Cash';
-        const type = AccountType.cash;
-        const initialBalance = 100.0;
+        mockDao.emitAccounts([row]);
 
         // Act
-        await repository.addAccount(
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
+        final result = await repository.getAccount('acc_1');
 
         // Assert
-        expect(mockDao.lastAddedAccount!.type.value, AccountType.cash);
+        expect(result, isNotNull);
+        expect(result!.id, 'acc_1');
+        expect(result.name, 'Cash');
+        expect(result.balanceMinor, 100000);
       });
 
-      test('should handle credit account type', () async {
+      test('should return null when dao returns null', () async {
         // Arrange
-        const name = 'Credit Card';
-        const type = AccountType.credit;
-        const initialBalance = 0.0;
+        mockDao.emitAccounts(const []);
 
         // Act
-        await repository.addAccount(
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
+        final result = await repository.getAccount('unknown');
 
         // Assert
-        expect(mockDao.lastAddedAccount!.type.value, AccountType.credit);
-      });
-
-      test('should handle zero initial balance', () async {
-        // Arrange
-        const name = 'New Account';
-        const type = AccountType.bank;
-        const initialBalance = 0.0;
-
-        // Act
-        await repository.addAccount(
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
-
-        // Assert
-        expect(mockDao.lastAddedAccount!.initialBalance.value, 0.0);
-      });
-
-      test('should handle negative initial balance', () async {
-        // Arrange
-        const name = 'Overdraft Account';
-        const type = AccountType.bank;
-        const initialBalance = -500.0;
-
-        // Act
-        await repository.addAccount(
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
-
-        // Assert
-        expect(mockDao.lastAddedAccount!.initialBalance.value, -500.0);
-      });
-    });
-
-    group('updateAccount', () {
-      test('should call dao.updateAccount with correct parameters', () async {
-        // Arrange
-        const id = 1;
-        const name = 'Updated Account';
-        const type = AccountType.bank;
-        const initialBalance = 3000.0;
-
-        // Act
-        await repository.updateAccount(
-          id: id,
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
-
-        // Assert
-        expect(mockDao.updateAccountCallCount, 1);
-        expect(mockDao.lastUpdatedAccount, isNotNull);
-        expect(mockDao.lastUpdatedAccount!.id.value, id);
-        expect(mockDao.lastUpdatedAccount!.name.value, name);
-        expect(mockDao.lastUpdatedAccount!.type.value, type);
-        expect(
-            mockDao.lastUpdatedAccount!.initialBalance.value, initialBalance);
-      });
-
-      test('should update account type', () async {
-        // Arrange
-        const id = 1;
-        const name = 'Account';
-        const type = AccountType.credit;
-        const initialBalance = 1000.0;
-
-        // Act
-        await repository.updateAccount(
-          id: id,
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
-
-        // Assert
-        expect(mockDao.lastUpdatedAccount!.type.value, AccountType.credit);
-      });
-
-      test('should update initial balance', () async {
-        // Arrange
-        const id = 1;
-        const name = 'Account';
-        const type = AccountType.bank;
-        const initialBalance = 9999.99;
-
-        // Act
-        await repository.updateAccount(
-          id: id,
-          name: name,
-          type: type,
-          initialBalance: initialBalance,
-        );
-
-        // Assert
-        expect(mockDao.lastUpdatedAccount!.initialBalance.value, 9999.99);
-      });
-    });
-
-    group('deleteAccount', () {
-      test('should call dao.deleteAccount with correct id', () async {
-        // Arrange
-        const accountId = 42;
-
-        // Act
-        await repository.deleteAccount(accountId);
-
-        // Assert
-        expect(mockDao.deleteAccountCallCount, 1);
-        expect(mockDao.lastDeletedId, accountId);
-      });
-
-      test('should handle multiple delete calls', () async {
-        // Arrange & Act
-        await repository.deleteAccount(1);
-        await repository.deleteAccount(2);
-        await repository.deleteAccount(3);
-
-        // Assert
-        expect(mockDao.deleteAccountCallCount, 3);
-        expect(mockDao.lastDeletedId, 3);
+        expect(result, isNull);
       });
     });
   });

@@ -1,261 +1,146 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/data/database/seeder.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
 
-import '../../../support/fakes/fake_app_database.dart';
-import '../../../support/fakes/fake_app_localizations.dart'; // Import FakeAppLocalizations
+import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
+import '../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../support/fakes/fake_app_localizations.dart';
+
+import 'package:feather_ledger/app/bootstrap/seeder.dart';
+
+/// Seeder tests (spec 003, US3/T031): the seed is an event stream —
+/// idempotency keyed on an empty event store, replayable projections.
 void main() {
-  late AppDatabase database;
-  late FakeAppLocalizations l10n; // Declare l10n
+  late LedgerServiceHarness harness;
+  late FakeAppLocalizations l10n;
 
   setUp(() {
-    database = FakeAppDatabase();
-    l10n = FakeAppLocalizations(); // Initialize l10n
+    harness = LedgerServiceHarness();
+    l10n = FakeAppLocalizations();
   });
 
-  tearDown(() async {
-    await database.close();
-  });
+  tearDown(() => harness.close());
+
+  Future<void> seed() => seedDatabase(
+        eventStore: harness.eventStore,
+        accountService: harness.accountService,
+        categoryService: harness.categoryService,
+        l10n: l10n,
+      );
+
+  Future<List<dynamic>> allEvents() async =>
+      (await harness.eventStore.readAll()).events;
 
   group('seedDatabase', () {
-    test('should seed categories when database is empty', () async {
-      // Verify database is empty
-      var categories = await database.transactionDao.getAllCategories();
-      expect(categories, isEmpty);
+    test('empty store produces the full event stream', () async {
+      await seed();
 
-      // Run seeder
-      await seedDatabase(database, l10n); // Pass l10n
-
-      // Verify categories were inserted
-      categories = await database.transactionDao.getAllCategories();
-      expect(categories, hasLength(5));
-
-      // Verify specific categories
-      final categoryNames = categories.map((c) => c.name).toSet();
-      expect(categoryNames,
-          containsAll([l10n.categoryFood, l10n.categoryTransport, l10n.categoryShopping, l10n.categorySalary, l10n.categoryBonus]));
-    });
-
-    test('should seed accounts when database is empty', () async {
-      // Verify database is empty
-      var accounts = await database.transactionDao.getAllAccounts();
-      expect(accounts, isEmpty);
-
-      // Run seeder
-      await seedDatabase(database, l10n); // Pass l10n
-
-      // Verify accounts were inserted
-      accounts = await database.transactionDao.getAllAccounts();
-      expect(accounts, hasLength(2));
-
-      // Verify specific accounts
-      final accountNames = accounts.map((a) => a.name).toSet();
-      expect(accountNames, containsAll([l10n.accountCash, l10n.accountBankCard]));
-    });
-
-    test('should insert expense categories with correct properties', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final categories = await database.transactionDao.getAllCategories();
-      final expenseCategories =
-          categories.where((c) => c.type == TransactionType.expense).toList();
-
-      expect(expenseCategories, hasLength(3));
-
-      // Verify each expense category has required properties
-      for (var category in expenseCategories) {
-        expect(category.name, isNotEmpty);
-        expect(category.iconKey, isNotEmpty);
-        expect(category.colorInt, greaterThan(0));
-        expect(category.type, equals(TransactionType.expense));
-      }
-
-      // Verify specific expense categories
-      final food = categories.firstWhere((c) => c.name == l10n.categoryFood);
-      expect(food.type, equals(TransactionType.expense));
-      expect(food.iconKey, isNotEmpty);
-
-      final transport = categories.firstWhere((c) => c.name == l10n.categoryTransport);
-      expect(transport.type, equals(TransactionType.expense));
-
-      final shopping = categories.firstWhere((c) => c.name == l10n.categoryShopping);
-      expect(shopping.type, equals(TransactionType.expense));
-    });
-
-    test('should insert income categories with correct properties', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final categories = await database.transactionDao.getAllCategories();
-      final incomeCategories =
-          categories.where((c) => c.type == TransactionType.income).toList();
-
-      expect(incomeCategories, hasLength(2));
-
-      // Verify each income category has required properties
-      for (var category in incomeCategories) {
-        expect(category.name, isNotEmpty);
-        expect(category.iconKey, isNotEmpty);
-        expect(category.colorInt, greaterThan(0));
-        expect(category.type, equals(TransactionType.income));
-      }
-
-      // Verify specific income categories
-      final salary = categories.firstWhere((c) => c.name == l10n.categorySalary);
-      expect(salary.type, equals(TransactionType.income));
-
-      final bonus = categories.firstWhere((c) => c.name == l10n.categoryBonus);
-      expect(bonus.type, equals(TransactionType.income));
-    });
-
-    test('should insert accounts with correct properties', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final accounts = await database.transactionDao.getAllAccounts();
-
-      // Verify Cash account
-      final cash = accounts.firstWhere((a) => a.name == l10n.accountCash);
-      expect(cash.type, equals(AccountType.cash));
-      expect(cash.initialBalance, equals(0.0));
-
-      // Verify Bank Card account
-      final bankCard = accounts.firstWhere((a) => a.name == l10n.accountBankCard);
-      expect(bankCard.type, equals(AccountType.bank));
-      expect(bankCard.initialBalance, equals(1000.0));
-    });
-
-    test('should not duplicate categories when called multiple times',
-        () async {
-      // Run seeder first time
-      await seedDatabase(database, l10n); // Pass l10n
-      var categories = await database.transactionDao.getAllCategories();
-      expect(categories, hasLength(5));
-
-      // Run seeder again
-      await seedDatabase(database, l10n); // Pass l10n
-      categories = await database.transactionDao.getAllCategories();
-
-      // Should still have only 5 categories
-      expect(categories, hasLength(5));
-    });
-
-    test('should not duplicate accounts when called multiple times', () async {
-      // Run seeder first time
-      await seedDatabase(database, l10n); // Pass l10n
-      var accounts = await database.transactionDao.getAllAccounts();
-      expect(accounts, hasLength(2));
-
-      // Run seeder again
-      await seedDatabase(database, l10n); // Pass l10n
-      accounts = await database.transactionDao.getAllAccounts();
-
-      // Should still have only 2 accounts
-      expect(accounts, hasLength(2));
-    });
-
-    test('should seed accounts even if categories already exist', () async {
-      // Insert a category manually
-      await database.into(database.categories).insert(
-            CategoriesCompanion.insert(
-              name: 'Existing Category',
-              iconKey: 'test',
-              colorInt: 0xFF000000,
-              type: TransactionType.expense,
-            ),
-          );
-
-      // Run seeder
-      await seedDatabase(database, l10n); // Pass l10n
-
-      // Categories should not be seeded (already exists)
-      final categories = await database.transactionDao.getAllCategories();
-      expect(categories, hasLength(1));
-      expect(categories.first.name, equals('Existing Category'));
-
-      // Accounts should still be seeded
-      final accounts = await database.transactionDao.getAllAccounts();
-      expect(accounts, hasLength(2));
-    });
-
-    test('should seed categories even if accounts already exist', () async {
-      // Insert an account manually
-      await database.into(database.accounts).insert(
-            AccountsCompanion.insert(
-              name: 'Existing Account',
-              type: AccountType.other,
-            ),
-          );
-
-      // Run seeder
-      await seedDatabase(database, l10n); // Pass l10n
-
-      // Accounts should not be seeded (already exists)
-      final accounts = await database.transactionDao.getAllAccounts();
-      expect(accounts, hasLength(1));
-      expect(accounts.first.name, equals('Existing Account'));
-
-      // Categories should still be seeded
-      final categories = await database.transactionDao.getAllCategories();
-      expect(categories, hasLength(5));
-    });
-
-    test('should complete successfully on empty database', () async {
-      // This should not throw any exceptions
-      await expectLater(
-        seedDatabase(database, l10n), // Pass l10n
-        completes,
+      final events = await allEvents();
+      final types = events.map((e) => e.eventType).toList();
+      expect(
+        types.where((t) => t == 'CategoryCreated').length,
+        17,
+        reason: '10 expense + 2 system + 5 income defaults',
       );
+      expect(
+        types.where((t) => t == 'AccountCreated').length,
+        2,
+        reason: 'Cash + Bank',
+      );
+      expect(types.where((t) => t == 'OpeningBalanceSet').length, 1,
+          reason: 'Bank opening balance 100000 minor');
     });
 
-    test('should use batch insert for categories', () async {
-      // Run seeder
-      await seedDatabase(database, l10n); // Pass l10n
+    test('projects two accounts with the Bank opening balance', () async {
+      await seed();
 
-      // All categories should be inserted
-      final categories = await database.transactionDao.getAllCategories();
-      expect(categories, hasLength(5));
-
-      // All should have sequential or valid IDs
-      final ids = categories.map((c) => c.id).toList();
-      expect(ids.every((id) => id > 0), isTrue);
-    });
-
-    test('should assign unique IDs to categories', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final categories = await database.transactionDao.getAllCategories();
-      final ids = categories.map((c) => c.id).toList();
-
-      // All IDs should be unique
-      expect(ids.toSet(), hasLength(ids.length));
-    });
-
-    test('should assign unique IDs to accounts', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final accounts = await database.transactionDao.getAllAccounts();
-      final ids = accounts.map((a) => a.id).toList();
-
-      // All IDs should be unique
-      expect(ids.toSet(), hasLength(ids.length));
-    });
-
-    test('should insert all default data in a single seed operation', () async {
-      await seedDatabase(database, l10n); // Pass l10n
-
-      final categories = await database.transactionDao.getAllCategories();
-      final accounts = await database.transactionDao.getAllAccounts();
-
-      // Verify all expected data was inserted
-      expect(categories, hasLength(5));
+      final accounts = await harness.db.accountDao.getAllAccounts();
       expect(accounts, hasLength(2));
 
-      // Verify data integrity
-      expect(categories.every((c) => c.name.isNotEmpty), isTrue);
-      expect(categories.every((c) => int.tryParse(c.iconKey) != null), isTrue,
-          reason: 'iconKey should be a numeric codePoint string');
-      expect(accounts.every((a) => a.name.isNotEmpty), isTrue);
+      final cash = accounts.firstWhere((a) => a.name == l10n.accountCash);
+      expect(cash.type, AccountType.cash);
+      expect(cash.balanceMinor, 0);
+
+      final bank = accounts.firstWhere((a) => a.name == l10n.accountBankCard);
+      expect(bank.type, AccountType.bank);
+      expect(bank.balanceMinor, 100000);
+
+      for (final account in accounts) {
+        expect(account.archived, isFalse);
+        expect(account.lastUpdatedEventId, greaterThan(0),
+            reason: 'projector must stamp the source GSN cursor');
+      }
+    });
+
+    test('projects 17 categories incl. two fixed system categories',
+        () async {
+      await seed();
+
+      final categories = await harness.db.categoriesDao.getAllCategories();
+      expect(categories, hasLength(17));
+
+      final system = categories.where((c) => c.systemCode != null).toList();
+      expect(system, hasLength(2));
+
+      final systemIds = system.map((c) => c.id).toSet();
+      expect(systemIds, contains('00000000-0000-0000-0000-000000000001'));
+      expect(systemIds, contains('00000000-0000-0000-0000-000000000002'));
+
+      final expense = categories.where((c) => c.type == CategoryType.expense);
+      final income = categories.where((c) => c.type == CategoryType.income);
+      expect(expense.length, 11);
+      expect(income.length, 6);
+    });
+
+    test('is idempotent — a second run appends nothing', () async {
+      await seed();
+      final firstCount = (await allEvents()).length;
+
+      await seed();
+
+      final events = await allEvents();
+      expect(events, hasLength(firstCount));
+      expect(await harness.db.accountDao.getAllAccounts(), hasLength(2));
+      expect(await harness.db.categoriesDao.getAllCategories(), hasLength(17));
+    });
+
+    test('skips seeding when the event store is non-empty', () async {
+      // Pre-existing event (e.g. a user-created account) — the seed must
+      // not run even though the projections hold nothing.
+      await harness.accountService.createAccount(
+        commandId: 'cmd_pre_existing',
+        name: 'Existing',
+        type: AccountType.other,
+        initialBalanceMinor: 0,
+        currencyCode: 'USD',
+      );
+
+      await seed();
+
+      final events = await allEvents();
+      expect(events, hasLength(1));
+      expect(events.single.eventType, 'AccountCreated');
+      expect(await harness.db.categoriesDao.getAllCategories(), isEmpty,
+          reason: 'non-empty store must not be re-seeded');
+    });
+
+    test('seeded events are typed final payloads, not legacy envelopes',
+        () async {
+      await seed();
+
+      final events = await allEvents();
+      final bankOpening = events
+          .firstWhere((e) => e.eventType == 'OpeningBalanceSet');
+      final payload =
+          OpeningBalanceSet.fromJson(bankOpening.payloadJson);
+      expect(payload.amountMinor, 100000);
+
+      final bankCreated = events.where((e) => e.eventType == 'AccountCreated')
+          .map((e) => AccountCreated.fromJson(e.payloadJson))
+          .firstWhere((p) => p.type == AccountType.bank);
+      expect(payload.accountId, bankCreated.accountId,
+          reason: 'opening balance belongs to the Bank account stream');
+      expect(payload.currencyCode, bankCreated.currencyCode);
     });
   });
 }

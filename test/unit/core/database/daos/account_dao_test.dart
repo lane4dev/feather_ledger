@@ -1,8 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 import '../../../../support/fakes/fake_app_database.dart';
 
@@ -19,13 +18,17 @@ void main() {
 
   group('AccountDao', () {
     test('should add and retrieve account', () async {
-      final account = AccountsCompanion.insert(
+      const id = 'acc_1';
+      final account = AccountsViewCompanion.insert(
+        id: id,
         name: 'Test Account',
         type: AccountType.bank,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 1,
       );
 
-      final id = await database.accountDao.addAccount(account);
-      expect(id, greaterThan(0));
+      await database.accountDao.upsert(account);
 
       final retrieved = await database.accountDao.getAccountById(id);
       expect(retrieved, isNotNull);
@@ -33,18 +36,26 @@ void main() {
     });
 
     test('should return null for non-existent account', () async {
-      final retrieved = await database.accountDao.getAccountById(999);
+      final retrieved = await database.accountDao.getAccountById('missing');
       expect(retrieved, isNull);
     });
 
     test('should get all accounts', () async {
-      await database.accountDao.addAccount(AccountsCompanion.insert(
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: 'acc_1',
         name: 'A1',
         type: AccountType.cash,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 1,
       ));
-      await database.accountDao.addAccount(AccountsCompanion.insert(
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: 'acc_2',
         name: 'A2',
         type: AccountType.bank,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 2,
       ));
 
       final accounts = await database.accountDao.getAllAccounts();
@@ -67,27 +78,44 @@ void main() {
             hasLength(2),
           ]));
 
-      await database.accountDao.addAccount(AccountsCompanion.insert(
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: 'acc_1',
         name: 'A1',
         type: AccountType.cash,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 1,
       ));
-      await database.accountDao.addAccount(AccountsCompanion.insert(
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: 'acc_2',
         name: 'A2',
         type: AccountType.bank,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 2,
       ));
 
       await expectation;
     });
 
     test('should update account', () async {
-      final id = await database.accountDao.addAccount(AccountsCompanion.insert(
+      const id = 'acc_1';
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: id,
         name: 'Old',
         type: AccountType.cash,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 1,
       ));
 
-      await database.accountDao.updateAccount(AccountsCompanion(
-        id: Value(id),
-        name: const Value('New'),
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: id,
+        name: 'New',
+        type: AccountType.cash,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 2,
       ));
 
       final retrieved = await database.accountDao.getAccountById(id);
@@ -95,13 +123,17 @@ void main() {
     });
 
     test('should delete account', () async {
-      final id = await database.accountDao.addAccount(AccountsCompanion.insert(
+      const id = 'acc_1';
+      await database.accountDao.upsert(AccountsViewCompanion.insert(
+        id: id,
         name: 'Delete Me',
         type: AccountType.cash,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        lastUpdatedEventId: 1,
       ));
 
-      final deleted = await database.accountDao.deleteAccount(id);
-      expect(deleted, equals(1));
+      await database.accountDao.clearAll();
 
       final retrieved = await database.accountDao.getAccountById(id);
       expect(retrieved, isNull);

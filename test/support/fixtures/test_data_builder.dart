@@ -1,71 +1,111 @@
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/transaction_dao.dart';
-import 'package:feather_ledger/core/domain/entities/enums.dart';
 
 /// Test helpers for creating database entities
 class TestDataBuilder {
-  static Transaction createTransaction({
-    int id = 1,
-    double amount = 100.0,
-    TransactionType type = TransactionType.expense,
-    DateTime? date,
-    String? note,
-    int categoryId = 1,
-    int accountId = 1,
-    DateTime? createdAt,
+  static TransactionViewRow createTransaction({
+    String transactionId = 'txn_1',
+    DateTime? occurredAt,
+    TransactionKind kind = TransactionKind.expense,
+    String description = 'Test Transaction',
+    bool isReversed = false,
+    String categoryName = 'Test Category',
+    String categoryIcon = 'test_icon',
+    String categoryColorInt = 'ff000000',
+    int originalEventId = 1,
+    int projectionVersion = 1,
   }) {
-    return Transaction(
-      id: id,
-      amount: amount,
-      type: type,
-      date: date ?? DateTime.now(),
-      note: note,
-      categoryId: categoryId,
-      accountId: accountId,
-      createdAt: createdAt ?? DateTime.now(),
+    return TransactionViewRow(
+      transactionId: transactionId,
+      occurredAt: occurredAt ?? DateTime.now(),
+      kind: kind,
+      description: description,
+      isReversed: isReversed,
+      categoryName: categoryName,
+      categoryIcon: categoryIcon,
+      categoryColorInt: categoryColorInt,
+      originalEventId: originalEventId,
+      projectionVersion: projectionVersion,
     );
   }
 
-  static Category createCategory({
-    int id = 1,
+  static TransactionPostingRow createPosting({
+    String id = 'posting_1',
+    String transactionId = 'txn_1',
+    String accountId = 'acc_1',
+    PostingDirection direction = PostingDirection.debit,
+    int amountMinor = 10000,
+    String currencyCode = 'USD',
+    String? categoryId = 'cat_1',
+    String? memo,
+  }) {
+    return TransactionPostingRow(
+      id: id,
+      transactionId: transactionId,
+      accountId: accountId,
+      direction: direction,
+      amountMinor: amountMinor,
+      currencyCode: currencyCode,
+      categoryId: categoryId,
+      memo: memo,
+    );
+  }
+
+  static CategoryViewRow createCategory({
+    String id = 'cat_1',
     String name = 'Test Category',
     String iconKey = 'test_icon',
     int colorInt = 0xFF000000,
-    TransactionType type = TransactionType.expense,
-    bool isDefault = false,
+    CategoryType type = CategoryType.expense,
+    bool archived = false,
+    String? systemCode,
+    int lastUpdatedEventId = 1,
+    int projectionVersion = 1,
   }) {
-    return Category(
+    return CategoryViewRow(
       id: id,
       name: name,
       iconKey: iconKey,
       colorInt: colorInt,
       type: type,
-      isDefault: isDefault,
+      archived: archived,
+      systemCode: systemCode,
+      lastUpdatedEventId: lastUpdatedEventId,
+      projectionVersion: projectionVersion,
     );
   }
 
-  static Account createAccount({
-    int id = 1,
+  static AccountViewRow createAccount({
+    String id = 'acc_1',
     String name = 'Test Account',
     AccountType type = AccountType.cash,
-    double initialBalance = 0.0,
+    String currencyCode = 'USD',
+    int balanceMinor = 0,
+    bool archived = false,
+    int lastUpdatedEventId = 1,
+    int projectionVersion = 1,
   }) {
-    return Account(
+    return AccountViewRow(
       id: id,
       name: name,
       type: type,
-      initialBalance: initialBalance,
+      currencyCode: currencyCode,
+      balanceMinor: balanceMinor,
+      archived: archived,
+      lastUpdatedEventId: lastUpdatedEventId,
+      projectionVersion: projectionVersion,
     );
   }
 
   static TransactionWithDetails createTransactionWithDetails({
-    Transaction? transaction,
-    Category? category,
-    Account? account,
+    TransactionViewRow? transaction,
+    TransactionPostingRow? posting,
+    AccountViewRow? account,
   }) {
     return TransactionWithDetails(
       transaction ?? createTransaction(),
-      category ?? createCategory(),
+      posting ?? createPosting(),
       account ?? createAccount(),
     );
   }
