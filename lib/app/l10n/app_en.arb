@@ -4,7 +4,6 @@
   "@appTitle": {
     "description": "The title of the application"
   },
-  
   "ledgerTitle": "Ledger",
   "@ledgerTitle": {
     "description": "Title for ledger screen"
@@ -34,7 +33,6 @@
   "@noTransactionsHint": {
     "description": "Empty state hint to add a transaction"
   },
-  
   "addTransaction": "Add Transaction",
   "@addTransaction": {
     "description": "Title for add transaction screen"
@@ -118,7 +116,6 @@
       }
     }
   },
-  
   "settings": "Settings",
   "@settings": {
     "description": "Settings screen title"
@@ -167,7 +164,6 @@
   "@loading": {
     "description": "Loading indicator text"
   },
-
   "reports": "Reports",
   "@reports": {
     "description": "Reports screen title"
@@ -192,7 +188,6 @@
   "@noData": {
     "description": "Message when no data is available"
   },
-  
   "more": "More",
   "@more": {
     "description": "More screen title"
@@ -205,7 +200,6 @@
   "@categories": {
     "description": "Categories menu item"
   },
-  
   "dollarCurrency": "$ (Dollar)",
   "@dollarCurrency": {
     "description": "Dollar currency option"
@@ -226,7 +220,6 @@
   "@poundCurrency": {
     "description": "Pound currency option"
   },
-  
   "accountsTitle": "Accounts",
   "@accountsTitle": {
     "description": "Title for accounts screen"
@@ -371,5 +364,93 @@
     "description": "System category name: Reversal (Income)"
   },
   "accountCash": "Cash",
-  "accountBankCard": "Bank Card"
+  "accountBankCard": "Bank Card",
+  "errorAccountNotFound": "Account not found",
+  "@errorAccountNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorAccountArchived": "Account is archived",
+  "@errorAccountArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryNotFound": "Category not found",
+  "@errorCategoryNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryArchived": "Category is archived",
+  "@errorCategoryArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryTypeMismatch": "Category type does not match the transaction type",
+  "@errorCategoryTypeMismatch": {
+    "description": "Localized ledger error code message"
+  },
+  "errorSystemCategoryProtected": "System categories cannot be archived",
+  "@errorSystemCategoryProtected": {
+    "description": "Localized ledger error code message"
+  },
+  "errorInvalidTransfer": "Invalid transfer",
+  "@errorInvalidTransfer": {
+    "description": "Localized ledger error code message"
+  },
+  "transfer": "Transfer",
+  "@transfer": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferFrom": "From",
+  "@transferFrom": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferTo": "To",
+  "@transferTo": {
+    "description": "Transfer display label (US5)"
+  },
+  "errorTransactionNotFound": "Transaction not found",
+  "@errorTransactionNotFound": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "errorTransactionAlreadyReversed": "Transaction was already reversed",
+  "@errorTransactionAlreadyReversed": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "auditHistory": "Audit history",
+  "@auditHistory": {
+    "description": "Transaction detail section showing the event chain (US6)"
+  },
+  "eventRecorded": "Recorded",
+  "@eventRecorded": {
+    "description": "Audit history entry for TransactionRecorded (US6)"
+  },
+  "eventReversed": "Reversed",
+  "@eventReversed": {
+    "description": "Audit history entry for TransactionReversed (US6)"
+  },
+  "reversalUserDeleted": "User deleted",
+  "@reversalUserDeleted": {
+    "description": "Reversal reason label (US6)"
+  },
+  "reversalCorrection": "Correction",
+  "@reversalCorrection": {
+    "description": "Reversal reason label (US6)"
+  },
+  "rebuildProjections": "Rebuild projections",
+  "@rebuildProjections": {
+    "description": "Developer-only maintenance entry (US8)"
+  },
+  "rebuildProjectionsHint": "Developer tool — long-press to run",
+  "@rebuildProjectionsHint": {
+    "description": "Subtitle of the developer rebuild entry (US8)"
+  },
+  "rebuildProjectionsConfirm": "Clear all derived data and replay the full event history? Recurring rules and preferences are kept.",
+  "@rebuildProjectionsConfirm": {
+    "description": "Confirmation dialog body (US8)"
+  },
+  "rebuildProjectionsSuccess": "Projections rebuilt",
+  "@rebuildProjectionsSuccess": {
+    "description": "Rebuild success snackbar (US8)"
+  },
+  "rebuildProjectionsFailure": "Rebuild failed",
+  "@rebuildProjectionsFailure": {
+    "description": "Rebuild failure snackbar (US8)"
+  }
 }

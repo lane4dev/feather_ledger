@@ -4,7 +4,6 @@
   "@appTitle": {
     "description": "應用程式標題"
   },
-  
   "ledgerTitle": "帳本",
   "@ledgerTitle": {
     "description": "帳本頁面標題"
@@ -34,7 +33,6 @@
   "@noTransactionsHint": {
     "description": "無交易時的空狀態提示"
   },
-  
   "addTransaction": "新增交易",
   "@addTransaction": {
     "description": "新增交易頁面標題"
@@ -118,7 +116,6 @@
       }
     }
   },
-  
   "settings": "設定",
   "@settings": {
     "description": "設定頁面標題"
@@ -167,7 +164,6 @@
   "@loading": {
     "description": "載入指示器文字"
   },
-  
   "reports": "報表",
   "@reports": {
     "description": "報表頁面標題"
@@ -192,7 +188,6 @@
   "@noData": {
     "description": "無資料時的提示"
   },
-  
   "more": "更多",
   "@more": {
     "description": "更多頁面標題"
@@ -205,7 +200,6 @@
   "@categories": {
     "description": "分類選單項"
   },
-  
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
     "description": "美元貨幣選項"
@@ -226,7 +220,6 @@
   "@poundCurrency": {
     "description": "英鎊貨幣選項"
   },
-  
   "accountsTitle": "帳戶",
   "@accountsTitle": {
     "description": "帳戶頁面標題"
@@ -371,5 +364,93 @@
     "description": "系統分類名稱：沖正 (收入)"
   },
   "accountCash": "現金",
-  "accountBankCard": "銀行卡"
+  "accountBankCard": "銀行卡",
+  "errorAccountNotFound": "帳戶不存在",
+  "@errorAccountNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorAccountArchived": "帳戶已封存",
+  "@errorAccountArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryNotFound": "分類不存在",
+  "@errorCategoryNotFound": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryArchived": "分類已封存",
+  "@errorCategoryArchived": {
+    "description": "Localized ledger error code message"
+  },
+  "errorCategoryTypeMismatch": "分類類型與交易類型不符",
+  "@errorCategoryTypeMismatch": {
+    "description": "Localized ledger error code message"
+  },
+  "errorSystemCategoryProtected": "系統分類不可封存",
+  "@errorSystemCategoryProtected": {
+    "description": "Localized ledger error code message"
+  },
+  "errorInvalidTransfer": "無效轉帳",
+  "@errorInvalidTransfer": {
+    "description": "Localized ledger error code message"
+  },
+  "transfer": "轉帳",
+  "@transfer": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferFrom": "轉出帳戶",
+  "@transferFrom": {
+    "description": "Transfer display label (US5)"
+  },
+  "transferTo": "轉入帳戶",
+  "@transferTo": {
+    "description": "Transfer display label (US5)"
+  },
+  "errorTransactionNotFound": "交易不存在",
+  "@errorTransactionNotFound": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "errorTransactionAlreadyReversed": "交易已被沖正",
+  "@errorTransactionAlreadyReversed": {
+    "description": "Localized ledger error code message (US6)"
+  },
+  "auditHistory": "審計歷史",
+  "@auditHistory": {
+    "description": "Transaction detail section showing the event chain (US6)"
+  },
+  "eventRecorded": "已記錄",
+  "@eventRecorded": {
+    "description": "Audit history entry for TransactionRecorded (US6)"
+  },
+  "eventReversed": "已沖正",
+  "@eventReversed": {
+    "description": "Audit history entry for TransactionReversed (US6)"
+  },
+  "reversalUserDeleted": "使用者刪除",
+  "@reversalUserDeleted": {
+    "description": "Reversal reason label (US6)"
+  },
+  "reversalCorrection": "修改",
+  "@reversalCorrection": {
+    "description": "Reversal reason label (US6)"
+  },
+  "rebuildProjections": "重建投影",
+  "@rebuildProjections": {
+    "description": "Developer-only maintenance entry (US8)"
+  },
+  "rebuildProjectionsHint": "開發者工具——長按執行",
+  "@rebuildProjectionsHint": {
+    "description": "Subtitle of the developer rebuild entry (US8)"
+  },
+  "rebuildProjectionsConfirm": "清空全部衍生資料並從完整事件歷史重放？定期規則與偏好設定保留。",
+  "@rebuildProjectionsConfirm": {
+    "description": "Confirmation dialog body (US8)"
+  },
+  "rebuildProjectionsSuccess": "投影已重建",
+  "@rebuildProjectionsSuccess": {
+    "description": "Rebuild success snackbar (US8)"
+  },
+  "rebuildProjectionsFailure": "重建失敗",
+  "@rebuildProjectionsFailure": {
+    "description": "Rebuild failure snackbar (US8)"
+  }
 }
