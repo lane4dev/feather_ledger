@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -138,8 +137,6 @@ class ScaffoldWithNavBar extends StatefulWidget {
 }
 
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
-  static const Duration _exitInterval = Duration(seconds: 2);
-  DateTime? _lastBackPressedAt;
   bool _ledgerNavigationVisible = true;
   ScrollDirection _ledgerScrollDirection = ScrollDirection.idle;
 
@@ -165,110 +162,84 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     return false;
   }
 
-  void _handlePopInvokedWithResult(bool didPop, Object? result) {
-    if (didPop) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final last = _lastBackPressedAt;
-    final l10n = AppLocalizations.of(context)!;
-
-    if (last == null || now.difference(last) > _exitInterval) {
-      _lastBackPressedAt = now;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pressBackAgainToExit)),
-      );
-      return;
-    }
-
-    SystemNavigator.pop();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final canPop = GoRouter.of(context).canPop();
 
-    return PopScope(
-      canPop: canPop,
-      onPopInvokedWithResult: _handlePopInvokedWithResult,
-      child: Scaffold(
-        extendBody: widget.navigationShell.currentIndex == 0,
-        body: NotificationListener<LedgerShowNavigationNotification>(
-          onNotification: (_) {
-            if (!_ledgerNavigationVisible) {
-              setState(() => _ledgerNavigationVisible = true);
-            }
-            return false;
-          },
-          child: NotificationListener<ScrollNotification>(
-            onNotification: _onScroll,
-            child: widget.navigationShell.currentIndex == 0
-                ? MediaQuery(
-                    // The shell overlays its navigation bar. Descendant pages use
-                    // the device inset, not the bar's changing animated height.
-                    data: MediaQuery.of(context),
-                    child: widget.navigationShell,
-                  )
-                : widget.navigationShell,
-          ),
+    return Scaffold(
+      extendBody: widget.navigationShell.currentIndex == 0,
+      body: NotificationListener<LedgerShowNavigationNotification>(
+        onNotification: (_) {
+          if (!_ledgerNavigationVisible) {
+            setState(() => _ledgerNavigationVisible = true);
+          }
+          return false;
+        },
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _onScroll,
+          child: widget.navigationShell.currentIndex == 0
+              ? MediaQuery(
+                  // The shell overlays its navigation bar. Descendant pages use
+                  // the device inset, not the bar's changing animated height.
+                  data: MediaQuery.of(context),
+                  child: widget.navigationShell,
+                )
+              : widget.navigationShell,
         ),
-        bottomNavigationBar: TweenAnimationBuilder<double>(
-          tween: Tween<double>(
-            end: widget.navigationShell.currentIndex != 0 ||
-                    _ledgerNavigationVisible
-                ? 1
-                : 0,
-          ),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-          builder: (context, value, child) => ClipRect(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              heightFactor: value,
-              child: Offstage(
-                offstage: value == 0,
-                child: IgnorePointer(
-                  ignoring: value < 1,
-                  child: ExcludeSemantics(
-                    excluding: value < 1,
-                    child: FractionalTranslation(
-                      translation: Offset(0, 1 - value),
-                      child: Opacity(opacity: value, child: child),
-                    ),
+      ),
+      bottomNavigationBar: TweenAnimationBuilder<double>(
+        tween: Tween<double>(
+          end: widget.navigationShell.currentIndex != 0 ||
+                  _ledgerNavigationVisible
+              ? 1
+              : 0,
+        ),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+        builder: (context, value, child) => ClipRect(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: value,
+            child: Offstage(
+              offstage: value == 0,
+              child: IgnorePointer(
+                ignoring: value < 1,
+                child: ExcludeSemantics(
+                  excluding: value < 1,
+                  child: FractionalTranslation(
+                    translation: Offset(0, 1 - value),
+                    child: Opacity(opacity: value, child: child),
                   ),
                 ),
               ),
             ),
           ),
-          child: NavigationBar(
-            selectedIndex: widget.navigationShell.currentIndex,
-            onDestinationSelected: (index) {
-              if (!_ledgerNavigationVisible) {
-                setState(() => _ledgerNavigationVisible = true);
-              }
-              widget.navigationShell.goBranch(
-                index,
-                initialLocation: index == widget.navigationShell.currentIndex,
-              );
-            },
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(LucideIcons.book),
-                label: l10n.ledgerTitle,
-              ),
-              NavigationDestination(
-                icon: const Icon(LucideIcons.pieChart),
-                label: l10n.reports,
-              ),
-              NavigationDestination(
-                icon: const Icon(LucideIcons.ellipsis),
-                label: l10n.more,
-              ),
-            ],
-          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: (index) {
+            if (!_ledgerNavigationVisible) {
+              setState(() => _ledgerNavigationVisible = true);
+            }
+            widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            );
+          },
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(LucideIcons.book),
+              label: l10n.ledgerTitle,
+            ),
+            NavigationDestination(
+              icon: const Icon(LucideIcons.pieChart),
+              label: l10n.reports,
+            ),
+            NavigationDestination(
+              icon: const Icon(LucideIcons.ellipsis),
+              label: l10n.more,
+            ),
+          ],
         ),
       ),
     );

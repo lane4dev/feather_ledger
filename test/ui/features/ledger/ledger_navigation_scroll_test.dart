@@ -131,6 +131,14 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales),
     ));
     await tester.pumpAndSettle();
+    expect(await tester.binding.handlePopRoute(), isFalse);
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBar), findsNothing);
+    router.push('/more/about');
+    await tester.pumpAndSettle();
+    expect(await tester.binding.handlePopRoute(), isTrue);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/ledger');
     for (final route in ['/accounts_management', '/categories_management']) {
       router.push(route);
       await tester.pump();

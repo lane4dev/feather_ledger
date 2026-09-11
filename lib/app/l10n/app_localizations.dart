@@ -706,12 +706,6 @@ abstract class AppLocalizations {
   /// **'Feature not available'**
   String get featureNotAvailable;
 
-  /// Prompt shown when user needs to press back again to exit
-  ///
-  /// In en, this message translates to:
-  /// **'Press back again to exit'**
-  String get pressBackAgainToExit;
-
   /// No description provided for @manageCategories.
   ///
   /// In en, this message translates to:

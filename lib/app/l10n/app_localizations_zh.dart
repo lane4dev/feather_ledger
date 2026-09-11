@@ -316,9 +316,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get featureNotAvailable => '功能暂不可用';
 
   @override
-  String get pressBackAgainToExit => '再按一次退出';
-
-  @override
   String get manageCategories => '管理分类';
 
   @override
@@ -1137,9 +1134,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get featureNotAvailable => '功能暂不可用';
 
   @override
-  String get pressBackAgainToExit => '再按一次退出';
-
-  @override
   String get manageCategories => '管理分类';
 
   @override
@@ -1956,9 +1950,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get featureNotAvailable => '功能暫不可用';
-
-  @override
-  String get pressBackAgainToExit => '再按一次退出';
 
   @override
   String get manageCategories => '管理分類';

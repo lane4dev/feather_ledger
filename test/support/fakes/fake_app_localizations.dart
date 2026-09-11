@@ -538,9 +538,6 @@ class FakeAppLocalizations implements AppLocalizations {
   String get featureNotAvailable => 'Feature not available';
 
   @override
-  String get pressBackAgainToExit => 'Press back again to exit';
-
-  @override
   String get manageCategories => 'Manage Categories';
 
   @override
