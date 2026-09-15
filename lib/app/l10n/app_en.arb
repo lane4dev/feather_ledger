@@ -355,7 +355,7 @@
   "@about": {
     "description": "About menu item"
   },
-  "aboutHint": "Version details and open-source licences",
+  "aboutHint": "App information and open-source licences",
   "@aboutHint": {
     "description": "Subtitle under the About entry in More"
   },
@@ -742,5 +742,32 @@
   "accountSelectDestination": "Select a destination account",
   "accountNoDestination": "No other active account with the same currency is available.",
   "accountDeleteImpact": "Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.",
-  "accountConfirmOperation": "Confirm"
+  "accountConfirmOperation": "Confirm",
+    "supportCenter": "Support center",
+  "supportCenterHint": "Get help and find answers",
+  "appOverview": "App overview",
+  "privacyPolicy": "Privacy policy",
+  "termsOfService": "Terms of service",
+  "feedbackConfirmation": "Your email app will open to send feedback to {email}.",
+  "openEmailApp": "Open email app",
+  "feedbackEmailSubject": "Accounted For feedback",
+  "emailUnavailable": "Could not open email app",
+  "emailUnavailableMessage": "No email app could be opened. You can copy {email} and contact us from another app.",
+  "copyEmail": "Copy email",
+  "linkUnavailable": "Could not open link",
+  "linkUnavailableMessage": "Please check that a browser is available and try again.",
+  "@feedbackConfirmation": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@emailUnavailableMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  }
 }

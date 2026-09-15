@@ -343,7 +343,7 @@
   "@cancel": {
     "description": "取消按鈕文字"
   },
-  "feedback": "回饋",
+  "feedback": "意見回饋",
   "@feedback": {
     "description": "回饋選單項"
   },
@@ -355,7 +355,7 @@
   "@about": {
     "description": "關於選單項"
   },
-  "aboutHint": "版本資訊與開源授權",
+  "aboutHint": "應用程式資訊與開源授權",
   "@aboutHint": {
     "description": "「更多」頁關於項下方的說明"
   },
@@ -672,5 +672,32 @@
   "accountSelectDestination": "選擇目標帳戶",
   "accountNoDestination": "沒有可用的同幣種其他正常帳戶。",
   "accountDeleteImpact": "初始餘額和餘額調整會被沖銷。刪除轉帳會同時影響另一帳戶的餘額；轉移記錄會改變目標帳戶餘額。週期規則將按所選方式處理。",
-  "accountConfirmOperation": "確認"
+  "accountConfirmOperation": "確認",
+    "supportCenter": "支援中心",
+  "supportCenterHint": "取得協助與常見問題解答",
+  "appOverview": "應用程式介紹",
+  "privacyPolicy": "隱私權政策",
+  "termsOfService": "服務條款",
+  "feedbackConfirmation": "將開啟您的郵件應用程式，向 {email} 傳送意見回饋。",
+  "openEmailApp": "開啟郵件應用程式",
+  "feedbackEmailSubject": "Accounted For 意見回饋",
+  "emailUnavailable": "無法開啟郵件應用程式",
+  "emailUnavailableMessage": "無法開啟郵件應用程式。您可以複製 {email}，透過其他應用程式聯絡我們。",
+  "copyEmail": "複製電子郵件地址",
+  "linkUnavailable": "無法開啟連結",
+  "linkUnavailableMessage": "請確認裝置上有可用的瀏覽器，然後再試一次。",
+  "@feedbackConfirmation": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@emailUnavailableMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  }
 }

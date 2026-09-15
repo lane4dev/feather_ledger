@@ -28,6 +28,7 @@ dependencies:
 
   # Navigation
   go_router: ^14.7.1
+  url_launcher: ^6.3.2
 
   # UI/Charts
   fl_chart: ^1.1.1

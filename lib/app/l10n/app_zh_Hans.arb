@@ -343,7 +343,7 @@
   "@cancel": {
     "description": "取消按钮文本"
   },
-  "feedback": "反馈",
+  "feedback": "意见反馈",
   "@feedback": {
     "description": "反馈菜单项"
   },
@@ -355,7 +355,7 @@
   "@about": {
     "description": "关于菜单项"
   },
-  "aboutHint": "版本信息与开源许可",
+  "aboutHint": "应用信息与开源许可",
   "@aboutHint": {
     "description": "「更多」页关于项下方的说明"
   },
@@ -672,5 +672,32 @@
   "accountSelectDestination": "选择目标账户",
   "accountNoDestination": "没有可用的同币种其他正常账户。",
   "accountDeleteImpact": "初始余额和余额调整会被冲销。删除转账会同时影响另一账户的余额；转移记录会改变目标账户余额。周期规则将按所选方式处理。",
-  "accountConfirmOperation": "确认"
+  "accountConfirmOperation": "确认",
+    "supportCenter": "支持中心",
+  "supportCenterHint": "获取帮助与常见问题解答",
+  "appOverview": "应用介绍",
+  "privacyPolicy": "隐私政策",
+  "termsOfService": "服务条款",
+  "feedbackConfirmation": "将打开您的邮件应用，向 {email} 发送反馈。",
+  "openEmailApp": "打开邮件应用",
+  "feedbackEmailSubject": "Accounted For 意见反馈",
+  "emailUnavailable": "无法打开邮件应用",
+  "emailUnavailableMessage": "无法打开邮件应用。您可以复制 {email}，通过其他应用联系我们。",
+  "copyEmail": "复制邮箱",
+  "linkUnavailable": "无法打开链接",
+  "linkUnavailableMessage": "请确认设备上有可用的浏览器，然后重试。",
+  "@feedbackConfirmation": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@emailUnavailableMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  }
 }

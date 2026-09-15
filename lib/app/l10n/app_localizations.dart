@@ -685,7 +685,7 @@ abstract class AppLocalizations {
   /// Subtitle under the About entry in More
   ///
   /// In en, this message translates to:
-  /// **'Version details and open-source licences'**
+  /// **'App information and open-source licences'**
   String get aboutHint;
 
   /// Open Source Licenses menu item
@@ -1696,6 +1696,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get accountConfirmOperation;
+
+  /// No description provided for @supportCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Support center'**
+  String get supportCenter;
+
+  /// No description provided for @supportCenterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help and find answers'**
+  String get supportCenterHint;
+
+  /// No description provided for @appOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'App overview'**
+  String get appOverview;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of service'**
+  String get termsOfService;
+
+  /// No description provided for @feedbackConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email app will open to send feedback to {email}.'**
+  String feedbackConfirmation(String email);
+
+  /// No description provided for @openEmailApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open email app'**
+  String get openEmailApp;
+
+  /// No description provided for @feedbackEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounted For feedback'**
+  String get feedbackEmailSubject;
+
+  /// No description provided for @emailUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open email app'**
+  String get emailUnavailable;
+
+  /// No description provided for @emailUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No email app could be opened. You can copy {email} and contact us from another app.'**
+  String emailUnavailableMessage(String email);
+
+  /// No description provided for @copyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy email'**
+  String get copyEmail;
+
+  /// No description provided for @linkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open link'**
+  String get linkUnavailable;
+
+  /// No description provided for @linkUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check that a browser is available and try again.'**
+  String get linkUnavailableMessage;
 }
 
 class _AppLocalizationsDelegate

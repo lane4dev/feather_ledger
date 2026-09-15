@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/features/settings/presentation/widgets/external_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,36 +32,56 @@ class AboutScreen extends ConsumerWidget {
         title: Text(l10n.about),
       ),
       body: Center(
-        child: Column(
+        child: ListView(
           children: [
-            SizedBox(height: spacing.xl),
-            // App Logo
-            Image.asset(
-              'assets/images/app_logo.png',
-              width: 80,
-              height: 80,
-            ),
-            SizedBox(height: spacing.md),
-            // App Name
-            Text(
-              l10n.appTitle,
-              style: textTheme.headlineMedium,
-            ),
-            SizedBox(height: spacing.xs),
-            // Version
-            packageInfoAsync.when(
-              data: (info) => Text(
-                '${l10n.version} ${info.version}',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            Column(children: [
+              SizedBox(height: spacing.xl),
+              // App Logo
+              Image.asset(
+                'assets/images/app_logo.png',
+                width: 80,
+                height: 80,
               ),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-            SizedBox(height: spacing.xl),
+              SizedBox(height: spacing.md),
+              // App Name
+              Text(
+                l10n.appTitle,
+                style: textTheme.headlineMedium,
+              ),
+              SizedBox(height: spacing.xs),
+              // Version
+              packageInfoAsync.when(
+                data: (info) => Text(
+                  '${l10n.version} ${info.version}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              SizedBox(height: spacing.xl),
+            ]),
 
             // Menu Items
+            const FeatherDivider(),
+            ListTile(
+              title: Text(l10n.appOverview),
+              trailing: const Icon(LucideIcons.externalLink),
+              onTap: () => openInformationPage(context, ref),
+            ),
+            const FeatherDivider(),
+            ListTile(
+              title: Text(l10n.privacyPolicy),
+              trailing: const Icon(LucideIcons.externalLink),
+              onTap: () => openInformationPage(context, ref, 'privacy/'),
+            ),
+            const FeatherDivider(),
+            ListTile(
+              title: Text(l10n.termsOfService),
+              trailing: const Icon(LucideIcons.externalLink),
+              onTap: () => openInformationPage(context, ref, 'terms/'),
+            ),
             const FeatherDivider(),
             ListTile(
               title: Text(l10n.openSourceLicenses),

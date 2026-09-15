@@ -4,6 +4,35 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 // Used for testing purposes where a real BuildContext is not available.
 class FakeAppLocalizations implements AppLocalizations {
   @override
+  String get supportCenter => 'Support center';
+  @override
+  String get supportCenterHint => 'Get help and find answers';
+  @override
+  String get appOverview => 'App overview';
+  @override
+  String get privacyPolicy => 'Privacy policy';
+  @override
+  String get termsOfService => 'Terms of service';
+  @override
+  String feedbackConfirmation(String email) =>
+      'Your email app will open to send feedback to $email.';
+  @override
+  String get openEmailApp => 'Open email app';
+  @override
+  String get feedbackEmailSubject => 'Accounted For feedback';
+  @override
+  String get emailUnavailable => 'Could not open email app';
+  @override
+  String emailUnavailableMessage(String email) =>
+      'No email app could be opened. You can copy $email and contact us from another app.';
+  @override
+  String get copyEmail => 'Copy email';
+  @override
+  String get linkUnavailable => 'Could not open link';
+  @override
+  String get linkUnavailableMessage =>
+      'Please check that a browser is available and try again.';
+  @override
   String get notificationSkip => 'Skip';
   @override
   String get notificationSkipped => 'Bill skipped';
@@ -362,7 +391,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get feedbackHint => 'Tell us what you think';
 
   @override
-  String get aboutHint => 'Version details and open-source licences';
+  String get aboutHint => 'App information and open-source licences';
 
   @override
   String get theme => 'Theme';

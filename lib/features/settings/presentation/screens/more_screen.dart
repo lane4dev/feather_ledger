@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/features/settings/presentation/widgets/external_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -58,19 +59,24 @@ class MoreScreen extends ConsumerWidget {
           AppCard.group(
               child: Column(children: [
             ListTile(
+              leading: const Icon(LucideIcons.circleHelp),
+              title: Text(l10n.supportCenter),
+              subtitle: Text(l10n.supportCenterHint),
+              trailing: const Icon(LucideIcons.externalLink),
+              onTap: () => openInformationPage(context, ref, 'support/'),
+            ),
+            const FeatherDivider(),
+            ListTile(
               leading: const Icon(LucideIcons.messageSquare),
               title: Text(l10n.feedback),
               subtitle: Text(l10n.feedbackHint),
               trailing: const Icon(LucideIcons.chevronRight),
-              // The only entry with no page behind it yet, so it says so
-              // rather than pushing an empty screen.
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.featureNotAvailable)),
-                );
-              },
+              onTap: () => sendFeedback(context, ref),
             ),
-            const FeatherDivider(),
+          ])),
+          SizedBox(height: spacing.lg),
+          AppCard.group(
+              child: Column(children: [
             ListTile(
               leading: const Icon(LucideIcons.info),
               title: Text(l10n.about),

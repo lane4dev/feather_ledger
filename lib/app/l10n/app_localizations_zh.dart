@@ -295,7 +295,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cancel => '取消';
 
   @override
-  String get feedback => '反馈';
+  String get feedback => '意见反馈';
 
   @override
   String get feedbackHint => '告诉我们你的想法';
@@ -304,7 +304,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get about => '关于';
 
   @override
-  String get aboutHint => '版本信息与开源许可';
+  String get aboutHint => '应用信息与开源许可';
 
   @override
   String get openSourceLicenses => '开源许可';
@@ -820,6 +820,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountConfirmOperation => '确认';
+
+  @override
+  String get supportCenter => '支持中心';
+
+  @override
+  String get supportCenterHint => '获取帮助与常见问题解答';
+
+  @override
+  String get appOverview => '应用介绍';
+
+  @override
+  String get privacyPolicy => '隐私政策';
+
+  @override
+  String get termsOfService => '服务条款';
+
+  @override
+  String feedbackConfirmation(String email) {
+    return '将打开您的邮件应用，向 $email 发送反馈。';
+  }
+
+  @override
+  String get openEmailApp => '打开邮件应用';
+
+  @override
+  String get feedbackEmailSubject => 'Accounted For 意见反馈';
+
+  @override
+  String get emailUnavailable => '无法打开邮件应用';
+
+  @override
+  String emailUnavailableMessage(String email) {
+    return '无法打开邮件应用。您可以复制 $email，通过其他应用联系我们。';
+  }
+
+  @override
+  String get copyEmail => '复制邮箱';
+
+  @override
+  String get linkUnavailable => '无法打开链接';
+
+  @override
+  String get linkUnavailableMessage => '请确认设备上有可用的浏览器，然后重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1113,7 +1156,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cancel => '取消';
 
   @override
-  String get feedback => '反馈';
+  String get feedback => '意见反馈';
 
   @override
   String get feedbackHint => '告诉我们你的想法';
@@ -1122,7 +1165,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get about => '关于';
 
   @override
-  String get aboutHint => '版本信息与开源许可';
+  String get aboutHint => '应用信息与开源许可';
 
   @override
   String get openSourceLicenses => '开源许可';
@@ -1638,6 +1681,49 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get accountConfirmOperation => '确认';
+
+  @override
+  String get supportCenter => '支持中心';
+
+  @override
+  String get supportCenterHint => '获取帮助与常见问题解答';
+
+  @override
+  String get appOverview => '应用介绍';
+
+  @override
+  String get privacyPolicy => '隐私政策';
+
+  @override
+  String get termsOfService => '服务条款';
+
+  @override
+  String feedbackConfirmation(String email) {
+    return '将打开您的邮件应用，向 $email 发送反馈。';
+  }
+
+  @override
+  String get openEmailApp => '打开邮件应用';
+
+  @override
+  String get feedbackEmailSubject => 'Accounted For 意见反馈';
+
+  @override
+  String get emailUnavailable => '无法打开邮件应用';
+
+  @override
+  String emailUnavailableMessage(String email) {
+    return '无法打开邮件应用。您可以复制 $email，通过其他应用联系我们。';
+  }
+
+  @override
+  String get copyEmail => '复制邮箱';
+
+  @override
+  String get linkUnavailable => '无法打开链接';
+
+  @override
+  String get linkUnavailableMessage => '请确认设备上有可用的浏览器，然后重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1931,7 +2017,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get cancel => '取消';
 
   @override
-  String get feedback => '回饋';
+  String get feedback => '意見回饋';
 
   @override
   String get feedbackHint => '告訴我們你的想法';
@@ -1940,7 +2026,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get about => '關於';
 
   @override
-  String get aboutHint => '版本資訊與開源授權';
+  String get aboutHint => '應用程式資訊與開源授權';
 
   @override
   String get openSourceLicenses => '開源許可';
@@ -2456,4 +2542,47 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get accountConfirmOperation => '確認';
+
+  @override
+  String get supportCenter => '支援中心';
+
+  @override
+  String get supportCenterHint => '取得協助與常見問題解答';
+
+  @override
+  String get appOverview => '應用程式介紹';
+
+  @override
+  String get privacyPolicy => '隱私權政策';
+
+  @override
+  String get termsOfService => '服務條款';
+
+  @override
+  String feedbackConfirmation(String email) {
+    return '將開啟您的郵件應用程式，向 $email 傳送意見回饋。';
+  }
+
+  @override
+  String get openEmailApp => '開啟郵件應用程式';
+
+  @override
+  String get feedbackEmailSubject => 'Accounted For 意見回饋';
+
+  @override
+  String get emailUnavailable => '無法開啟郵件應用程式';
+
+  @override
+  String emailUnavailableMessage(String email) {
+    return '無法開啟郵件應用程式。您可以複製 $email，透過其他應用程式聯絡我們。';
+  }
+
+  @override
+  String get copyEmail => '複製電子郵件地址';
+
+  @override
+  String get linkUnavailable => '無法開啟連結';
+
+  @override
+  String get linkUnavailableMessage => '請確認裝置上有可用的瀏覽器，然後再試一次。';
 }
