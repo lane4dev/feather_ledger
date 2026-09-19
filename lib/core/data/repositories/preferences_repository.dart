@@ -1,4 +1,3 @@
-import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -60,9 +59,7 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   }
 
   @override
-  String getCurrency() {
-    return _prefs.getString(_keyCurrency) ?? AppCurrencies.defaultCurrency.code;
-  }
+  String? getCurrency() => _prefs.getString(_keyCurrency);
 
   @override
   Future<void> setCurrency(String code) {

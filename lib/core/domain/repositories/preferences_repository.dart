@@ -13,11 +13,11 @@ abstract class PreferencesRepository {
   /// Sets the current locale.
   Future<void> setLocale(Locale? locale);
 
-  /// Gets the current currency symbol.
-  String getCurrency();
+  /// Gets the selected currency code, or null before one has been selected.
+  String? getCurrency();
 
-  /// Sets the current currency symbol.
-  Future<void> setCurrency(String symbol);
+  /// Sets the selected currency code.
+  Future<void> setCurrency(String code);
 
   /// Gets whether to show the total balance.
   bool getShowBalance();

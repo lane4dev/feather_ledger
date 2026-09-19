@@ -93,7 +93,8 @@ void main() {
     });
 
     expect(repository.getThemeMode(), ThemeMode.light);
-    expect(repository.getCurrency(), 'USD', reason: 'fell back to default');
+    expect(repository.getCurrency(), isNull,
+        reason: 'no preference was stored');
     expect(repository.getShowBalance(), isTrue, reason: 'fell back to default');
   });
 }

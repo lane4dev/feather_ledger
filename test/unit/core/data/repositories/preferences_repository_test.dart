@@ -262,14 +262,14 @@ void main() {
         expect(result, 'CNY');
       });
 
-      test('should return "USD" as default when no value is stored', () {
+      test('should return null when no currency has been selected', () {
         // Arrange - no value set
 
         // Act
         final result = repository.getCurrency();
 
         // Assert
-        expect(result, 'USD');
+        expect(result, isNull);
       });
 
       test('should return euro code when stored', () {

@@ -12,13 +12,14 @@ class CurrencyController extends _$CurrencyController {
   @override
   Future<String> build() async {
     final repo = await ref.watch(preferencesRepositoryProvider.future);
-    String? storedCurrency = repo.getCurrency();
+    final storedCurrency = repo.getCurrency();
 
-    if (storedCurrency != AppCurrencies.defaultCurrency.code) {
+    if (storedCurrency != null) {
       return storedCurrency;
     }
 
-    // If no currency is stored or it's the default '$', try to determine it from the system locale
+    // Choose from the system locale only on first use. USD is a valid user
+    // choice and must not be mistaken for an unset preference on restart.
     final systemLocale = WidgetsBinding.instance.platformDispatcher.locale;
 
     final localeCurrency = AppCurrencies.getCurrencyByLocale(systemLocale);
