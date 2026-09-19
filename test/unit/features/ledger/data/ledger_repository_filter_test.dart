@@ -170,4 +170,128 @@ void main() {
         .first;
     expect(byKindOnly.single.id, transferId);
   });
+
+  test('a filtered search is scoped to one currency', () async {
+    // Two accounts in different currencies, both with the same note. The
+    // search text matches both, so only the currency argument separates them.
+    await harness.accountService.createAccount(
+      commandId: 'cmd_dollar',
+      name: 'Dollar',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'USD',
+    );
+    await harness.accountService.createAccount(
+      commandId: 'cmd_yuan',
+      name: 'Yuan',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'CNY',
+    );
+    await harness.categoryService.createCategory(
+      commandId: 'cmd_food',
+      name: 'Food',
+      iconKey: '1',
+      colorInt: 0xFF000000,
+      type: CategoryType.expense,
+    );
+    final categoryId = await harness.userCategoryId();
+    final accounts = await harness.db.accountDao.getAllAccounts();
+    final usdId = accounts.firstWhere((a) => a.name == 'Dollar').id;
+    final cnyId = accounts.firstWhere((a) => a.name == 'Yuan').id;
+
+    await harness.ledgerService.addTransaction(
+      commandId: 'usd_rent',
+      amountMinor: 1000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 5),
+      categoryId: categoryId,
+      accountId: usdId,
+      note: 'rent',
+    );
+    await harness.ledgerService.addTransaction(
+      commandId: 'cny_rent',
+      amountMinor: 2000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 6),
+      categoryId: categoryId,
+      accountId: cnyId,
+      note: 'rent',
+    );
+
+    const filter = TransactionFilter(query: 'rent');
+    final usd = await harness.ledgerRepository
+        .watchTransactionsFiltered(filter, currencyCode: 'USD')
+        .first;
+    expect(usd, hasLength(1));
+    expect(usd.single.account.currencyCode, 'USD');
+    expect(usd.single.amount, -1000);
+
+    final cny = await harness.ledgerRepository
+        .watchTransactionsFiltered(filter, currencyCode: 'CNY')
+        .first;
+    expect(cny, hasLength(1));
+    expect(cny.single.account.currencyCode, 'CNY');
+    expect(cny.single.amount, -2000);
+  });
+
+  test('a monthly read is scoped to one currency', () async {
+    // Two accounts in different currencies, two expenses in the same month.
+    await harness.accountService.createAccount(
+      commandId: 'cmd_dollar',
+      name: 'Dollar',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'USD',
+    );
+    await harness.accountService.createAccount(
+      commandId: 'cmd_yuan',
+      name: 'Yuan',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'CNY',
+    );
+    await harness.categoryService.createCategory(
+      commandId: 'cmd_food',
+      name: 'Food',
+      iconKey: '1',
+      colorInt: 0xFF000000,
+      type: CategoryType.expense,
+    );
+    final categoryId = await harness.userCategoryId();
+    final accounts = await harness.db.accountDao.getAllAccounts();
+    final usdId = accounts.firstWhere((a) => a.name == 'Dollar').id;
+    final cnyId = accounts.firstWhere((a) => a.name == 'Yuan').id;
+
+    await harness.ledgerService.addTransaction(
+      commandId: 'usd_expense',
+      amountMinor: 1000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 5),
+      categoryId: categoryId,
+      accountId: usdId,
+    );
+    await harness.ledgerService.addTransaction(
+      commandId: 'cny_expense',
+      amountMinor: 2000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 6),
+      categoryId: categoryId,
+      accountId: cnyId,
+    );
+
+    final usd = await harness.ledgerRepository
+        .watchTransactions(DateTime(2026, 1), currencyCode: 'USD')
+        .first;
+    expect(usd, hasLength(1));
+    expect(usd.single.account.currencyCode, 'USD');
+    expect(usd.single.amount, -1000, reason: 'an expense is a negative amount');
+
+    final cny = await harness.ledgerRepository
+        .watchTransactions(DateTime(2026, 1), currencyCode: 'CNY')
+        .first;
+    expect(cny, hasLength(1));
+    expect(cny.single.account.currencyCode, 'CNY');
+    expect(cny.single.amount, -2000);
+  });
 }

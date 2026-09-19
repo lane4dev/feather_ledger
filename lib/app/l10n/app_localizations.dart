@@ -160,6 +160,18 @@ abstract class AppLocalizations {
   /// **'Tap + to add a new one'**
   String get noTransactionsHint;
 
+  /// Empty state title when the current currency has no accounts
+  ///
+  /// In en, this message translates to:
+  /// **'No accounts in this currency'**
+  String get noAccountsInCurrencyTitle;
+
+  /// Empty state hint to create an account in the current currency
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to start tracking'**
+  String get noAccountsInCurrencyHint;
+
   /// Title for add transaction screen
   ///
   /// In en, this message translates to:
@@ -333,6 +345,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Currency Symbol'**
   String get currencySymbol;
+
+  /// Account currency picker label
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get accountCurrency;
+
+  /// Account management filter option showing every currency
+  ///
+  /// In en, this message translates to:
+  /// **'All currencies'**
+  String get accountAllCurrencies;
+
+  /// Hint on the account form telling which currency ledger a balance adjustment is recorded in
+  ///
+  /// In en, this message translates to:
+  /// **'Balance changes are recorded in the {currency} ledger.'**
+  String accountBalanceAdjustmentLedgerHint(String currency);
 
   /// System theme option
   ///

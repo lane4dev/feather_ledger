@@ -39,6 +39,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noTransactionsHint => '点击 + 添加一笔交易';
 
   @override
+  String get noAccountsInCurrencyTitle => '该币种暂无账户';
+
+  @override
+  String get noAccountsInCurrencyHint => '创建账户以开始记账';
+
+  @override
   String get addTransaction => '添加交易';
 
   @override
@@ -126,6 +132,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currencySymbol => '货币符号';
+
+  @override
+  String get accountCurrency => '币种';
+
+  @override
+  String get accountAllCurrencies => '全部币种';
+
+  @override
+  String accountBalanceAdjustmentLedgerHint(String currency) {
+    return '余额调整将记录在 $currency 账本中。';
+  }
 
   @override
   String get system => '跟随系统';
@@ -900,6 +917,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get noTransactionsHint => '点击 + 添加一笔交易';
 
   @override
+  String get noAccountsInCurrencyTitle => '该币种暂无账户';
+
+  @override
+  String get noAccountsInCurrencyHint => '创建账户以开始记账';
+
+  @override
   String get addTransaction => '添加交易';
 
   @override
@@ -987,6 +1010,17 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get currencySymbol => '货币符号';
+
+  @override
+  String get accountCurrency => '币种';
+
+  @override
+  String get accountAllCurrencies => '全部币种';
+
+  @override
+  String accountBalanceAdjustmentLedgerHint(String currency) {
+    return '余额调整将记录在 $currency 账本中。';
+  }
 
   @override
   String get system => '跟随系统';
@@ -1761,6 +1795,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noTransactionsHint => '點擊 + 新增一筆交易';
 
   @override
+  String get noAccountsInCurrencyTitle => '該幣種暫無帳戶';
+
+  @override
+  String get noAccountsInCurrencyHint => '建立帳戶以開始記帳';
+
+  @override
   String get addTransaction => '新增交易';
 
   @override
@@ -1848,6 +1888,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get currencySymbol => '貨幣符號';
+
+  @override
+  String get accountCurrency => '幣種';
+
+  @override
+  String get accountAllCurrencies => '全部幣種';
+
+  @override
+  String accountBalanceAdjustmentLedgerHint(String currency) {
+    return '餘額調整將記錄在 $currency 帳本中。';
+  }
 
   @override
   String get system => '跟隨系統';

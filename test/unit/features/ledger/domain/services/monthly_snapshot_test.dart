@@ -403,4 +403,72 @@ void main() {
     expect(ownRow!.incomeMinor, 0,
         reason: 'the opening balance changes only the account balance');
   });
+
+  test('totals are scoped to one currency and never mix', () async {
+    // Two currencies in the same month, even the same day, must never be
+    // summed together. The header and the reports both ask for one
+    // currency, and each answer excludes the other currency's accounts and
+    // rows entirely.
+    await seedCashAndFood();
+    await harness.accountService.createAccount(
+      commandId: 'cmd_seed_cny',
+      name: 'CNY Wallet',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'CNY',
+    );
+    final cnyId = (await harness.db.accountDao.getAllAccounts())
+        .firstWhere((a) => a.name == 'CNY Wallet')
+        .id;
+
+    await recordExpense(30000,
+        commandId: 'cmd_usd', date: DateTime(2026, 1, 10));
+    await harness.ledgerService.addTransaction(
+      commandId: 'cmd_cny',
+      amountMinor: 50000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 10),
+      categoryId: foodId,
+      accountId: cnyId,
+    );
+
+    final usd = await harness.ledgerService
+        .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'USD')
+        .first;
+    final cny = await harness.ledgerService
+        .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'CNY')
+        .first;
+
+    expect(usd.expenseMinor, -30000,
+        reason: 'expense is signed negative');
+    expect(cny.expenseMinor, -50000);
+    expect(usd.incomeMinor, 0);
+    expect(cny.incomeMinor, 0);
+
+    // The balance is scoped the same way: each currency totals its own
+    // accounts, never the other's.
+    expect(usd.balanceMinor, -30000);
+    expect(cny.balanceMinor, -50000);
+  });
+
+  test('an account without transactions still shows its balance', () async {
+    // Story 13: a currency that has an account but no transactions must
+    // distinguish 'no transactions' from 'no balance' — the balance is the
+    // account's, and the flows are zero.
+    await seedCashAndFood();
+    await harness.accountService.createAccount(
+      commandId: 'cmd_cny',
+      name: 'CNY Wallet',
+      type: AccountType.cash,
+      initialBalanceMinor: 88800,
+      currencyCode: 'CNY',
+    );
+
+    final cny = await harness.ledgerService
+        .watchMonthlySnapshot(DateTime(2026, 1), currencyCode: 'CNY')
+        .first;
+    expect(cny.balanceMinor, 88800);
+    expect(cny.incomeMinor, 0);
+    expect(cny.expenseMinor, 0);
+  });
 }

@@ -37,8 +37,9 @@ class RecurringService {
     this._watchScheduled,
   );
 
-  Stream<List<ScheduledTransactionEntity>> watchScheduled() =>
-      _watchScheduled.execute();
+  Stream<List<ScheduledTransactionEntity>> watchScheduled(
+          {String? currencyCode}) =>
+      _watchScheduled.execute(currencyCode: currencyCode);
 
   /// Creates a series and immediately materializes it, so a new series shows
   /// up as pending instances instead of only after the next launch.

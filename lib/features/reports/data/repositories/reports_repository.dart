@@ -21,19 +21,26 @@ class ReportsRepositoryImpl implements ReportsRepository {
   ReportsRepositoryImpl(this._dao);
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month) {
-    return _dao.watchDailyTransactionCounts(month);
+  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month,
+      {String currencyCode = 'USD'}) {
+    return _dao.watchDailyTransactionCounts(month,
+        currencyCode: currencyCode);
   }
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month) {
-    return _dao.watchDailyTransactionAmounts(month);
+  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month,
+      {String currencyCode = 'USD'}) {
+    return _dao.watchDailyTransactionAmounts(month,
+        currencyCode: currencyCode);
   }
 
   @override
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
-      DateTime month, CategoryType type) {
-    return _dao.watchCategoryBreakdown(month, type).map((rows) {
+      DateTime month, CategoryType type,
+      {String currencyCode = 'USD'}) {
+    return _dao
+        .watchCategoryBreakdown(month, type, currencyCode: currencyCode)
+        .map((rows) {
       return rows.map((row) {
         return ReportCategoryTotal(
           // Write-time snapshot: history keeps rendering archived (or

@@ -39,6 +39,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noTransactionsHint => 'Tap + to add a new one';
 
   @override
+  String get noAccountsInCurrencyTitle => 'No accounts in this currency';
+
+  @override
+  String get noAccountsInCurrencyHint => 'Create an account to start tracking';
+
+  @override
   String get addTransaction => 'Add Transaction';
 
   @override
@@ -127,6 +133,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currencySymbol => 'Currency Symbol';
+
+  @override
+  String get accountCurrency => 'Currency';
+
+  @override
+  String get accountAllCurrencies => 'All currencies';
+
+  @override
+  String accountBalanceAdjustmentLedgerHint(String currency) {
+    return 'Balance changes are recorded in the $currency ledger.';
+  }
 
   @override
   String get system => 'System';

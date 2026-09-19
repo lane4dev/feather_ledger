@@ -12,7 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 class _Bills implements RecurringService {
   final controller = StreamController<List<ScheduledTransactionEntity>>();
   @override
-  Stream<List<ScheduledTransactionEntity>> watchScheduled() =>
+  Stream<List<ScheduledTransactionEntity>> watchScheduled(
+          {String? currencyCode}) =>
       controller.stream;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -16,10 +16,15 @@ class AccountTile extends StatelessWidget {
   final AccountUiModel account;
   final VoidCallback? onTap;
 
+  /// Appends the currency code to the balance (`¥5000.00 JPY`) for a
+  /// mixed-currency list, where the symbol alone is ambiguous.
+  final bool showCurrencyCode;
+
   const AccountTile({
     super.key,
     required this.account,
     this.onTap,
+    this.showCurrencyCode = false,
   });
 
   @override
@@ -78,7 +83,10 @@ class AccountTile extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(account.displayBalance,
+                    child: Text(
+                        showCurrencyCode
+                            ? account.displayBalanceWithCode
+                            : account.displayBalance,
                         maxLines: 1,
                         style: SettingsTheme.accountBalance(context)),
                   ),

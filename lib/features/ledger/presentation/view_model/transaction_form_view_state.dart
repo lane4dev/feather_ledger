@@ -49,6 +49,11 @@ class TransactionFormViewState {
   /// The credit leg. Only a transfer has one.
   final String? toAccountId;
 
+  /// The currency this form is locked to: the current setting when a new
+  /// form opens, the original account's currency when editing. Null means
+  /// "not yet decided" and the screen falls back to the current setting.
+  final String? currencyCode;
+
   /// Attachments already in app storage.
   final List<TransactionAttachment> attachments;
 
@@ -69,6 +74,7 @@ class TransactionFormViewState {
     required this.accountId,
     required this.categoryId,
     required this.toAccountId,
+    this.currencyCode,
     required this.attachments,
     required this.pendingAttachments,
   });
@@ -78,7 +84,8 @@ class TransactionFormViewState {
   static const repeatOptions = [repeatNever, ...repeatFrequencies];
 
   /// A blank entry: the common case, and the one the FAB is for.
-  factory TransactionFormViewState.initial() => TransactionFormViewState(
+  factory TransactionFormViewState.initial({String? currencyCode}) =>
+      TransactionFormViewState(
         original: null,
         type: TransactionKind.expense,
         date: DateTime.now(),
@@ -89,6 +96,7 @@ class TransactionFormViewState {
         accountId: null,
         categoryId: null,
         toAccountId: null,
+        currencyCode: currencyCode,
         attachments: const [],
         pendingAttachments: const [],
       );
@@ -116,6 +124,7 @@ class TransactionFormViewState {
         // requires one gets to carry an id.
         categoryId: tile.type.requiresCategory ? tile.category?.id : null,
         toAccountId: tile.toAccount?.id,
+        currencyCode: tile.account.currencyCode,
         attachments: tile.attachments,
         pendingAttachments: const [],
       );
@@ -140,6 +149,7 @@ class TransactionFormViewState {
     Object? accountId = _unset,
     Object? categoryId = _unset,
     Object? toAccountId = _unset,
+    String? currencyCode,
     List<TransactionAttachment>? attachments,
     List<XFile>? pendingAttachments,
   }) =>
@@ -166,6 +176,7 @@ class TransactionFormViewState {
         toAccountId: identical(toAccountId, _unset)
             ? this.toAccountId
             : toAccountId as String?,
+        currencyCode: currencyCode ?? this.currencyCode,
         attachments: attachments ?? this.attachments,
         pendingAttachments: pendingAttachments ?? this.pendingAttachments,
       );
@@ -227,9 +238,13 @@ class TransactionFormViewState {
   int get attachmentCount => attachments.length + pendingAttachments.length;
 
   /// Accounts a picker may offer: an archived account is history, not a
-  /// choice (spec 003, US3).
-  List<AccountUiModel> activeAccounts(Iterable<AccountUiModel> all) =>
-      all.where((a) => !a.account.archived).toList();
+  /// choice (spec 003, US3), and the form is locked to one currency — an
+  /// account in another currency would change what the recorded amount means.
+  List<AccountUiModel> activeAccounts(Iterable<AccountUiModel> all) => all
+      .where((a) => !a.account.archived)
+      .where((a) =>
+          currencyCode == null || a.account.currencyCode == currencyCode)
+      .toList();
 
   AccountUiModel? selectedAccount(Iterable<AccountUiModel> all) =>
       all.where((a) => a.account.id == accountId).firstOrNull;

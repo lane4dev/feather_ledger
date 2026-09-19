@@ -37,6 +37,14 @@
   "@noTransactionsHint": {
     "description": "無交易時的空狀態提示"
   },
+  "noAccountsInCurrencyTitle": "該幣種暫無帳戶",
+  "@noAccountsInCurrencyTitle": {
+    "description": "目前幣種沒有帳戶時的空狀態標題"
+  },
+  "noAccountsInCurrencyHint": "建立帳戶以開始記帳",
+  "@noAccountsInCurrencyHint": {
+    "description": "目前幣種沒有帳戶時建立帳戶的提示"
+  },
   "addTransaction": "新增交易",
   "@addTransaction": {
     "description": "新增交易頁面標題"
@@ -151,6 +159,23 @@
   "currencySymbol": "貨幣符號",
   "@currencySymbol": {
     "description": "貨幣符號設定標籤"
+  },
+  "accountCurrency": "幣種",
+  "@accountCurrency": {
+    "description": "帳戶幣種選擇標籤"
+  },
+  "accountAllCurrencies": "全部幣種",
+  "@accountAllCurrencies": {
+    "description": "帳戶管理篩選：顯示所有幣種"
+  },
+  "accountBalanceAdjustmentLedgerHint": "餘額調整將記錄在 {currency} 帳本中。",
+  "@accountBalanceAdjustmentLedgerHint": {
+    "description": "帳戶表單提示：餘額調整記錄在哪個幣種帳本中",
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
   },
   "system": "跟隨系統",
   "@system": {

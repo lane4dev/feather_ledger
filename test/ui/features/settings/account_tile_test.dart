@@ -16,17 +16,19 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 
 void main() {
   AccountUiModel account({
+    String? id,
     AccountType type = AccountType.cash,
     bool archived = false,
     bool includeInTotals = true,
     String name = 'Everyday account',
     int balanceMinor = 123456,
+    String currencyCode = 'USD',
   }) =>
       AccountUiModel.of(AccountEntity(
-        id: type.name,
+        id: id ?? type.name,
         name: name,
         type: type,
-        currencyCode: 'USD',
+        currencyCode: currencyCode,
         balanceMinor: balanceMinor,
         archived: archived,
         includeInTotals: includeInTotals,
@@ -39,10 +41,12 @@ void main() {
     Locale locale = const Locale('en'),
     double textScale = 1,
     List<AccountUiModel> accounts = const [],
+    CurrencyController? currency,
   }) =>
       ProviderScope(
         overrides: [
-          currencyControllerProvider.overrideWith(_FixedCurrency.new),
+          currencyControllerProvider
+              .overrideWith(() => currency ?? _FixedCurrency()),
           accountUiListProvider.overrideWithValue(AsyncData(accounts)),
         ],
         child: MaterialApp(
@@ -156,6 +160,76 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a mixed list shows the code beside a shared symbol',
+      (tester) async {
+    await tester.pumpWidget(wrap(Scaffold(
+      body: SingleChildScrollView(
+        child: Column(children: [
+          AccountTile(
+              account: account(
+                  id: 'cny',
+                  currencyCode: 'CNY',
+                  name: 'Yuan wallet',
+                  balanceMinor: 10000),
+              showCurrencyCode: true),
+          AccountTile(
+              account: account(
+                  id: 'jpy',
+                  currencyCode: 'JPY',
+                  name: 'Yen wallet',
+                  balanceMinor: 10000),
+              showCurrencyCode: true),
+        ]),
+      ),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('¥100.00 CNY'), findsOneWidget);
+    expect(find.text('¥100.00 JPY'), findsOneWidget);
+    expect(find.text('¥100.00'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('management defaults to the current currency and filters locally',
+      (tester) async {
+    final recording = _RecordingCurrency();
+    await tester.pumpWidget(wrap(
+      const AccountManagementScreen(),
+      accounts: [
+        account(
+            id: 'cny',
+            currencyCode: 'CNY',
+            name: 'Yuan wallet',
+            balanceMinor: 10000),
+        account(
+            id: 'jpy',
+            currencyCode: 'JPY',
+            name: 'Yen wallet',
+            balanceMinor: 20000),
+      ],
+      currency: recording,
+    ));
+    await tester.pumpAndSettle();
+
+    // The default filter is the current currency (USD), so neither account
+    // shows until the user switches to the mixed view.
+    expect(find.text('Yuan wallet'), findsNothing);
+    expect(find.text('Yen wallet'), findsNothing);
+
+    await tester.tap(find.text(r'$ (Dollar)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All currencies').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Yuan wallet'), findsOneWidget);
+    expect(find.text('Yen wallet'), findsOneWidget);
+    expect(find.text('¥100.00 CNY'), findsOneWidget);
+    expect(find.text('¥200.00 JPY'), findsOneWidget);
+
+    // Switching the view is a local concern: the global setting is untouched.
+    expect(recording.setCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'management card opens its existing account form; FAB opens a new one',
       (tester) async {
@@ -182,4 +256,16 @@ void main() {
 class _FixedCurrency extends CurrencyController {
   @override
   Future<String> build() async => 'USD';
+}
+
+class _RecordingCurrency extends CurrencyController {
+  var setCalls = 0;
+
+  @override
+  Future<String> build() async => 'USD';
+
+  @override
+  Future<void> setCurrency(String currencyCode) async {
+    setCalls++;
+  }
 }

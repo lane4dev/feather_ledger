@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
-import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
@@ -33,8 +32,15 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
 ) {
   final service = ref.watch(ledgerServiceProvider);
   const mapper = TransactionUiMapper();
+  // The setting, not the accounts, decides which currency the ledger list
+  // shows (spec 006): switching to a currency with no accounts must show an
+  // empty ledger, not the other currency's rows.
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
 
-  return service.watchScheduledTransactions().map((instances) {
+  return service
+      .watchScheduledTransactions(currencyCode: currencyCode)
+      .map((instances) {
     final tiles = <TransactionTileUiModel>[];
     for (final instance in instances) {
       if (instance.status != ScheduledTransactionStatus.scheduled) continue;
@@ -75,6 +81,8 @@ Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   final service = ref.watch(ledgerServiceProvider);
   const mapper = TransactionUiMapper();
   final symbol = ref.watch(displayCurrencySymbolProvider);
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
 
   // Watching this rebuilds the provider when the pending set changes. Each
   // rebuild re-runs the month query, which at personal-ledger scale is
@@ -82,7 +90,9 @@ Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   final pending = ref.watch(monthlyPendingTransactionsProvider(month)).value ??
       const <TransactionTileUiModel>[];
 
-  return service.watchTransactions(month).map((items) {
+  return service
+      .watchTransactions(month, currencyCode: currencyCode)
+      .map((items) {
     final uiItems = [
       ...items.map(mapper.toTile),
       ...pending,
@@ -91,30 +101,20 @@ Stream<List<LedgerDayGroup>> ledgerMonthlyTransactions(
   });
 }
 
-/// The currency this ledger is actually in.
+/// The currency this ledger is scoped to.
 ///
-/// **Not the same question as the display preference.** Every account is
-/// created in whatever the preference was at the time, and there is no FX
-/// conversion anywhere, so a preference that has since moved on describes a
-/// currency the accounts are not in. Filtering the header's totals by it then
-/// matches nothing and the ledger reports zeroes while holding money — which
-/// is what happened on a zh-locale install, where the seeded USD accounts met
-/// a preference resolved to CNY.
-///
-/// So: the accounts decide, and a ledger with one currency (the normal case,
-/// since the form forces the current one) reports that currency whatever the
-/// preference says. A genuinely mixed ledger has no single answer without FX,
-/// so it falls back to the preference and reports that part of itself.
+/// The setting is the single source of truth for the ledger, search and
+/// reports (spec 006). Accounts no longer decide: they are created in
+/// whatever the preference was at the time and can therefore hold several
+/// currencies at once, with no FX conversion to pick one. The ledger shows
+/// the currency the user asked to see — and a setting with no accounts in it
+/// is the empty state, not an error.
 @riverpod
-String ledgerCurrency(Ref ref) {
-  final accounts = ref.watch(accountListProvider).value ?? const [];
-  final codes = accounts.map((a) => a.currencyCode).toSet();
-  if (codes.length == 1) return codes.single;
-  return ref.watch(currencyControllerProvider).value ??
-      AppCurrencies.defaultCurrency.code;
-}
+String ledgerCurrency(Ref ref) =>
+    ref.watch(currencyControllerProvider).value ??
+    AppCurrencies.defaultCurrency.code;
 
-/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// The symbol the ledger writes next to an amount — the setting's currency,
 /// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
@@ -127,21 +127,13 @@ String displayCurrencySymbol(Ref ref) =>
 /// The header's three figures for one month, in the ledger's own currency.
 ///
 /// A provider rather than a subscription held by [LedgerViewModel], because
-/// **both of its inputs move and one of them arrives late.** The month moves
-/// by definition; the currency is derived from the accounts, and while they
-/// are still loading there is no ledger currency yet, so the first answer is
-/// the display preference — and before that, the built-in default.
-///
-/// A subscription that read the currency once and kept it filtered every
-/// account out the moment the ledger settled on a different one: a fresh
-/// install on a zh locale captured USD at first frame and then opened its
-/// first account in CNY, so the header read `$0.00` over a ledger holding
-/// ¥1000. Income and expense were wrong the same way, for the same reason —
-/// the snapshot rows are filtered by that code too.
-///
-/// The only thing that re-read it was changing the month, which is why
-/// swiping a month away and back appeared to fix it. `ref.watch` makes the
-/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+/// **both of its inputs move.** The month moves by definition; the currency is
+/// the setting, and a fast switch has to re-scope the snapshot query without
+/// a frame where the header labels one currency's figures with another's
+/// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+/// it re-subscribes by itself, and a late emission from the previous
+/// subscription is discarded with the old subscription rather than
+/// overwriting the new result.
 @riverpod
 Stream<MonthlySummaryUiModel> ledgerMonthlySummary(Ref ref, DateTime month) {
   final service = ref.watch(ledgerServiceProvider);

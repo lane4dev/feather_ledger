@@ -366,7 +366,8 @@ void main() {
     expect(find.text('To'), findsNothing);
   });
 
-  testWidgets('the pickers offer only active accounts', (tester) async {
+  testWidgets('the pickers offer only active accounts in the form currency',
+      (tester) async {
     await pumpForm(tester);
     await selectKind(tester, 'Transfer');
 
@@ -374,9 +375,37 @@ void main() {
 
     expect(inSheet('Cash'), findsOneWidget);
     expect(inSheet('Bank'), findsOneWidget);
-    expect(inSheet('YenWallet'), findsOneWidget);
+    expect(inSheet('YenWallet'), findsNothing,
+        reason: 'a different currency would change what the amount means');
     expect(inSheet('OldAccount'), findsNothing,
         reason: 'archived accounts are not offered');
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('editing a transfer offers only the original account\'s currency',
+      (tester) async {
+    await pumpForm(
+      tester,
+      transaction: TransactionTileUiModel(
+        id: 'tx_transfer',
+        amount: 1000,
+        type: TransactionKind.transfer,
+        date: DateTime(2026, 1, 10),
+        note: null,
+        account: cash,
+        toAccount: bank,
+        displayAmount: '10.00',
+        displaySign: '',
+      ),
+    );
+
+    await openPicker(tester, 0);
+
+    expect(inSheet('Cash'), findsOneWidget);
+    expect(inSheet('Bank'), findsOneWidget);
+    expect(inSheet('YenWallet'), findsNothing,
+        reason: 'an edit cannot re-currency the amount by swapping accounts');
 
     await teardownTree(tester);
   });

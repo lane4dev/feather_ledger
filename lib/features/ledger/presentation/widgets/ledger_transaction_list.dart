@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
 import 'pending_bill_sheet.dart';
 import 'show_transaction_detail_sheet.dart';
@@ -35,6 +39,15 @@ class LedgerTransactionList extends ConsumerWidget {
         ref.watch(ledgerMonthlyTransactionsProvider(month));
     final isEmpty = transactionsAsync.asData?.value.isEmpty ?? false;
 
+    // The empty state asks two different questions. Accounts exist but have
+    // no transactions → point at the + button. No accounts in this currency
+    // → a transaction cannot exist, so point at account creation instead.
+    final currencyCode = ref.watch(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code;
+    final accounts = ref.watch(accountListProvider).value ?? const [];
+    final hasAccounts =
+        accounts.any((a) => a.currencyCode == currencyCode);
+
     // Wrap in a container with background color to prevent transparency issues during slide
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
@@ -53,9 +66,13 @@ class LedgerTransactionList extends ConsumerWidget {
           transactionsAsync.when(
             data: (days) {
               if (days.isEmpty) {
-                return const SliverFillRemaining(
+                return SliverFillRemaining(
                   hasScrollBody: false,
-                  child: LedgerEmpty(),
+                  child: LedgerEmpty(
+                    onCreateAccount: hasAccounts
+                        ? null
+                        : () => context.push('/accounts_management'),
+                  ),
                 );
               }
               return LedgerTimeline(

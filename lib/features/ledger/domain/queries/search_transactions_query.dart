@@ -17,8 +17,10 @@ class SearchTransactionsQuery {
 
   SearchTransactionsQuery(this._ledgerRepository);
 
-  Stream<List<TransactionEntity>> execute(TransactionFilter filter) =>
-      _ledgerRepository.watchTransactionsFiltered(filter);
+  Stream<List<TransactionEntity>> execute(TransactionFilter filter,
+          {String? currencyCode}) =>
+      _ledgerRepository.watchTransactionsFiltered(filter,
+          currencyCode: currencyCode);
 }
 
 @riverpod

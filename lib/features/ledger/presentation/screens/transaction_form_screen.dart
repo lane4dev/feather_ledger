@@ -19,7 +19,6 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.dart';
-import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
@@ -118,7 +117,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     final categoriesAsync = ref.watch(categoryListProvider(state.categoryType));
     final accountsAsync = ref.watch(accountUiListProvider);
-    final currencyKey = ref.watch(currencyControllerProvider).value ??
+    final currencyKey = state.currencyCode ??
         AppCurrencies.supportedCurrencyCodes.first;
 
     final l10n = AppLocalizations.of(context)!;

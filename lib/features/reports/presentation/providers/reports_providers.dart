@@ -40,24 +40,34 @@ Stream<Map<DateTime, int>> heatmapData(Ref ref) {
   final repo = ref.watch(reportsRepositoryProvider);
   final date = ref.watch(selectedDateProvider);
   final mode = ref.watch(heatmapModeStateProvider);
+  // Reports have no independent currency switch (spec 006): they follow the
+  // setting's currency like the ledger and search.
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
 
   return mode == HeatmapMode.frequency
-      ? repo.watchHeatmapFrequencyData(date)
-      : repo.watchHeatmapAmountData(date);
+      ? repo.watchHeatmapFrequencyData(date, currencyCode: currencyCode)
+      : repo.watchHeatmapAmountData(date, currencyCode: currencyCode);
 }
 
 @riverpod
 Stream<List<ReportCategoryTotal>> incomeChartData(Ref ref) {
   final repo = ref.watch(reportsRepositoryProvider);
   final date = ref.watch(selectedDateProvider);
-  return repo.watchCategoryBreakdown(date, CategoryType.income);
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+  return repo.watchCategoryBreakdown(date, CategoryType.income,
+      currencyCode: currencyCode);
 }
 
 @riverpod
 Stream<List<ReportCategoryTotal>> expenseChartData(Ref ref) {
   final repo = ref.watch(reportsRepositoryProvider);
   final date = ref.watch(selectedDateProvider);
-  return repo.watchCategoryBreakdown(date, CategoryType.expense);
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+  return repo.watchCategoryBreakdown(date, CategoryType.expense,
+      currencyCode: currencyCode);
 }
 
 /// Monthly income/expense/balance from the snapshot projection (spec 003,

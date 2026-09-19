@@ -218,6 +218,49 @@ void main() {
     );
   });
 
+  test('correcting a transfer across currencies is rejected and writes nothing',
+      () async {
+    final accounts = await _seedTwoAccounts(harness);
+    final original = await _recordTransfer(
+      harness,
+      from: accounts.cash,
+      to: accounts.bank,
+      amountMinor: 10000,
+      commandId: 'cmd_transfer',
+    );
+
+    // A EUR counter-account: the correction tries to move the transfer onto
+    // a currency the two legs can never legally span.
+    await harness.accountService.createAccount(
+      commandId: 'cmd_seed_eur',
+      name: 'Euro',
+      type: AccountType.bank,
+      initialBalanceMinor: 0,
+      currencyCode: 'EUR',
+    );
+    final euroId = (await harness.db.accountDao.getAllAccounts())
+        .firstWhere((a) => a.name == 'Euro')
+        .id;
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+
+    final result = await harness.ledgerService.updateTransfer(
+      commandId: 'cmd_correct_cross_currency',
+      id: original,
+      amountMinor: 15000,
+      fromAccountId: accounts.cash,
+      toAccountId: euroId,
+      date: DateTime(2026, 1, 10),
+    );
+
+    expect(
+      result,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.currencyMismatch),
+    );
+    expect((await harness.eventStore.readAll()).events.length, eventsBefore,
+        reason: 'a rejected correction writes nothing');
+  });
+
   test('correcting an already-reversed transfer is rejected', () async {
     final accounts = await _seedTwoAccounts(harness);
     final original = await _recordTransfer(

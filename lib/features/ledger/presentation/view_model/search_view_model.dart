@@ -1,5 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+
 import '../../domain/queries/search_transactions_query.dart';
 import '../../domain/value_objects/transaction_filter.dart';
 import '../mappers/transaction_ui_mapper.dart';
@@ -47,7 +50,16 @@ Stream<SearchResults> searchResults(Ref ref) {
   }
   const mapper = TransactionUiMapper();
 
-  return ref.watch(searchTransactionsQueryProvider).execute(filter).map((rows) {
+  // Search is scoped to the setting's currency, like the ledger list
+  // (spec 006): the same keyword in two currencies returns only the
+  // current one.
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+
+  return ref
+      .watch(searchTransactionsQueryProvider)
+      .execute(filter, currencyCode: currencyCode)
+      .map((rows) {
     final tiles = rows.map(mapper.toTile).toList();
     return SearchResults(
       tiles: tiles,

@@ -10,9 +10,13 @@ class WatchTransactionsQuery {
 
   WatchTransactionsQuery(this._ledgerRepository);
 
-  Stream<List<TransactionEntity>> execute(DateTime month) {
+  /// [currencyCode] scopes the read to one ledger currency (spec 006). When
+  /// null, every currency is returned — the bootstrap/catch-up paths read the
+  /// whole event stream, not a screen's currency.
+  Stream<List<TransactionEntity>> execute(DateTime month,
+      {String? currencyCode}) {
     return _ledgerRepository
-        .watchTransactions(month)
+        .watchTransactions(month, currencyCode: currencyCode)
         .map((txs) => txs.where((t) => !t.isReversed).toList());
   }
 }

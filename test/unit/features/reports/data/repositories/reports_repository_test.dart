@@ -32,13 +32,14 @@ void main() {
   Future<void> seedAccount({
     String id = 'acc_1',
     bool includeInTotals = true,
+    String currencyCode = 'USD',
   }) =>
       database.into(database.accountsView).insert(
             AccountsViewCompanion.insert(
               id: id,
               name: 'Cash',
               type: AccountType.cash,
-              currencyCode: 'USD',
+              currencyCode: currencyCode,
               balanceMinor: 0,
               includeInTotals: Value(includeInTotals),
               lastUpdatedEventId: 1,
@@ -56,6 +57,7 @@ void main() {
     int amountMinor = 50000,
     bool isReversed = false,
     int originalEventId = 1,
+    String currencyCode = 'USD',
     List<(String, PostingDirection, int)> postings = const [],
   }) async {
     await database.transactionsDao
@@ -91,7 +93,7 @@ void main() {
         accountId: leg.$1,
         direction: leg.$2,
         amountMinor: leg.$3,
-        currencyCode: 'USD',
+        currencyCode: currencyCode,
         categoryId: Value(categoryId),
       ));
     }
@@ -409,6 +411,46 @@ void main() {
           .first;
       expect(result, hasLength(1));
       expect(result.first.totalMinor, 20000);
+    });
+
+    test('does not sum the same category across currencies', () async {
+      final month = DateTime(2024, 1);
+      await seedAccount(id: 'usd_acc', currencyCode: 'USD');
+      await seedAccount(id: 'cny_acc', currencyCode: 'CNY');
+
+      final future = repository
+          .watchCategoryBreakdown(month, CategoryType.expense,
+              currencyCode: 'USD')
+          .firstWhere((list) => list.isNotEmpty);
+
+      await insertTransaction(
+        transactionId: 'txn_usd',
+        date: DateTime(2024, 1, 10),
+        kind: TransactionKind.expense,
+        categoryId: 'cat_food',
+        amountMinor: 50000,
+        postings: [('usd_acc', PostingDirection.debit, 50000)],
+      );
+      await insertTransaction(
+        transactionId: 'txn_cny',
+        date: DateTime(2024, 1, 11),
+        kind: TransactionKind.expense,
+        categoryId: 'cat_food',
+        amountMinor: 30000,
+        currencyCode: 'CNY',
+        originalEventId: 2,
+        postings: [('cny_acc', PostingDirection.debit, 30000)],
+      );
+
+      final usd = await future;
+      expect(usd.single.totalMinor, 50000,
+          reason: 'the CNY expense must not join the USD breakdown');
+
+      final cny = await repository
+          .watchCategoryBreakdown(month, CategoryType.expense,
+              currencyCode: 'CNY')
+          .first;
+      expect(cny.single.totalMinor, 30000);
     });
   });
 

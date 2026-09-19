@@ -10,8 +10,17 @@ class WatchScheduledTransactionsQuery {
 
   WatchScheduledTransactionsQuery(this._recurringRepository);
 
-  Stream<List<ScheduledTransactionEntity>> execute() {
-    return _recurringRepository.watchAllScheduled();
+  /// [currencyCode] scopes the pending-bill list to one ledger currency
+  /// (spec 006); null returns every currency — used by the catch-up path,
+  /// which posts due instances regardless of the screen's currency.
+  Stream<List<ScheduledTransactionEntity>> execute({String? currencyCode}) {
+    return _recurringRepository
+        .watchAllScheduled()
+        .map((items) => items
+            .where((s) =>
+                currencyCode == null ||
+                s.account?.currencyCode == currencyCode)
+            .toList());
   }
 }
 

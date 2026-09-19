@@ -37,6 +37,14 @@
   "@noTransactionsHint": {
     "description": "无交易时的空状态提示"
   },
+  "noAccountsInCurrencyTitle": "该币种暂无账户",
+  "@noAccountsInCurrencyTitle": {
+    "description": "当前币种没有账户时的空状态标题"
+  },
+  "noAccountsInCurrencyHint": "创建账户以开始记账",
+  "@noAccountsInCurrencyHint": {
+    "description": "当前币种没有账户时创建账户的提示"
+  },
   "addTransaction": "添加交易",
   "@addTransaction": {
     "description": "添加交易页面标题"
@@ -151,6 +159,23 @@
   "currencySymbol": "货币符号",
   "@currencySymbol": {
     "description": "货币符号设置标签"
+  },
+  "accountCurrency": "币种",
+  "@accountCurrency": {
+    "description": "账户币种选择标签"
+  },
+  "accountAllCurrencies": "全部币种",
+  "@accountAllCurrencies": {
+    "description": "账户管理筛选：显示所有币种"
+  },
+  "accountBalanceAdjustmentLedgerHint": "余额调整将记录在 {currency} 账本中。",
+  "@accountBalanceAdjustmentLedgerHint": {
+    "description": "账户表单提示：余额调整记录在哪个币种账本中",
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
   },
   "system": "跟随系统",
   "@system": {

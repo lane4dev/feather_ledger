@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_group.dart';
@@ -36,6 +38,8 @@ void main() {
         overrides: [
           balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
           ledgerMonthlySummaryProvider
               .overrideWith((ref, month) => Stream.value(first)),
           ledgerMonthlyTransactionsProvider.overrideWith((ref, month) =>
@@ -82,6 +86,8 @@ void main() {
         overrides: [
           balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
           ledgerMonthlySummaryProvider.overrideWith((ref, month) => streams
               .putIfAbsent(month, () => StreamController.broadcast())
               .stream),
@@ -125,6 +131,8 @@ void main() {
         overrides: [
           balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
           ledgerMonthlySummaryProvider.overrideWith((ref, month) {
             subscriptions.add(month);
             return Stream.value(month == next ? second : first);
@@ -158,6 +166,8 @@ void main() {
         overrides: [
           balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
           ledgerMonthlySummaryProvider
               .overrideWith((ref, month) => Stream.value(first)),
           ledgerMonthlyTransactionsProvider
@@ -196,6 +206,8 @@ void main() {
         overrides: [
           balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
           ledgerMonthlySummaryProvider.overrideWith(
               (ref, month) => Stream.value(month == next ? second : first)),
           ledgerMonthlyTransactionsProvider

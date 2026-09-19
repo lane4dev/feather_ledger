@@ -82,24 +82,22 @@ class AppCurrencies {
         code; // Fall back to the code if not found.
   }
 
-  /// return currency based on locale
+  /// Maps a device language to the currency a first-use install should start
+  /// with. The mapping is by *language code* only, never by region: an
+  /// `en-GB` device still starts in USD (not GBP), and French shares the euro
+  /// with German. Languages without an entry fall back to the default currency.
+  static const Map<String, String> _languageToCurrencyCode = {
+    'zh': 'CNY',
+    'ja': 'JPY',
+    'en': 'USD',
+    'de': 'EUR',
+    'fr': 'EUR',
+  };
+
+  /// Returns the currency for a device locale, or null for unmapped languages
+  /// (callers fall back to [defaultCurrency]).
   static Currency? getCurrencyByLocale(Locale locale) {
-    // Try exact match first (e.g., "zh_CN")
-    for (var currency in _allCurrencies) {
-      if (currency.locale == locale) {
-        return currency;
-      }
-    }
-
-    // If no exact match, try matching by language code (e.g., "zh")
-    final languageCode = locale.languageCode;
-    for (var currency in _allCurrencies) {
-      if (currency.locale != null &&
-          currency.locale!.languageCode == languageCode) {
-        return currency;
-      }
-    }
-
-    return null;
+    final code = _languageToCurrencyCode[locale.languageCode];
+    return code == null ? null : getCurrencyByCode(code);
   }
 }

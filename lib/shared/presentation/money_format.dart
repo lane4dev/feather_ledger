@@ -26,6 +26,16 @@ String formatMinorWithSymbol(int minorUnits, String currencySymbol) =>
         ? '- $currencySymbol${formatMinor(-minorUnits)}'
         : '$currencySymbol${formatMinor(minorUnits)}';
 
+/// A signed amount with its currency symbol and ISO code, e.g.
+/// `¥5000.00 JPY` or `- $12.34 USD`.
+///
+/// Only a mixed-currency list needs the code: two currencies (CNY and JPY)
+/// share `¥`, and the code disambiguates. The sign stays outside the symbol,
+/// as in [formatMinorWithSymbol].
+String formatMinorWithSymbolAndCode(
+        int minorUnits, String currencySymbol, String currencyCode) =>
+    '${formatMinorWithSymbol(minorUnits, currencySymbol)} $currencyCode';
+
 /// Parses validated user input (at most 2 decimals) into int minor units,
 /// via the sanctioned [Money.fromDouble] bridge.
 int parseMinor(String input) =>

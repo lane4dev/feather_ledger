@@ -130,6 +130,44 @@ void main() {
         instances.every((i) => i.recurringTransactionSeries != null), isTrue);
   });
 
+  test('watchScheduled scopes to one currency', () async {
+    await seed();
+    await harness.accountService.createAccount(
+      commandId: 'cmd_yuan',
+      name: 'Yuan',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'CNY',
+    );
+    final accounts = await harness.db.accountDao.getAllAccounts();
+    final cnyId = accounts.firstWhere((a) => a.name == 'Yuan').id;
+
+    // A USD series (via createMonthly) and a CNY series side by side.
+    await createMonthly();
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 30000,
+      accountId: cnyId,
+      categoryId: expenseCategoryId,
+      description: 'Yuan bill',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime(2026, 1, 1),
+      endDate: null,
+      autoPost: false,
+    );
+
+    final usd =
+        await harness.recurringService.watchScheduled(currencyCode: 'USD').first;
+    expect(usd, isNotEmpty);
+    expect(usd.every((s) => s.account?.currencyCode == 'USD'), isTrue);
+
+    final cny =
+        await harness.recurringService.watchScheduled(currencyCode: 'CNY').first;
+    expect(cny, isNotEmpty);
+    expect(cny.every((s) => s.account?.currencyCode == 'CNY'), isTrue);
+  });
+
   test('creating a series writes no event', () async {
     await seed();
     final before = (await harness.eventStore.readAll()).events.length;

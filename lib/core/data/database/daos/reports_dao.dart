@@ -67,7 +67,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// Daily transaction counts for the three-month heatmap window. Count
   /// transactions, not postings: DISTINCT keeps a joined transaction unique.
   /// Joining accounts also makes inclusion changes invalidate the stream.
-  Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month) {
+  Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month,
+      {String currencyCode = 'USD'}) {
     final start = DateTime(month.year, month.month - 2, 1);
     final end = DateTime(month.year, month.month + 1, 1);
     final query = selectOnly(transactionsView, distinct: true)
@@ -97,7 +98,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
             ]) &
             transactionsView.isReversed.equals(false) &
             (accountsView.includeInTotals.equals(true) &
-                accountsView.deleted.equals(false)),
+                accountsView.deleted.equals(false) &
+                accountsView.currencyCode.equals(currencyCode)),
       );
 
     return query.watch().map((rows) {
@@ -119,7 +121,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// filter over the result because `watch()` re-emits on writes to every
   /// table in the statement — without the account table in the query, toggling
   /// the flag would leave this chart stale until something else moved.
-  Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime datetime) {
+  Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime datetime,
+      {String currencyCode = 'USD'}) {
     final start = DateTime(datetime.year, datetime.month - 2, 1);
     final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
@@ -135,7 +138,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       ..where(transactionsView.occurredAt.isBetweenValues(start, end) &
           transactionsView.isReversed.equals(false) &
           (accountsView.includeInTotals.equals(true) &
-              accountsView.deleted.equals(false)));
+              accountsView.deleted.equals(false) &
+              accountsView.currencyCode.equals(currencyCode)));
 
     return query.watch().map((rows) {
       final map = <DateTime, int>{};
@@ -155,7 +159,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// transaction's write-time category snapshot. Transfers (no category)
   /// and reversed rows are excluded.
   Stream<List<ReportCategoryRow>> watchCategoryBreakdown(
-      DateTime datetime, CategoryType type) {
+      DateTime datetime, CategoryType type,
+      {String currencyCode = 'USD'}) {
     final start = DateTime(datetime.year, datetime.month, 1);
     final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
@@ -175,7 +180,8 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           transactionsView.isReversed.equals(false) &
           transactionsView.kind.equals(kind.index) &
           (accountsView.includeInTotals.equals(true) &
-              accountsView.deleted.equals(false)));
+              accountsView.deleted.equals(false) &
+              accountsView.currencyCode.equals(currencyCode)));
 
     return query.watch().map((rows) {
       final grouped = <String, ReportCategoryRow>{};

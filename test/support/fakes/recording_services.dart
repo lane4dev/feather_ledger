@@ -168,7 +168,8 @@ class RecordingLedgerService implements LedgerService {
       unitResult;
 
   @override
-  Stream<List<TransactionEntity>> watchTransactions(DateTime month) =>
+  Stream<List<TransactionEntity>> watchTransactions(DateTime month,
+          {String? currencyCode}) =>
       throw UnimplementedError();
 
   @override
@@ -177,7 +178,8 @@ class RecordingLedgerService implements LedgerService {
       throw UnimplementedError();
 
   @override
-  Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() =>
+  Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions(
+          {String? currencyCode}) =>
       throw UnimplementedError();
 
   @override
@@ -257,7 +259,8 @@ class RecordingRecurringService implements RecurringService {
   Future<void> catchUpAutoPosted({String? accountId}) async {}
 
   @override
-  Stream<List<ScheduledTransactionEntity>> watchScheduled() =>
+  Stream<List<ScheduledTransactionEntity>> watchScheduled(
+          {String? currencyCode}) =>
       throw UnimplementedError();
 }
 

@@ -35,6 +35,17 @@ void main() {
         .displayBalance, '¥5000.00');
   });
 
+  test('mixed view writes the balance with its currency code', () {
+    expect(
+        AccountUiModel.of(account(currencyCode: 'JPY', balanceMinor: 500000))
+            .displayBalanceWithCode,
+        '¥5000.00 JPY');
+    expect(
+        AccountUiModel.of(account(currencyCode: 'USD', balanceMinor: -123456))
+            .displayBalanceWithCode,
+        r'- $1234.56 USD');
+  });
+
   test('keeps the entity for the screen to name and tap', () {
     final model =
         AccountUiModel.of(account(currencyCode: 'USD', balanceMinor: 1));

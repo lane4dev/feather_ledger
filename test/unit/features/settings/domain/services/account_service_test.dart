@@ -150,6 +150,33 @@ void main() {
       expect(snapshot.closingBalanceMinor, 12500);
     });
 
+    test('a balance adjustment stays in the account\'s own currency',
+        () async {
+      await harness.accountService.createAccount(
+        commandId: 'cmd_create_jpy',
+        name: 'Yen wallet',
+        type: AccountType.cash,
+        initialBalanceMinor: 1000,
+        currencyCode: 'JPY',
+      );
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+
+      await harness.accountService.adjustAccountBalance(
+        commandId: 'cmd_adjust_jpy',
+        accountId: account.id,
+        newBalanceMinor: 2500,
+        notes: 'Reconciled',
+      );
+
+      final rows =
+          await harness.ledgerService.watchTransactions(DateTime.now()).first;
+      final adjustment = rows.singleWhere(
+          (transaction) => transaction.note == 'Reconciled');
+      expect(adjustment.account.currencyCode, 'JPY',
+          reason: 'the adjustment belongs to the account, not any view');
+      expect(adjustment.amount, 1500);
+    });
+
     test('a balance-purpose correction reverses and replaces its event',
         () async {
       await harness.accountService.createAccount(

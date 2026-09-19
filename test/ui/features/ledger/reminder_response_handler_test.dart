@@ -67,7 +67,8 @@ class _Recurring implements RecurringService {
   final bool failSkip;
   final calls = <String>[];
   @override
-  Stream<List<ScheduledTransactionEntity>> watchScheduled() =>
+  Stream<List<ScheduledTransactionEntity>> watchScheduled(
+          {String? currencyCode}) =>
       Stream.value([bill]);
   @override
   Future<Result<void>> postInstance(String id, {String? commandId}) async {
@@ -106,7 +107,8 @@ class _Ledger implements LedgerService {
   _Ledger(this.date);
   final DateTime date;
   @override
-  Stream<List<TransactionEntity>> watchTransactions(DateTime month) =>
+  Stream<List<TransactionEntity>> watchTransactions(DateTime month,
+          {String? currencyCode}) =>
       Stream.value([
         TransactionEntity(
             id: 'tx',

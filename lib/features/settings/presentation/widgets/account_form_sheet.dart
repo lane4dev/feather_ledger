@@ -17,6 +17,7 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -39,6 +40,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   late int _balanceMinor;
   late AccountType _selectedType; // Removed prefix
   late bool _includeInTotals;
+  late String? _selectedCurrencyCode;
 
   @override
   void initState() {
@@ -49,6 +51,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     // New accounts count unless the user says otherwise; the entity already
     // answers `true` for one that predates the flag.
     _includeInTotals = widget.account?.includeInTotals ?? true;
+    _selectedCurrencyCode = widget.account?.currencyCode;
   }
 
   @override
@@ -57,9 +60,13 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final isEditing = widget.account != null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final currencyKey = ref.watch(currencyControllerProvider).value ??
+    final currencyKey = _selectedCurrencyCode ??
+        ref.watch(currencyControllerProvider).value ??
         AppCurrencies.defaultCurrency.code;
     final currency = AppCurrencies.getSymbol(currencyKey);
+    final currentCurrencyCode =
+        ref.watch(currencyControllerProvider).value ??
+            AppCurrencies.defaultCurrency.code;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -141,6 +148,23 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     ),
                     SizedBox(height: context.spacing.lg),
 
+                    AppFormRow(
+                      icon: LucideIcons.circleDollarSign,
+                      onTap: isEditing ? null : _showCurrencyDialog,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.accountCurrency,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant)),
+                          SizedBox(height: context.spacing.xs),
+                          Text(AppCurrencies.getName(currencyKey, l10n),
+                              style: theme.textTheme.bodyLarge),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: context.spacing.lg),
+
                     const FeatherDivider(),
                     SizedBox(height: context.spacing.md),
 
@@ -191,6 +215,20 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       onSaved: (value) => _balanceMinor = parseMinor(value!),
                     ),
 
+                    // A balance change on an account outside the currency
+                    // being viewed lands in that account's own ledger, not
+                    // the one the app is showing. Say so rather than letting
+                    // the signed amount look like it moved somewhere else.
+                    if (isEditing && currencyKey != currentCurrencyCode) ...[
+                      SizedBox(height: context.spacing.sm),
+                      Text(
+                        l10n.accountBalanceAdjustmentLedgerHint(
+                            AppCurrencies.getName(currencyKey, l10n)),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+
                     SizedBox(height: context.spacing.sm),
 
                     // Out of the ledger totals, not out of the ledger: the
@@ -221,6 +259,30 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCurrencyDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    final current = _selectedCurrencyCode ??
+        (ref.read(currencyControllerProvider).value ??
+            AppCurrencies.defaultCurrency.code);
+    showDialog<void>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.accountCurrency),
+        children: AppCurrencies.supportedCurrencyCodes.map((code) {
+          return FeatherDialogOption<String>(
+            label: AppCurrencies.getName(code, l10n),
+            value: code,
+            groupValue: current,
+            onChanged: (value) {
+              setState(() => _selectedCurrencyCode = value);
+              Navigator.pop(context);
+            },
+          );
+        }).toList(),
       ),
     );
   }
@@ -396,6 +458,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
       final service = ref.read(accountServiceProvider);
 
       Result<void> result;
+      String? createdCurrencyCode;
       if (widget.account != null) {
         final currentBalanceMinor = widget.account!.balanceMinor;
         final balanceChanged = _balanceMinor != currentBalanceMinor;
@@ -450,8 +513,10 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
           );
         }
       } else {
-        final currencyKey = ref.read(currencyControllerProvider).value ??
+        final currencyKey = _selectedCurrencyCode ??
+            ref.read(currencyControllerProvider).value ??
             AppCurrencies.defaultCurrency.code;
+        createdCurrencyCode = currencyKey;
         final l10n = AppLocalizations.of(context)!;
         result = await service.createAccount(
           commandId: const Uuid().v4(),
@@ -481,7 +546,11 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        context.pop();
+        if (createdCurrencyCode != null) {
+          context.pop(createdCurrencyCode);
+        } else {
+          context.pop();
+        }
       }
     }
   }

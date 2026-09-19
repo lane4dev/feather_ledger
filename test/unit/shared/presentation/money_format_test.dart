@@ -32,6 +32,17 @@ void main() {
     });
   });
 
+  group('formatMinorWithSymbolAndCode', () {
+    test('appends the code after the amount', () {
+      expect(formatMinorWithSymbolAndCode(500000, '¥', 'JPY'), '¥5000.00 JPY');
+      expect(formatMinorWithSymbolAndCode(123456, r'$', 'USD'), r'$1234.56 USD');
+    });
+
+    test('keeps a negative sign outside the symbol', () {
+      expect(formatMinorWithSymbolAndCode(-1234, r'$', 'USD'), r'- $12.34 USD');
+    });
+  });
+
   group('the models that can be negative', () {
     AccountEntity account(int balanceMinor) => AccountEntity(
           id: 'acc_1',

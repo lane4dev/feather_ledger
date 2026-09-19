@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/search_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/value_objects/transaction_filter.dart';
@@ -12,12 +13,17 @@ void main() {
   late _SearchQuery query;
   late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
     query = _SearchQuery();
     container = ProviderContainer(overrides: [
       searchTransactionsQueryProvider.overrideWithValue(query),
+      currencyControllerProvider.overrideWith(() => _FixedCurrency('CNY')),
     ]);
     container.listen(searchResultsProvider, (previous, next) {});
+    // Production resolves the setting during bootstrap, long before the
+    // search screen opens. Do the same here so the query subscribes once
+    // with a settled currency rather than once with the default.
+    await container.read(currencyControllerProvider.future);
   });
 
   tearDown(() => container.dispose());
@@ -57,10 +63,19 @@ void main() {
     expect(cleared.tiles, isEmpty);
     expect(query.filters, hasLength(1));
   });
+
+  test('search is scoped to the current currency', () async {
+    container.read(searchViewModelProvider.notifier).setQuery('rent');
+    await container.read(searchResultsProvider.future);
+
+    expect(query.currencies.single, 'CNY',
+        reason: 'the setting\'s currency reaches the query, not the default');
+  });
 }
 
 class _SearchQuery implements SearchTransactionsQuery {
   final filters = <TransactionFilter>[];
+  final currencies = <String?>[];
   final transaction = TransactionEntity(
     id: 'rent',
     amount: -1234,
@@ -80,8 +95,19 @@ class _SearchQuery implements SearchTransactionsQuery {
   );
 
   @override
-  Stream<List<TransactionEntity>> execute(TransactionFilter filter) {
+  Stream<List<TransactionEntity>> execute(TransactionFilter filter,
+      {String? currencyCode}) {
     filters.add(filter);
+    currencies.add(currencyCode);
     return Stream.value([transaction]);
   }
+}
+
+class _FixedCurrency extends CurrencyController {
+  _FixedCurrency(this.code);
+
+  final String code;
+
+  @override
+  Future<String> build() async => code;
 }

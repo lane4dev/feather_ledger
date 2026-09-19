@@ -29,9 +29,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
   );
 
   @override
-  Stream<List<TransactionEntity>> watchTransactions(DateTime datetime) {
+  Stream<List<TransactionEntity>> watchTransactions(DateTime datetime,
+      {String? currencyCode}) {
     return _transactionsDao.watchTransactionsByMonth(datetime).map((rows) {
-      return _toTransactionEntities(rows);
+      final entities = _toTransactionEntities(rows);
+      if (currencyCode == null) return entities;
+      return entities
+          .where((t) => t.account.currencyCode == currencyCode)
+          .toList();
     });
   }
 
@@ -41,7 +46,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
   /// there, already tested. A second assembler would be a second set of bugs.
   @override
   Stream<List<TransactionEntity>> watchTransactionsFiltered(
-      TransactionFilter filter) {
+      TransactionFilter filter,
+      {String? currencyCode}) {
     return _transactionsDao
         .watchTransactionsFiltered(
           query: filter.query,
@@ -51,7 +57,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
           from: filter.from,
           to: filter.to,
         )
-        .map(_toTransactionEntities);
+        .map(_toTransactionEntities)
+        .map((entities) => currencyCode == null
+            ? entities
+            : entities
+                .where((t) => t.account.currencyCode == currencyCode)
+                .toList());
   }
 
   @override

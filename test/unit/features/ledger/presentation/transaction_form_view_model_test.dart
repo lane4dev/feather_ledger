@@ -8,6 +8,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/transaction_attachment_store.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
@@ -24,6 +25,23 @@ import '../../../../support/fakes/recording_services.dart';
 /// only reachable by pumping a form — which write a save takes, what happens
 /// to imported files when it is rejected, whether the sign survives an edit —
 /// are now assertions in a plain test.
+/// A fixed currency so the form's lock is deterministic in a plain test. It is
+/// mutable so a test can simulate the setting changing while a form is open.
+class _FixedCurrency extends CurrencyController {
+  _FixedCurrency(this.code);
+
+  String code;
+
+  @override
+  Future<String> build() async => code;
+
+  @override
+  Future<void> setCurrency(String currencyCode) async {
+    code = currencyCode;
+    state = AsyncData(currencyCode);
+  }
+}
+
 void main() {
   const cash = AccountEntity(
     id: 'acc_cash',
@@ -86,7 +104,7 @@ void main() {
     store = RecordingAttachmentStore();
   });
 
-  ProviderContainer container() {
+  ProviderContainer container({String currency = 'USD'}) {
     final container = ProviderContainer(
       overrides: [
         ledgerServiceProvider.overrideWithValue(ledger),
@@ -100,6 +118,7 @@ void main() {
             type == CategoryType.income ? const [salary] : const [rent],
           ),
         ),
+        currencyControllerProvider.overrideWith(() => _FixedCurrency(currency)),
       ],
     );
     addTearDown(container.dispose);
@@ -143,6 +162,44 @@ void main() {
       expect(vm.state.accountId, isNull);
       expect(vm.state.repeat, TransactionFormViewState.repeatNever);
       expect(vm.state.canRepeat, isTrue);
+    });
+
+    test('a new form locks its currency at open time', () async {
+      final c = container(currency: 'JPY');
+      // The ledger screen watches the currency before any form can open, so
+      // the provider is already resolved when the form reads it once.
+      await c.read(currencyControllerProvider.future);
+
+      final vm = form(c);
+
+      expect(vm.state.currencyCode, 'JPY');
+    });
+
+    test('an edit locks to the original account\'s currency', () {
+      final vm = form(
+        container(currency: 'JPY'),
+        original: tile(
+          id: 'tx_1',
+          amount: 1234,
+          category: rent,
+          type: TransactionKind.income,
+        ),
+      );
+
+      expect(vm.state.currencyCode, 'USD');
+    });
+
+    test('a setting change mid-form does not re-currency the form', () async {
+      final c = container(); // locked to USD at open
+      await c.read(currencyControllerProvider.future);
+      final vm = form(c);
+
+      expect(vm.state.currencyCode, 'USD');
+
+      await c.read(currencyControllerProvider.notifier).setCurrency('JPY');
+
+      expect(vm.state.currencyCode, 'USD',
+          reason: 'the lock is a one-time read, not a watch');
     });
 
     test('a correction lands every field, amount included', () {
@@ -239,13 +296,15 @@ void main() {
   });
 
   group('the rules that read the account list', () {
-    test('pickers offer active accounts only', () {
-      final vm = form(container());
+    test('pickers offer active accounts in the form\'s currency only', () {
+      final vm = form(container()); // locked to USD
 
       final active = vm.state
           .activeAccounts([cash, card, yen, archived].map(AccountUiModel.of));
 
-      expect(active.map((a) => a.account.id), ['acc_cash', 'acc_card', 'acc_yen']);
+      expect(active.map((a) => a.account.id), ['acc_cash', 'acc_card'],
+          reason: 'the yen account is a different currency, and the archived '
+              'account is history');
     });
 
     test('a transfer cannot land on its own source or another currency', () {

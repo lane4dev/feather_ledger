@@ -37,6 +37,14 @@
   "@noTransactionsHint": {
     "description": "Empty state hint to add a transaction"
   },
+  "noAccountsInCurrencyTitle": "No accounts in this currency",
+  "@noAccountsInCurrencyTitle": {
+    "description": "Empty state title when the current currency has no accounts"
+  },
+  "noAccountsInCurrencyHint": "Create an account to start tracking",
+  "@noAccountsInCurrencyHint": {
+    "description": "Empty state hint to create an account in the current currency"
+  },
   "addTransaction": "Add Transaction",
   "@addTransaction": {
     "description": "Title for add transaction screen"
@@ -151,6 +159,23 @@
   "currencySymbol": "Currency Symbol",
   "@currencySymbol": {
     "description": "Currency symbol setting label"
+  },
+  "accountCurrency": "Currency",
+  "@accountCurrency": {
+    "description": "Account currency picker label"
+  },
+  "accountAllCurrencies": "All currencies",
+  "@accountAllCurrencies": {
+    "description": "Account management filter option showing every currency"
+  },
+  "accountBalanceAdjustmentLedgerHint": "Balance changes are recorded in the {currency} ledger.",
+  "@accountBalanceAdjustmentLedgerHint": {
+    "description": "Hint on the account form telling which currency ledger a balance adjustment is recorded in",
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
   },
   "system": "System",
   "@system": {

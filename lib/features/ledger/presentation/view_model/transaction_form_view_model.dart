@@ -2,10 +2,12 @@ import 'package:file_selector/file_selector.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/transaction_attachment_store.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
@@ -73,7 +75,13 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   @override
   TransactionFormViewState build(TransactionTileUiModel? original) =>
       original == null
-          ? TransactionFormViewState.initial()
+          ? TransactionFormViewState.initial(
+              // The form locks its currency at open time (spec 006, US21): a
+              // one-time read, not a watch, so a later setting change cannot
+              // re-currency a half-filled form.
+              currencyCode: ref.read(currencyControllerProvider).value ??
+                  AppCurrencies.defaultCurrency.code,
+            )
           : TransactionFormViewState.fromTile(original);
 
   void setAmountText(String text) => state = state.copyWith(amountText: text);

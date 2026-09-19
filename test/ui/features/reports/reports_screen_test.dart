@@ -23,16 +23,19 @@ import 'package:feather_ledger/features/reports/presentation/models/report_heatm
 /// only, no business computation.
 class _FakeReportsRepository implements ReportsRepository {
   @override
-  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month) =>
+  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month,
+          {String currencyCode = 'USD'}) =>
       Stream.value({DateTime(month.year, month.month, 29): 3});
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month) =>
+  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month,
+          {String currencyCode = 'USD'}) =>
       Stream.value({DateTime(month.year, month.month, 29): -5000});
 
   @override
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
-          DateTime month, CategoryType type) =>
+          DateTime month, CategoryType type,
+          {String currencyCode = 'USD'}) =>
       Stream.value(const [
         ReportCategoryTotal(
           category: CategoryEntity(
@@ -237,10 +240,12 @@ class _ControlledReportsRepository extends _FakeReportsRepository {
   final amount = StreamController<Map<DateTime, int>>.broadcast();
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month) =>
+  Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month,
+          {String currencyCode = 'USD'}) =>
       frequency.stream;
 
   @override
-  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month) =>
+  Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month,
+          {String currencyCode = 'USD'}) =>
       amount.stream;
 }

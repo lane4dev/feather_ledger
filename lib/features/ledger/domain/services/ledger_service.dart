@@ -34,8 +34,9 @@ class LedgerService {
     this._getAccountBalanceQuery,
   );
 
-  Stream<List<TransactionEntity>> watchTransactions(DateTime month) {
-    return _watchTransactionsQuery.execute(month);
+  Stream<List<TransactionEntity>> watchTransactions(DateTime month,
+      {String? currencyCode}) {
+    return _watchTransactionsQuery.execute(month, currencyCode: currencyCode);
   }
 
   Stream<MonthlySnapshotTotals> watchMonthlySnapshot(DateTime month,
@@ -46,8 +47,9 @@ class LedgerService {
 
   /// Recurring bills are [RecurringService]'s business (spec 004, US2); these
   /// two forward so existing callers keep working while the surface moves.
-  Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() {
-    return _recurringService.watchScheduled();
+  Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions(
+      {String? currencyCode}) {
+    return _recurringService.watchScheduled(currencyCode: currencyCode);
   }
 
   Future<AccountBalance> accountBalance(String accountId) {

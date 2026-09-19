@@ -2,6 +2,7 @@
 
 Type: task
 Triage: ready-for-agent
+Status: resolved
 
 Blocked by: 17
 
@@ -33,3 +34,7 @@ Blocked by: 17
 - 预计文件按当前代码列出；实施前核对并优先复用现有模块。需要界面文案时同步 en、zh、zh_Hans、zh_Hant 四个 ARB 并运行生成器；Drift 和 Riverpod 生成文件由生成器更新。
 - 任务 28 的自动入账保护在任务 48 验收前保持，测试可通过受控测试配置验证各阶段行为；任何阶段不得删除或重置现有数据。完成时运行适用测试及静态分析。
 - 完整产品规则与范围以[多币种规格](../spec.md)为准；涉及尚未验证的期次身份、资格历史及恢复算法时，先用有界原型与行为测试验证，不能把候选实现视为既定事实。
+
+## Answer
+
+账户创建表单增加币种选择器（默认当前币种、5 种可选）；账户币种不可变，事件重放保留 currencyCode。见 account_form_sheet.dart、create_account_command.dart、ledger_projector.dart。

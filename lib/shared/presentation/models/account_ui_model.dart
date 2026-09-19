@@ -14,19 +14,26 @@ class AccountUiModel {
   /// negative, and reads `- $12.34`.
   final String displayBalance;
 
+  /// [displayBalance] with the ISO code appended (`¥5000.00 JPY`), for a
+  /// mixed-currency list where the symbol alone is ambiguous.
+  final String displayBalanceWithCode;
+
   const AccountUiModel({
     required this.account,
     required this.displayBalance,
+    required this.displayBalanceWithCode,
   });
 
   /// The balance is in **the account's own currency**, not the display
   /// preference: a wallet holding yen shows yen, and a screen listing several
   /// accounts at once could not use one symbol for all of them anyway.
-  factory AccountUiModel.of(AccountEntity account) => AccountUiModel(
-        account: account,
-        displayBalance: formatMinorWithSymbol(
-          account.balanceMinor,
-          AppCurrencies.getSymbol(account.currencyCode),
-        ),
-      );
+  factory AccountUiModel.of(AccountEntity account) {
+    final symbol = AppCurrencies.getSymbol(account.currencyCode);
+    return AccountUiModel(
+      account: account,
+      displayBalance: formatMinorWithSymbol(account.balanceMinor, symbol),
+      displayBalanceWithCode: formatMinorWithSymbolAndCode(
+          account.balanceMinor, symbol, account.currencyCode),
+    );
+  }
 }
