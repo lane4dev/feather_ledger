@@ -407,3 +407,18 @@ lib/shared/     跨特性的组件与扩展
 - `dart run build_runner build -d`（改动带注解的代码后，重新生成 Riverpod/Drift/json_serializable 的 `.g.dart` 文件）
 - `flutter test`
 - `flutter analyze`
+
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked as local Markdown under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage labels use their default names. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repository uses a single-context layout. See `docs/agents/domain.md`.

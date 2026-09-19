@@ -61,16 +61,45 @@ the domain term is recurring series. A one-shot series (start equals end) is the
 one pending bill, no recorded transaction.
 _Avoid_: recurring transaction, schedule, subscription
 
+**Automatic posting**:
+Recording an eligible scheduled income or expense in the ledger without a separate manual confirmation.
+It records a money movement and does not itself transfer money or pay a bill.
+_Avoid_: automatic payment, automatic debit
+
+**Source bill**:
+The scheduled occurrence from which a transaction was recorded. Its association remains meaningful
+when the transaction is corrected or its series is deleted; an ordinary transaction need not have one.
+_Avoid_: transaction mode, payment source
+
+**Manual-only bill**:
+A pending bill that must be handled by the user rather than posted automatically, even if automatic
+posting is later enabled. A bill made manual-only by a currency or setting change remains manual-only
+when its date is edited.
+_Avoid_: failed bill, skipped bill
+
+**Entry mode**:
+The intent selected when creating an entry: default, planned, subscription, or repeating. It remains
+the same when pending bills' ordinary fields are edited and is distinct from whether automatic posting
+is enabled. Once posted, the resulting transaction is presented as an ordinary transaction.
+_Avoid_: payment method, recurrence frequency
+
 ### Money
 
-**Minor unit**:
-The smallest indivisible unit of a currency. Every amount — UI model, event payload, database row — is
-a signed integer count of these; fractions do not exist.
-_Avoid_: cents, decimals, floating point
+**Ledger amount unit**:
+One hundredth of a currency unit in this ledger, including for currencies normally displayed without
+two decimal places. Recorded amounts are integers in these units; this is not necessarily the
+currency's standard minor unit.
+_Avoid_: currency minor unit, cents
 
-**Display currency**:
-A formatting preference. It changes how amounts are rendered and never participates in a calculation.
-_Avoid_: currency, exchange rate
+**Current currency**:
+The currency selected in settings for the current ledger view. It limits which transactions and accounts
+are shown by default; changing it does not convert an account's currency or amount.
+_Avoid_: display currency, account currency, exchange rate
+
+**Account currency**:
+The single currency in which an account's money movements and balance are recorded. It is chosen when
+the account is created and does not change when the current currency changes.
+_Avoid_: current currency, display currency
 
 **Balance**:
 An account's current total, defined as including future-dated transactions and computed in exactly one
