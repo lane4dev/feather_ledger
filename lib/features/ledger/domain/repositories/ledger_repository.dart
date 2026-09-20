@@ -25,6 +25,12 @@ abstract class LedgerRepository {
   /// Returns a [TransactionEntity] or null if not found.
   Future<TransactionEntity?> getTransaction(String transactionId);
 
+  /// Retrieves the latest non-reversed transaction posted from the given
+  /// scheduled bill (spec 006, US47). Pre-model rows have no source bill, so
+  /// callers must fall back to [getTransaction] on the bill's `transactionId`.
+  Future<TransactionEntity?> getTransactionBySourceBill(
+      String sourceScheduledBillId);
+
   /// Watches all scheduled transactions.
   /// Returns a stream of lists of [ScheduledTransactionEntity].
   Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions();

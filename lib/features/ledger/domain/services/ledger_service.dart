@@ -39,6 +39,12 @@ class LedgerService {
     return _watchTransactionsQuery.execute(month, currencyCode: currencyCode);
   }
 
+  /// The latest non-reversed transaction posted from a scheduled bill
+  /// (spec 006, US47). Null when the bill has no posted transaction yet.
+  Future<TransactionEntity?> getTransactionBySourceBill(
+          String sourceScheduledBillId) =>
+      _watchTransactionsQuery.getBySourceBill(sourceScheduledBillId);
+
   Stream<MonthlySnapshotTotals> watchMonthlySnapshot(DateTime month,
       {required String currencyCode}) {
     return _watchMonthlySnapshotQuery.execute(month,

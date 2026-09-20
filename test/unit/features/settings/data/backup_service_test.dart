@@ -113,6 +113,8 @@ void main() {
         .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
     await db.customStatement(
         'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+    await db.customStatement(
+        'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
     await db.customStatement('PRAGMA user_version = 1');
     await db.close();
     return file;

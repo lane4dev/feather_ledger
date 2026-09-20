@@ -38,6 +38,20 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// Latest non-reversed transaction posted from one scheduled bill
+  /// (spec 006, US47). Highest GSN wins, so the newest correction is what
+  /// an old notification resolves to.
+  Future<TransactionViewRow?> getTransactionRowBySourceBill(
+      String sourceScheduledBillId) {
+    return (select(transactionsView)
+          ..where((t) =>
+              t.sourceScheduledBillId.equals(sourceScheduledBillId) &
+              t.isReversed.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.originalEventId)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
   /// Projector write seams — the only writer of these projections.
   Future<void> upsertTransaction(TransactionsViewCompanion entry) {
     return into(transactionsView).insertOnConflictUpdate(entry);

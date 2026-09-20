@@ -65,6 +65,12 @@ class TransactionRecorded implements LedgerEventPayload {
   final String? categorySnapshotIcon;
   final String? categorySnapshotColor;
 
+  /// The scheduled bill (its instance id) this transaction was posted from,
+  /// carried on the *event* so the source-bill → latest-transaction link
+  /// survives corrections and rebuilds (spec 006, US47). Null for every
+  /// transaction that did not come from a scheduled bill.
+  final String? sourceScheduledBillId;
+
   TransactionRecorded({
     required this.transactionId,
     required this.occurredAt,
@@ -76,6 +82,7 @@ class TransactionRecorded implements LedgerEventPayload {
     this.categorySnapshotName,
     this.categorySnapshotIcon,
     this.categorySnapshotColor,
+    this.sourceScheduledBillId,
   });
 
   @override
@@ -86,12 +93,14 @@ class TransactionRecorded implements LedgerEventPayload {
 
   @override
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'transactionId': transactionId,
         'occurredAt': occurredAt.toIso8601String(),
         'kind': kind.name,
         'description': description,
         if (notes != null) 'notes': notes,
+        if (sourceScheduledBillId != null)
+          'sourceScheduledBillId': sourceScheduledBillId,
         'postings': postings.map((p) => p.toJson()).toList(),
         'attachments': attachments.map((a) => a.toJson()).toList(),
         if (categorySnapshotName != null)
@@ -109,6 +118,7 @@ class TransactionRecorded implements LedgerEventPayload {
         kind: TransactionKind.values.byName(json['kind'] as String),
         description: json['description'] as String,
         notes: json['notes'] as String?,
+        sourceScheduledBillId: json['sourceScheduledBillId'] as String?,
         categorySnapshotName:
             (json['categorySnapshot'] as Map?)?['name'] as String?,
         categorySnapshotIcon:

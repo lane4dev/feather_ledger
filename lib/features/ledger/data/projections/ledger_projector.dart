@@ -354,6 +354,7 @@ class LedgerProjectorImpl implements LedgerProjector {
           p.categorySnapshotColor ?? category?.colorInt.toRadixString(16)),
       attachmentsJson: Value(jsonEncode(
           p.attachments.map((attachment) => attachment.toJson()).toList())),
+      sourceScheduledBillId: Value(p.sourceScheduledBillId),
       originalEventId: gsn,
       projectionVersion: const Value(ledgerProjectionVersion),
     ));

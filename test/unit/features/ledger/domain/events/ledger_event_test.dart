@@ -51,7 +51,7 @@ void main() {
       expect(restored.postings.first.signedImpact, -10000);
       expect(restored.postings.last.memo, 'rent');
       expect(restored.attachments.single.fileName, 'receipt.pdf');
-      expect(event.toJson()['schemaVersion'], 3);
+      expect(event.toJson()['schemaVersion'], 4);
     });
 
     test('every payload serializes with stable eventType == class name', () {
@@ -112,7 +112,7 @@ void main() {
       expect(
         {for (final e in events) e.eventType: e.toJson()['schemaVersion']},
         {
-          'TransactionRecorded': 3,
+          'TransactionRecorded': 4,
           'TransactionReversed': 1,
           'AccountCreated': 1,
           'AccountRenamed': 1,
@@ -147,7 +147,7 @@ void main() {
         'postings': const [],
       });
 
-      expect(upcast['schemaVersion'], 3);
+      expect(upcast['schemaVersion'], 4);
       expect(upcast['attachments'], isEmpty);
     });
   });

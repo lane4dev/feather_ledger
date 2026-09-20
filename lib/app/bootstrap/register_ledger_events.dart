@@ -45,6 +45,13 @@ void registerLedgerEvents() {
     fromVersion: 2,
     upcaster: (old) => {...old, 'schemaVersion': 3},
   );
+  // v4 adds the optional source-bill id (spec 006, US47). Older events have
+  // none; the field simply stays absent and rehydrates to null.
+  ledgerEventRegistry.registerUpcaster(
+    eventType: 'TransactionRecorded',
+    fromVersion: 3,
+    upcaster: (old) => {...old, 'schemaVersion': 4},
+  );
   ledgerEventRegistry.registerFactory(
     eventType: 'TransactionReversed',
     factory: (json) => TransactionReversed.fromJson(json).toJson(),

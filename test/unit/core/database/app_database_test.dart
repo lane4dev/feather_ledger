@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(13));
+      expect(database.schemaVersion, equals(14));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {
@@ -38,6 +38,8 @@ void main() {
           .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
       await old.customStatement(
           'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+      await old.customStatement(
+          'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
       await old.customStatement(
           "INSERT INTO accounts_view (id, name, type, currency_code, balance_minor, archived, last_updated_event_id) VALUES ('archived', 'Cash', 0, 'USD', 0, 1, 1)");
       await old.customStatement('PRAGMA user_version = 6');
@@ -76,6 +78,8 @@ void main() {
           'ALTER TABLE recurring_series DROP COLUMN mode');
       await v1.customStatement(
           'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+      await v1.customStatement(
+          'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
       await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
@@ -123,6 +127,8 @@ void main() {
           'ALTER TABLE recurring_series DROP COLUMN mode');
       await v8.customStatement(
           'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+      await v8.customStatement(
+          'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
       await v8.customStatement(
           'INSERT INTO recurring_series (id, rrule, start_date, end_date, '
           'frequency, interval, count_limit, amount_minor, description, '

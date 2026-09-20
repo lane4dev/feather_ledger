@@ -35,12 +35,12 @@ class RecurringService {
   final ProjectRecurringEventsCommand _projectInstances;
   final WatchScheduledTransactionsQuery _watchScheduled;
 
-  /// Ticket 28 safety gate: auto-posting is disabled until the eligibility
-  /// rules and the restore confirmation barrier land. It is closed by default
-  /// and only opened under a controlled test configuration; every autopost
-  /// entry (launch, account restore, notification responses) funnels through
-  /// [catchUpAutoPosted], so a closed gate blocks them all. Manual posting is
-  /// unaffected — [postInstance] never consults this flag.
+  /// The release gate (ticket 48): auto-posting is enabled in production
+  /// after the eligibility rules and the restore confirmation barrier landed
+  /// (tickets 28–47). Tests that want a closed gate pass
+  /// [autoPostEnabled] explicitly; every autopost entry (launch, account
+  /// restore, notification responses) funnels through [catchUpAutoPosted].
+  /// Manual posting is unaffected — [postInstance] never consults this flag.
   final bool autoPostEnabled;
 
   /// The per-mode auto-post switches and their eligibility boundaries
@@ -55,7 +55,7 @@ class RecurringService {
     this._postInstance,
     this._projectInstances,
     this._watchScheduled, {
-    this.autoPostEnabled = false,
+    this.autoPostEnabled = true,
     this.preferences,
   });
 
@@ -425,6 +425,7 @@ RecurringService recurringService(Ref ref) {
     ref.watch(convertScheduledToPostedCommandProvider),
     ref.watch(projectRecurringEventsCommandProvider),
     ref.watch(watchScheduledTransactionsQueryProvider),
+    autoPostEnabled: true,
     preferences: ref.watch(preferencesRepositoryProvider).value,
   );
 }

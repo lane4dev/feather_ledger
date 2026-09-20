@@ -75,6 +75,11 @@ class TransactionEntity {
   final bool isReversed;
   final int eventId;
 
+  /// The scheduled-bill instance this transaction was posted from (spec 006,
+  /// US47). Null for ad-hoc transactions; survives corrections so the latest
+  /// correction still points at the same source bill.
+  final String? sourceScheduledBillId;
+
   const TransactionEntity({
     required this.id,
     required this.amount,
@@ -87,6 +92,7 @@ class TransactionEntity {
     this.toAccount,
     this.isReversed = false,
     required this.eventId,
+    this.sourceScheduledBillId,
   });
 
   TransactionEntity copyWith({
@@ -101,6 +107,7 @@ class TransactionEntity {
     AccountEntity? toAccount,
     bool? isReversed,
     int? eventId,
+    String? sourceScheduledBillId,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -114,6 +121,7 @@ class TransactionEntity {
       toAccount: toAccount ?? this.toAccount,
       isReversed: isReversed ?? this.isReversed,
       eventId: eventId ?? this.eventId,
+      sourceScheduledBillId: sourceScheduledBillId ?? this.sourceScheduledBillId,
     );
   }
 }

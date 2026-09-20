@@ -97,6 +97,7 @@ class ConvertScheduledToPostedCommand {
             description: transaction.description,
             notes: transaction.notes,
             postings: transaction.postings,
+            sourceScheduledBillId: scheduledId,
           ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,

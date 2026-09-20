@@ -174,6 +174,11 @@ class RecordingLedgerService implements LedgerService {
       throw UnimplementedError();
 
   @override
+  Future<TransactionEntity?> getTransactionBySourceBill(
+          String sourceScheduledBillId) =>
+      throw UnimplementedError();
+
+  @override
   Stream<MonthlySnapshotTotals> watchMonthlySnapshot(DateTime month,
           {required String currencyCode}) =>
       throw UnimplementedError();

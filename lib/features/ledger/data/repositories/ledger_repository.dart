@@ -72,6 +72,15 @@ class LedgerRepositoryImpl implements LedgerRepository {
     return _toTransactionEntities(rows).single;
   }
 
+  @override
+  Future<TransactionEntity?> getTransactionBySourceBill(
+      String sourceScheduledBillId) async {
+    final row = await _transactionsDao
+        .getTransactionRowBySourceBill(sourceScheduledBillId);
+    if (row == null) return null;
+    return getTransaction(row.transactionId);
+  }
+
   /// Aggregates the posting-level join rows into one entity per
   /// transaction: a transfer's two postings collapse into a single row
   /// (spec 003, US5/T042).
@@ -138,6 +147,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       toAccount: toAccount,
       isReversed: tx.isReversed,
       eventId: tx.originalEventId,
+      sourceScheduledBillId: tx.sourceScheduledBillId,
     );
   }
 

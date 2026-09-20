@@ -76,6 +76,11 @@ class TransactionsView extends Table {
   /// JSON metadata copied from `TransactionRecorded.attachments`. The bytes
   /// themselves live in the app-private attachment directory, not SQLite.
   TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
+
+  /// The scheduled-bill instance id this transaction was posted from
+  /// (spec 006, US47). Null for ad-hoc transactions. Event-backed so the
+  /// source-bill → latest-transaction link survives corrections and rebuilds.
+  TextColumn get sourceScheduledBillId => text().nullable()();
   IntColumn get originalEventId => integer()(); // source GSN
   IntColumn get projectionVersion => integer().withDefault(const Constant(1))();
 

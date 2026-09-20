@@ -126,19 +126,22 @@ class _CurrencyRecorder implements CurrencyController {
 class _Ledger implements LedgerService {
   _Ledger(this.date);
   final DateTime date;
+  TransactionEntity get _transaction => TransactionEntity(
+      id: 'tx',
+      amount: -100,
+      type: TransactionKind.expense,
+      date: date,
+      account: account,
+      category: category,
+      eventId: 1);
   @override
   Stream<List<TransactionEntity>> watchTransactions(DateTime month,
           {String? currencyCode}) =>
-      Stream.value([
-        TransactionEntity(
-            id: 'tx',
-            amount: -100,
-            type: TransactionKind.expense,
-            date: date,
-            account: account,
-            category: category,
-            eventId: 1),
-      ]);
+      Stream.value([_transaction]);
+  @override
+  Future<TransactionEntity?> getTransactionBySourceBill(
+          String sourceScheduledBillId) async =>
+      _transaction;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

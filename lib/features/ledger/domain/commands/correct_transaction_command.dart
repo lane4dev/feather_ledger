@@ -105,6 +105,7 @@ class CorrectTransactionCommand {
       originalTransactionId: originalTransactionId,
       replacement: replacement,
       commandId: commandId,
+      sourceScheduledBillId: original.sourceScheduledBillId,
     );
   }
 
@@ -154,6 +155,7 @@ class CorrectTransactionCommand {
       originalTransactionId: originalTransactionId,
       replacement: replacement,
       commandId: commandId,
+      sourceScheduledBillId: original.sourceScheduledBillId,
     );
   }
 
@@ -206,6 +208,7 @@ class CorrectTransactionCommand {
       originalTransactionId: originalTransactionId,
       replacement: replacement,
       commandId: commandId,
+      sourceScheduledBillId: original.sourceScheduledBillId,
     );
   }
 
@@ -239,6 +242,7 @@ class CorrectTransactionCommand {
     required String originalTransactionId,
     required Transaction replacement,
     required String commandId,
+    String? sourceScheduledBillId,
   }) async {
     await _eventStore.append(
       [
@@ -262,6 +266,7 @@ class CorrectTransactionCommand {
             notes: replacement.notes,
             postings: replacement.postings,
             attachments: replacement.attachments,
+            sourceScheduledBillId: sourceScheduledBillId,
           ),
           aggregateType: AggregateType.transaction,
           streamVersion: 0,

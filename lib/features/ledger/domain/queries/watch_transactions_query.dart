@@ -19,6 +19,11 @@ class WatchTransactionsQuery {
         .watchTransactions(month, currencyCode: currencyCode)
         .map((txs) => txs.where((t) => !t.isReversed).toList());
   }
+
+  /// The latest non-reversed transaction posted from a scheduled bill
+  /// (spec 006, US47).
+  Future<TransactionEntity?> getBySourceBill(String sourceScheduledBillId) =>
+      _ledgerRepository.getTransactionBySourceBill(sourceScheduledBillId);
 }
 
 @riverpod

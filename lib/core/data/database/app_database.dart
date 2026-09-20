@@ -57,7 +57,12 @@ class AppDatabase extends _$AppDatabase {
   // model); the column is a per-instance manual latch, not a projection.
   // v11 adds the automatic-posting batch tables (ticket 38/39). They are
   // CRUD-exempt progress records, not event-sourced projections.
-  int get schemaVersion => 13;
+  // v13 adds `scheduled_bill_redirects` (ticket 46).
+  // v14 adds `transactions_view.source_scheduled_bill_id` (ticket 47): the
+  // event-backed source-bill link. Rebuild re-derives it from replayed
+  // `TransactionRecorded` v4 events, so the projection version bump below
+  // (ledgerProjectionVersion 6→7) keeps the two moving together.
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,6 +146,13 @@ class AppDatabase extends _$AppDatabase {
           // table, never rebuilt — createTable is additive and safe here.
           if (from < 13) {
             await m.createTable(scheduledBillRedirects);
+          }
+          // v14: transactions_view gained `source_scheduled_bill_id`
+          // (ticket 47). addColumn-only; the rebuild (projection version 7)
+          // re-derives the value from replayed events.
+          if (from < 14) {
+            await m.addColumn(
+                transactionsView, transactionsView.sourceScheduledBillId);
           }
         },
       );

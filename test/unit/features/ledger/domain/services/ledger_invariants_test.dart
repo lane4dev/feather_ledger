@@ -1,9 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drift/drift.dart' show Value;
+
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 /// Ledger invariants (spec 003, US8/T061): any event stream must satisfy
 /// - Σ live posting increments per account == that account's balance
@@ -229,5 +235,106 @@ void main() {
         );
       }
     }
+  });
+
+  test('a cross-currency restore holds its bill behind the barrier and posts '
+      'it exactly once on confirmation', () async {
+    // A production-shaped catch-up: the release gate is open and the 订阅
+    // switch is on with its boundary far enough back that due bills qualify.
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
+        DateTime.now().subtract(const Duration(days: 30)));
+    final open =
+        LedgerServiceHarness(autoPostEnabled: true, preferences: prefs);
+    await open.seedSystemCategories();
+    addTearDown(open.close);
+
+    await open.accountService.createAccount(
+      commandId: 'e2e_cash',
+      name: 'Cash',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'USD',
+    );
+    await open.accountService.createAccount(
+      commandId: 'e2e_yen',
+      name: 'Yen wallet',
+      type: AccountType.cash,
+      initialBalanceMinor: 0,
+      currencyCode: 'JPY',
+    );
+    await open.categoryService.createCategory(
+      commandId: 'e2e_rent',
+      categoryId: 'cat_rent',
+      name: 'Rent',
+      iconKey: '1',
+      colorInt: 0xFF000000,
+      type: CategoryType.expense,
+    );
+    final cash = (await open.db.accountDao.getAllAccounts())
+        .firstWhere((a) => a.name == 'Cash');
+
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 3));
+    await open.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 5000,
+      accountId: cash.id,
+      categoryId: 'cat_rent',
+      description: 'Rent',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+      mode: RecurringSeriesMode.subscription,
+    );
+    // Re-arm the overdue bills: US32 latches bills already due at creation.
+    final bills = await open.recurringService.watchScheduled().first;
+    for (final bill in bills.where((b) => !b.date.isAfter(now))) {
+      final row = await open.db.recurringDao.getScheduled(bill.id);
+      await open.db.recurringDao.insertOrUpdateScheduled(
+        ScheduledTransactionsViewCompanion(
+          id: Value(row!.id),
+          seriesId: Value(row.seriesId),
+          date: Value(row.date),
+          amountMinor: Value(row.amountMinor),
+          status: Value(row.status),
+          transactionId: Value(row.transactionId),
+          autoPostEligible: const Value(true),
+        ),
+      );
+    }
+
+    // A restore whose backup predates every bill: the window covers all of
+    // them, so the barrier must hold them across repeated catch-ups.
+    final batchId = await open.recurringRepository
+        .createRestoreConfirmationBatch(start.subtract(const Duration(days: 1)));
+
+    final eventsBefore = await open.db.eventsDao.countAll();
+    await open.recurringService.catchUpAutoPosted();
+    await open.recurringService.catchUpAutoPosted();
+    expect(await open.db.eventsDao.countAll(), eventsBefore,
+        reason: 'a held bill never leaks a transaction behind the barrier');
+
+    // Confirming posts each candidate exactly once.
+    await open.recurringService.confirmRestoreBatch(batchId);
+    final settled = await open.recurringService.watchScheduled().first;
+    for (final bill in settled.where((b) => !b.date.isAfter(now))) {
+      expect(bill.status, ScheduledTransactionStatus.posted,
+          reason: '${bill.id} was posted by the confirmation');
+    }
+
+    // No duplicate on a later catch-up, and the other-currency account never
+    // leaks into the USD scope.
+    final eventsAfterConfirm = await open.db.eventsDao.countAll();
+    await open.recurringService.catchUpAutoPosted();
+    expect(await open.db.eventsDao.countAll(), eventsAfterConfirm);
+
+    final usdTransactions = (await open.ledgerService
+            .watchTransactions(DateTime.now(), currencyCode: 'USD')
+            .first);
+    expect(usdTransactions, isNotEmpty);
+    expect(usdTransactions.every((t) => t.account.currencyCode == 'USD'), isTrue);
   });
 }

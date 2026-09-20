@@ -1134,6 +1134,12 @@ class $TransactionsViewTable extends TransactionsView
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('[]'));
+  static const VerificationMeta _sourceScheduledBillIdMeta =
+      const VerificationMeta('sourceScheduledBillId');
+  @override
+  late final GeneratedColumn<String> sourceScheduledBillId =
+      GeneratedColumn<String>('source_scheduled_bill_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _originalEventIdMeta =
       const VerificationMeta('originalEventId');
   @override
@@ -1159,6 +1165,7 @@ class $TransactionsViewTable extends TransactionsView
         categoryIcon,
         categoryColorInt,
         attachmentsJson,
+        sourceScheduledBillId,
         originalEventId,
         projectionVersion
       ];
@@ -1226,6 +1233,12 @@ class $TransactionsViewTable extends TransactionsView
           attachmentsJson.isAcceptableOrUnknown(
               data['attachments_json']!, _attachmentsJsonMeta));
     }
+    if (data.containsKey('source_scheduled_bill_id')) {
+      context.handle(
+          _sourceScheduledBillIdMeta,
+          sourceScheduledBillId.isAcceptableOrUnknown(
+              data['source_scheduled_bill_id']!, _sourceScheduledBillIdMeta));
+    }
     if (data.containsKey('original_event_id')) {
       context.handle(
           _originalEventIdMeta,
@@ -1268,6 +1281,9 @@ class $TransactionsViewTable extends TransactionsView
           DriftSqlType.string, data['${effectivePrefix}category_color_int']),
       attachmentsJson: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}attachments_json'])!,
+      sourceScheduledBillId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}source_scheduled_bill_id']),
       originalEventId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}original_event_id'])!,
       projectionVersion: attachedDatabase.typeMapping.read(
@@ -1298,6 +1314,11 @@ class TransactionViewRow extends DataClass
   /// JSON metadata copied from `TransactionRecorded.attachments`. The bytes
   /// themselves live in the app-private attachment directory, not SQLite.
   final String attachmentsJson;
+
+  /// The scheduled-bill instance id this transaction was posted from
+  /// (spec 006, US47). Null for ad-hoc transactions. Event-backed so the
+  /// source-bill → latest-transaction link survives corrections and rebuilds.
+  final String? sourceScheduledBillId;
   final int originalEventId;
   final int projectionVersion;
   const TransactionViewRow(
@@ -1310,6 +1331,7 @@ class TransactionViewRow extends DataClass
       this.categoryIcon,
       this.categoryColorInt,
       required this.attachmentsJson,
+      this.sourceScheduledBillId,
       required this.originalEventId,
       required this.projectionVersion});
   @override
@@ -1333,6 +1355,9 @@ class TransactionViewRow extends DataClass
       map['category_color_int'] = Variable<String>(categoryColorInt);
     }
     map['attachments_json'] = Variable<String>(attachmentsJson);
+    if (!nullToAbsent || sourceScheduledBillId != null) {
+      map['source_scheduled_bill_id'] = Variable<String>(sourceScheduledBillId);
+    }
     map['original_event_id'] = Variable<int>(originalEventId);
     map['projection_version'] = Variable<int>(projectionVersion);
     return map;
@@ -1355,6 +1380,9 @@ class TransactionViewRow extends DataClass
           ? const Value.absent()
           : Value(categoryColorInt),
       attachmentsJson: Value(attachmentsJson),
+      sourceScheduledBillId: sourceScheduledBillId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceScheduledBillId),
       originalEventId: Value(originalEventId),
       projectionVersion: Value(projectionVersion),
     );
@@ -1374,6 +1402,8 @@ class TransactionViewRow extends DataClass
       categoryIcon: serializer.fromJson<String?>(json['categoryIcon']),
       categoryColorInt: serializer.fromJson<String?>(json['categoryColorInt']),
       attachmentsJson: serializer.fromJson<String>(json['attachmentsJson']),
+      sourceScheduledBillId:
+          serializer.fromJson<String?>(json['sourceScheduledBillId']),
       originalEventId: serializer.fromJson<int>(json['originalEventId']),
       projectionVersion: serializer.fromJson<int>(json['projectionVersion']),
     );
@@ -1392,6 +1422,8 @@ class TransactionViewRow extends DataClass
       'categoryIcon': serializer.toJson<String?>(categoryIcon),
       'categoryColorInt': serializer.toJson<String?>(categoryColorInt),
       'attachmentsJson': serializer.toJson<String>(attachmentsJson),
+      'sourceScheduledBillId':
+          serializer.toJson<String?>(sourceScheduledBillId),
       'originalEventId': serializer.toJson<int>(originalEventId),
       'projectionVersion': serializer.toJson<int>(projectionVersion),
     };
@@ -1407,6 +1439,7 @@ class TransactionViewRow extends DataClass
           Value<String?> categoryIcon = const Value.absent(),
           Value<String?> categoryColorInt = const Value.absent(),
           String? attachmentsJson,
+          Value<String?> sourceScheduledBillId = const Value.absent(),
           int? originalEventId,
           int? projectionVersion}) =>
       TransactionViewRow(
@@ -1423,6 +1456,9 @@ class TransactionViewRow extends DataClass
             ? categoryColorInt.value
             : this.categoryColorInt,
         attachmentsJson: attachmentsJson ?? this.attachmentsJson,
+        sourceScheduledBillId: sourceScheduledBillId.present
+            ? sourceScheduledBillId.value
+            : this.sourceScheduledBillId,
         originalEventId: originalEventId ?? this.originalEventId,
         projectionVersion: projectionVersion ?? this.projectionVersion,
       );
@@ -1450,6 +1486,9 @@ class TransactionViewRow extends DataClass
       attachmentsJson: data.attachmentsJson.present
           ? data.attachmentsJson.value
           : this.attachmentsJson,
+      sourceScheduledBillId: data.sourceScheduledBillId.present
+          ? data.sourceScheduledBillId.value
+          : this.sourceScheduledBillId,
       originalEventId: data.originalEventId.present
           ? data.originalEventId.value
           : this.originalEventId,
@@ -1471,6 +1510,7 @@ class TransactionViewRow extends DataClass
           ..write('categoryIcon: $categoryIcon, ')
           ..write('categoryColorInt: $categoryColorInt, ')
           ..write('attachmentsJson: $attachmentsJson, ')
+          ..write('sourceScheduledBillId: $sourceScheduledBillId, ')
           ..write('originalEventId: $originalEventId, ')
           ..write('projectionVersion: $projectionVersion')
           ..write(')'))
@@ -1488,6 +1528,7 @@ class TransactionViewRow extends DataClass
       categoryIcon,
       categoryColorInt,
       attachmentsJson,
+      sourceScheduledBillId,
       originalEventId,
       projectionVersion);
   @override
@@ -1503,6 +1544,7 @@ class TransactionViewRow extends DataClass
           other.categoryIcon == this.categoryIcon &&
           other.categoryColorInt == this.categoryColorInt &&
           other.attachmentsJson == this.attachmentsJson &&
+          other.sourceScheduledBillId == this.sourceScheduledBillId &&
           other.originalEventId == this.originalEventId &&
           other.projectionVersion == this.projectionVersion);
 }
@@ -1517,6 +1559,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
   final Value<String?> categoryIcon;
   final Value<String?> categoryColorInt;
   final Value<String> attachmentsJson;
+  final Value<String?> sourceScheduledBillId;
   final Value<int> originalEventId;
   final Value<int> projectionVersion;
   final Value<int> rowid;
@@ -1530,6 +1573,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
     this.categoryIcon = const Value.absent(),
     this.categoryColorInt = const Value.absent(),
     this.attachmentsJson = const Value.absent(),
+    this.sourceScheduledBillId = const Value.absent(),
     this.originalEventId = const Value.absent(),
     this.projectionVersion = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1544,6 +1588,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
     this.categoryIcon = const Value.absent(),
     this.categoryColorInt = const Value.absent(),
     this.attachmentsJson = const Value.absent(),
+    this.sourceScheduledBillId = const Value.absent(),
     required int originalEventId,
     this.projectionVersion = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1562,6 +1607,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
     Expression<String>? categoryIcon,
     Expression<String>? categoryColorInt,
     Expression<String>? attachmentsJson,
+    Expression<String>? sourceScheduledBillId,
     Expression<int>? originalEventId,
     Expression<int>? projectionVersion,
     Expression<int>? rowid,
@@ -1576,6 +1622,8 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
       if (categoryIcon != null) 'category_icon': categoryIcon,
       if (categoryColorInt != null) 'category_color_int': categoryColorInt,
       if (attachmentsJson != null) 'attachments_json': attachmentsJson,
+      if (sourceScheduledBillId != null)
+        'source_scheduled_bill_id': sourceScheduledBillId,
       if (originalEventId != null) 'original_event_id': originalEventId,
       if (projectionVersion != null) 'projection_version': projectionVersion,
       if (rowid != null) 'rowid': rowid,
@@ -1592,6 +1640,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
       Value<String?>? categoryIcon,
       Value<String?>? categoryColorInt,
       Value<String>? attachmentsJson,
+      Value<String?>? sourceScheduledBillId,
       Value<int>? originalEventId,
       Value<int>? projectionVersion,
       Value<int>? rowid}) {
@@ -1605,6 +1654,8 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
       categoryIcon: categoryIcon ?? this.categoryIcon,
       categoryColorInt: categoryColorInt ?? this.categoryColorInt,
       attachmentsJson: attachmentsJson ?? this.attachmentsJson,
+      sourceScheduledBillId:
+          sourceScheduledBillId ?? this.sourceScheduledBillId,
       originalEventId: originalEventId ?? this.originalEventId,
       projectionVersion: projectionVersion ?? this.projectionVersion,
       rowid: rowid ?? this.rowid,
@@ -1642,6 +1693,10 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
     if (attachmentsJson.present) {
       map['attachments_json'] = Variable<String>(attachmentsJson.value);
     }
+    if (sourceScheduledBillId.present) {
+      map['source_scheduled_bill_id'] =
+          Variable<String>(sourceScheduledBillId.value);
+    }
     if (originalEventId.present) {
       map['original_event_id'] = Variable<int>(originalEventId.value);
     }
@@ -1666,6 +1721,7 @@ class TransactionsViewCompanion extends UpdateCompanion<TransactionViewRow> {
           ..write('categoryIcon: $categoryIcon, ')
           ..write('categoryColorInt: $categoryColorInt, ')
           ..write('attachmentsJson: $attachmentsJson, ')
+          ..write('sourceScheduledBillId: $sourceScheduledBillId, ')
           ..write('originalEventId: $originalEventId, ')
           ..write('projectionVersion: $projectionVersion, ')
           ..write('rowid: $rowid')
@@ -6312,6 +6368,7 @@ typedef $$TransactionsViewTableCreateCompanionBuilder
   Value<String?> categoryIcon,
   Value<String?> categoryColorInt,
   Value<String> attachmentsJson,
+  Value<String?> sourceScheduledBillId,
   required int originalEventId,
   Value<int> projectionVersion,
   Value<int> rowid,
@@ -6327,6 +6384,7 @@ typedef $$TransactionsViewTableUpdateCompanionBuilder
   Value<String?> categoryIcon,
   Value<String?> categoryColorInt,
   Value<String> attachmentsJson,
+  Value<String?> sourceScheduledBillId,
   Value<int> originalEventId,
   Value<int> projectionVersion,
   Value<int> rowid,
@@ -6370,6 +6428,10 @@ class $$TransactionsViewTableFilterComposer
 
   ColumnFilters<String> get attachmentsJson => $composableBuilder(
       column: $table.attachmentsJson,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceScheduledBillId => $composableBuilder(
+      column: $table.sourceScheduledBillId,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get originalEventId => $composableBuilder(
@@ -6422,6 +6484,10 @@ class $$TransactionsViewTableOrderingComposer
       column: $table.attachmentsJson,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get sourceScheduledBillId => $composableBuilder(
+      column: $table.sourceScheduledBillId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get originalEventId => $composableBuilder(
       column: $table.originalEventId,
       builder: (column) => ColumnOrderings(column));
@@ -6467,6 +6533,9 @@ class $$TransactionsViewTableAnnotationComposer
   GeneratedColumn<String> get attachmentsJson => $composableBuilder(
       column: $table.attachmentsJson, builder: (column) => column);
 
+  GeneratedColumn<String> get sourceScheduledBillId => $composableBuilder(
+      column: $table.sourceScheduledBillId, builder: (column) => column);
+
   GeneratedColumn<int> get originalEventId => $composableBuilder(
       column: $table.originalEventId, builder: (column) => column);
 
@@ -6510,6 +6579,7 @@ class $$TransactionsViewTableTableManager extends RootTableManager<
             Value<String?> categoryIcon = const Value.absent(),
             Value<String?> categoryColorInt = const Value.absent(),
             Value<String> attachmentsJson = const Value.absent(),
+            Value<String?> sourceScheduledBillId = const Value.absent(),
             Value<int> originalEventId = const Value.absent(),
             Value<int> projectionVersion = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -6524,6 +6594,7 @@ class $$TransactionsViewTableTableManager extends RootTableManager<
             categoryIcon: categoryIcon,
             categoryColorInt: categoryColorInt,
             attachmentsJson: attachmentsJson,
+            sourceScheduledBillId: sourceScheduledBillId,
             originalEventId: originalEventId,
             projectionVersion: projectionVersion,
             rowid: rowid,
@@ -6538,6 +6609,7 @@ class $$TransactionsViewTableTableManager extends RootTableManager<
             Value<String?> categoryIcon = const Value.absent(),
             Value<String?> categoryColorInt = const Value.absent(),
             Value<String> attachmentsJson = const Value.absent(),
+            Value<String?> sourceScheduledBillId = const Value.absent(),
             required int originalEventId,
             Value<int> projectionVersion = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -6552,6 +6624,7 @@ class $$TransactionsViewTableTableManager extends RootTableManager<
             categoryIcon: categoryIcon,
             categoryColorInt: categoryColorInt,
             attachmentsJson: attachmentsJson,
+            sourceScheduledBillId: sourceScheduledBillId,
             originalEventId: originalEventId,
             projectionVersion: projectionVersion,
             rowid: rowid,

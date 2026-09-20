@@ -37,7 +37,11 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// 5: transaction attachment metadata is projected from `TransactionRecorded`
 /// v2, so rows written before this field existed are replayed with an empty
 /// attachment list and current rows retain their event-backed references.
-const int ledgerProjectionVersion = 6;
+/// 6: scheduled-bill redirects (ticket 46) are CRUD-exempt and not projected.
+/// 7: `transactions_view.source_scheduled_bill_id` is projected from
+/// `TransactionRecorded` v4 (ticket 47), so pre-model rows (no source bill)
+/// stay null and posted-bill rows re-derive their event-backed link.
+const int ledgerProjectionVersion = 7;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the

@@ -221,18 +221,21 @@ class _ReminderResponseHandlerState
 
   Future<void> _showRecorded(
       ScheduledTransactionEntity bill, BuildContext navContext) async {
-    if (bill.transactionId == null) return;
-    final transactions = await ref
-        .read(ledgerServiceProvider)
-        .watchTransactions(bill.date)
-        .first;
+    final service = ref.read(ledgerServiceProvider);
+    // The event-backed source-bill link names the latest correction (US47),
+    // not the reversed original in `transaction_id`; fall back to that id for
+    // pre-model rows that carry no source bill.
+    var transaction = await service.getTransactionBySourceBill(bill.id);
+    if (transaction == null && bill.transactionId != null) {
+      final items = await service.watchTransactions(bill.date).first;
+      transaction =
+          items.where((item) => item.id == bill.transactionId).firstOrNull;
+    }
     if (!mounted || !navContext.mounted) return;
-    final transaction =
-        transactions.where((item) => item.id == bill.transactionId).firstOrNull;
     if (transaction == null) {
       final l10n = AppLocalizations.of(navContext)!;
       ScaffoldMessenger.maybeOf(navContext)
-          ?.showSnackBar(SnackBar(content: Text(l10n.notificationUnavailable)));
+          ?.showSnackBar(SnackBar(content: Text(l10n.notificationDeleted)));
       return;
     }
     final ledgerContext = await _openLedger();
