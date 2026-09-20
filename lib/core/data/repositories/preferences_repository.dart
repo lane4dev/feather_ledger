@@ -1,4 +1,5 @@
 import 'package:feather_ledger/app/config/app_languages.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +19,23 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   static const _keyLocale = 'app_locale';
   static const _keyCurrency = 'currency_code';
   static const _keyShowBalance = 'show_balance';
+
+  // Local-only: the three auto-post switches are deliberately absent from
+  // [_knownKeys], so the backup neither carries them nor overwrites the
+  // target device's own choice (spec 006, US30).
+  static const _keyAutoPostPlanned = 'autopost_planned';
+  static const _keyAutoPostSubscription = 'autopost_subscription';
+  static const _keyAutoPostRepeating = 'autopost_repeating';
+
+  // Local-only eligibility boundaries (spec 006, US31): never in [_knownKeys].
+  static const _keyAutoPostPlannedSince = 'autopost_planned_since';
+  static const _keyAutoPostSubscriptionSince = 'autopost_subscription_since';
+  static const _keyAutoPostRepeatingSince = 'autopost_repeating_since';
+  static const _keyCurrencyActiveSincePrefix = 'currency_active_since_';
+
+  // Local-only wall-clock anchor for clock-rollback detection (spec 006,
+  // US32): never in [_knownKeys].
+  static const _keyLastSeenWallClock = 'last_seen_wall_clock';
 
   @override
   ThemeMode getThemeMode() {
@@ -74,6 +92,72 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   @override
   Future<void> setShowBalance(bool show) {
     return _prefs.setBool(_keyShowBalance, show);
+  }
+
+  @override
+  bool getAutoPostEnabled(RecurringSeriesMode mode) {
+    return _prefs.getBool(_keyForMode(mode)) ?? false;
+  }
+
+  @override
+  Future<void> setAutoPostEnabled(RecurringSeriesMode mode, bool enabled) async {
+    await _prefs.setBool(_keyForMode(mode), enabled);
+    // Turning the switch on is the eligibility boundary (spec 006, US31):
+    // anything that fell due at or before this moment is already manual.
+    // Turning it off leaves the boundary alone, so the next re-enable records
+    // a fresh one.
+    if (enabled) {
+      await setAutoPostEnabledSince(mode, DateTime.now());
+    }
+  }
+
+  String _keyForMode(RecurringSeriesMode mode) => switch (mode) {
+        RecurringSeriesMode.planned => _keyAutoPostPlanned,
+        RecurringSeriesMode.subscription => _keyAutoPostSubscription,
+        RecurringSeriesMode.repeating => _keyAutoPostRepeating,
+      };
+
+  String _keyForModeSince(RecurringSeriesMode mode) => switch (mode) {
+        RecurringSeriesMode.planned => _keyAutoPostPlannedSince,
+        RecurringSeriesMode.subscription => _keyAutoPostSubscriptionSince,
+        RecurringSeriesMode.repeating => _keyAutoPostRepeatingSince,
+      };
+
+  @override
+  DateTime? getAutoPostEnabledSince(RecurringSeriesMode mode) {
+    final millis = _prefs.getInt(_keyForModeSince(mode));
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  @override
+  Future<void> setAutoPostEnabledSince(
+      RecurringSeriesMode mode, DateTime moment) {
+    return _prefs.setInt(
+        _keyForModeSince(mode), moment.millisecondsSinceEpoch);
+  }
+
+  @override
+  DateTime? getCurrencyActiveSince(String currencyCode) {
+    final millis = _prefs.getInt('$_keyCurrencyActiveSincePrefix$currencyCode');
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  @override
+  Future<void> setCurrencyActiveSince(
+      String currencyCode, DateTime moment) {
+    return _prefs.setInt('$_keyCurrencyActiveSincePrefix$currencyCode',
+        moment.millisecondsSinceEpoch);
+  }
+
+  @override
+  DateTime? getLastSeenWallClock() {
+    final millis = _prefs.getInt(_keyLastSeenWallClock);
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  @override
+  Future<void> setLastSeenWallClock(DateTime moment) {
+    return _prefs.setInt(_keyLastSeenWallClock, moment.millisecondsSinceEpoch);
   }
 
   /// The four known keys, in a stable order. Values are stored in their raw

@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
@@ -39,11 +40,21 @@ class UpdateRecurringBillCommand {
   final RecurringRepository _recurringRepository;
   final PostingContextResolver _context;
 
-  UpdateRecurringBillCommand(this._recurringRepository, this._context);
+  /// Local eligibility boundaries (spec 006, US32). Null means clock-rollback
+  /// detection is unavailable — eligibility still applies, but a rollback is
+  /// never noticed rather than wrongly latched.
+  final PreferencesRepository? preferences;
+
+  UpdateRecurringBillCommand(this._recurringRepository, this._context,
+      {this.preferences});
 
   /// [categoryId], [accountId] and [description] are read only by the two
   /// series scopes; `thisOnly` ignores them.
-  Future<void> execute(
+  ///
+  /// Returns the ids of any re-materialized bills the edit must latch as
+  /// permanently manual (spec 006, US32). An empty list means nothing to
+  /// latch.
+  Future<List<String>> execute(
     String scheduledId, {
     required RecurringScope scope,
     required int amountMinor,
@@ -60,16 +71,46 @@ class UpdateRecurringBillCommand {
     final scheduled = await _requireScheduled(scheduledId);
     final series = await _requireSeries(scheduled.seriesId);
 
+    // An edit is a real change only when one of the fields it can carry
+    // actually differs — a no-op save must not flip eligibility (US32).
+    final now = DateTime.now();
+    final actuallyChanged = amountMinor != scheduled.amountMinor ||
+        !_sameDay(date, scheduled.date) ||
+        categoryId != series.categoryId ||
+        accountId != series.accountId ||
+        description != series.description;
+
+    // A bill that was already due, or whose new date is in the past, turns
+    // manual on a real edit (US32): auto-posting a bill the user just touched
+    // would be a surprise.
+    final wasDue = !scheduled.date.isAfter(now);
+    final movedToPast = !date.isAfter(now);
+
+    // Clock rollback: if the wall clock is *before* the last decision we saw,
+    // due/not-due ordering is unreliable, so the touched bill goes manual.
+    // Not promised to catch every offline rollback (spec 006, US32).
+    var rollback = false;
+    final prefs = preferences;
+    if (prefs != null) {
+      final lastSeen = prefs.getLastSeenWallClock();
+      rollback = lastSeen != null && now.isBefore(lastSeen);
+      await prefs.setLastSeenWallClock(now);
+    }
+
+    final shouldLatch = actuallyChanged && (wasDue || movedToPast || rollback);
+
     switch (scope) {
       case RecurringScope.thisOnly:
-        await _updateOne(scheduled, amountMinor: amountMinor, date: date);
+        await _updateOne(scheduled,
+            amountMinor: amountMinor, date: date, shouldLatch: shouldLatch);
+        return const [];
       case RecurringScope.thisAndFollowing:
         await _context.resolveForKind(
           accountId: accountId,
           categoryId: categoryId,
           kind: series.type.toTransactionKind,
         );
-        await _splitFrom(
+        final newSeriesId = await _splitFrom(
           scheduled,
           series,
           amountMinor: amountMinor,
@@ -78,6 +119,12 @@ class UpdateRecurringBillCommand {
           accountId: accountId,
           description: description,
         );
+        return shouldLatch
+            ? [
+                scheduledInstanceId(
+                    newSeriesId, _atTimeOf(date, scheduled.date))
+              ]
+            : const [];
       case RecurringScope.all:
         await _context.resolveForKind(
           accountId: accountId,
@@ -93,6 +140,11 @@ class UpdateRecurringBillCommand {
           accountId: accountId,
           description: description,
         );
+        return shouldLatch
+            ? [
+                scheduledInstanceId(series.id, _atTimeOf(date, scheduled.date))
+              ]
+            : const [];
     }
   }
 
@@ -102,12 +154,14 @@ class UpdateRecurringBillCommand {
     ScheduledTransactionViewRow scheduled, {
     required int amountMinor,
     required DateTime date,
+    required bool shouldLatch,
   }) async {
     if (_sameDay(scheduled.date, date)) {
       // Same day: the row keeps its identity, so the amount moves in place.
       await _recurringRepository.insertOrUpdateScheduled(_row(
         scheduled,
         amountMinor: amountMinor,
+        autoPostEligible: shouldLatch ? false : null,
       ));
       return;
     }
@@ -141,13 +195,15 @@ class UpdateRecurringBillCommand {
         amountMinor: Value(amountMinor),
         status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
         transactionId: const Value(null),
+        autoPostEligible: Value(!shouldLatch),
       ),
     );
   }
 
   /// Ends the old rule the day before [scheduled] and starts a new one from
-  /// the edited values.
-  Future<void> _splitFrom(
+  /// the edited values. Returns the new series' id, so the caller can latch
+  /// its re-materialized bill if the edit must turn manual (US32).
+  Future<String> _splitFrom(
     ScheduledTransactionViewRow scheduled,
     RecurringSeriesRow series, {
     required int amountMinor,
@@ -219,6 +275,8 @@ class UpdateRecurringBillCommand {
         ),
       );
     }
+
+    return newSeriesId;
   }
 
   /// Rewrites the series' template and rebuilds its pending bills.
@@ -282,6 +340,7 @@ class UpdateRecurringBillCommand {
     ScheduledTransactionViewRow row, {
     int? amountMinor,
     ScheduledTransactionStatus? status,
+    bool? autoPostEligible,
   }) =>
       ScheduledTransactionsViewCompanion(
         id: Value(row.id),
@@ -291,6 +350,7 @@ class UpdateRecurringBillCommand {
         status:
             Value((status ?? decodeScheduledStatus(row.status)).toStorage()),
         transactionId: Value(row.transactionId),
+        autoPostEligible: Value(autoPostEligible ?? row.autoPostEligible),
       );
 
   /// A copy of [series] with the given fields replaced.
@@ -380,5 +440,6 @@ UpdateRecurringBillCommand updateRecurringBillCommand(Ref ref) {
   return UpdateRecurringBillCommand(
     ref.watch(recurringRepositoryProvider),
     ref.watch(postingContextResolverProvider),
+    preferences: ref.watch(preferencesRepositoryProvider).value,
   );
 }

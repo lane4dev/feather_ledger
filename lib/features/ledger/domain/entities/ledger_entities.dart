@@ -135,6 +135,12 @@ class ScheduledTransactionEntity {
   final CategoryEntity? category;
   final AccountEntity? account;
 
+  /// Ticket 31: once a bill has lost its auto-post eligibility (its switch
+  /// was off, or its currency was not current, when it fell due) it stays
+  /// manual forever — re-enabling the switch must not retro-post old bills.
+  /// `false` still renders as a normal pending row; it only blocks [catchUp].
+  final bool autoPostEligible;
+
   const ScheduledTransactionEntity({
     required this.id,
     required this.seriesId,
@@ -146,6 +152,7 @@ class ScheduledTransactionEntity {
     this.kind,
     this.category,
     this.account,
+    this.autoPostEligible = true,
   });
 
   ScheduledTransactionEntity copyWith({
@@ -159,6 +166,7 @@ class ScheduledTransactionEntity {
     TransactionKind? kind,
     CategoryEntity? category,
     AccountEntity? account,
+    bool? autoPostEligible,
   }) {
     return ScheduledTransactionEntity(
       id: id ?? this.id,
@@ -172,6 +180,7 @@ class ScheduledTransactionEntity {
       kind: kind ?? this.kind,
       category: category ?? this.category,
       account: account ?? this.account,
+      autoPostEligible: autoPostEligible ?? this.autoPostEligible,
     );
   }
 }
@@ -197,6 +206,10 @@ class RecurringTransactionSeriesEntity {
   final bool autoPost;
   final int? reminderMinutes;
 
+  /// The creation mode (计划/订阅/重复). Immutable after creation; persists
+  /// across restart and backup so the three intents stay distinguishable.
+  final RecurringSeriesMode mode;
+
   const RecurringTransactionSeriesEntity({
     required this.id,
     required this.description,
@@ -211,5 +224,6 @@ class RecurringTransactionSeriesEntity {
     this.limit,
     required this.autoPost,
     this.reminderMinutes,
+    required this.mode,
   });
 }

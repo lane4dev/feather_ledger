@@ -129,6 +129,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get transactionModeRepeating => 'Repeating';
 
   @override
+  String get autoPostSettingsTitle => 'Auto-post bills';
+
+  @override
   String get appTitle => 'Accounted For';
 
   @override

@@ -642,6 +642,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transactionModeRepeating => '重复';
 
   @override
+  String get autoPostSettingsTitle => '自动入账账单';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -1520,6 +1523,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get transactionModeRepeating => '重复';
 
   @override
+  String get autoPostSettingsTitle => '自动入账账单';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -2396,6 +2402,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get transactionModeRepeating => '重複';
+
+  @override
+  String get autoPostSettingsTitle => '自動入帳帳單';
 
   @override
   String get repeatNever => '不重複';

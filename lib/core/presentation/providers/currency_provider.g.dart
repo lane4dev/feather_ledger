@@ -34,7 +34,7 @@ final class CurrencyControllerProvider
 }
 
 String _$currencyControllerHash() =>
-    r'aeda4d681144994436db730da771396e129be008';
+    r'52e5a7ab0444ecfd4da75448cff93addf0fb1e43';
 
 abstract class _$CurrencyController extends $AsyncNotifier<String> {
   FutureOr<String> build();

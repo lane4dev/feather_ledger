@@ -634,6 +634,7 @@
   "transactionModePlanned": "計畫",
   "transactionModeSubscription": "訂閱",
   "transactionModeRepeating": "重複",
+  "autoPostSettingsTitle": "自動入帳帳單",
   "repeatNever": "不重複",
   "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}",
   "addAttachment": "新增附件",

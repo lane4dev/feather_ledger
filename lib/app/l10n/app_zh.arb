@@ -634,6 +634,7 @@
   "transactionModePlanned": "计划",
   "transactionModeSubscription": "订阅",
   "transactionModeRepeating": "重复",
+  "autoPostSettingsTitle": "自动入账账单",
   "repeatNever": "不重复",
   "repeatSetupFailed": "已保存。但重复规则创建失败：{error}",
   "addAttachment": "添加附件",

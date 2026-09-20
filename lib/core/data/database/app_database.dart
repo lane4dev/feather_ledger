@@ -48,10 +48,10 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  // v8 introduces TransactionRecorded v3 category snapshots. No SQL shape
-  // changes, but older apps must not restore data whose events they cannot
-  // replay with the preserved snapshots.
-  int get schemaVersion => 8;
+  // v10 adds `scheduled_transactions_view.auto_post_eligible` (ticket 31).
+  // Default true backfills existing rows (they were eligible under the old
+  // model); the column is a per-instance manual latch, not a projection.
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +97,26 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await m.addColumn(recurringSeries, recurringSeries.reminderMinutes);
+          }
+          // v9: recurring_series gained `mode` (计划/订阅/重复). CRUD-exempt,
+          // never rebuilt — the column default backfills 0 (计划) and the
+          // UPDATE below re-derives the true mode from the existing shape
+          // (auto_post ⇒ 订阅, start==end ⇒ 计划, else 重复).
+          if (from < 9) {
+            await m.addColumn(recurringSeries, recurringSeries.mode);
+            await m.database.customStatement(
+              'UPDATE recurring_series SET mode = CASE '
+              'WHEN auto_post = 1 THEN ${RecurringSeriesMode.subscription.index} '
+              'WHEN start_date = end_date THEN ${RecurringSeriesMode.planned.index} '
+              'ELSE ${RecurringSeriesMode.repeating.index} END',
+            );
+          }
+          // v10: scheduled_transactions_view gained `auto_post_eligible`.
+          // CRUD-exempt table, never rebuilt — the boolean default (true)
+          // backfills every existing row, so no projection bump.
+          if (from < 10) {
+            await m.addColumn(
+                scheduledTransactionsView, scheduledTransactionsView.autoPostEligible);
           }
         },
       );

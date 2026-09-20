@@ -150,6 +150,11 @@ class RecurringSeries extends Table {
   /// user tapping 记入.
   BoolColumn get autoPost => boolean().withDefault(const Constant(false))();
 
+  /// The creation mode (计划/订阅/重复). Persisted so the intent survives a
+  /// restart and the backup; immutable after creation. See
+  /// [RecurringSeriesMode] for the ordinal contract.
+  IntColumn get mode => intEnum<RecurringSeriesMode>().withDefault(const Constant(0))();
+
   /// Minutes before each scheduled occurrence; null means no reminder.
   IntColumn get reminderMinutes => integer().nullable()();
 
@@ -167,6 +172,10 @@ class ScheduledTransactionsView extends Table {
   IntColumn get amountMinor => integer()();
   TextColumn get status => text()(); // 'pending', 'posted', 'skipped'
   TextColumn get transactionId => text().nullable()();
+
+  /// Ticket 31: a bill that fell due while its switch was off or its currency
+  /// was not current is marked manual (false) and never auto-posts again.
+  BoolColumn get autoPostEligible => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};

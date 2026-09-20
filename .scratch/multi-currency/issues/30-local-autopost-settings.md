@@ -2,6 +2,7 @@
 
 Type: task
 Triage: ready-for-agent
+Status: resolved
 
 Blocked by: 28、29
 
@@ -26,6 +27,12 @@ Blocked by: 28、29
 
 - `test/unit/core/data/repositories/preferences_repository_backup_test.dart`
 - `test/unit/features/settings/data/backup_service_test.dart`
+## Answer
+
+三个开关按 mode 分别保存于 SharedPreferences（`autopost_planned` / `autopost_subscription` / `autopost_repeating`），默认 false；它们刻意不在 `_knownKeys` 中，因此 `exportAll`/`importAll` 不会携带或覆盖，恢复保留目标设备的值。设置页新增 `AutoPostSwitches` notifier + 三个 `SwitchListTile`。
+
+测试：`preferences_repository_backup_test.dart`（默认关闭跨重启保存 + 备份不携带开关）、`backup_service_test.dart`（manifest 不含 autopost_* 键）、`auto_post_settings_test.dart`（开关独立切换并持久化）。全套设置 + 核心数据仓储测试 158 通过；`flutter analyze` 0 error/warning。
+
 ## 共同约束
 
 - 先在已确认的公开测试接缝编写本票首个行为的失败测试，运行并确认失败；再以最小实现通过，逐条重复，不先批量编写所有测试。接缝为账本、账户、周期及备份 service 和真实测试数据库；界面与通知行为使用 widget 测试及现有通知平台适配边界。

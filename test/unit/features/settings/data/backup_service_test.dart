@@ -109,6 +109,10 @@ void main() {
         .customStatement('ALTER TABLE recurring_series DROP COLUMN auto_post');
     await db.customStatement(
         'ALTER TABLE recurring_series DROP COLUMN reminder_minutes');
+    await db
+        .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
+    await db.customStatement(
+        'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
     await db.customStatement('PRAGMA user_version = 1');
     await db.close();
     return file;
@@ -146,6 +150,29 @@ void main() {
           await harness.db.eventsDao.getMaxGsn());
       expect(manifest.preferenceKeys, ['currency_code', 'show_balance']);
       expect(manifest.databaseBytes, greaterThan(0));
+    });
+
+    test('auto-post switches are local-only and absent from the manifest',
+        () async {
+      await seedExpense();
+      await preferences
+          .setAutoPostEnabled(RecurringSeriesMode.planned, true);
+      await preferences
+          .setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+      await preferences
+          .setAutoPostEnabled(RecurringSeriesMode.repeating, true);
+
+      final path = builtArchivePath(await service().buildArchive());
+      final archive = readArchive(path);
+      final manifest = BackupManifest.fromJson(
+        jsonDecode(utf8
+            .decode(archive.findFile(RestoreLayout.stagedManifest)!.content)),
+      );
+
+      expect(manifest.preferenceKeys, isNot(contains('autopost_planned')));
+      expect(
+          manifest.preferenceKeys, isNot(contains('autopost_subscription')));
+      expect(manifest.preferenceKeys, isNot(contains('autopost_repeating')));
     });
 
     test('the snapshot is a complete SQLite database', () async {

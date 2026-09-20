@@ -48,6 +48,13 @@ void main() {
     WidgetTester tester, {
     File? pickedFile,
   }) async {
+    // The settings list grew (auto-post switches); give the test surface
+    // enough height that the data-portability card stays on screen instead
+    // of being lazily skipped by the ListView.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

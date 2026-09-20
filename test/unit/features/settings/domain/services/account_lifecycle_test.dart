@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:async';
+import 'package:drift/drift.dart' show Value;
+import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
@@ -7,6 +10,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 void main() {
   late LedgerServiceHarness h;
@@ -21,6 +25,36 @@ void main() {
         initialBalanceMinor: balance,
         currencyCode: 'USD');
     return (await h.db.accountDao.getAllAccounts()).single.id;
+  }
+
+  /// Opens the ticket-28 safety gate under a controlled test configuration,
+  /// and (ticket 31) turns the 订阅 switch on so a due subscription is
+  /// genuinely eligible to post itself.
+  Future<void> enableAutoPost() async {
+    await h.close();
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
+        DateTime.now().subtract(const Duration(days: 30)));
+    h = LedgerServiceHarness(autoPostEnabled: true, preferences: prefs);
+  }
+
+  /// Re-arms [id]'s auto-post eligibility. A series created after its first
+  /// bill came due is latched manual (ticket 32); this simulates the bill
+  /// having existed — and still being eligible — before it fell due.
+  Future<void> rearmEligible(String id) async {
+    final row = await h.db.recurringDao.getScheduled(id);
+    await h.db.recurringDao.insertOrUpdateScheduled(
+      ScheduledTransactionsViewCompanion(
+        id: Value(row!.id),
+        seriesId: Value(row.seriesId),
+        date: Value(row.date),
+        amountMinor: Value(row.amountMinor),
+        status: Value(row.status),
+        transactionId: Value(row.transactionId),
+        autoPostEligible: const Value(true),
+      ),
+    );
   }
 
   test('archive and restore retain totals and survive rebuild', () async {
@@ -308,6 +342,7 @@ void main() {
   });
 
   test('archiving pauses auto-post and restoring catches up', () async {
+    await enableAutoPost();
     final id = await account();
     await h.categoryService.createCategory(
       commandId: 'cat',
@@ -328,7 +363,13 @@ void main() {
       startDate: DateTime.now().subtract(const Duration(days: 1)),
       countLimit: 1,
       autoPost: true,
+      mode: RecurringSeriesMode.subscription,
     );
+    // The series is created already past its first due date, which ticket 32
+    // latches manual. Re-arm the due bill to test the archive/restore pause.
+    for (final row in await h.db.recurringDao.watchAllScheduled().first) {
+      await rearmEligible(row.id);
+    }
     expect(
         await h.accountService
             .archiveAccount(commandId: 'archive', accountId: id),
@@ -342,6 +383,42 @@ void main() {
         isA<Success<void>>());
     expect((await h.ledgerService.watchTransactions(DateTime.now()).first),
         hasLength(1));
+  });
+
+  test('restoring an account does not auto-post while the gate is closed',
+      () async {
+    final id = await account();
+    await h.categoryService.createCategory(
+      commandId: 'cat',
+      name: 'Food',
+      iconKey: '1',
+      colorInt: 0,
+      type: CategoryType.expense,
+    );
+    final category = (await h.db.categoriesDao.getAllCategories()).single.id;
+    await h.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: id,
+      categoryId: category,
+      description: 'Bill',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: DateTime.now().subtract(const Duration(days: 1)),
+      countLimit: 1,
+      autoPost: true,
+      mode: RecurringSeriesMode.subscription,
+    );
+    await h.accountService.archiveAccount(commandId: 'archive', accountId: id);
+
+    await h.accountService
+        .restoreAccount(commandId: 'restore', accountId: id);
+
+    // Ticket 28: the unified gate is closed by default, so account restore
+    // must not funnel a due 订阅 into the ledger. Manual posting still works.
+    expect(await h.ledgerService.watchTransactions(DateTime.now()).first,
+        isEmpty,
+        reason: 'the closed gate must block the restore catch-up');
   });
 
   test(

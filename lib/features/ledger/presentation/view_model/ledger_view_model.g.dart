@@ -93,7 +93,7 @@ final class MonthlyPendingTransactionsProvider extends $FunctionalProvider<
 }
 
 String _$monthlyPendingTransactionsHash() =>
-    r'4ebe5b9af56be0078f1a772aaec2a93729745940';
+    r'20b047a6c35129c7853911e05b06eb2c08689905';
 
 /// The month's upcoming recurring bills, as rows.
 ///
@@ -226,7 +226,7 @@ final class LedgerMonthlyTransactionsProvider extends $FunctionalProvider<
 }
 
 String _$ledgerMonthlyTransactionsHash() =>
-    r'0c120c820b286762c95fa4439334af0a294e46a1';
+    r'c77464c85a3564ae7e1a7ffc2685ce301cbb39ad';
 
 /// The month's posted transactions and pending bills, newest first.
 ///
@@ -270,55 +270,37 @@ final class LedgerMonthlyTransactionsFamily extends $Family
   String toString() => r'ledgerMonthlyTransactionsProvider';
 }
 
-/// The currency this ledger is actually in.
+/// The currency this ledger is scoped to.
 ///
-/// **Not the same question as the display preference.** Every account is
-/// created in whatever the preference was at the time, and there is no FX
-/// conversion anywhere, so a preference that has since moved on describes a
-/// currency the accounts are not in. Filtering the header's totals by it then
-/// matches nothing and the ledger reports zeroes while holding money — which
-/// is what happened on a zh-locale install, where the seeded USD accounts met
-/// a preference resolved to CNY.
-///
-/// So: the accounts decide, and a ledger with one currency (the normal case,
-/// since the form forces the current one) reports that currency whatever the
-/// preference says. A genuinely mixed ledger has no single answer without FX,
-/// so it falls back to the preference and reports that part of itself.
+/// The setting is the single source of truth for the ledger, search and
+/// reports (spec 006). Accounts no longer decide: they are created in
+/// whatever the preference was at the time and can therefore hold several
+/// currencies at once, with no FX conversion to pick one. The ledger shows
+/// the currency the user asked to see — and a setting with no accounts in it
+/// is the empty state, not an error.
 
 @ProviderFor(ledgerCurrency)
 final ledgerCurrencyProvider = LedgerCurrencyProvider._();
 
-/// The currency this ledger is actually in.
+/// The currency this ledger is scoped to.
 ///
-/// **Not the same question as the display preference.** Every account is
-/// created in whatever the preference was at the time, and there is no FX
-/// conversion anywhere, so a preference that has since moved on describes a
-/// currency the accounts are not in. Filtering the header's totals by it then
-/// matches nothing and the ledger reports zeroes while holding money — which
-/// is what happened on a zh-locale install, where the seeded USD accounts met
-/// a preference resolved to CNY.
-///
-/// So: the accounts decide, and a ledger with one currency (the normal case,
-/// since the form forces the current one) reports that currency whatever the
-/// preference says. A genuinely mixed ledger has no single answer without FX,
-/// so it falls back to the preference and reports that part of itself.
+/// The setting is the single source of truth for the ledger, search and
+/// reports (spec 006). Accounts no longer decide: they are created in
+/// whatever the preference was at the time and can therefore hold several
+/// currencies at once, with no FX conversion to pick one. The ledger shows
+/// the currency the user asked to see — and a setting with no accounts in it
+/// is the empty state, not an error.
 
 final class LedgerCurrencyProvider
     extends $FunctionalProvider<String, String, String> with $Provider<String> {
-  /// The currency this ledger is actually in.
+  /// The currency this ledger is scoped to.
   ///
-  /// **Not the same question as the display preference.** Every account is
-  /// created in whatever the preference was at the time, and there is no FX
-  /// conversion anywhere, so a preference that has since moved on describes a
-  /// currency the accounts are not in. Filtering the header's totals by it then
-  /// matches nothing and the ledger reports zeroes while holding money — which
-  /// is what happened on a zh-locale install, where the seeded USD accounts met
-  /// a preference resolved to CNY.
-  ///
-  /// So: the accounts decide, and a ledger with one currency (the normal case,
-  /// since the form forces the current one) reports that currency whatever the
-  /// preference says. A genuinely mixed ledger has no single answer without FX,
-  /// so it falls back to the preference and reports that part of itself.
+  /// The setting is the single source of truth for the ledger, search and
+  /// reports (spec 006). Accounts no longer decide: they are created in
+  /// whatever the preference was at the time and can therefore hold several
+  /// currencies at once, with no FX conversion to pick one. The ledger shows
+  /// the currency the user asked to see — and a setting with no accounts in it
+  /// is the empty state, not an error.
   LedgerCurrencyProvider._()
       : super(
           from: null,
@@ -352,9 +334,9 @@ final class LedgerCurrencyProvider
   }
 }
 
-String _$ledgerCurrencyHash() => r'3a22e7d96f9d5a77c831d03e2d1bf4d61d216328';
+String _$ledgerCurrencyHash() => r'29c690503fe4dd7447155bc183f62f208a073bcc';
 
-/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// The symbol the ledger writes next to an amount — the setting's currency,
 /// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
@@ -364,7 +346,7 @@ String _$ledgerCurrencyHash() => r'3a22e7d96f9d5a77c831d03e2d1bf4d61d216328';
 @ProviderFor(displayCurrencySymbol)
 final displayCurrencySymbolProvider = DisplayCurrencySymbolProvider._();
 
-/// The symbol the ledger writes next to an amount — the ledger's own currency,
+/// The symbol the ledger writes next to an amount — the setting's currency,
 /// for the same reason [ledgerCurrency] exists.
 ///
 /// A provider rather than a constant so the timeline does not have to thread
@@ -373,7 +355,7 @@ final displayCurrencySymbolProvider = DisplayCurrencySymbolProvider._();
 
 final class DisplayCurrencySymbolProvider
     extends $FunctionalProvider<String, String, String> with $Provider<String> {
-  /// The symbol the ledger writes next to an amount — the ledger's own currency,
+  /// The symbol the ledger writes next to an amount — the setting's currency,
   /// for the same reason [ledgerCurrency] exists.
   ///
   /// A provider rather than a constant so the timeline does not have to thread
@@ -418,21 +400,13 @@ String _$displayCurrencySymbolHash() =>
 /// The header's three figures for one month, in the ledger's own currency.
 ///
 /// A provider rather than a subscription held by [LedgerViewModel], because
-/// **both of its inputs move and one of them arrives late.** The month moves
-/// by definition; the currency is derived from the accounts, and while they
-/// are still loading there is no ledger currency yet, so the first answer is
-/// the display preference — and before that, the built-in default.
-///
-/// A subscription that read the currency once and kept it filtered every
-/// account out the moment the ledger settled on a different one: a fresh
-/// install on a zh locale captured USD at first frame and then opened its
-/// first account in CNY, so the header read `$0.00` over a ledger holding
-/// ¥1000. Income and expense were wrong the same way, for the same reason —
-/// the snapshot rows are filtered by that code too.
-///
-/// The only thing that re-read it was changing the month, which is why
-/// swiping a month away and back appeared to fix it. `ref.watch` makes the
-/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+/// **both of its inputs move.** The month moves by definition; the currency is
+/// the setting, and a fast switch has to re-scope the snapshot query without
+/// a frame where the header labels one currency's figures with another's
+/// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+/// it re-subscribes by itself, and a late emission from the previous
+/// subscription is discarded with the old subscription rather than
+/// overwriting the new result.
 
 @ProviderFor(ledgerMonthlySummary)
 final ledgerMonthlySummaryProvider = LedgerMonthlySummaryFamily._();
@@ -440,21 +414,13 @@ final ledgerMonthlySummaryProvider = LedgerMonthlySummaryFamily._();
 /// The header's three figures for one month, in the ledger's own currency.
 ///
 /// A provider rather than a subscription held by [LedgerViewModel], because
-/// **both of its inputs move and one of them arrives late.** The month moves
-/// by definition; the currency is derived from the accounts, and while they
-/// are still loading there is no ledger currency yet, so the first answer is
-/// the display preference — and before that, the built-in default.
-///
-/// A subscription that read the currency once and kept it filtered every
-/// account out the moment the ledger settled on a different one: a fresh
-/// install on a zh locale captured USD at first frame and then opened its
-/// first account in CNY, so the header read `$0.00` over a ledger holding
-/// ¥1000. Income and expense were wrong the same way, for the same reason —
-/// the snapshot rows are filtered by that code too.
-///
-/// The only thing that re-read it was changing the month, which is why
-/// swiping a month away and back appeared to fix it. `ref.watch` makes the
-/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+/// **both of its inputs move.** The month moves by definition; the currency is
+/// the setting, and a fast switch has to re-scope the snapshot query without
+/// a frame where the header labels one currency's figures with another's
+/// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+/// it re-subscribes by itself, and a late emission from the previous
+/// subscription is discarded with the old subscription rather than
+/// overwriting the new result.
 
 final class LedgerMonthlySummaryProvider extends $FunctionalProvider<
         AsyncValue<MonthlySummaryUiModel>,
@@ -466,21 +432,13 @@ final class LedgerMonthlySummaryProvider extends $FunctionalProvider<
   /// The header's three figures for one month, in the ledger's own currency.
   ///
   /// A provider rather than a subscription held by [LedgerViewModel], because
-  /// **both of its inputs move and one of them arrives late.** The month moves
-  /// by definition; the currency is derived from the accounts, and while they
-  /// are still loading there is no ledger currency yet, so the first answer is
-  /// the display preference — and before that, the built-in default.
-  ///
-  /// A subscription that read the currency once and kept it filtered every
-  /// account out the moment the ledger settled on a different one: a fresh
-  /// install on a zh locale captured USD at first frame and then opened its
-  /// first account in CNY, so the header read `$0.00` over a ledger holding
-  /// ¥1000. Income and expense were wrong the same way, for the same reason —
-  /// the snapshot rows are filtered by that code too.
-  ///
-  /// The only thing that re-read it was changing the month, which is why
-  /// swiping a month away and back appeared to fix it. `ref.watch` makes the
-  /// currency a dependency Riverpod can see, so it re-subscribes by itself.
+  /// **both of its inputs move.** The month moves by definition; the currency is
+  /// the setting, and a fast switch has to re-scope the snapshot query without
+  /// a frame where the header labels one currency's figures with another's
+  /// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+  /// it re-subscribes by itself, and a late emission from the previous
+  /// subscription is discarded with the old subscription rather than
+  /// overwriting the new result.
   LedgerMonthlySummaryProvider._(
       {required LedgerMonthlySummaryFamily super.from,
       required DateTime super.argument})
@@ -534,21 +492,13 @@ String _$ledgerMonthlySummaryHash() =>
 /// The header's three figures for one month, in the ledger's own currency.
 ///
 /// A provider rather than a subscription held by [LedgerViewModel], because
-/// **both of its inputs move and one of them arrives late.** The month moves
-/// by definition; the currency is derived from the accounts, and while they
-/// are still loading there is no ledger currency yet, so the first answer is
-/// the display preference — and before that, the built-in default.
-///
-/// A subscription that read the currency once and kept it filtered every
-/// account out the moment the ledger settled on a different one: a fresh
-/// install on a zh locale captured USD at first frame and then opened its
-/// first account in CNY, so the header read `$0.00` over a ledger holding
-/// ¥1000. Income and expense were wrong the same way, for the same reason —
-/// the snapshot rows are filtered by that code too.
-///
-/// The only thing that re-read it was changing the month, which is why
-/// swiping a month away and back appeared to fix it. `ref.watch` makes the
-/// currency a dependency Riverpod can see, so it re-subscribes by itself.
+/// **both of its inputs move.** The month moves by definition; the currency is
+/// the setting, and a fast switch has to re-scope the snapshot query without
+/// a frame where the header labels one currency's figures with another's
+/// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+/// it re-subscribes by itself, and a late emission from the previous
+/// subscription is discarded with the old subscription rather than
+/// overwriting the new result.
 
 final class LedgerMonthlySummaryFamily extends $Family
     with $FunctionalFamilyOverride<Stream<MonthlySummaryUiModel>, DateTime> {
@@ -564,21 +514,13 @@ final class LedgerMonthlySummaryFamily extends $Family
   /// The header's three figures for one month, in the ledger's own currency.
   ///
   /// A provider rather than a subscription held by [LedgerViewModel], because
-  /// **both of its inputs move and one of them arrives late.** The month moves
-  /// by definition; the currency is derived from the accounts, and while they
-  /// are still loading there is no ledger currency yet, so the first answer is
-  /// the display preference — and before that, the built-in default.
-  ///
-  /// A subscription that read the currency once and kept it filtered every
-  /// account out the moment the ledger settled on a different one: a fresh
-  /// install on a zh locale captured USD at first frame and then opened its
-  /// first account in CNY, so the header read `$0.00` over a ledger holding
-  /// ¥1000. Income and expense were wrong the same way, for the same reason —
-  /// the snapshot rows are filtered by that code too.
-  ///
-  /// The only thing that re-read it was changing the month, which is why
-  /// swiping a month away and back appeared to fix it. `ref.watch` makes the
-  /// currency a dependency Riverpod can see, so it re-subscribes by itself.
+  /// **both of its inputs move.** The month moves by definition; the currency is
+  /// the setting, and a fast switch has to re-scope the snapshot query without
+  /// a frame where the header labels one currency's figures with another's
+  /// symbol. `ref.watch` makes the currency a dependency Riverpod can see, so
+  /// it re-subscribes by itself, and a late emission from the previous
+  /// subscription is discarded with the old subscription rather than
+  /// overwriting the new result.
 
   LedgerMonthlySummaryProvider call(
     DateTime month,

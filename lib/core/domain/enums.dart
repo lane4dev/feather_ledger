@@ -45,6 +45,16 @@ enum CategoryType { income, expense }
 /// Reordering this enum would silently reinterpret every stored row.
 enum RecurringSeriesKind { income, expense }
 
+/// What a recurring bill IS: a one-shot plan (计划), a repeating schedule the
+/// user confirms each time (重复), or a subscription the app posts itself
+/// (订阅). Persisted on `recurring_series.mode` so the intent survives a
+/// restart and the backup; a series' mode is immutable after creation.
+///
+/// Declaration order is the persisted ordinal: append-only, never reorder.
+/// `planned` is 0 so an `addColumn` default can safely mean "does nothing by
+/// itself".
+enum RecurringSeriesMode { planned, repeating, subscription }
+
 extension RecurringSeriesKindMapping on RecurringSeriesKind {
   TransactionKind get toTransactionKind => switch (this) {
         RecurringSeriesKind.income => TransactionKind.income,

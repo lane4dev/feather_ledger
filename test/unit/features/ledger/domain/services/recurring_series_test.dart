@@ -1,12 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drift/drift.dart' show Value;
+
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 /// The recurring-bill loop (spec 004, US2 / T036).
 ///
@@ -25,6 +29,32 @@ void main() {
     await harness.seedSystemCategories();
   });
   tearDown(() => harness.close());
+
+  /// Rebuilds the harness with the ticket-28 safety gate opened or closed.
+  /// The production default (closed) must keep auto-posting disabled; tests
+  /// that exercise the posting path itself opt in here.
+  Future<void> restartHarness(
+      {bool autoPostEnabled = false,
+      PreferencesRepository? preferences}) async {
+    await harness.close();
+    harness = LedgerServiceHarness(
+        autoPostEnabled: autoPostEnabled, preferences: preferences);
+    await harness.seedSystemCategories();
+  }
+
+  /// A preferences repository whose 订阅 auto-post switch is ON (ticket 31:
+  /// the switch must be on for a due subscription to post itself), with its
+  /// eligibility boundary anchored *before* the fixture's due date.
+  Future<PreferencesRepository> prefsWithSubscriptionOn() async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    // `setAutoPostEnabled` anchors the boundary to now; move it back so a
+    // bill due ten days ago is genuinely eligible rather than "already due
+    // when the switch turned on".
+    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
+        DateTime.now().subtract(const Duration(days: 30)));
+    return prefs;
+  }
 
   late String accountId;
   late String expenseCategoryId;
@@ -83,6 +113,39 @@ void main() {
     );
   }
 
+  /// A monthly series starting well in the future, so none of its bills are
+  /// due yet (and none were "already due at creation").
+  Future<Result<void>> createFutureMonthly({int amountMinor = 50000}) {
+    return harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: amountMinor,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Rent',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime.now().add(const Duration(days: 30)),
+    );
+  }
+
+  /// Re-arms [id]'s auto-post eligibility in the CRUD-exempt table.
+  /// Used to simulate a series that existed before its bill came due (spec
+  /// 006, US32 latches such bills at creation).
+  Future<void> rearmEligible(String id) async {
+    final row = await harness.db.recurringDao.getScheduled(id);
+    await harness.db.recurringDao.insertOrUpdateScheduled(
+      ScheduledTransactionsViewCompanion(
+        id: Value(row!.id),
+        seriesId: Value(row.seriesId),
+        date: Value(row.date),
+        amountMinor: Value(row.amountMinor),
+        status: Value(row.status),
+        transactionId: Value(row.transactionId),
+        autoPostEligible: const Value(true),
+      ),
+    );
+  }
+
   Future<List<ScheduledTransactionEntity>> scheduled() =>
       harness.recurringService.watchScheduled().first;
 
@@ -128,6 +191,55 @@ void main() {
     expect(instances.every((i) => i.amountMinor == 50000), isTrue);
     expect(
         instances.every((i) => i.recurringTransactionSeries != null), isTrue);
+  });
+
+  test('a series persists its creation mode (计划/订阅/重复)', () async {
+    await seed();
+
+    // 计划: one-shot, startDate == endDate.
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Plan',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime(2027, 1, 1),
+      endDate: DateTime(2027, 1, 1),
+      mode: RecurringSeriesMode.planned,
+    );
+    // 重复: recurring, manual confirm.
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 200,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Repeat',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime(2026, 1, 1),
+      mode: RecurringSeriesMode.repeating,
+    );
+    // 订阅: recurring, auto-post.
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 300,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Subscribe',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime(2026, 1, 1),
+      autoPost: true,
+      mode: RecurringSeriesMode.subscription,
+    );
+
+    final rows = await harness.db.recurringDao.getAllSeries();
+    final byDescription = {for (final r in rows) r.description: r};
+    expect(byDescription['Plan']!.mode, RecurringSeriesMode.planned);
+    expect(byDescription['Repeat']!.mode, RecurringSeriesMode.repeating);
+    expect(byDescription['Subscribe']!.mode, RecurringSeriesMode.subscription);
   });
 
   test('watchScheduled scopes to one currency', () async {
@@ -831,13 +943,47 @@ void main() {
       interval: 1,
       startDate: DateTime.now().subtract(const Duration(days: 10)),
       autoPost: true,
+      mode: RecurringSeriesMode.subscription,
     );
   }
 
-  test('catch-up posts the due instances of an auto-posting series, once',
-      () async {
+  test('the safety gate keeps catch-up closed by default', () async {
     await seed();
     expect(await createAutoPostingSeries(), isA<Success<void>>());
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+
+    await harness.recurringService.catchUpAutoPosted();
+
+    // Ticket 28: before the eligibility rules and the restore barrier land,
+    // auto-posting is disabled by default. A due 订阅 must wait; only the
+    // user's manual 记入 may post it.
+    expect(
+        (await scheduled())
+            .every((i) => i.status == ScheduledTransactionStatus.scheduled),
+        isTrue,
+        reason: 'the closed gate must not post anything');
+    expect((await harness.eventStore.readAll()).events.length, eventsBefore,
+        reason: 'no TransactionRecorded while the gate is closed');
+  });
+
+  test('catch-up posts the due instances of an auto-posting series, once',
+      () async {
+    // Ticket 28: open the safety gate under a controlled test configuration —
+    // the production default is closed. Ticket 31: the 订阅 switch must also
+    // be on for the series to be eligible.
+    await restartHarness(
+        autoPostEnabled: true, preferences: await prefsWithSubscriptionOn());
+    await seed();
+    expect(await createAutoPostingSeries(), isA<Success<void>>());
+
+    // Spec 006, US32: a series created after its first bill came due is
+    // "created already due", so those bills are latched manual at creation.
+    // This test exercises the posting path itself, so re-arm the due
+    // instances as if the series had existed before they fell due.
+    for (final row in await harness.db.recurringDao.watchAllScheduled().first) {
+      if (row.date.isAfter(DateTime.now())) continue;
+      await rearmEligible(row.id);
+    }
 
     final eventsBefore = (await harness.eventStore.readAll()).events.length;
     await harness.recurringService.catchUpAutoPosted();
@@ -920,5 +1066,221 @@ void main() {
 
     expect(result, isA<Success<void>>());
     expect((await seriesRow()).autoPost, isTrue);
+  });
+
+  // — 自动入账资格（ticket 31）———————————————————————————————————————
+
+  test('a due bill that fell due before its switch turned on is latched '
+      'manual and never retro-posts', () async {
+    // Subscription switch OFF (the default) while the bill is already due.
+    await restartHarness(
+        autoPostEnabled: true,
+        preferences: PreferencesRepositoryImpl(MockSharedPreferences()));
+    await seed();
+    expect(await createAutoPostingSeries(), isA<Success<void>>());
+    final dueIds = (await scheduled())
+        .where((i) => !i.date.isAfter(DateTime.now()))
+        .map((i) => i.id)
+        .toSet();
+    expect(dueIds, isNotEmpty, reason: 'fixture precondition');
+
+    await harness.recurringService.catchUpAutoPosted();
+
+    // Still scheduled, but latched permanently manual.
+    expect(
+        (await scheduled())
+            .where((i) => dueIds.contains(i.id))
+            .every((i) =>
+                i.status == ScheduledTransactionStatus.scheduled &&
+                !i.autoPostEligible),
+        isTrue,
+        reason: 'due while the switch was off = manual, and the latch sticks');
+
+    // Turn the 订阅 switch ON — the boundary is now — and try again.
+    await (harness.preferences!).setAutoPostEnabled(
+        RecurringSeriesMode.subscription, true);
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+    await harness.recurringService.catchUpAutoPosted();
+
+    expect(
+        (await scheduled())
+            .where((i) => dueIds.contains(i.id))
+            .every((i) => i.status == ScheduledTransactionStatus.scheduled),
+        isTrue,
+        reason: 're-enabling must not retro-post a bill that was already due');
+    expect((await harness.eventStore.readAll()).events.length, eventsBefore);
+  });
+
+  test('a bill due the same millisecond its switch turned on is manual',
+      () async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    final boundary = prefs.getAutoPostEnabledSince(
+        RecurringSeriesMode.subscription)!;
+
+    await restartHarness(autoPostEnabled: true, preferences: prefs);
+    await seed();
+    // The series starts exactly at the boundary millisecond.
+    expect(
+        await harness.recurringService.createSeries(
+          type: RecurringSeriesKind.expense,
+          amountMinor: 20000,
+          accountId: accountId,
+          categoryId: expenseCategoryId,
+          description: 'Subscription',
+          frequency: 'MONTHLY',
+          interval: 1,
+          startDate: boundary,
+          autoPost: true,
+          mode: RecurringSeriesMode.subscription,
+        ),
+        isA<Success<void>>());
+
+    await harness.recurringService.catchUpAutoPosted();
+
+    final due = (await scheduled())
+        .where((i) => !i.date.isAfter(DateTime.now()));
+    expect(due, isNotEmpty, reason: 'fixture precondition');
+    expect(
+        due.every((i) =>
+            i.status == ScheduledTransactionStatus.scheduled &&
+            !i.autoPostEligible),
+        isTrue,
+        reason: 'due exactly when the switch turned on counts as already-due');
+  });
+
+  test('a due bill whose currency was not yet current is manual', () async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    // The bill's currency only became current a day after the bill was due.
+    final due = DateTime.now().subtract(const Duration(days: 10));
+    await prefs.setCurrencyActiveSince(
+        'USD', due.add(const Duration(days: 1)));
+
+    await restartHarness(autoPostEnabled: true, preferences: prefs);
+    await seed();
+    expect(
+        await harness.recurringService.createSeries(
+          type: RecurringSeriesKind.expense,
+          amountMinor: 20000,
+          accountId: accountId,
+          categoryId: expenseCategoryId,
+          description: 'Subscription',
+          frequency: 'MONTHLY',
+          interval: 1,
+          startDate: due,
+          autoPost: true,
+          mode: RecurringSeriesMode.subscription,
+        ),
+        isA<Success<void>>());
+
+    await harness.recurringService.catchUpAutoPosted();
+
+    final instances = await scheduled();
+    expect(
+        instances
+            .where((i) => !i.date.isAfter(DateTime.now()))
+            .every((i) =>
+                i.status == ScheduledTransactionStatus.scheduled &&
+                !i.autoPostEligible),
+        isTrue,
+        reason: 'due before its currency became current = manual');
+  });
+
+  // — 自动入账资格（ticket 32：创建与编辑）——————————————————————————
+
+  test('a series created already past its first due date latches those bills '
+      'manual', () async {
+    await seed();
+    await createMonthly();
+
+    final instances = await scheduled();
+    final past = instances.where((i) => !i.date.isAfter(DateTime.now()));
+    final future = instances.where((i) => i.date.isAfter(DateTime.now()));
+    expect(past, isNotEmpty, reason: 'fixture precondition');
+    expect(future, isNotEmpty, reason: 'fixture precondition');
+
+    expect(past.every((i) => !i.autoPostEligible), isTrue,
+        reason: 'already due at creation = manual, and it must never retro-post');
+    expect(future.every((i) => i.autoPostEligible), isTrue,
+        reason: 'a bill that was not yet due at creation keeps its eligibility');
+  });
+
+  test('editing a still-future bill keeps its auto-post eligibility', () async {
+    await seed();
+    await createFutureMonthly();
+    final instance = await firstScheduled();
+
+    await editBill(instance, scope: RecurringScope.thisOnly, amountMinor: 60000);
+
+    final row = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(row!.autoPostEligible, isTrue,
+        reason: 'editing before it is due must not turn it manual');
+  });
+
+  test('editing an already-due bill turns it manual', () async {
+    await seed();
+    await createMonthly();
+    final due = (await scheduled())
+        .firstWhere((i) => !i.date.isAfter(DateTime.now()));
+    await rearmEligible(due.id);
+
+    await editBill(due, scope: RecurringScope.thisOnly, amountMinor: 60000);
+
+    final row = await harness.db.recurringDao.getScheduled(due.id);
+    expect(row!.autoPostEligible, isFalse,
+        reason: 'a real edit of an already-due bill must never auto-post');
+  });
+
+  test('a no-op save does not flip eligibility', () async {
+    await seed();
+    await createMonthly();
+    final due = (await scheduled())
+        .firstWhere((i) => !i.date.isAfter(DateTime.now()));
+    await rearmEligible(due.id);
+
+    await editBill(due,
+        scope: RecurringScope.thisOnly,
+        amountMinor: due.amountMinor,
+        date: due.date);
+
+    final row = await harness.db.recurringDao.getScheduled(due.id);
+    expect(row!.autoPostEligible, isTrue,
+        reason: 'a save that changes nothing must not flip eligibility');
+  });
+
+  test('moving a bill into the past turns the new row manual', () async {
+    await seed();
+    await createFutureMonthly();
+    final instance = await firstScheduled();
+
+    await editBill(instance,
+        scope: RecurringScope.thisOnly,
+        date: DateTime.now().subtract(const Duration(days: 1)));
+
+    final rows = await harness.db.recurringDao.watchAllScheduled().first;
+    final moved = rows.firstWhere((r) =>
+        decodeScheduledStatus(r.status) == ScheduledTransactionStatus.scheduled &&
+        !r.date.isAfter(DateTime.now()));
+    expect(moved.autoPostEligible, isFalse,
+        reason: 'a bill moved into the past must never auto-post');
+  });
+
+  test('a detected clock rollback turns the edited bill manual', () async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    // The wall clock was last seen a day in the future — the next decision
+    // reads *earlier*, which is evidence of a rollback.
+    await prefs.setLastSeenWallClock(DateTime.now().add(const Duration(days: 1)));
+
+    await restartHarness(preferences: prefs);
+    await seed();
+    await createFutureMonthly();
+    final instance = await firstScheduled();
+
+    await editBill(instance, scope: RecurringScope.thisOnly, amountMinor: 60000);
+
+    final row = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(row!.autoPostEligible, isFalse,
+        reason: 'unreliable due/not-due ordering makes the touched bill manual');
   });
 }

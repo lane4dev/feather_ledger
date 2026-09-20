@@ -41,6 +41,7 @@ class CreateRecurringSeriesCommand {
     List<int> weekdays = const [],
     bool autoPost = false,
     int? reminderMinutes,
+    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
   }) async {
     if (reminderMinutes != null && reminderMinutes <= 0) {
       throw const CommandRejected(
@@ -99,6 +100,7 @@ class CreateRecurringSeriesCommand {
         accountId: accountId,
         type: type,
         autoPost: Value(autoPost),
+        mode: Value(mode),
         reminderMinutes: Value(reminderMinutes),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/transaction_attachment_store.dart';
@@ -210,6 +211,7 @@ class RecordingRecurringService implements RecurringService {
     List<int> weekdays = const [],
     bool autoPost = false,
     int? reminderMinutes,
+    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     created.add({
@@ -226,6 +228,7 @@ class RecordingRecurringService implements RecurringService {
       'weekdays': weekdays,
       'autoPost': autoPost,
       'reminderMinutes': reminderMinutes,
+      'mode': mode,
     });
     return unitResult;
   }
@@ -262,6 +265,12 @@ class RecordingRecurringService implements RecurringService {
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
       throw UnimplementedError();
+
+  @override
+  bool get autoPostEnabled => false;
+
+  @override
+  PreferencesRepository? get preferences => null;
 }
 
 /// Attachment storage, without a filesystem: `importFiles` hands back one

@@ -677,6 +677,10 @@
   "transactionModePlanned": "Planned",
   "transactionModeSubscription": "Subscription",
   "transactionModeRepeating": "Repeating",
+  "autoPostSettingsTitle": "Auto-post bills",
+  "@autoPostSettingsTitle": {
+    "description": "Section title for the three per-kind auto-post switches"
+  },
   "repeatNever": "Does not repeat",
   "repeatSetupFailed": "Saved. The repeat could not be set up: {error}",
   "@repeatSetupFailed": {

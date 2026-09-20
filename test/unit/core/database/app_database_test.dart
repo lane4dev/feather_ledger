@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(8));
+      expect(database.schemaVersion, equals(10));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {
@@ -34,6 +34,10 @@ void main() {
       await old.customStatement('SELECT 1');
       await old
           .customStatement('ALTER TABLE accounts_view DROP COLUMN deleted');
+      await old
+          .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
+      await old.customStatement(
+          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
       await old.customStatement(
           "INSERT INTO accounts_view (id, name, type, currency_code, balance_minor, archived, last_updated_event_id) VALUES ('archived', 'Cash', 0, 'USD', 0, 1, 1)");
       await old.customStatement('PRAGMA user_version = 6');
@@ -69,6 +73,10 @@ void main() {
       await v1.customStatement(
           'ALTER TABLE recurring_series DROP COLUMN reminder_minutes');
       await v1.customStatement(
+          'ALTER TABLE recurring_series DROP COLUMN mode');
+      await v1.customStatement(
+          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+      await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
           "VALUES ('acc_v1', 'Cash', 0, 'USD', 5000, 0, 1, 2)");
@@ -100,6 +108,46 @@ void main() {
       expect(series!.reminderMinutes, isNull);
       expect(series.autoPost, isFalse,
           reason: 'no series predated the flag, so none auto-posts');
+      expect(series.mode, RecurringSeriesMode.repeating,
+          reason: 'a pre-mode recurring row (auto_post=false, start!=end) '
+              'backfills to 重复');
+    });
+
+    test('v8 recurring series gain a mode backfilled from their shape',
+        () async {
+      final file = File(p.join(
+          Directory.systemTemp.createTempSync('feather_v8').path, 'v8.sqlite'));
+      final v8 = AppDatabase.internal(NativeDatabase(file));
+      await v8.customStatement('SELECT 1'); // opens it, running createAll
+      await v8.customStatement(
+          'ALTER TABLE recurring_series DROP COLUMN mode');
+      await v8.customStatement(
+          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
+      await v8.customStatement(
+          'INSERT INTO recurring_series (id, rrule, start_date, end_date, '
+          'frequency, interval, count_limit, amount_minor, description, '
+          'category_id, account_id, type, auto_post, reminder_minutes) VALUES '
+          "('sub', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', 1, NULL, "
+          "100, 'Sub', 'c', 'a', 1, 1, NULL), "
+          "('plan', 'FREQ=MONTHLY', 1780000000000, 1780000000000, 'MONTHLY', "
+          "1, NULL, 200, 'Plan', 'c', 'a', 1, 0, NULL), "
+          "('rep', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', 1, NULL, "
+          "300, 'Rep', 'c', 'a', 1, 0, NULL)");
+      await v8.customStatement('PRAGMA user_version = 8');
+      await v8.close();
+
+      final upgraded = AppDatabase.internal(NativeDatabase(file));
+      addTearDown(upgraded.close);
+
+      expect((await upgraded.recurringDao.getSeries('sub'))!.mode,
+          RecurringSeriesMode.subscription,
+          reason: 'auto_post=1 ⇒ 订阅');
+      expect((await upgraded.recurringDao.getSeries('plan'))!.mode,
+          RecurringSeriesMode.planned,
+          reason: 'start_date=end_date ⇒ 计划');
+      expect((await upgraded.recurringDao.getSeries('rep'))!.mode,
+          RecurringSeriesMode.repeating,
+          reason: 'recurring without auto_post ⇒ 重复');
     });
 
     test('should create all tables on initialization', () async {

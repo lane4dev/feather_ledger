@@ -4,6 +4,9 @@ import 'package:feather_ledger/app/bootstrap/register_ledger_events.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/data/repositories/category_repository.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
+import 'package:feather_ledger/core/domain/repositories/preferences_repository.dart'
+    as prefs_api;
 import 'package:feather_ledger/app/theme/category_tokens.dart';
 import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -81,7 +84,16 @@ class LedgerServiceHarness {
   late final AccountService accountService;
   late final CategoryService categoryService;
 
-  LedgerServiceHarness() : db = FakeAppDatabase() {
+  /// Ticket 28 safety gate: auto-posting is disabled by default and only
+  /// opened under a controlled test configuration.
+  final bool autoPostEnabled;
+
+  /// The per-mode auto-post switches and eligibility boundaries (ticket 31).
+  /// Null means every switch is off, which is what most tests want.
+  final prefs_api.PreferencesRepository? preferences;
+
+  LedgerServiceHarness({this.autoPostEnabled = false, this.preferences})
+      : db = FakeAppDatabase() {
     // Production registration — no test-only factory setup (US2/T021).
     registerLedgerEvents();
     eventStore = DriftEventStore(db, ledgerEventRegistry);
@@ -101,11 +113,14 @@ class LedgerServiceHarness {
     recurringService = RecurringService(
       CreateRecurringSeriesCommand(recurringRepository, contextResolver),
       DeleteRecurringBillCommand(recurringRepository),
-      UpdateRecurringBillCommand(recurringRepository, contextResolver),
+      UpdateRecurringBillCommand(recurringRepository, contextResolver,
+          preferences: preferences),
       ConvertScheduledToPostedCommand(
           eventStore, projector, recurringRepository, contextResolver),
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),
+      autoPostEnabled: autoPostEnabled,
+      preferences: preferences,
     );
     ledgerService = LedgerService(
       recordCommand,

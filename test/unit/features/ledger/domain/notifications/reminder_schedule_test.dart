@@ -28,7 +28,8 @@ void main() {
               frequency: 'MONTHLY',
               startDate: now,
               autoPost: false,
-              reminderMinutes: minutes));
+              reminderMinutes: minutes,
+              mode: RecurringSeriesMode.repeating));
 
   test('only schedules pending reminders whose trigger is in the future', () {
     final bills = [

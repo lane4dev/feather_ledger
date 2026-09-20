@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
@@ -28,14 +29,29 @@ class RecurringService {
   final ProjectRecurringEventsCommand _projectInstances;
   final WatchScheduledTransactionsQuery _watchScheduled;
 
+  /// Ticket 28 safety gate: auto-posting is disabled until the eligibility
+  /// rules and the restore confirmation barrier land. It is closed by default
+  /// and only opened under a controlled test configuration; every autopost
+  /// entry (launch, account restore, notification responses) funnels through
+  /// [catchUpAutoPosted], so a closed gate blocks them all. Manual posting is
+  /// unaffected — [postInstance] never consults this flag.
+  final bool autoPostEnabled;
+
+  /// The per-mode auto-post switches and their eligibility boundaries
+  /// (ticket 31). Null means the switches are not loaded yet, which is
+  /// treated exactly like "every switch off": nothing auto-posts.
+  final PreferencesRepository? preferences;
+
   RecurringService(
     this._createSeries,
     this._deleteBill,
     this._updateBill,
     this._postInstance,
     this._projectInstances,
-    this._watchScheduled,
-  );
+    this._watchScheduled, {
+    this.autoPostEnabled = false,
+    this.preferences,
+  });
 
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
@@ -60,10 +76,12 @@ class RecurringService {
     List<int> weekdays = const [],
     bool autoPost = false,
     int? reminderMinutes,
+    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
   }) {
     return guard(() async {
+      final id = const Uuid().v4();
       await _createSeries.execute(
-        id: const Uuid().v4(),
+        id: id,
         type: type,
         amountMinor: amountMinor,
         accountId: accountId,
@@ -77,8 +95,13 @@ class RecurringService {
         weekdays: weekdays,
         autoPost: autoPost,
         reminderMinutes: reminderMinutes,
+        mode: mode,
       );
       await materialize();
+      // A series created already past its first due date must never auto-post
+      // those bills (spec 006, US32): they were due before the user even had
+      // the rule.
+      await _watchScheduled.markSeriesIneligibleBefore(id, DateTime.now());
     });
   }
 
@@ -108,7 +131,7 @@ class RecurringService {
     required String description,
   }) {
     return guard(() async {
-      await _updateBill.execute(
+      final toLatch = await _updateBill.execute(
         scheduledId,
         scope: scope,
         amountMinor: amountMinor,
@@ -120,6 +143,12 @@ class RecurringService {
       // The series scopes drop rows and expect them back at their new dates;
       // materialization is what puts them there.
       await materialize();
+      // A real edit of an already-due (or moved-to-past) bill turns it manual
+      // (spec 006, US32). The series scopes rebuild rows, so latch their
+      // re-materialized ids *after* the window is rebuilt.
+      for (final id in toLatch) {
+        await _watchScheduled.markAutoPostIneligible(id);
+      }
     });
   }
 
@@ -149,8 +178,15 @@ class RecurringService {
   /// safe on every launch and after every series creation.
   Future<void> materialize() => _projectInstances.execute();
 
-  /// Launch catch-up for 订阅 series: every `scheduled` instance of an
-  /// auto-posting series whose date has passed becomes a real transaction.
+  /// Launch catch-up for auto-posting series: every `scheduled` instance of
+  /// an eligible series whose date has passed becomes a real transaction.
+  ///
+  /// Eligibility (ticket 31) is per instance: its mode's auto-post switch
+  /// must be on, and its due time must be *strictly* after both the last time
+  /// that switch turned on and the last time its currency became current —
+  /// "already due", or due the same millisecond, is latched permanently manual
+  /// and never auto-posts again, even after the switch or the currency comes
+  /// back. A previously latched bill stays latched.
   ///
   /// Idempotent twice over: the status flip rides the append transaction, and
   /// the deterministic commandId (`'autopost-<instanceId>'`) is deduped at
@@ -159,14 +195,40 @@ class RecurringService {
   /// other instances. Runs after [materialize], which is what puts the due
   /// instances on the table.
   Future<void> catchUpAutoPosted({String? accountId}) async {
+    if (!autoPostEnabled) return;
+    final prefs = preferences;
+    if (prefs == null) return;
     final instances = await _watchScheduled.execute().first;
     final now = DateTime.now();
     for (final instance in instances) {
       if (instance.account?.archived != false) continue;
       if (accountId != null && instance.account?.id != accountId) continue;
-      if (instance.recurringTransactionSeries?.autoPost != true) continue;
       if (instance.status != ScheduledTransactionStatus.scheduled) continue;
       if (instance.date.isAfter(now)) continue;
+
+      final series = instance.recurringTransactionSeries;
+      if (series == null) continue;
+
+      final mode = series.mode;
+      final enabled = prefs.getAutoPostEnabled(mode);
+      final enabledSince = prefs.getAutoPostEnabledSince(mode);
+      final currency = instance.account?.currencyCode;
+      final currencySince =
+          currency == null ? null : prefs.getCurrencyActiveSince(currency);
+
+      final eligible = enabled &&
+          (enabledSince == null || instance.date.isAfter(enabledSince)) &&
+          (currencySince == null || instance.date.isAfter(currencySince)) &&
+          instance.autoPostEligible;
+
+      if (!eligible) {
+        // Latch once, then leave the bill scheduled for the user's 记入.
+        if (instance.autoPostEligible) {
+          await _watchScheduled.markAutoPostIneligible(instance.id);
+        }
+        continue;
+      }
+
       // postInstance returns Result and never throws; ignoring it *is* the
       // "continue on failure" policy above.
       await guard(() => _postInstance.execute(instance.id,
@@ -184,5 +246,6 @@ RecurringService recurringService(Ref ref) {
     ref.watch(convertScheduledToPostedCommandProvider),
     ref.watch(projectRecurringEventsCommandProvider),
     ref.watch(watchScheduledTransactionsQueryProvider),
+    preferences: ref.watch(preferencesRepositoryProvider).value,
   );
 }

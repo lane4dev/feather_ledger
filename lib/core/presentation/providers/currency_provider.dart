@@ -33,12 +33,20 @@ class CurrencyController extends _$CurrencyController {
     }
 
     await repo.setCurrency(currencyCodeToSet);
+    // First use also anchors the currency's eligibility boundary (spec 006,
+    // US31): nothing existed before this moment, so any pre-existing bill is
+    // moot — but recording it keeps the invariant uniform.
+    await repo.setCurrencyActiveSince(currencyCodeToSet, DateTime.now());
     return currencyCodeToSet;
   }
 
   Future<void> setCurrency(String currencyCode) async {
     final repo = await ref.read(preferencesRepositoryProvider.future);
     await repo.setCurrency(currencyCode);
+    // Every time the current currency changes, its eligibility boundary moves
+    // to now: bills of this currency that fell due at or before the switch
+    // are permanently manual (spec 006, US31).
+    await repo.setCurrencyActiveSince(currencyCode, DateTime.now());
     state = AsyncData(currencyCode);
   }
 }

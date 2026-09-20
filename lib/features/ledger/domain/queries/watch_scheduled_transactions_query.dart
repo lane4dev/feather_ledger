@@ -22,6 +22,18 @@ class WatchScheduledTransactionsQuery {
                 s.account?.currencyCode == currencyCode)
             .toList());
   }
+
+  /// Latches a bill as permanently manual (spec 006, US31): it stays
+  /// `scheduled` and renders as a normal pending row, but [catchUpAutoPosted]
+  /// never posts it — not even after its switch or currency returns.
+  Future<void> markAutoPostIneligible(String id) =>
+      _recurringRepository.markAutoPostIneligible(id);
+
+  /// Latches every still-eligible pending bill of [seriesId] due at or before
+  /// [cutoff] (spec 006, US32): a series created already past its first due
+  /// date must never auto-post those bills.
+  Future<void> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
+      _recurringRepository.markSeriesIneligibleBefore(seriesId, cutoff);
 }
 
 @riverpod

@@ -12,6 +12,8 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
@@ -34,6 +36,7 @@ class SettingsScreen extends ConsumerWidget {
     final themeAsync = ref.watch(themeModeControllerProvider);
     final localeAsync = ref.watch(localeControllerProvider);
     final currencyAsync = ref.watch(currencyControllerProvider);
+    final autoPost = ref.watch(autoPostSwitchesProvider);
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
 
@@ -79,6 +82,52 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const Icon(LucideIcons.chevronRight),
               onTap: () =>
                   _showCurrencyDialog(context, ref, currencyAsync.value, l10n),
+            ),
+          ])),
+          SizedBox(height: spacing.lg),
+          AppCard.group(
+              child: Column(children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                context.metrics.fieldPadding.left,
+                context.metrics.fieldPadding.top,
+                context.metrics.fieldPadding.right,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.autoPostSettingsTitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+            // The three per-kind switches (spec 006, US30). Local-only and
+            // default-off; the repository keeps them out of the backup.
+            SwitchListTile(
+              secondary: const Icon(LucideIcons.calendarClock),
+              title: Text(l10n.transactionModePlanned),
+              value: autoPost[RecurringSeriesMode.planned] ?? false,
+              onChanged: (value) => ref
+                  .read(autoPostSwitchesProvider.notifier)
+                  .setMode(RecurringSeriesMode.planned, value),
+            ),
+            SwitchListTile(
+              secondary: const Icon(LucideIcons.calendarClock),
+              title: Text(l10n.transactionModeSubscription),
+              value: autoPost[RecurringSeriesMode.subscription] ?? false,
+              onChanged: (value) => ref
+                  .read(autoPostSwitchesProvider.notifier)
+                  .setMode(RecurringSeriesMode.subscription, value),
+            ),
+            SwitchListTile(
+              secondary: const Icon(LucideIcons.calendarClock),
+              title: Text(l10n.transactionModeRepeating),
+              value: autoPost[RecurringSeriesMode.repeating] ?? false,
+              onChanged: (value) => ref
+                  .read(autoPostSwitchesProvider.notifier)
+                  .setMode(RecurringSeriesMode.repeating, value),
             ),
           ])),
           SizedBox(height: spacing.lg),
@@ -372,6 +421,30 @@ class SettingsScreen extends ConsumerWidget {
 
   String _getLocaleLabel(Locale? locale, AppLocalizations l10n) =>
       locale == null ? l10n.followSystem : AppLanguages.getName(locale, l10n);
+}
+
+/// The three per-kind auto-post switches (spec 006, US30).
+///
+/// Holds the current on/off for each [RecurringSeriesMode] so the settings
+/// screen can render the switches reactively. The persisted values live in
+/// [PreferencesRepository] and are deliberately absent from the backup, so a
+/// restore never overwrites this device's choice.
+@riverpod
+class AutoPostSwitches extends _$AutoPostSwitches {
+  @override
+  Map<RecurringSeriesMode, bool> build() {
+    final repo = ref.watch(preferencesRepositoryProvider).value;
+    return {
+      for (final mode in RecurringSeriesMode.values)
+        mode: repo?.getAutoPostEnabled(mode) ?? false,
+    };
+  }
+
+  Future<void> setMode(RecurringSeriesMode mode, bool enabled) async {
+    final repo = await ref.read(preferencesRepositoryProvider.future);
+    await repo.setAutoPostEnabled(mode, enabled);
+    state = {...state, mode: enabled};
+  }
 }
 
 /// Opens the platform file dialog and returns the chosen backup, or null if

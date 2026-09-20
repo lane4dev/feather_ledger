@@ -345,6 +345,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           // waiting for the user's 记入.
           autoPost: form.mode == TransactionFormMode.subscription,
           reminderMinutes: form.reminderMinutes,
+          mode: _seriesMode(form.mode),
         );
   }
 
@@ -370,6 +371,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           startDate: form.date,
           endDate: form.date,
           reminderMinutes: form.reminderMinutes,
+          mode: RecurringSeriesMode.planned,
         );
   }
 
@@ -382,6 +384,16 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
             '';
     return form.note.trim().isEmpty ? categoryName : form.note.trim();
   }
+
+  /// The persisted creation mode. [TransactionFormMode.defaultMode] never
+  /// creates a series, so it has no counterpart here.
+  RecurringSeriesMode _seriesMode(TransactionFormMode mode) => switch (mode) {
+        TransactionFormMode.planned => RecurringSeriesMode.planned,
+        TransactionFormMode.subscription => RecurringSeriesMode.subscription,
+        TransactionFormMode.repeating => RecurringSeriesMode.repeating,
+        TransactionFormMode.defaultMode =>
+          throw StateError('a default entry creates no series'),
+      };
 
   /// The first occurrence *after* the one being recorded — the entry the user
   /// is making now is the current period, so the series picks up from the next

@@ -105,6 +105,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
             kind: seriesRow.type.toTransactionKind,
             category: category == null ? null : _toCategoryEntity(category),
             account: account == null ? null : _toAccountEntity(account),
+            autoPostEligible: row.autoPostEligible,
           ),
         );
       }
@@ -133,6 +134,14 @@ class RecurringRepositoryImpl implements RecurringRepository {
 
   @override
   Future<int> skipIfScheduled(String id) => _recurringDao.skipIfScheduled(id);
+
+  @override
+  Future<void> markAutoPostIneligible(String id) =>
+      _recurringDao.markAutoPostIneligible(id);
+
+  @override
+  Future<void> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
+      _recurringDao.markSeriesIneligibleBefore(seriesId, cutoff);
 
   @override
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
@@ -168,6 +177,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         limit: row.countLimit,
         autoPost: row.autoPost,
         reminderMinutes: row.reminderMinutes,
+        mode: row.mode,
       );
 }
 

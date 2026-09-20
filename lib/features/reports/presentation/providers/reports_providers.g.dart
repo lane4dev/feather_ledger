@@ -137,7 +137,7 @@ final class HeatmapDataProvider extends $FunctionalProvider<
   }
 }
 
-String _$heatmapDataHash() => r'1e05397cdc6a08cc819a8cb0e5223c840a903096';
+String _$heatmapDataHash() => r'10f7e7d967c36af4983ae770aba1571d987f075a';
 
 @ProviderFor(incomeChartData)
 final incomeChartDataProvider = IncomeChartDataProvider._();
@@ -175,7 +175,7 @@ final class IncomeChartDataProvider extends $FunctionalProvider<
   }
 }
 
-String _$incomeChartDataHash() => r'25343c078ec6acda546cb799bfa141afd4467e18';
+String _$incomeChartDataHash() => r'8eb0ec86b07856b08cfbb3c7a9516f754f6f2a32';
 
 @ProviderFor(expenseChartData)
 final expenseChartDataProvider = ExpenseChartDataProvider._();
@@ -213,7 +213,7 @@ final class ExpenseChartDataProvider extends $FunctionalProvider<
   }
 }
 
-String _$expenseChartDataHash() => r'7207403f533776485ef05a7e0b67cca3f2a074a2';
+String _$expenseChartDataHash() => r'b59f76d66cefa12a932e62a8807222e1a22ce127';
 
 /// Monthly income/expense/balance from the snapshot projection (spec 003,
 /// US9/T065) — the same source the ledger header reads.

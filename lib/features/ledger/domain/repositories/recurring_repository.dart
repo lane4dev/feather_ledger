@@ -26,6 +26,18 @@ abstract class RecurringRepository {
   /// Changes a scheduled bill to skipped only if it is still scheduled.
   Future<int> skipIfScheduled(String id);
 
+  /// Latches a scheduled bill as permanently manual (spec 006, US31): its
+  /// auto-post switch was off, or its currency was not current, when it fell
+  /// due, so re-enabling must never retro-post it. Writes only the latch
+  /// column; the bill stays `scheduled` and renders as a normal pending row.
+  Future<void> markAutoPostIneligible(String id);
+
+  /// Latches every still-eligible pending bill of [seriesId] due at or before
+  /// [cutoff] as permanently manual (spec 006, US32). Used when a series is
+  /// created already past its first due date, or when an edit moves it into
+  /// the past: those bills must never auto-post.
+  Future<void> markSeriesIneligibleBefore(String seriesId, DateTime cutoff);
+
   /// Retrieves all recurring series.
   /// Returns a list of [RecurringSeriesRow].
   Future<List<RecurringSeriesRow>> getAllRecurringSeries();

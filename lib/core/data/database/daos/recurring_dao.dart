@@ -71,6 +71,23 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       .write(
           const ScheduledTransactionsViewCompanion(status: Value('skipped')));
 
+  /// Latches a bill's auto-post eligibility to false (spec 006, US31).
+  Future<int> markAutoPostIneligible(String id) =>
+      (update(scheduledTransactionsView)..where((t) => t.id.equals(id))).write(
+          const ScheduledTransactionsViewCompanion(
+              autoPostEligible: Value(false)));
+
+  /// Latches every still-eligible pending bill of one series due at or before
+  /// [cutoff] (spec 006, US32).
+  Future<int> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
+      (update(scheduledTransactionsView)
+            ..where((t) =>
+                t.seriesId.equals(seriesId) &
+                t.autoPostEligible.equals(true) &
+                t.date.isSmallerOrEqualValue(cutoff)))
+          .write(const ScheduledTransactionsViewCompanion(
+              autoPostEligible: Value(false)));
+
   Future<void> saveSeries(RecurringSeriesCompanion entry) async {
     await db.transaction(() async {
       if (entry.accountId.present) {

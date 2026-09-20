@@ -1349,6 +1349,12 @@ abstract class AppLocalizations {
   /// **'Repeating'**
   String get transactionModeRepeating;
 
+  /// Section title for the three per-kind auto-post switches
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-post bills'**
+  String get autoPostSettingsTitle;
+
   /// No description provided for @repeatNever.
   ///
   /// In en, this message translates to:

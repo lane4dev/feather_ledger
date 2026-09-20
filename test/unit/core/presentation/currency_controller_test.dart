@@ -92,4 +92,26 @@ void main() {
     expect(await restarted.read(currencyControllerProvider.future), 'USD');
     expect(preferences.getCurrency(), 'USD');
   });
+
+  testWidgets('switching currency anchors the active-since boundary',
+      (tester) async {
+    tester.binding.platformDispatcher.localeTestValue = const Locale('en');
+    addTearDown(tester.binding.platformDispatcher.clearLocaleTestValue);
+    final preferences = PreferencesRepositoryImpl(MockSharedPreferences());
+
+    final container = ProviderContainer(overrides: [
+      preferencesRepositoryProvider.overrideWith((ref) async => preferences),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(currencyControllerProvider, (_, __) {});
+
+    expect(await container.read(currencyControllerProvider.future), 'USD');
+    expect(preferences.getCurrencyActiveSince('USD'), isNotNull,
+        reason: 'first use anchors the boundary so a bill that fell due '
+            'before this currency ever existed is permanently manual');
+
+    await container.read(currencyControllerProvider.notifier).setCurrency('JPY');
+    expect(preferences.getCurrencyActiveSince('JPY'), isNotNull,
+        reason: 'switching to a currency opens its eligibility window');
+  });
 }

@@ -86,7 +86,8 @@ void main() {
             frequency: 'MONTHLY',
             startDate: when,
             autoPost: false,
-            reminderMinutes: 15));
+            reminderMinutes: 15,
+            mode: RecurringSeriesMode.repeating));
     await reminders.start(
         title: 'Upcoming transaction', channelName: 'Reminders');
     final categories = settings!['notificationCategories']! as List;
@@ -176,7 +177,8 @@ void main() {
             frequency: 'MONTHLY',
             startDate: when,
             autoPost: false,
-            reminderMinutes: 10));
+            reminderMinutes: 10,
+            mode: RecurringSeriesMode.repeating));
     await reminders.start(
         title: 'Reminder',
         channelName: 'Reminders',
