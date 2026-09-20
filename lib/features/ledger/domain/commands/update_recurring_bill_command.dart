@@ -97,7 +97,25 @@ class UpdateRecurringBillCommand {
       await prefs.setLastSeenWallClock(now);
     }
 
-    final shouldLatch = actuallyChanged && (wasDue || movedToPast || rollback);
+    // A restore candidate that is rescheduled into the future by changing ONLY
+    // its date keeps its pending-confirmation eligibility (spec 006, US66): the
+    // confirmation is re-asked once it is due again. Anything else a user
+    // changes on an already-due bill latches it manual (US32).
+    var rescheduledToFutureOnly = false;
+    if (actuallyChanged &&
+        wasDue &&
+        !movedToPast &&
+        !_sameDay(date, scheduled.date) &&
+        amountMinor == scheduled.amountMinor &&
+        categoryId == series.categoryId &&
+        accountId == series.accountId &&
+        description == series.description) {
+      rescheduledToFutureOnly =
+          await _recurringRepository.isPendingRestoreCandidate(scheduledId);
+    }
+
+    final shouldLatch = actuallyChanged &&
+        (movedToPast || rollback || (wasDue && !rescheduledToFutureOnly));
 
     switch (scope) {
       case RecurringScope.thisOnly:
@@ -198,6 +216,13 @@ class UpdateRecurringBillCommand {
         autoPostEligible: Value(!shouldLatch),
       ),
     );
+
+    // A notification shown before the move holds the old id. Record where it
+    // went so the click still resolves to the same occurrence (US45).
+    await _recurringRepository.recordScheduledRedirect(
+      scheduled.id,
+      newId: movedId,
+    );
   }
 
   /// Ends the old rule the day before [scheduled] and starts a new one from
@@ -219,16 +244,18 @@ class UpdateRecurringBillCommand {
     final restart = _atTimeOf(date, cut);
     final shift = _daysBetween(cut, restart);
 
-    // Capture the manual bills the split would orphan before they go: their
-    // latch must ride into the new series, not be re-derived fresh by
+    // Capture the bills the split would orphan before they go: their latch
+    // must ride into the new series, not be re-derived fresh by
     // materialization (spec 006, US36).
-    final manualRows = (await _recurringRepository.scheduledForSeries(series.id))
-        .where((row) =>
-            !row.date.isBefore(cut) &&
-            decodeScheduledStatus(row.status) ==
-                ScheduledTransactionStatus.scheduled &&
-            !row.autoPostEligible)
-        .toList();
+    final scheduledRows =
+        (await _recurringRepository.scheduledForSeries(series.id))
+            .where((row) =>
+                !row.date.isBefore(cut) &&
+                decodeScheduledStatus(row.status) ==
+                    ScheduledTransactionStatus.scheduled)
+            .toList();
+    final manualRows =
+        scheduledRows.where((row) => !row.autoPostEligible).toList();
 
     final priorOccurrences = series.countLimit == null ||
             !cut.toUtc().isAfter(series.startDate.toUtc())
@@ -308,6 +335,21 @@ class UpdateRecurringBillCommand {
           transactionId: Value(row.transactionId),
           autoPostEligible: const Value(false),
         ),
+      );
+    }
+
+    // Every pending bill that moved to the new series (the cut bill, the
+    // manual bills, and the plain scheduled ones materialization re-derives)
+    // leaves an orphaned id. Record a redirect so a notification shown before
+    // the split still resolves to the same occurrence (spec 006, US45).
+    for (final row in scheduledRows) {
+      final moved = _addDays(row.date, shift);
+      final newDate = _samePeriod(row.date, moved, series.frequency)
+          ? moved
+          : row.date;
+      await _recurringRepository.recordScheduledRedirect(
+        row.id,
+        newId: scheduledInstanceId(newSeriesId, newDate),
       );
     }
 
@@ -391,6 +433,12 @@ class UpdateRecurringBillCommand {
           transactionId: Value(row.transactionId),
           autoPostEligible: Value(row.autoPostEligible),
         ),
+      );
+      // The old id encoded the old date and is gone. A notification shown
+      // before the move must still resolve to this bill (US45).
+      await _recurringRepository.recordScheduledRedirect(
+        row.id,
+        newId: scheduledInstanceId(series.id, movedDate),
       );
     }
   }

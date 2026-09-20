@@ -64,11 +64,34 @@ class DeleteRecurringBillCommand {
           throw const CommandRejected(LedgerErrorCode.transactionNotFound,
               'Scheduled instance no longer pending');
         }
+        // A shown notification still holds this id. Record that the bill was
+        // deleted so its click reports deleted, not unavailable (US45).
+        await _recurringRepository.recordScheduledRedirect(scheduledId);
       case RecurringScope.thisAndFollowing:
         await _truncate(scheduled);
       case RecurringScope.all:
+        await _recordDeletedRedirects(
+          scheduled.seriesId,
+          (row) => decodeScheduledStatus(row.status) ==
+              ScheduledTransactionStatus.scheduled,
+        );
         await _recurringRepository
             .deleteSeriesWithInstances(scheduled.seriesId);
+    }
+  }
+
+  /// Records a "deleted" redirect for every pending bill of [seriesId]
+  /// matching [include], so notifications shown before the deletion still
+  /// report deleted after a restart or restore (spec 006, US45).
+  Future<void> _recordDeletedRedirects(
+    String seriesId,
+    bool Function(ScheduledTransactionViewRow) include,
+  ) async {
+    final rows = (await _recurringRepository.scheduledForSeries(seriesId))
+        .where(include)
+        .toList();
+    for (final row in rows) {
+      await _recurringRepository.recordScheduledRedirect(row.id);
     }
   }
 
@@ -104,6 +127,17 @@ class DeleteRecurringBillCommand {
 
     await _recurringRepository.deletePending(scheduled.seriesId,
         from: scheduled.date);
+
+    // Record the bills this truncation removed (including the cut bill
+    // itself, which `deletePending(from:)` deletes) so their stale
+    // notifications still report deleted (US45).
+    await _recordDeletedRedirects(
+      scheduled.seriesId,
+      (row) =>
+          !row.date.isBefore(scheduled.date) &&
+          decodeScheduledStatus(row.status) ==
+              ScheduledTransactionStatus.scheduled,
+    );
   }
 
   static DateTime _dayBefore(DateTime date) =>

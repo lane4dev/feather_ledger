@@ -1359,4 +1359,62 @@ void main() {
     expect(row!.autoPostEligible, isFalse,
         reason: 'unreliable due/not-due ordering makes the touched bill manual');
   });
+
+  group('通知重定向（ticket 46）', () {
+    test('a moved bill resolves through the redirect to its new id', () async {
+      await seed();
+      await createFutureMonthly();
+      final instance = await firstScheduled();
+      final newDate = instance.date.add(const Duration(days: 2));
+
+      await editBill(instance, scope: RecurringScope.thisOnly, date: newDate);
+
+      final movedId = scheduledInstanceId(
+        instance.seriesId,
+        DateTime(newDate.year, newDate.month, newDate.day, instance.date.hour,
+            instance.date.minute, instance.date.second),
+      );
+      final redirect =
+          await harness.recurringRepository.resolveScheduledRedirect(instance.id);
+      expect(redirect, isNotNull);
+      expect(redirect!.newId, movedId,
+          reason: 'a notification shown before the move must reach the new date');
+    });
+
+    test('deleting one bill records a persistent deleted redirect', () async {
+      await seed();
+      await createMonthly();
+      final instance = await firstScheduled();
+      final oldId = instance.id;
+
+      await harness.recurringService
+          .deleteBill(oldId, scope: RecurringScope.thisOnly);
+
+      var redirect =
+          await harness.recurringRepository.resolveScheduledRedirect(oldId);
+      expect(redirect!.newId, isNull,
+          reason: 'the bill is gone, not moved');
+
+      // The record is a DB row (not in-memory state), so a real restart and
+      // restore both keep it — the acceptance is about the table persisting.
+      final row = await harness.db.recurringDao.findScheduledRedirect(oldId);
+      expect(row, isNotNull);
+      expect(row!.newId, isNull);
+    });
+
+    test('deleting the whole series records a persistent deleted redirect',
+        () async {
+      await seed();
+      await createMonthly();
+      final instance = await firstScheduled();
+      final oldId = instance.id;
+
+      await harness.recurringService
+          .deleteBill(oldId, scope: RecurringScope.all);
+
+      final redirect =
+          await harness.recurringRepository.resolveScheduledRedirect(oldId);
+      expect(redirect!.newId, isNull);
+    });
+  });
 }

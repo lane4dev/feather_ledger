@@ -227,3 +227,17 @@ class RecurringTransactionSeriesEntity {
     required this.mode,
   });
 }
+
+/// A persistent link from a bill's old scheduled id — the one a shown
+/// notification payload holds — to its current id, or to "deleted" (spec 006,
+/// US45). Bills' ids encode their date, so a reschedule or split orphans the
+/// old id; this record lets a stale notification resolve to the same
+/// occurrence (or report it deleted) across restarts and restores.
+///
+/// `newId == null` means the bill was deleted.
+class ScheduledBillRedirect {
+  final String oldId;
+  final String? newId;
+
+  const ScheduledBillRedirect({required this.oldId, this.newId});
+}

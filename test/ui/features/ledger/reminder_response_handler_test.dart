@@ -7,6 +7,7 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
@@ -62,14 +63,20 @@ class _Reminders implements RecurringReminders {
 }
 
 class _Recurring implements RecurringService {
-  _Recurring(this.bill, {this.failSkip = false});
+  _Recurring(this.bill,
+      {this.failSkip = false, Map<String, ScheduledBillRedirect>? redirects})
+      : redirects = redirects ?? {};
   ScheduledTransactionEntity bill;
   final bool failSkip;
+  final Map<String, ScheduledBillRedirect> redirects;
   final calls = <String>[];
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
       Stream.value([bill]);
+  @override
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async =>
+      redirects[oldId];
   @override
   Future<Result<void>> postInstance(String id, {String? commandId}) async {
     calls.add('post');
@@ -103,6 +110,19 @@ class _Recurring implements RecurringService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _CurrencyRecorder implements CurrencyController {
+  final setCalls = <String>[];
+  @override
+  Future<String> build() async => 'CNY';
+  @override
+  Future<void> setCurrency(String currencyCode) async {
+    setCalls.add(currencyCode);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _Ledger implements LedgerService {
   _Ledger(this.date);
   final DateTime date;
@@ -130,7 +150,10 @@ void main() {
       bool deferred = false,
       bool failSkip = false,
       bool initialResponse = true,
-      bool alreadyPosted = false}) async {
+      bool alreadyPosted = false,
+      CurrencyController? currency,
+      String payloadId = 'bill',
+      Map<String, ScheduledBillRedirect> redirects = const {}}) async {
     final when = DateTime(2026, 11, 15, 12);
     final bill = ScheduledTransactionEntity(
         id: 'bill',
@@ -145,14 +168,15 @@ void main() {
             ? bill.copyWith(
                 status: ScheduledTransactionStatus.posted, transactionId: 'tx')
             : bill,
-        failSkip: failSkip);
+        failSkip: failSkip,
+        redirects: redirects);
     final reminders = _Reminders()..deferred = deferred;
     if (initialResponse) {
       reminders.queued.add(NotificationResponse(
           notificationResponseType: action == null
               ? NotificationResponseType.selectedNotification
               : NotificationResponseType.selectedNotificationAction,
-          payload: '${RecurringReminders.payloadPrefix}bill',
+          payload: '${RecurringReminders.payloadPrefix}$payloadId',
           actionId: action));
     }
     final router = GoRouter(
@@ -175,6 +199,7 @@ void main() {
           ledgerServiceProvider.overrideWithValue(_Ledger(when)),
           displayCurrencySymbolProvider.overrideWithValue('\$'),
           getTransactionHistoryProvider.overrideWith((ref, id) async => []),
+          if (currency != null) currencyControllerProvider.overrideWith(() => currency),
         ],
         child: MaterialApp.router(
           theme: AppTheme.lightTheme,
@@ -244,5 +269,33 @@ void main() {
     expect(state.recurring.calls, ['post', 'catchup']);
     expect(state.recurring.bill.status, ScheduledTransactionStatus.posted);
     expect(find.byType(TransactionDetailSheet), findsOneWidget);
+  });
+
+  testWidgets('posting an old-currency notification never changes the setting',
+      (tester) async {
+    final recorder = _CurrencyRecorder();
+    final state = await pump(tester,
+        action: RecurringReminders.postAction, currency: recorder);
+    expect(state.recurring.calls, ['post']);
+    expect(state.recurring.bill.status, ScheduledTransactionStatus.posted);
+    expect(recorder.setCalls, isEmpty);
+  });
+
+  testWidgets('a notification shown before a reschedule opens the new bill',
+      (tester) async {
+    await pump(tester,
+        payloadId: 'old',
+        redirects: {
+          'old': const ScheduledBillRedirect(oldId: 'old', newId: 'bill'),
+        });
+    expect(find.byType(PendingBillSheet), findsOneWidget);
+  });
+
+  testWidgets('a deleted bill reports deleted, not unavailable', (tester) async {
+    await pump(tester,
+        payloadId: 'old',
+        redirects: {'old': const ScheduledBillRedirect(oldId: 'old')});
+    expect(find.text('This bill has been deleted.'), findsOneWidget);
+    expect(find.text('This bill is no longer available.'), findsNothing);
   });
 }

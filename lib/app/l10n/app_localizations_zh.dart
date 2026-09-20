@@ -645,6 +645,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoPostSettingsTitle => '自动入账账单';
 
   @override
+  String get restoreConfirmationTitle => '恢复确认';
+
+  @override
+  String get restoreConfirmationRisk => '这些账单可能已在另一台设备上记录。';
+
+  @override
+  String restoreConfirmationCount(int count) {
+    return '$count 笔账单';
+  }
+
+  @override
+  String get restoreReject => '转为手动';
+
+  @override
+  String get restoreDefer => '稍后';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -784,6 +801,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationUnavailable => '这笔账单已不可用。';
+
+  @override
+  String get notificationDeleted => '这笔账单已删除。';
 
   @override
   String get accountArchiveAction => '归档账户';
@@ -1526,6 +1546,23 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get autoPostSettingsTitle => '自动入账账单';
 
   @override
+  String get restoreConfirmationTitle => '恢复确认';
+
+  @override
+  String get restoreConfirmationRisk => '这些账单可能已在另一台设备上记录。';
+
+  @override
+  String restoreConfirmationCount(int count) {
+    return '$count 笔账单';
+  }
+
+  @override
+  String get restoreReject => '转为手动';
+
+  @override
+  String get restoreDefer => '稍后';
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -1665,6 +1702,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get notificationUnavailable => '这笔账单已不可用。';
+
+  @override
+  String get notificationDeleted => '这笔账单已删除。';
 
   @override
   String get accountArchiveAction => '归档账户';
@@ -2407,6 +2447,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get autoPostSettingsTitle => '自動入帳帳單';
 
   @override
+  String get restoreConfirmationTitle => '恢復確認';
+
+  @override
+  String get restoreConfirmationRisk => '這些帳單可能已在另一台裝置上記錄。';
+
+  @override
+  String restoreConfirmationCount(int count) {
+    return '$count 筆帳單';
+  }
+
+  @override
+  String get restoreReject => '轉為手動';
+
+  @override
+  String get restoreDefer => '稍後';
+
+  @override
   String get repeatNever => '不重複';
 
   @override
@@ -2546,6 +2603,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notificationUnavailable => '這筆帳單已無法使用。';
+
+  @override
+  String get notificationDeleted => '這筆帳單已刪除。';
 
   @override
   String get accountArchiveAction => '封存帳戶';

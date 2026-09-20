@@ -1355,6 +1355,36 @@ abstract class AppLocalizations {
   /// **'Auto-post bills'**
   String get autoPostSettingsTitle;
 
+  /// Section title listing restore batches awaiting confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Restore confirmation'**
+  String get restoreConfirmationTitle;
+
+  /// Hint that a restored batch's bills may already exist on another device
+  ///
+  /// In en, this message translates to:
+  /// **'These bills may have been recorded on another device.'**
+  String get restoreConfirmationRisk;
+
+  /// Number of bills in a pending restore confirmation batch
+  ///
+  /// In en, this message translates to:
+  /// **'{count} bills'**
+  String restoreConfirmationCount(int count);
+
+  /// Action that turns a restore batch's bills permanently manual
+  ///
+  /// In en, this message translates to:
+  /// **'Turn manual'**
+  String get restoreReject;
+
+  /// Action that defers a restore confirmation without posting
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get restoreDefer;
+
   /// No description provided for @repeatNever.
   ///
   /// In en, this message translates to:
@@ -1624,6 +1654,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This bill is no longer available.'**
   String get notificationUnavailable;
+
+  /// No description provided for @notificationDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This bill has been deleted.'**
+  String get notificationDeleted;
 
   /// No description provided for @accountArchiveAction.
   ///

@@ -635,6 +635,31 @@
   "transactionModeSubscription": "订阅",
   "transactionModeRepeating": "重复",
   "autoPostSettingsTitle": "自动入账账单",
+  "restoreConfirmationTitle": "恢复确认",
+  "@restoreConfirmationTitle": {
+    "description": "Section title listing restore batches awaiting confirmation"
+  },
+  "restoreConfirmationRisk": "这些账单可能已在另一台设备上记录。",
+  "@restoreConfirmationRisk": {
+    "description": "Hint that a restored batch's bills may already exist on another device"
+  },
+  "restoreConfirmationCount": "{count} 笔账单",
+  "@restoreConfirmationCount": {
+    "description": "Number of bills in a pending restore confirmation batch",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreReject": "转为手动",
+  "@restoreReject": {
+    "description": "Action that turns a restore batch's bills permanently manual"
+  },
+  "restoreDefer": "稍后",
+  "@restoreDefer": {
+    "description": "Action that defers a restore confirmation without posting"
+  },
   "repeatNever": "不重复",
   "repeatSetupFailed": "已保存。但重复规则创建失败：{error}",
   "addAttachment": "添加附件",
@@ -681,6 +706,7 @@
   "notificationSkip": "跳过",
   "notificationSkipped": "已跳过这笔账单",
   "notificationUnavailable": "这笔账单已不可用。",
+  "notificationDeleted": "这笔账单已删除。",
   "accountArchiveAction": "归档账户",
   "accountRestoreAction": "恢复账户",
   "accountArchivedSection": "已归档账户",

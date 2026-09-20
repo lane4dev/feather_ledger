@@ -12,6 +12,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
+import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 part 'recurring_service.g.dart';
 
@@ -218,6 +219,12 @@ class RecurringService {
     final instances = await _watchScheduled.execute().first;
     final byId = {for (final i in instances) i.id: i};
 
+    // Restore barrier (spec 006, US58): bills that were not yet due when the
+    // backup was exported but fell due before it was applied here must await
+    // explicit confirmation — another device may already have recorded them.
+    final pendingRestore =
+        await _watchScheduled.latestPendingRestoreConfirmationBatch();
+
     await _resumeUnsettledMembers(prefs, byId, accountId);
 
     final batchId = await _watchScheduled.createAutomaticPostingBatch(now);
@@ -229,6 +236,17 @@ class RecurringService {
       // (via the resume above or a previous run) — it never joins a new one
       // (spec 006, US39: existing batches keep their scope and results).
       if (await _watchScheduled.isAutomaticPostingMember(instance.id)) {
+        continue;
+      }
+
+      // Bills inside a pending restore's confirmation window wait behind the
+      // barrier ONLY while they are still eligible (spec 006, US65): when the
+      // target device's switch is off (or the currency is away), the bill must
+      // be latched manual instead of preserved for confirmation.
+      final eligible = _isEligible(prefs, instance);
+      if (pendingRestore != null &&
+          pendingRestore.contains(instance.date) &&
+          eligible) {
         continue;
       }
 
@@ -249,6 +267,69 @@ class RecurringService {
       }
     }
   }
+
+  /// Confirms one restore batch (spec 006, US63): posts every eligible
+  /// candidate in its window, then marks the batch confirmed. Candidates that
+  /// fail to post stay `scheduled` and are retried the next launch (US51).
+  Future<void> confirmRestoreBatch(String batchId) async {
+    if (!autoPostEnabled) return;
+    final prefs = preferences;
+    if (prefs == null) return;
+
+    final candidates = await restoreConfirmationEligible(batchId);
+    for (final candidate in candidates) {
+      await guard(() => _postInstance.execute(candidate.id,
+          commandId: 'restore-confirm-${candidate.id}'));
+    }
+    await _watchScheduled.updateRestoreConfirmationStatus(
+        batchId, RestoreConfirmationStatus.confirmed);
+  }
+
+  /// Rejects one restore batch (spec 006, US63): latches every candidate in
+  /// its window as permanently manual, then marks the batch rejected.
+  Future<void> rejectRestoreBatch(String batchId) async {
+    final candidates =
+        await _watchScheduled.restoreConfirmationCandidates(batchId);
+    for (final candidate in candidates) {
+      await _watchScheduled.markAutoPostIneligible(candidate.id);
+    }
+    await _watchScheduled.updateRestoreConfirmationStatus(
+        batchId, RestoreConfirmationStatus.rejected);
+  }
+
+  /// Latches every pending restore candidate of [mode] as permanently manual
+  /// (spec 006, US65). Called when the user turns that mode's auto-post switch
+  /// OFF after a restore: bills that were waiting behind the confirmation
+  /// barrier must not keep waiting — the switch says "don't post these". The
+  /// batch itself stays pending until the user confirms or rejects it.
+  Future<void> latchRestoreCandidatesForMode(RecurringSeriesMode mode) async {
+    final batches = await _watchScheduled.pendingRestoreConfirmationBatches();
+    for (final batch in batches) {
+      final candidates =
+          await _watchScheduled.restoreConfirmationCandidates(batch.id);
+      for (final candidate in candidates
+          .where((c) => c.recurringTransactionSeries?.mode == mode)) {
+        await _watchScheduled.markAutoPostIneligible(candidate.id);
+      }
+    }
+  }
+
+  /// The candidates a confirmation would actually post: inside [batchId]'s
+  /// window, still scheduled, still eligible, with their mode switch on and
+  /// their currency current (spec 006, US63).
+  Future<List<ScheduledTransactionEntity>> restoreConfirmationEligible(
+      String batchId) async {
+    final prefs = preferences;
+    if (prefs == null) return const [];
+    final candidates =
+        await _watchScheduled.restoreConfirmationCandidates(batchId);
+    return candidates.where((c) => _isEligible(prefs, c)).toList();
+  }
+
+  /// Resolves a stale notification's bill id to its current id (or
+  /// "deleted"), via the persisted redirect chain (spec 006, US45).
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) =>
+      _watchScheduled.resolveScheduledRedirect(oldId);
 
   /// Settles members an earlier interrupted run left `pending` or `failed`,
   /// updating their ORIGINAL batch in place (US51/53). A retried failure that

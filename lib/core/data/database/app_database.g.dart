@@ -5206,6 +5206,522 @@ class AutomaticPostingBatchMembersCompanion
   }
 }
 
+class $RestoreConfirmationBatchesTable extends RestoreConfirmationBatches
+    with
+        TableInfo<$RestoreConfirmationBatchesTable,
+            RestoreConfirmationBatchRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RestoreConfirmationBatchesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      clientDefault: () => DateTime.now());
+  static const VerificationMeta _backupExportedAtMeta =
+      const VerificationMeta('backupExportedAt');
+  @override
+  late final GeneratedColumn<DateTime> backupExportedAt =
+      GeneratedColumn<DateTime>('backup_exported_at', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, createdAt, backupExportedAt, status];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'restore_confirmation_batches';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<RestoreConfirmationBatchRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('backup_exported_at')) {
+      context.handle(
+          _backupExportedAtMeta,
+          backupExportedAt.isAcceptableOrUnknown(
+              data['backup_exported_at']!, _backupExportedAtMeta));
+    } else if (isInserting) {
+      context.missing(_backupExportedAtMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RestoreConfirmationBatchRow map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RestoreConfirmationBatchRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      backupExportedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}backup_exported_at'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+    );
+  }
+
+  @override
+  $RestoreConfirmationBatchesTable createAlias(String alias) {
+    return $RestoreConfirmationBatchesTable(attachedDatabase, alias);
+  }
+}
+
+class RestoreConfirmationBatchRow extends DataClass
+    implements Insertable<RestoreConfirmationBatchRow> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime backupExportedAt;
+  final String status;
+  const RestoreConfirmationBatchRow(
+      {required this.id,
+      required this.createdAt,
+      required this.backupExportedAt,
+      required this.status});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['backup_exported_at'] = Variable<DateTime>(backupExportedAt);
+    map['status'] = Variable<String>(status);
+    return map;
+  }
+
+  RestoreConfirmationBatchesCompanion toCompanion(bool nullToAbsent) {
+    return RestoreConfirmationBatchesCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      backupExportedAt: Value(backupExportedAt),
+      status: Value(status),
+    );
+  }
+
+  factory RestoreConfirmationBatchRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RestoreConfirmationBatchRow(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      backupExportedAt: serializer.fromJson<DateTime>(json['backupExportedAt']),
+      status: serializer.fromJson<String>(json['status']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'backupExportedAt': serializer.toJson<DateTime>(backupExportedAt),
+      'status': serializer.toJson<String>(status),
+    };
+  }
+
+  RestoreConfirmationBatchRow copyWith(
+          {String? id,
+          DateTime? createdAt,
+          DateTime? backupExportedAt,
+          String? status}) =>
+      RestoreConfirmationBatchRow(
+        id: id ?? this.id,
+        createdAt: createdAt ?? this.createdAt,
+        backupExportedAt: backupExportedAt ?? this.backupExportedAt,
+        status: status ?? this.status,
+      );
+  RestoreConfirmationBatchRow copyWithCompanion(
+      RestoreConfirmationBatchesCompanion data) {
+    return RestoreConfirmationBatchRow(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      backupExportedAt: data.backupExportedAt.present
+          ? data.backupExportedAt.value
+          : this.backupExportedAt,
+      status: data.status.present ? data.status.value : this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RestoreConfirmationBatchRow(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('backupExportedAt: $backupExportedAt, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, createdAt, backupExportedAt, status);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RestoreConfirmationBatchRow &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.backupExportedAt == this.backupExportedAt &&
+          other.status == this.status);
+}
+
+class RestoreConfirmationBatchesCompanion
+    extends UpdateCompanion<RestoreConfirmationBatchRow> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> backupExportedAt;
+  final Value<String> status;
+  final Value<int> rowid;
+  const RestoreConfirmationBatchesCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.backupExportedAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RestoreConfirmationBatchesCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    required DateTime backupExportedAt,
+    this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        backupExportedAt = Value(backupExportedAt);
+  static Insertable<RestoreConfirmationBatchRow> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? backupExportedAt,
+    Expression<String>? status,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (backupExportedAt != null) 'backup_exported_at': backupExportedAt,
+      if (status != null) 'status': status,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RestoreConfirmationBatchesCompanion copyWith(
+      {Value<String>? id,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? backupExportedAt,
+      Value<String>? status,
+      Value<int>? rowid}) {
+    return RestoreConfirmationBatchesCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      backupExportedAt: backupExportedAt ?? this.backupExportedAt,
+      status: status ?? this.status,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (backupExportedAt.present) {
+      map['backup_exported_at'] = Variable<DateTime>(backupExportedAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RestoreConfirmationBatchesCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('backupExportedAt: $backupExportedAt, ')
+          ..write('status: $status, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ScheduledBillRedirectsTable extends ScheduledBillRedirects
+    with TableInfo<$ScheduledBillRedirectsTable, ScheduledBillRedirectRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ScheduledBillRedirectsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _oldIdMeta = const VerificationMeta('oldId');
+  @override
+  late final GeneratedColumn<String> oldId = GeneratedColumn<String>(
+      'old_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _newIdMeta = const VerificationMeta('newId');
+  @override
+  late final GeneratedColumn<String> newId = GeneratedColumn<String>(
+      'new_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      clientDefault: () => DateTime.now());
+  @override
+  List<GeneratedColumn> get $columns => [oldId, newId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'scheduled_bill_redirects';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<ScheduledBillRedirectRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('old_id')) {
+      context.handle(
+          _oldIdMeta, oldId.isAcceptableOrUnknown(data['old_id']!, _oldIdMeta));
+    } else if (isInserting) {
+      context.missing(_oldIdMeta);
+    }
+    if (data.containsKey('new_id')) {
+      context.handle(
+          _newIdMeta, newId.isAcceptableOrUnknown(data['new_id']!, _newIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {oldId};
+  @override
+  ScheduledBillRedirectRow map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ScheduledBillRedirectRow(
+      oldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}old_id'])!,
+      newId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}new_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ScheduledBillRedirectsTable createAlias(String alias) {
+    return $ScheduledBillRedirectsTable(attachedDatabase, alias);
+  }
+}
+
+class ScheduledBillRedirectRow extends DataClass
+    implements Insertable<ScheduledBillRedirectRow> {
+  final String oldId;
+  final String? newId;
+  final DateTime createdAt;
+  const ScheduledBillRedirectRow(
+      {required this.oldId, this.newId, required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['old_id'] = Variable<String>(oldId);
+    if (!nullToAbsent || newId != null) {
+      map['new_id'] = Variable<String>(newId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ScheduledBillRedirectsCompanion toCompanion(bool nullToAbsent) {
+    return ScheduledBillRedirectsCompanion(
+      oldId: Value(oldId),
+      newId:
+          newId == null && nullToAbsent ? const Value.absent() : Value(newId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ScheduledBillRedirectRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ScheduledBillRedirectRow(
+      oldId: serializer.fromJson<String>(json['oldId']),
+      newId: serializer.fromJson<String?>(json['newId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'oldId': serializer.toJson<String>(oldId),
+      'newId': serializer.toJson<String?>(newId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ScheduledBillRedirectRow copyWith(
+          {String? oldId,
+          Value<String?> newId = const Value.absent(),
+          DateTime? createdAt}) =>
+      ScheduledBillRedirectRow(
+        oldId: oldId ?? this.oldId,
+        newId: newId.present ? newId.value : this.newId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ScheduledBillRedirectRow copyWithCompanion(
+      ScheduledBillRedirectsCompanion data) {
+    return ScheduledBillRedirectRow(
+      oldId: data.oldId.present ? data.oldId.value : this.oldId,
+      newId: data.newId.present ? data.newId.value : this.newId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScheduledBillRedirectRow(')
+          ..write('oldId: $oldId, ')
+          ..write('newId: $newId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(oldId, newId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ScheduledBillRedirectRow &&
+          other.oldId == this.oldId &&
+          other.newId == this.newId &&
+          other.createdAt == this.createdAt);
+}
+
+class ScheduledBillRedirectsCompanion
+    extends UpdateCompanion<ScheduledBillRedirectRow> {
+  final Value<String> oldId;
+  final Value<String?> newId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ScheduledBillRedirectsCompanion({
+    this.oldId = const Value.absent(),
+    this.newId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ScheduledBillRedirectsCompanion.insert({
+    required String oldId,
+    this.newId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : oldId = Value(oldId);
+  static Insertable<ScheduledBillRedirectRow> custom({
+    Expression<String>? oldId,
+    Expression<String>? newId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (oldId != null) 'old_id': oldId,
+      if (newId != null) 'new_id': newId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ScheduledBillRedirectsCompanion copyWith(
+      {Value<String>? oldId,
+      Value<String?>? newId,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return ScheduledBillRedirectsCompanion(
+      oldId: oldId ?? this.oldId,
+      newId: newId ?? this.newId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (oldId.present) {
+      map['old_id'] = Variable<String>(oldId.value);
+    }
+    if (newId.present) {
+      map['new_id'] = Variable<String>(newId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScheduledBillRedirectsCompanion(')
+          ..write('oldId: $oldId, ')
+          ..write('newId: $newId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5227,6 +5743,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $AutomaticPostingBatchesTable(this);
   late final $AutomaticPostingBatchMembersTable automaticPostingBatchMembers =
       $AutomaticPostingBatchMembersTable(this);
+  late final $RestoreConfirmationBatchesTable restoreConfirmationBatches =
+      $RestoreConfirmationBatchesTable(this);
+  late final $ScheduledBillRedirectsTable scheduledBillRedirects =
+      $ScheduledBillRedirectsTable(this);
   late final Index idxLedgerEventsCommandId = Index(
       'idx_ledger_events_command_id',
       'CREATE INDEX idx_ledger_events_command_id ON ledger_events (command_id)');
@@ -5260,6 +5780,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         monthlyAccountBalanceSnapshots,
         automaticPostingBatches,
         automaticPostingBatchMembers,
+        restoreConfirmationBatches,
+        scheduledBillRedirects,
         idxLedgerEventsCommandId,
         idxTransactionsViewOccurredAt,
         idxTransactionPostingsTx
@@ -8231,6 +8753,335 @@ typedef $$AutomaticPostingBatchMembersTableProcessedTableManager
         ),
         AutomaticPostingBatchMemberRow,
         PrefetchHooks Function({bool batchId})>;
+typedef $$RestoreConfirmationBatchesTableCreateCompanionBuilder
+    = RestoreConfirmationBatchesCompanion Function({
+  required String id,
+  Value<DateTime> createdAt,
+  required DateTime backupExportedAt,
+  Value<String> status,
+  Value<int> rowid,
+});
+typedef $$RestoreConfirmationBatchesTableUpdateCompanionBuilder
+    = RestoreConfirmationBatchesCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> backupExportedAt,
+  Value<String> status,
+  Value<int> rowid,
+});
+
+class $$RestoreConfirmationBatchesTableFilterComposer
+    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
+  $$RestoreConfirmationBatchesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get backupExportedAt => $composableBuilder(
+      column: $table.backupExportedAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+}
+
+class $$RestoreConfirmationBatchesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
+  $$RestoreConfirmationBatchesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get backupExportedAt => $composableBuilder(
+      column: $table.backupExportedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RestoreConfirmationBatchesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
+  $$RestoreConfirmationBatchesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get backupExportedAt => $composableBuilder(
+      column: $table.backupExportedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+}
+
+class $$RestoreConfirmationBatchesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RestoreConfirmationBatchesTable,
+    RestoreConfirmationBatchRow,
+    $$RestoreConfirmationBatchesTableFilterComposer,
+    $$RestoreConfirmationBatchesTableOrderingComposer,
+    $$RestoreConfirmationBatchesTableAnnotationComposer,
+    $$RestoreConfirmationBatchesTableCreateCompanionBuilder,
+    $$RestoreConfirmationBatchesTableUpdateCompanionBuilder,
+    (
+      RestoreConfirmationBatchRow,
+      BaseReferences<_$AppDatabase, $RestoreConfirmationBatchesTable,
+          RestoreConfirmationBatchRow>
+    ),
+    RestoreConfirmationBatchRow,
+    PrefetchHooks Function()> {
+  $$RestoreConfirmationBatchesTableTableManager(
+      _$AppDatabase db, $RestoreConfirmationBatchesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RestoreConfirmationBatchesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RestoreConfirmationBatchesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RestoreConfirmationBatchesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> backupExportedAt = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RestoreConfirmationBatchesCompanion(
+            id: id,
+            createdAt: createdAt,
+            backupExportedAt: backupExportedAt,
+            status: status,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<DateTime> createdAt = const Value.absent(),
+            required DateTime backupExportedAt,
+            Value<String> status = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RestoreConfirmationBatchesCompanion.insert(
+            id: id,
+            createdAt: createdAt,
+            backupExportedAt: backupExportedAt,
+            status: status,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$RestoreConfirmationBatchesTable,
+                        RestoreConfirmationBatchRow>(table),
+                    BaseReferences<
+                        _$AppDatabase,
+                        $RestoreConfirmationBatchesTable,
+                        RestoreConfirmationBatchRow>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$RestoreConfirmationBatchesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $RestoreConfirmationBatchesTable,
+        RestoreConfirmationBatchRow,
+        $$RestoreConfirmationBatchesTableFilterComposer,
+        $$RestoreConfirmationBatchesTableOrderingComposer,
+        $$RestoreConfirmationBatchesTableAnnotationComposer,
+        $$RestoreConfirmationBatchesTableCreateCompanionBuilder,
+        $$RestoreConfirmationBatchesTableUpdateCompanionBuilder,
+        (
+          RestoreConfirmationBatchRow,
+          BaseReferences<_$AppDatabase, $RestoreConfirmationBatchesTable,
+              RestoreConfirmationBatchRow>
+        ),
+        RestoreConfirmationBatchRow,
+        PrefetchHooks Function()>;
+typedef $$ScheduledBillRedirectsTableCreateCompanionBuilder
+    = ScheduledBillRedirectsCompanion Function({
+  required String oldId,
+  Value<String?> newId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+typedef $$ScheduledBillRedirectsTableUpdateCompanionBuilder
+    = ScheduledBillRedirectsCompanion Function({
+  Value<String> oldId,
+  Value<String?> newId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$ScheduledBillRedirectsTableFilterComposer
+    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
+  $$ScheduledBillRedirectsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get oldId => $composableBuilder(
+      column: $table.oldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get newId => $composableBuilder(
+      column: $table.newId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ScheduledBillRedirectsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
+  $$ScheduledBillRedirectsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get oldId => $composableBuilder(
+      column: $table.oldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get newId => $composableBuilder(
+      column: $table.newId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ScheduledBillRedirectsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
+  $$ScheduledBillRedirectsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get oldId =>
+      $composableBuilder(column: $table.oldId, builder: (column) => column);
+
+  GeneratedColumn<String> get newId =>
+      $composableBuilder(column: $table.newId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ScheduledBillRedirectsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ScheduledBillRedirectsTable,
+    ScheduledBillRedirectRow,
+    $$ScheduledBillRedirectsTableFilterComposer,
+    $$ScheduledBillRedirectsTableOrderingComposer,
+    $$ScheduledBillRedirectsTableAnnotationComposer,
+    $$ScheduledBillRedirectsTableCreateCompanionBuilder,
+    $$ScheduledBillRedirectsTableUpdateCompanionBuilder,
+    (
+      ScheduledBillRedirectRow,
+      BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
+          ScheduledBillRedirectRow>
+    ),
+    ScheduledBillRedirectRow,
+    PrefetchHooks Function()> {
+  $$ScheduledBillRedirectsTableTableManager(
+      _$AppDatabase db, $ScheduledBillRedirectsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ScheduledBillRedirectsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ScheduledBillRedirectsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ScheduledBillRedirectsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> oldId = const Value.absent(),
+            Value<String?> newId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ScheduledBillRedirectsCompanion(
+            oldId: oldId,
+            newId: newId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String oldId,
+            Value<String?> newId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ScheduledBillRedirectsCompanion.insert(
+            oldId: oldId,
+            newId: newId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$ScheduledBillRedirectsTable,
+                        ScheduledBillRedirectRow>(table),
+                    BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
+                        ScheduledBillRedirectRow>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ScheduledBillRedirectsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $ScheduledBillRedirectsTable,
+        ScheduledBillRedirectRow,
+        $$ScheduledBillRedirectsTableFilterComposer,
+        $$ScheduledBillRedirectsTableOrderingComposer,
+        $$ScheduledBillRedirectsTableAnnotationComposer,
+        $$ScheduledBillRedirectsTableCreateCompanionBuilder,
+        $$ScheduledBillRedirectsTableUpdateCompanionBuilder,
+        (
+          ScheduledBillRedirectRow,
+          BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
+              ScheduledBillRedirectRow>
+        ),
+        ScheduledBillRedirectRow,
+        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8262,6 +9113,13 @@ class $AppDatabaseManager {
       get automaticPostingBatchMembers =>
           $$AutomaticPostingBatchMembersTableTableManager(
               _db, _db.automaticPostingBatchMembers);
+  $$RestoreConfirmationBatchesTableTableManager
+      get restoreConfirmationBatches =>
+          $$RestoreConfirmationBatchesTableTableManager(
+              _db, _db.restoreConfirmationBatches);
+  $$ScheduledBillRedirectsTableTableManager get scheduledBillRedirects =>
+      $$ScheduledBillRedirectsTableTableManager(
+          _db, _db.scheduledBillRedirects);
 }
 
 // **************************************************************************

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
@@ -192,6 +193,84 @@ void main() {
         [RecurringReminders.postAction, RecurringReminders.skipAction]);
     expect(
         actions.every((a) => (a as Map)['showsUserInterface'] == true), isTrue);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('only bills in the current currency schedule reminders',
+      (tester) async {
+    final messenger = tester.binding.defaultBinaryMessenger;
+    const timezone = MethodChannel('flutter_timezone');
+    const notifications =
+        MethodChannel('dexterous.com/flutter/local_notifications');
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    final pending = <int, Map<String, Object?>>{};
+    messenger.setMockMethodCallHandler(timezone, (_) async => 'Asia/Shanghai');
+    messenger.setMockMethodCallHandler(notifications, (call) async {
+      switch (call.method) {
+        case 'initialize':
+          return true;
+        case 'getNotificationAppLaunchDetails':
+          return {'notificationLaunchedApp': false};
+        case 'pendingNotificationRequests':
+          return pending.values.toList();
+        case 'cancel':
+          pending.remove(call.arguments as int);
+          return null;
+        case 'zonedSchedule':
+          final values = Map<String, Object?>.from(call.arguments as Map);
+          pending[values['id']! as int] = values;
+          return null;
+        default:
+          throw StateError('Unexpected method ${call.method}');
+      }
+    });
+    final bills = _Bills();
+    final reminders = RecurringReminders(bills, currencyCode: () => 'CNY');
+    addTearDown(() async {
+      reminders.dispose();
+      await bills.controller.close();
+      messenger.setMockMethodCallHandler(timezone, null);
+      messenger.setMockMethodCallHandler(notifications, null);
+      debugDefaultTargetPlatformOverride = null;
+    });
+    final when = DateTime.now().add(const Duration(days: 2));
+    ScheduledTransactionEntity bill(String id, String currencyCode) =>
+        ScheduledTransactionEntity(
+            id: id,
+            seriesId: 'series-$id',
+            amountMinor: 100,
+            date: when,
+            status: ScheduledTransactionStatus.scheduled,
+            recurringTransactionSeries: RecurringTransactionSeriesEntity(
+                id: 'series-$id',
+                description: 'Rent',
+                amountMinor: 100,
+                type: RecurringSeriesKind.expense,
+                categoryId: 'c',
+                accountId: 'a',
+                frequency: 'MONTHLY',
+                startDate: when,
+                autoPost: false,
+                reminderMinutes: 30,
+                mode: RecurringSeriesMode.repeating),
+            account: AccountEntity(
+                id: 'a',
+                name: 'Cash',
+                type: AccountType.cash,
+                currencyCode: currencyCode,
+                balanceMinor: 0,
+                archived: false,
+                lastUpdatedEventId: 0));
+    await reminders.start(
+        title: 'Upcoming transaction', channelName: 'Reminders');
+    bills.controller.add([
+      bill('cny', 'CNY'),
+      bill('usd', 'USD'),
+    ]);
+    await tester.pumpAndSettle();
+    expect(pending, hasLength(1));
+    expect(pending.values.single['payload'], 'recurring-reminder:cny');
     debugDefaultTargetPlatformOverride = null;
   });
 }

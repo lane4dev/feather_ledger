@@ -681,6 +681,31 @@
   "@autoPostSettingsTitle": {
     "description": "Section title for the three per-kind auto-post switches"
   },
+  "restoreConfirmationTitle": "Restore confirmation",
+  "@restoreConfirmationTitle": {
+    "description": "Section title listing restore batches awaiting confirmation"
+  },
+  "restoreConfirmationRisk": "These bills may have been recorded on another device.",
+  "@restoreConfirmationRisk": {
+    "description": "Hint that a restored batch's bills may already exist on another device"
+  },
+  "restoreConfirmationCount": "{count} bills",
+  "@restoreConfirmationCount": {
+    "description": "Number of bills in a pending restore confirmation batch",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreReject": "Turn manual",
+  "@restoreReject": {
+    "description": "Action that turns a restore batch's bills permanently manual"
+  },
+  "restoreDefer": "Later",
+  "@restoreDefer": {
+    "description": "Action that defers a restore confirmation without posting"
+  },
   "repeatNever": "Does not repeat",
   "repeatSetupFailed": "Saved. The repeat could not be set up: {error}",
   "@repeatSetupFailed": {
@@ -754,6 +779,7 @@
   "notificationSkip": "Skip",
   "notificationSkipped": "Bill skipped",
   "notificationUnavailable": "This bill is no longer available.",
+  "notificationDeleted": "This bill has been deleted.",
   "accountArchiveAction": "Archive account",
   "accountRestoreAction": "Restore account",
   "accountArchivedSection": "Archived accounts",

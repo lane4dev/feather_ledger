@@ -38,6 +38,8 @@ class FakeAppLocalizations implements AppLocalizations {
   String get notificationSkipped => 'Bill skipped';
   @override
   String get notificationUnavailable => 'This bill is no longer available.';
+  @override
+  String get notificationDeleted => 'This bill has been deleted.';
 
   @override
   String get reminder => 'Reminder';
@@ -130,6 +132,22 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get autoPostSettingsTitle => 'Auto-post bills';
+
+  @override
+  String get restoreConfirmationTitle => 'Restore confirmation';
+
+  @override
+  String get restoreConfirmationRisk =>
+      'These bills may have been recorded on another device.';
+
+  @override
+  String restoreConfirmationCount(int count) => '$count bills';
+
+  @override
+  String get restoreReject => 'Turn manual';
+
+  @override
+  String get restoreDefer => 'Later';
 
   @override
   String get appTitle => 'Accounted For';

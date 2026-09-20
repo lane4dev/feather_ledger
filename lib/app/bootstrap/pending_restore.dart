@@ -50,6 +50,13 @@ abstract final class RestoreLayout {
   /// exists, and a restore also overwrites the preferences, so a flag stored
   /// among them would be written by the thing it gates.
   static const pendingMarker = 'PENDING';
+
+  /// Crash-safe barrier marker, written next to the live database (NOT inside
+  /// the staging directory, which is cleared as part of the swap). Carries the
+  /// backup's exported-at instant so the restore-confirmation barrier can be
+  /// recorded in the database on the next launch even if this one dies before
+  /// that happens.
+  static const restoreBarrierMarker = 'restore_barrier.json';
 }
 
 /// Whether a validated restore is waiting to be applied.
@@ -117,11 +124,19 @@ Future<Map<String, Object?>?> applyPendingRestore(Directory supportDir) async {
     rethrow;
   }
 
-  // 4. Committed. Clear the staging area, marker included — a stale marker
-  //    would re-apply a backup the user has already moved past.
+  // 4. Committed. Write the restore barrier (if the manifest carries an
+  //    exported-at instant) BEFORE clearing staging — a crash between now and
+  //    the barrier landing in the database must not lose the window.
+  final backupExportedAt = _readStagedExportedAt(staging);
+  if (backupExportedAt != null) {
+    await _writeRestoreBarrier(supportDir, backupExportedAt);
+  }
+
+  // 5. Clear the staging area, marker included — a stale marker would
+  //    re-apply a backup the user has already moved past.
   await staging.delete(recursive: true);
 
-  // 5. Best effort: the pre-restore copy is a convenience, not part of the
+  // 6. Best effort: the pre-restore copy is a convenience, not part of the
   //    contract, and its absence must not fail a successful restore.
   try {
     if (parkedDb.existsSync()) await parkedDb.delete();
@@ -150,3 +165,56 @@ Map<String, Object?>? _readStagedPreferences(Directory staging) {
 
 String _stagingPath(Directory supportDir) =>
     p.join(supportDir.path, RestoreLayout.stagingDir);
+
+/// Reads the backup's exported-at instant from the staged manifest.
+///
+/// Returns null (never throws) when the manifest is missing or malformed — a
+/// restore without a usable timestamp still completes; it simply cannot build
+/// a confirmation window and so leaves auto-posting to the ordinary gates.
+DateTime? _readStagedExportedAt(Directory staging) {
+  final file = File(p.join(staging.path, RestoreLayout.stagedManifest));
+  if (!file.existsSync()) return null;
+  try {
+    final decoded = jsonDecode(file.readAsStringSync());
+    final exportedAt = decoded is Map ? decoded['exportedAt'] : null;
+    if (exportedAt is! String) return null;
+    return DateTime.tryParse(exportedAt)?.toUtc();
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Persists the restore barrier atomically (temp write + rename) so a crash
+/// mid-write leaves either no marker or a complete one, never a truncated
+/// JSON the reader would trip over.
+Future<void> _writeRestoreBarrier(
+    Directory supportDir, DateTime backupExportedAt) async {
+  final target = File(p.join(supportDir.path, RestoreLayout.restoreBarrierMarker));
+  final temp = File('${target.path}.tmp');
+  await temp.writeAsString(
+      jsonEncode({'backupExportedAt': backupExportedAt.toIso8601String()}));
+  await temp.rename(target.path);
+}
+
+/// The exported-at instant of a restore that was applied but whose barrier has
+/// not yet been recorded in the database, or null when none is outstanding.
+DateTime? readRestoreBarrier(Directory supportDir) {
+  final file = File(p.join(supportDir.path, RestoreLayout.restoreBarrierMarker));
+  if (!file.existsSync()) return null;
+  try {
+    final decoded = jsonDecode(file.readAsStringSync());
+    final exportedAt = decoded is Map ? decoded['backupExportedAt'] : null;
+    if (exportedAt is! String) return null;
+    return DateTime.tryParse(exportedAt)?.toUtc();
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Removes the barrier marker after it has been recorded in the database.
+Future<void> clearRestoreBarrier(Directory supportDir) async {
+  final file = File(p.join(supportDir.path, RestoreLayout.restoreBarrierMarker));
+  if (file.existsSync()) {
+    await file.delete();
+  }
+}

@@ -123,10 +123,9 @@ class _ReminderResponseHandlerState
 
     if (action == null || action.isEmpty) await _finishDeferredAutoPost();
     if (!mounted) return;
-    final service = ref.read(recurringServiceProvider);
-    final items = await service.watchScheduled().first;
-    final bill = items.where((item) => item.id == id).firstOrNull;
+    final (bill, deleted) = await _resolveScheduled(id);
     if (!mounted) return;
+    final service = ref.read(recurringServiceProvider);
     final navigator =
         ref.read(goRouterProvider).routerDelegate.navigatorKey.currentState;
     final navContext = navigator?.overlay?.context;
@@ -135,6 +134,10 @@ class _ReminderResponseHandlerState
     void message(String text) => ScaffoldMessenger.maybeOf(navContext)
         ?.showSnackBar(SnackBar(content: Text(text)));
 
+    if (deleted) {
+      message(l10n.notificationDeleted);
+      return;
+    }
     if (bill == null) {
       message(l10n.notificationUnavailable);
       return;
@@ -146,8 +149,8 @@ class _ReminderResponseHandlerState
         return;
       }
       final result = action == RecurringReminders.postAction
-          ? await service.postInstance(id, commandId: 'notification-post-$id')
-          : await service.deleteBill(id, scope: RecurringScope.thisOnly);
+          ? await service.postInstance(bill.id, commandId: 'notification-post-${bill.id}')
+          : await service.deleteBill(bill.id, scope: RecurringScope.thisOnly);
       if (!mounted || !navContext.mounted) return;
       if (result case Failure(:final code)) {
         // Keep the bill pending when the action failed; startup catch-up is
@@ -164,7 +167,7 @@ class _ReminderResponseHandlerState
       }
       message(l10n.instancePosted);
       final updated = (await service.watchScheduled().first)
-          .where((item) => item.id == id)
+          .where((item) => item.id == bill.id)
           .firstOrNull;
       if (updated == null || !mounted || !navContext.mounted) return;
       await _showRecorded(updated, navContext);
@@ -188,6 +191,32 @@ class _ReminderResponseHandlerState
     await showAppReceiptSheet(
         context: ledgerContext,
         builder: (_) => PendingBillSheet(transaction: tile));
+  }
+
+  /// Resolves a stale notification's bill id to the current bill (following
+  /// the persisted redirect chain across edits and splits), or to
+  /// "deleted" (`deleted == true`), or to "never existed" (`bill == null`).
+  /// A bill that still exists at a live status returns directly; a skipped or
+  /// missing id consults the redirect table (spec 006, US45).
+  Future<(ScheduledTransactionEntity?, bool deleted)> _resolveScheduled(
+      String id) async {
+    final service = ref.read(recurringServiceProvider);
+    var current = id;
+    for (var hop = 0; hop < 16; hop++) {
+      final items = await service.watchScheduled().first;
+      final bill = items.where((item) => item.id == current).firstOrNull;
+      if (bill != null &&
+          (bill.status == ScheduledTransactionStatus.scheduled ||
+              bill.status == ScheduledTransactionStatus.posted)) {
+        return (bill, false);
+      }
+      // Skipped, failed, or absent: a redirect records where it went.
+      final redirect = await service.resolveScheduledRedirect(current);
+      if (redirect == null) return (null, false);
+      if (redirect.newId == null) return (null, true);
+      current = redirect.newId!;
+    }
+    return (null, false);
   }
 
   Future<void> _showRecorded(

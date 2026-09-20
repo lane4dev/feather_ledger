@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/notifications/reminder_schedule.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
@@ -11,19 +13,33 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 final recurringRemindersProvider = Provider<RecurringReminders>((ref) {
-  final reminders = RecurringReminders(ref.read(recurringServiceProvider));
+  final reminders = RecurringReminders(
+    ref.read(recurringServiceProvider),
+    currencyCode: () =>
+        ref.read(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code,
+  );
   ref.onDispose(reminders.dispose);
+  // `ref.listen` (not `ref.watch`) so a currency switch re-syncs reminders
+  // without rebuilding the provider and losing the in-flight response queue.
+  ref.listen(currencyControllerProvider, (_, __) => reminders.recheck());
   return reminders;
 });
 
 /// Reconciles scheduled platform notifications with the pending bill table.
 class RecurringReminders {
-  RecurringReminders(this._service);
+  RecurringReminders(this._service, {String? Function()? currencyCode})
+      : _currencyCode = currencyCode ?? (() => null);
   final RecurringService _service;
+  final String? Function() _currencyCode;
   final _plugin = FlutterLocalNotificationsPlugin();
   StreamSubscription<List<ScheduledTransactionEntity>>? _subscription;
   Future<void> _queue = Future.value();
   bool _initialized = false;
+  String _title = 'Upcoming transaction';
+  String _channelName = 'Reminders';
+  String _postLabel = 'Post';
+  String _skipLabel = 'Skip';
   static const payloadPrefix = 'recurring-reminder:';
   static const postAction = 'post_bill';
   static const skipAction = 'skip_bill';
@@ -124,20 +140,36 @@ class RecurringReminders {
       String skipLabel = 'Skip'}) async {
     if (!supported || _subscription != null) return;
     await initialize(postLabel: postLabel, skipLabel: skipLabel);
+    _title = title;
+    _channelName = channelName;
+    _postLabel = postLabel;
+    _skipLabel = skipLabel;
     _subscription = _service.watchScheduled().listen((items) {
       _queue = _queue
-          .then((_) =>
-              _reconcile(items, title, channelName, postLabel, skipLabel))
+          .then((_) => _reconcile(items))
           .catchError((Object error) {
         debugPrint('Reminder synchronization failed: $error');
       });
     }, onError: (Object error) => debugPrint('Reminder watch failed: $error'));
   }
 
-  Future<void> _reconcile(List<ScheduledTransactionEntity> items, String title,
-      String channelName, String postLabel, String skipLabel) async {
+  /// Re-runs reconciliation against the current currency. Invoked when the
+  /// user switches currency, so other-currency reminders are cancelled and the
+  /// current currency's reminders are scheduled (spec 006 US45).
+  void recheck() {
+    if (!_initialized) return;
+    _queue = _queue.then((_) async {
+      final items = await _service.watchScheduled().first;
+      await _reconcile(items);
+    }).catchError((Object error) {
+      debugPrint('Reminder recheck failed: $error');
+    });
+  }
+
+  Future<void> _reconcile(List<ScheduledTransactionEntity> items) async {
     // iOS keeps at most 64 pending requests; reserve space for other uses.
-    final desired = upcomingReminders(items, DateTime.now());
+    final desired =
+        upcomingReminders(items, DateTime.now(), currencyCode: _currencyCode());
     final existing = await _plugin.pendingNotificationRequests();
     for (final notification in existing) {
       if (notification.payload?.startsWith(payloadPrefix) == true) {
@@ -157,19 +189,19 @@ class RecurringReminders {
       final minutes = item.recurringTransactionSeries!.reminderMinutes!;
       await _plugin.zonedSchedule(
         id,
-        title,
+        _title,
         item.recurringTransactionSeries!.description,
         tz.TZDateTime.from(
             item.date.subtract(Duration(minutes: minutes)), tz.local),
         NotificationDetails(
           android: AndroidNotificationDetails(
-              'recurring_reminders', channelName,
+              'recurring_reminders', _channelName,
               importance: Importance.high,
               priority: Priority.high,
               actions: [
-                AndroidNotificationAction(postAction, postLabel,
+                AndroidNotificationAction(postAction, _postLabel,
                     showsUserInterface: true),
-                AndroidNotificationAction(skipAction, skipLabel,
+                AndroidNotificationAction(skipAction, _skipLabel,
                     showsUserInterface: true),
               ]),
           iOS: const DarwinNotificationDetails(categoryIdentifier: _category),

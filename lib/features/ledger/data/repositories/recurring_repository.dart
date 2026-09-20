@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +12,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 export 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
 
@@ -229,6 +231,112 @@ class RecurringRepositoryImpl implements RecurringRepository {
   @override
   Future<bool> isAutomaticPostingMember(String scheduledId) =>
       _recurringDao.isAutomaticPostingMember(scheduledId);
+
+  @override
+  Future<String> createRestoreConfirmationBatch(
+      DateTime backupExportedAt,
+      {DateTime? createdAt}) async {
+    final id = 'restore-${backupExportedAt.millisecondsSinceEpoch}';
+    await _recurringDao.createRestoreConfirmationBatch(
+      RestoreConfirmationBatchesCompanion.insert(
+        id: id,
+        backupExportedAt: backupExportedAt,
+        createdAt: createdAt == null ? const Value.absent() : Value(createdAt),
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<RestoreConfirmationBatch?>
+      latestPendingRestoreConfirmationBatch() async {
+    final row = await _recurringDao.latestPendingRestoreConfirmationBatch();
+    if (row == null) return null;
+    return _toRestoreConfirmationBatch(row);
+  }
+
+  @override
+  Future<List<RestoreConfirmationBatch>> pendingRestoreConfirmationBatches() async {
+    final rows = await _recurringDao.pendingRestoreConfirmationBatches();
+    return rows.map(_toRestoreConfirmationBatch).toList();
+  }
+
+  @override
+  Future<RestoreConfirmationBatch?> restoreConfirmationBatch(String id) async {
+    final row = await _recurringDao.restoreConfirmationBatch(id);
+    if (row == null) return null;
+    return _toRestoreConfirmationBatch(row);
+  }
+
+  @override
+  Future<void> updateRestoreConfirmationStatus(
+          String id, RestoreConfirmationStatus status) async {
+    await _recurringDao.updateRestoreConfirmationStatus(id, status.name);
+  }
+
+  @override
+  Future<List<ScheduledTransactionEntity>> restoreConfirmationCandidates(
+      String batchId) async {
+    final batch = await restoreConfirmationBatch(batchId);
+    if (batch == null || batch.status != RestoreConfirmationStatus.pending) {
+      return const [];
+    }
+    final all = await watchAllScheduled().first;
+    return all
+        .where((i) =>
+            i.status == ScheduledTransactionStatus.scheduled &&
+            i.autoPostEligible &&
+            batch.contains(i.date))
+        .toList();
+  }
+
+  @override
+  Future<bool> isPendingRestoreCandidate(String scheduledId) async {
+    for (final batch in await pendingRestoreConfirmationBatches()) {
+      final candidates = await restoreConfirmationCandidates(batch.id);
+      if (candidates.any((c) => c.id == scheduledId)) return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<void> recordScheduledRedirect(String oldId, {String? newId}) =>
+      _recurringDao.recordScheduledRedirect(oldId, newId: newId);
+
+  @override
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async {
+    // Follow the chain up to a bounded hop count. A stale notification should
+    // reach the current id through any number of edits, but a cycle (which
+    // should never be written) must not hang the handler.
+    var current = oldId;
+    String? resolved;
+    for (var hop = 0; hop < 16; hop++) {
+      final row = await _recurringDao.findScheduledRedirect(current);
+      if (row == null) {
+        return resolved == null
+            ? null
+            : ScheduledBillRedirect(oldId: oldId, newId: resolved);
+      }
+      if (row.newId == null) {
+        return ScheduledBillRedirect(oldId: oldId);
+      }
+      resolved = row.newId;
+      current = row.newId!;
+    }
+    return null;
+  }
+
+  RestoreConfirmationBatch _toRestoreConfirmationBatch(
+          RestoreConfirmationBatchRow row) =>
+      RestoreConfirmationBatch(
+        id: row.id,
+        createdAt: row.createdAt,
+        backupExportedAt: row.backupExportedAt,
+        status: RestoreConfirmationStatus.values.firstWhere(
+          (s) => s.name == row.status,
+          orElse: () => RestoreConfirmationStatus.pending,
+        ),
+      );
 
   RecurringTransactionSeriesEntity _toSeriesEntity(RecurringSeriesRow row) =>
       RecurringTransactionSeriesEntity(

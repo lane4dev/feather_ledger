@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 part 'watch_scheduled_transactions_query.g.dart';
 
@@ -61,6 +62,39 @@ class WatchScheduledTransactionsQuery {
 
   Future<bool> isAutomaticPostingMember(String scheduledId) =>
       _recurringRepository.isAutomaticPostingMember(scheduledId);
+
+  Future<String> createRestoreConfirmationBatch(
+          DateTime backupExportedAt,
+          {DateTime? createdAt}) =>
+      _recurringRepository.createRestoreConfirmationBatch(backupExportedAt,
+          createdAt: createdAt);
+
+  Future<RestoreConfirmationBatch?> latestPendingRestoreConfirmationBatch() =>
+      _recurringRepository.latestPendingRestoreConfirmationBatch();
+
+  Future<List<RestoreConfirmationBatch>>
+      pendingRestoreConfirmationBatches() =>
+          _recurringRepository.pendingRestoreConfirmationBatches();
+
+  Future<RestoreConfirmationBatch?> restoreConfirmationBatch(String id) =>
+      _recurringRepository.restoreConfirmationBatch(id);
+
+  Future<void> updateRestoreConfirmationStatus(
+          String id, RestoreConfirmationStatus status) =>
+      _recurringRepository.updateRestoreConfirmationStatus(id, status);
+
+  Future<List<ScheduledTransactionEntity>> restoreConfirmationCandidates(
+          String batchId) =>
+      _recurringRepository.restoreConfirmationCandidates(batchId);
+
+  Future<bool> isPendingRestoreCandidate(String scheduledId) =>
+      _recurringRepository.isPendingRestoreCandidate(scheduledId);
+
+  Future<void> recordScheduledRedirect(String oldId, {String? newId}) =>
+      _recurringRepository.recordScheduledRedirect(oldId, newId: newId);
+
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) =>
+      _recurringRepository.resolveScheduledRedirect(oldId);
 }
 
 @riverpod

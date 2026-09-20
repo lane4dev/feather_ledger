@@ -26,6 +26,7 @@ void main() {
     String database = 'RESTORED',
     bool marker = true,
     String preferences = '{}',
+    String? manifest,
   }) {
     final staging = Directory(p.join(supportDir.path, RestoreLayout.stagingDir))
       ..createSync(recursive: true);
@@ -33,6 +34,10 @@ void main() {
         .writeAsStringSync(database);
     File(p.join(staging.path, RestoreLayout.stagedPreferences))
         .writeAsStringSync(preferences);
+    if (manifest != null) {
+      File(p.join(staging.path, RestoreLayout.stagedManifest))
+          .writeAsStringSync(manifest);
+    }
     if (marker) {
       File(p.join(staging.path, RestoreLayout.pendingMarker))
           .writeAsStringSync('');
@@ -181,5 +186,42 @@ void main() {
     stageRestore();
 
     expect(hasPendingRestore(supportDir), isTrue);
+  });
+
+  test('a restore with a manifest writes a barrier marker, read and cleared',
+      () async {
+    const exportedAt = '2026-11-18T02:19:15.000Z';
+    stageRestore(
+      manifest: '{"exportedAt": "$exportedAt", "formatVersion": 1}',
+    );
+    writeLiveDatabase('CURRENT');
+
+    await applyPendingRestore(supportDir);
+
+    final barrier = readRestoreBarrier(supportDir);
+    expect(barrier, DateTime.parse(exportedAt),
+        reason: 'the window anchor must survive the staging clear');
+
+    await clearRestoreBarrier(supportDir);
+    expect(readRestoreBarrier(supportDir), isNull);
+  });
+
+  test('a restore without an exported-at writes no barrier marker', () async {
+    stageRestore(manifest: '{"formatVersion": 1}');
+    writeLiveDatabase('CURRENT');
+
+    await applyPendingRestore(supportDir);
+
+    expect(readRestoreBarrier(supportDir), isNull);
+  });
+
+  test('a malformed manifest writes no barrier marker', () async {
+    stageRestore(manifest: 'not json');
+    writeLiveDatabase('CURRENT');
+
+    await applyPendingRestore(supportDir);
+
+    expect(readRestoreBarrier(supportDir), isNull);
+    expect(readLiveDatabase(), 'RESTORED');
   });
 }

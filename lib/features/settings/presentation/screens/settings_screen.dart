@@ -15,9 +15,12 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
+import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
@@ -37,6 +40,9 @@ class SettingsScreen extends ConsumerWidget {
     final localeAsync = ref.watch(localeControllerProvider);
     final currencyAsync = ref.watch(currencyControllerProvider);
     final autoPost = ref.watch(autoPostSwitchesProvider);
+    final restoreSummaries =
+        ref.watch(pendingRestoreConfirmationSummariesProvider).value ??
+            const <RestoreConfirmationSummary>[];
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
 
@@ -149,6 +155,41 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ])),
           SizedBox(height: spacing.lg),
+          if (restoreSummaries.isNotEmpty)
+            AppCard.group(
+                child: Column(children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  context.metrics.fieldPadding.left,
+                  context.metrics.fieldPadding.top,
+                  context.metrics.fieldPadding.right,
+                  0,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.restoreConfirmationTitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              for (final summary in restoreSummaries)
+                ListTile(
+                  leading: const Icon(LucideIcons.shieldAlert),
+                  title: Text(l10n.restoreConfirmationCount(summary.count)),
+                  subtitle: Text(
+                    _restoreSummarySubtitle(l10n, summary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(LucideIcons.chevronRight),
+                  onTap: () => _showRestoreConfirmationDialog(
+                      context, ref, l10n, summary),
+                ),
+            ])),
+          if (restoreSummaries.isNotEmpty) SizedBox(height: spacing.lg),
           AppCard.group(
               child: Column(children: [
             // Developer-only maintenance (spec 003, US8/T059): the rebuild
@@ -421,6 +462,69 @@ class SettingsScreen extends ConsumerWidget {
 
   String _getLocaleLabel(Locale? locale, AppLocalizations l10n) =>
       locale == null ? l10n.followSystem : AppLanguages.getName(locale, l10n);
+
+  /// One line under a restore-confirmation tile: currency and date range,
+  /// followed by the out-of-sync risk.
+  String _restoreSummarySubtitle(
+      AppLocalizations l10n, RestoreConfirmationSummary summary) {
+    final currency = AppCurrencies.getName(summary.currencyCode, l10n);
+    final dateFormat = DateFormat.yMMMd(l10n.localeName);
+    final range = (summary.firstDate == null || summary.lastDate == null)
+        ? ''
+        : '${dateFormat.format(summary.firstDate!)} – ${dateFormat.format(summary.lastDate!)}';
+    final line = range.isEmpty ? currency : '$currency · $range';
+    return '$line\n${l10n.restoreConfirmationRisk}';
+  }
+
+  /// Asks for one pending restore batch (spec 006, US62/US63). Confirm posts
+  /// its eligible candidates, reject turns them permanently manual, and
+  /// deferring (dismissing the dialog) does nothing — the batch stays pending.
+  Future<void> _showRestoreConfirmationDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    RestoreConfirmationSummary summary,
+  ) async {
+    final action = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.restoreConfirmationTitle),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(l10n.restoreConfirmationRisk),
+          ),
+          ListTile(
+            leading: const Icon(LucideIcons.calendarClock),
+            title: Text(l10n.restoreConfirmationCount(summary.count)),
+            subtitle: Text(AppCurrencies.getName(
+                summary.currencyCode, l10n)),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'confirm'),
+            child: Text(l10n.postInstance),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'reject'),
+            child: Text(l10n.restoreReject),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'defer'),
+            child: Text(l10n.restoreDefer),
+          ),
+        ],
+      ),
+    );
+    if (action == null || action == 'defer') return;
+
+    final service = ref.read(recurringServiceProvider);
+    if (action == 'confirm') {
+      await service.confirmRestoreBatch(summary.batchId);
+    } else if (action == 'reject') {
+      await service.rejectRestoreBatch(summary.batchId);
+    }
+    ref.invalidate(pendingRestoreConfirmationSummariesProvider);
+  }
 }
 
 /// The three per-kind auto-post switches (spec 006, US30).
@@ -443,6 +547,13 @@ class AutoPostSwitches extends _$AutoPostSwitches {
   Future<void> setMode(RecurringSeriesMode mode, bool enabled) async {
     final repo = await ref.read(preferencesRepositoryProvider.future);
     await repo.setAutoPostEnabled(mode, enabled);
+    if (!enabled) {
+      // Turning a switch off latches any restore candidates waiting behind the
+      // confirmation barrier for this mode (spec 006, US65).
+      await ref
+          .read(recurringServiceProvider)
+          .latchRestoreCandidatesForMode(mode);
+    }
     state = {...state, mode: enabled};
   }
 }
@@ -466,3 +577,51 @@ BackupFilePicker backupFilePicker(Ref ref) => (String typeLabel) async {
       );
       return picked == null ? null : File(picked.path);
     };
+
+/// One pending restore batch, reduced to what the confirmation tile shows
+/// (spec 006, US62): how many bills it would post, in which currency, and the
+/// range of their scheduled dates.
+class RestoreConfirmationSummary {
+  const RestoreConfirmationSummary({
+    required this.batchId,
+    required this.currencyCode,
+    required this.count,
+    this.firstDate,
+    this.lastDate,
+  });
+
+  final String batchId;
+  final String currencyCode;
+  final int count;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
+}
+
+/// Lists every still-pending restore confirmation batch, oldest first, with
+/// the candidates a confirmation would actually post (eligible + current
+/// currency + switch on — the same computation [RecurringService.confirmRestoreBatch]
+/// uses). A batch whose candidates are all gone (posted, edited, or switched
+/// off) reports a zero count so the user can still dismiss it.
+@riverpod
+Future<List<RestoreConfirmationSummary>> pendingRestoreConfirmationSummaries(
+    Ref ref) async {
+  final repo = ref.watch(recurringRepositoryProvider);
+  final service = ref.watch(recurringServiceProvider);
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+
+  final batches = await repo.pendingRestoreConfirmationBatches();
+  final summaries = <RestoreConfirmationSummary>[];
+  for (final batch in batches) {
+    final candidates = await service.restoreConfirmationEligible(batch.id);
+    candidates.sort((a, b) => a.date.compareTo(b.date));
+    summaries.add(RestoreConfirmationSummary(
+      batchId: batch.id,
+      currencyCode: currencyCode,
+      count: candidates.length,
+      firstDate: candidates.isEmpty ? null : candidates.first.date,
+      lastDate: candidates.isEmpty ? null : candidates.last.date,
+    ));
+  }
+  return summaries;
+}

@@ -262,6 +262,25 @@ class RecordingRecurringService implements RecurringService {
   Future<void> catchUpAutoPosted({String? accountId}) async {}
 
   @override
+  Future<void> confirmRestoreBatch(String batchId) async {}
+
+  @override
+  Future<void> rejectRestoreBatch(String batchId) async {}
+
+  @override
+  Future<void> latchRestoreCandidatesForMode(
+      RecurringSeriesMode mode) async {}
+
+  @override
+  Future<List<ScheduledTransactionEntity>> restoreConfirmationEligible(
+          String batchId) async =>
+      const [];
+
+  @override
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async =>
+      null;
+
+  @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
       throw UnimplementedError();

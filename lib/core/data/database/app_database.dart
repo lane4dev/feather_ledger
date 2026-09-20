@@ -32,7 +32,9 @@ part 'app_database.g.dart';
   ScheduledTransactionsView,
   MonthlyAccountBalanceSnapshots,
   AutomaticPostingBatches,
-  AutomaticPostingBatchMembers
+  AutomaticPostingBatchMembers,
+  RestoreConfirmationBatches,
+  ScheduledBillRedirects
 ], daos: [
   EventsDao,
   TransactionsDao,
@@ -55,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   // model); the column is a per-instance manual latch, not a projection.
   // v11 adds the automatic-posting batch tables (ticket 38/39). They are
   // CRUD-exempt progress records, not event-sourced projections.
-  int get schemaVersion => 11;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -128,6 +130,17 @@ class AppDatabase extends _$AppDatabase {
           if (from < 11) {
             await m.createTable(automaticPostingBatches);
             await m.createTable(automaticPostingBatchMembers);
+          }
+          // v12: restore-confirmation barrier table (ticket 41). New
+          // CRUD-exempt table, never rebuilt — createTable is additive and
+          // safe here.
+          if (from < 12) {
+            await m.createTable(restoreConfirmationBatches);
+          }
+          // v13: scheduled-bill redirect table (ticket 46). New CRUD-exempt
+          // table, never rebuilt — createTable is additive and safe here.
+          if (from < 13) {
+            await m.createTable(scheduledBillRedirects);
           }
         },
       );

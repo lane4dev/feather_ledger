@@ -60,7 +60,7 @@ final class AutoPostSwitchesProvider extends $NotifierProvider<AutoPostSwitches,
   }
 }
 
-String _$autoPostSwitchesHash() => r'7bde3dee4f647e46889753fec836c8d0d2b53ec9';
+String _$autoPostSwitchesHash() => r'a1491f42fae143cb0e246f391a1e7c72a738e893';
 
 /// The three per-kind auto-post switches (spec 006, US30).
 ///
@@ -128,3 +128,62 @@ final class BackupFilePickerProvider extends $FunctionalProvider<
 }
 
 String _$backupFilePickerHash() => r'd232f9e5d7f9771bcd09b1dde58edbfde6042c69';
+
+/// Lists every still-pending restore confirmation batch, oldest first, with
+/// the candidates a confirmation would actually post (eligible + current
+/// currency + switch on — the same computation [RecurringService.confirmRestoreBatch]
+/// uses). A batch whose candidates are all gone (posted, edited, or switched
+/// off) reports a zero count so the user can still dismiss it.
+
+@ProviderFor(pendingRestoreConfirmationSummaries)
+final pendingRestoreConfirmationSummariesProvider =
+    PendingRestoreConfirmationSummariesProvider._();
+
+/// Lists every still-pending restore confirmation batch, oldest first, with
+/// the candidates a confirmation would actually post (eligible + current
+/// currency + switch on — the same computation [RecurringService.confirmRestoreBatch]
+/// uses). A batch whose candidates are all gone (posted, edited, or switched
+/// off) reports a zero count so the user can still dismiss it.
+
+final class PendingRestoreConfirmationSummariesProvider
+    extends $FunctionalProvider<
+        AsyncValue<List<RestoreConfirmationSummary>>,
+        List<RestoreConfirmationSummary>,
+        FutureOr<List<RestoreConfirmationSummary>>>
+    with
+        $FutureModifier<List<RestoreConfirmationSummary>>,
+        $FutureProvider<List<RestoreConfirmationSummary>> {
+  /// Lists every still-pending restore confirmation batch, oldest first, with
+  /// the candidates a confirmation would actually post (eligible + current
+  /// currency + switch on — the same computation [RecurringService.confirmRestoreBatch]
+  /// uses). A batch whose candidates are all gone (posted, edited, or switched
+  /// off) reports a zero count so the user can still dismiss it.
+  PendingRestoreConfirmationSummariesProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'pendingRestoreConfirmationSummariesProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$pendingRestoreConfirmationSummariesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<RestoreConfirmationSummary>> $createElement(
+          $ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<RestoreConfirmationSummary>> create(Ref ref) {
+    return pendingRestoreConfirmationSummaries(ref);
+  }
+}
+
+String _$pendingRestoreConfirmationSummariesHash() =>
+    r'ee55a481718c5302121852587a819f65a7f61aa7';

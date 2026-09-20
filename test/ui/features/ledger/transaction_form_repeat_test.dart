@@ -570,4 +570,6 @@ class _FakeReminders implements RecurringReminders {
   List<NotificationResponse> takeResponses() => [];
   @override
   void dispose() {}
+  @override
+  void recheck() {}
 }

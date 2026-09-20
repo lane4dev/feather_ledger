@@ -246,3 +246,39 @@ class AutomaticPostingBatchMembers extends Table {
   @override
   Set<Column> get primaryKey => {batchId, scheduledId};
 }
+
+/// Persisted restore-confirmation barriers (spec 006, US58/US63).
+///
+/// CRUD-exempt like [RecurringSeries]: never rebuilt from events. One row per
+/// applied restore; the window `(backupExportedAt, createdAt]` is the set of
+/// bills that must await explicit confirmation before auto-posting.
+@DataClassName('RestoreConfirmationBatchRow')
+class RestoreConfirmationBatches extends Table {
+  TextColumn get id => text()(); // deterministic: restore-<exportedAt millis>
+  DateTimeColumn get createdAt =>
+      dateTime().clientDefault(() => DateTime.now())();
+  DateTimeColumn get backupExportedAt => dateTime()();
+  TextColumn get status =>
+      text().withDefault(const Constant('pending'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// A persistent link from a bill's old scheduled id — the one a shown
+/// notification payload holds — to its current id, or to "deleted" (spec 006,
+/// US45). Bills' ids encode their date, so a reschedule or split orphans the
+/// old id; this table is what lets a stale notification resolve to the same
+/// occurrence (or report it deleted) across restarts and restores.
+///
+/// CRUD-exempt: never rebuilt from events.
+@DataClassName('ScheduledBillRedirectRow')
+class ScheduledBillRedirects extends Table {
+  TextColumn get oldId => text()();
+  TextColumn get newId => text().nullable()(); // null = deleted
+  DateTimeColumn get createdAt =>
+      dateTime().clientDefault(() => DateTime.now())();
+
+  @override
+  Set<Column> get primaryKey => {oldId};
+}

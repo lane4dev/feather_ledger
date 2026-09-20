@@ -1,6 +1,7 @@
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 abstract class RecurringRepository {
   /// Watches all scheduled transactions along with their series details.
@@ -99,4 +100,46 @@ abstract class RecurringRepository {
   /// Whether a scheduled bill has already been claimed by any batch. A bill
   /// is claimed at most once, so a later startup never duplicates it (US52).
   Future<bool> isAutomaticPostingMember(String scheduledId);
+
+  /// Records that a restore was applied whose backup snapshot was exported at
+  /// [backupExportedAt]. Returns the barrier id. Idempotent: the id is
+  /// derived from the exported-at instant (spec 006, US58). [createdAt] is the
+  /// moment the snapshot was applied (the window's end); it defaults to now.
+  Future<String> createRestoreConfirmationBatch(
+      DateTime backupExportedAt,
+      {DateTime? createdAt});
+
+  /// The most recent barrier still awaiting a user decision, if any
+  /// (spec 006, US58).
+  Future<RestoreConfirmationBatch?> latestPendingRestoreConfirmationBatch();
+
+  /// Every barrier still awaiting a user decision, oldest first (spec 006,
+  /// US63: old and new batches confirm independently).
+  Future<List<RestoreConfirmationBatch>> pendingRestoreConfirmationBatches();
+
+  /// One barrier by id, whatever its status.
+  Future<RestoreConfirmationBatch?> restoreConfirmationBatch(String id);
+
+  /// Moves a barrier to [status] (confirmed/rejected). Idempotent upsert.
+  Future<void> updateRestoreConfirmationStatus(
+      String id, RestoreConfirmationStatus status);
+
+  /// The still-scheduled, still-eligible bills inside a pending barrier's
+  /// window — the bills a confirmation acts on (spec 006, US63).
+  Future<List<ScheduledTransactionEntity>> restoreConfirmationCandidates(
+      String batchId);
+
+  /// Whether [scheduledId] is currently a candidate of any pending barrier
+  /// (spec 006, US66): a date-only edit of such a bill must keep its
+  /// eligibility instead of latching it manual.
+  Future<bool> isPendingRestoreCandidate(String scheduledId);
+
+  /// Records that the bill at [oldId] now lives at [newId] (or was deleted
+  /// when `newId` is null). Idempotent upsert (spec 006, US45).
+  Future<void> recordScheduledRedirect(String oldId, {String? newId});
+
+  /// Resolves a stale notification's bill id to its current id (following the
+  /// redirect chain), or to "deleted" (`newId == null`), or to null when the
+  /// id never existed. Returns null for a redirect cycle.
+  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId);
 }

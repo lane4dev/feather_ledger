@@ -11,6 +11,10 @@ mixin _$RecurringDaoMixin on DatabaseAccessor<AppDatabase> {
       attachedDatabase.automaticPostingBatches;
   $AutomaticPostingBatchMembersTable get automaticPostingBatchMembers =>
       attachedDatabase.automaticPostingBatchMembers;
+  $RestoreConfirmationBatchesTable get restoreConfirmationBatches =>
+      attachedDatabase.restoreConfirmationBatches;
+  $ScheduledBillRedirectsTable get scheduledBillRedirects =>
+      attachedDatabase.scheduledBillRedirects;
   RecurringDaoManager get managers => RecurringDaoManager(this);
 }
 
@@ -30,4 +34,11 @@ class RecurringDaoManager {
       get automaticPostingBatchMembers =>
           $$AutomaticPostingBatchMembersTableTableManager(
               _db.attachedDatabase, _db.automaticPostingBatchMembers);
+  $$RestoreConfirmationBatchesTableTableManager
+      get restoreConfirmationBatches =>
+          $$RestoreConfirmationBatchesTableTableManager(
+              _db.attachedDatabase, _db.restoreConfirmationBatches);
+  $$ScheduledBillRedirectsTableTableManager get scheduledBillRedirects =>
+      $$ScheduledBillRedirectsTableTableManager(
+          _db.attachedDatabase, _db.scheduledBillRedirects);
 }

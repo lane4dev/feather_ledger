@@ -2,6 +2,7 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:drift/drift.dart';
 
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
+import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 import '../app_database.dart';
 import '../tables.dart';
@@ -12,7 +13,9 @@ part 'recurring_dao.g.dart';
   RecurringSeries,
   ScheduledTransactionsView,
   AutomaticPostingBatches,
-  AutomaticPostingBatchMembers
+  AutomaticPostingBatchMembers,
+  RestoreConfirmationBatches,
+  ScheduledBillRedirects
 ])
 class RecurringDao extends DatabaseAccessor<AppDatabase>
     with _$RecurringDaoMixin {
@@ -201,5 +204,64 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       ..where(automaticPostingBatchMembers.scheduledId.equals(scheduledId))
       ..limit(1);
     return query.get().then((rows) => rows.isNotEmpty);
+  }
+
+  // ---- Restore-confirmation barrier persistence (spec 006, US58) ----
+
+  Future<void> createRestoreConfirmationBatch(
+      RestoreConfirmationBatchesCompanion batch) {
+    return into(restoreConfirmationBatches).insertOnConflictUpdate(batch);
+  }
+
+  /// The most recent barrier still awaiting a user decision.
+  Future<RestoreConfirmationBatchRow?>
+      latestPendingRestoreConfirmationBatch() {
+    final query = select(restoreConfirmationBatches)
+      ..where((t) => t.status.equals(RestoreConfirmationStatus.pending.name))
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
+  /// Every barrier still awaiting a user decision, oldest first.
+  Future<List<RestoreConfirmationBatchRow>>
+      pendingRestoreConfirmationBatches() {
+    final query = select(restoreConfirmationBatches)
+      ..where((t) => t.status.equals(RestoreConfirmationStatus.pending.name))
+      ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]);
+    return query.get();
+  }
+
+  /// One barrier by id, whatever its status.
+  Future<RestoreConfirmationBatchRow?> restoreConfirmationBatch(String id) {
+    final query = select(restoreConfirmationBatches)
+      ..where((t) => t.id.equals(id))
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
+  /// Moves a barrier to [status]. Idempotent upsert.
+  Future<void> updateRestoreConfirmationStatus(String id, String status) {
+    return (update(restoreConfirmationBatches)..where((t) => t.id.equals(id)))
+        .write(RestoreConfirmationBatchesCompanion(status: Value(status)));
+  }
+
+  /// Records that the bill at [oldId] now lives at [newId] (or was deleted
+  /// when `newId` is null). Idempotent upsert.
+  Future<void> recordScheduledRedirect(String oldId, {String? newId}) {
+    return into(scheduledBillRedirects).insertOnConflictUpdate(
+      ScheduledBillRedirectsCompanion.insert(
+        oldId: oldId,
+        newId: Value(newId),
+      ),
+    );
+  }
+
+  /// The single redirect whose source is [oldId], if any.
+  Future<ScheduledBillRedirectRow?> findScheduledRedirect(String oldId) {
+    final query = select(scheduledBillRedirects)
+      ..where((t) => t.oldId.equals(oldId))
+      ..limit(1);
+    return query.getSingleOrNull();
   }
 }
