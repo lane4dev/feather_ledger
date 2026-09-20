@@ -4,7 +4,6 @@ import 'package:feather_ledger/app/bootstrap/register_ledger_events.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/data/repositories/category_repository.dart';
-import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/repositories/preferences_repository.dart'
     as prefs_api;
 import 'package:feather_ledger/app/theme/category_tokens.dart';

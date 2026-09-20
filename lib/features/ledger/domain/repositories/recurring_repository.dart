@@ -61,6 +61,13 @@ abstract class RecurringRepository {
   /// either would be a lie about what happened.
   Future<void> deletePending(String seriesId, {DateTime? from});
 
+  /// Deletes every instance row of one series — posted, skipped and pending
+  /// alike — without touching the series itself.
+  ///
+  /// A whole-series edit shifts every occurrence, so *every* stale id must go
+  /// and be rebuilt at its new date. The series template survives this.
+  Future<void> deleteAllScheduledForSeries(String seriesId);
+
   /// Deletes a series and every instance row belonging to it.
   ///
   /// Recorded *transactions* are not instance rows and are not touched — they

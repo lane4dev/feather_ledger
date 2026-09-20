@@ -8,13 +8,14 @@ import 'package:feather_ledger/features/ledger/data/repositories/recurring_repos
 
 part 'project_recurring_events_command.g.dart';
 
-/// Materializes the upcoming instances of every recurring series
-/// (spec 004, US2).
+/// Materializes the instances of every recurring series (spec 004, US2).
 ///
-/// Finite rules produce all occurrences. Never-ending rules use a rolling
-/// 90-day window clamped to [3, 12] pending instances. Fill the window; if the window holds fewer than three, keep
-/// going until it does; never materialize more than twelve. That yields the
-/// numbers a person expects without a per-frequency rule:
+/// Finite rules produce all occurrences. Never-ending rules first materialize
+/// every overdue instance (bounded by now, so a dormant series still owes each
+/// missed bill), then use a rolling 90-day window clamped to [3, 12] upcoming
+/// instances. Fill the window; if the window holds fewer than three, keep
+/// going until it does; never materialize more than twelve upcoming. That
+/// yields the numbers a person expects without a per-frequency rule:
 ///
 /// | frequency | result | why |
 /// |---|---|---|
@@ -28,7 +29,18 @@ part 'project_recurring_events_command.g.dart';
 class ProjectRecurringEventsCommand {
   final RecurringRepository _recurringRepository;
 
-  ProjectRecurringEventsCommand(this._recurringRepository);
+  /// Turns a UTC occurrence instant into the wall time it is stored and shown
+  /// under. Production uses the device's current zone (spec 006, US34: the
+  /// current local time is authoritative); tests inject a fixed
+  /// `package:timezone` location so DST and zone changes are deterministic.
+  final DateTime Function(DateTime utc) _localize;
+
+  ProjectRecurringEventsCommand(
+    this._recurringRepository, {
+    DateTime Function(DateTime utc)? localize,
+  }) : _localize = localize ?? _defaultLocalize;
+
+  static DateTime _defaultLocalize(DateTime utc) => utc.toLocal();
 
   static const Duration horizon = Duration(days: 90);
 
@@ -57,8 +69,6 @@ class ProjectRecurringEventsCommand {
     final startUtc = series.startDate.toUtc();
     final windowEndUtc = windowEnd.toUtc();
 
-    final rule = ruleForSeries(series);
-
     // One read for the whole series rather than a probe per candidate date.
     // Keyed by the derived instance id, which is exactly what identity means
     // here — comparing dates would have to re-derive the same normalization.
@@ -73,28 +83,57 @@ class ProjectRecurringEventsCommand {
           ? DateTime.utc(9999, 12, 31)
           : series.endDate!.toUtc().add(const Duration(days: 1));
       if (before.isAfter(startUtc)) {
+        // A count-limited series that lost an occurrence to a deletion grows
+        // by exactly that many at the tail, so the live bills still reach the
+        // chosen count. Posted and manual rows keep their slot; only a
+        // skipped tombstone frees one (spec 006, US37).
+        final skipped = existing.values
+            .where((s) => s == ScheduledTransactionStatus.skipped)
+            .length;
         await _fill(
             series: series,
-            rule: rule,
+            rule: ruleForSeries(series, extraCount: skipped),
             startUtc: startUtc,
             beforeUtc: before,
             existing: existing,
-            budget: 0x7fffffff,
-            capped: false);
+            budget: 0x7fffffff);
       }
       return;
+    }
+
+    final nowUtc = DateTime.now().toUtc();
+    final rule = ruleForSeries(series);
+
+    // Phase 0 — overdue. A dormant series still owes every instance that has
+    // already come due; the rolling window (phases 1–2) only keeps the next
+    // few upcoming bills, so overdue instances are materialized first,
+    // bounded by `now` (a finite range). This is where the ticket-32 latch
+    // matters: an instance created already past its due date is materialized
+    // here and stays manual.
+    final hadOverdue = startUtc.isBefore(nowUtc);
+    if (hadOverdue) {
+      await _fillOverdue(
+        series: series,
+        rule: rule,
+        startUtc: startUtc,
+        beforeUtc: nowUtc,
+        existing: existing,
+      );
     }
 
     var kept = 0;
 
     // Phase 1 — fill the rolling window. Skipped when the series starts
     // beyond it, because the generator asserts `before >= start`, and a
-    // yearly series legitimately does start up to a year out.
+    // yearly series legitimately does start up to a year out. `after` is set
+    // only when phase 0 ran, so overdue instances never eat the upcoming
+    // budget.
     if (startUtc.isBefore(windowEndUtc)) {
       kept = await _fill(
         series: series,
         rule: rule,
         startUtc: startUtc,
+        afterUtc: hadOverdue ? nowUtc : null,
         beforeUtc: windowEndUtc,
         existing: existing,
         budget: maxKeep,
@@ -136,6 +175,10 @@ class ProjectRecurringEventsCommand {
   ///
   /// An instance the user already posted or skipped is neither counted nor
   /// resurrected: that decision is theirs, and re-creating it would undo it.
+  ///
+  /// The only cap is [budget]: it bounds how many *upcoming* instances are
+  /// materialized, so an overdue instance materialized by [_fillOverdue] never
+  /// blocks the next upcoming one.
   Future<int> _fill({
     required RecurringSeriesRow series,
     required RecurrenceRule rule,
@@ -144,7 +187,6 @@ class ProjectRecurringEventsCommand {
     required Map<String, ScheduledTransactionStatus> existing,
     required int budget,
     DateTime? afterUtc,
-    bool capped = true,
   }) async {
     // `before` bounds the generator itself, and it is load-bearing:
     // getInstances only stops at before, until, count or year 9999, so
@@ -165,18 +207,11 @@ class ProjectRecurringEventsCommand {
       final status = existing[id];
 
       if (status == null) {
-        if (capped &&
-            existing.values
-                    .where((s) => s == ScheduledTransactionStatus.scheduled)
-                    .length >=
-                maxKeep) {
-          break;
-        }
         await _recurringRepository.insertMaterializedIfActive(
           ScheduledTransactionsViewCompanion(
             id: Value(id),
             seriesId: Value(series.id),
-            date: Value(date.toLocal()),
+            date: Value(_localize(date)),
             amountMinor: Value(series.amountMinor),
             status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
             transactionId: const Value(null),
@@ -191,12 +226,51 @@ class ProjectRecurringEventsCommand {
     return kept;
   }
 
-  static RecurrenceRule ruleForSeries(RecurringSeriesRow series) =>
+  /// Materializes every instance that has already come due.
+  ///
+  /// The walk is bounded by `before` (`now`), so it stays finite regardless of
+  /// how long the series slept; `includeBefore` folds in an instance due at
+  /// exactly this instant so no day is left dangling.
+  Future<void> _fillOverdue({
+    required RecurringSeriesRow series,
+    required RecurrenceRule rule,
+    required DateTime startUtc,
+    required DateTime beforeUtc,
+    required Map<String, ScheduledTransactionStatus> existing,
+  }) async {
+    final candidates = rule.getInstances(
+      start: startUtc,
+      before: beforeUtc,
+      includeBefore: true,
+    );
+
+    for (final date in candidates) {
+      final id = scheduledInstanceId(series.id, date);
+      if (existing.containsKey(id)) continue;
+
+      await _recurringRepository.insertMaterializedIfActive(
+        ScheduledTransactionsViewCompanion(
+          id: Value(id),
+          seriesId: Value(series.id),
+          date: Value(_localize(date)),
+          amountMinor: Value(series.amountMinor),
+          status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
+          transactionId: const Value(null),
+        ),
+      );
+      existing[id] = ScheduledTransactionStatus.scheduled;
+    }
+  }
+
+  static RecurrenceRule ruleForSeries(RecurringSeriesRow series,
+          {int extraCount = 0}) =>
       RecurrenceRule(
         frequency: _mapFrequency(series.frequency),
         interval: series.interval,
         until: series.countLimit == null ? series.endDate?.toUtc() : null,
-        count: series.countLimit,
+        count: series.countLimit == null
+            ? null
+            : series.countLimit! + extraCount,
         byWeekDays: _weekdays(series.rrule, series.startDate),
       );
 

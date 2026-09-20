@@ -40,6 +40,8 @@ void main() {
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
           accountListProvider
               .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
           ledgerMonthlySummaryProvider
               .overrideWith((ref, month) => Stream.value(first)),
           ledgerMonthlyTransactionsProvider.overrideWith((ref, month) =>
@@ -88,6 +90,8 @@ void main() {
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
           accountListProvider
               .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
           ledgerMonthlySummaryProvider.overrideWith((ref, month) => streams
               .putIfAbsent(month, () => StreamController.broadcast())
               .stream),
@@ -133,6 +137,8 @@ void main() {
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
           accountListProvider
               .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
           ledgerMonthlySummaryProvider.overrideWith((ref, month) {
             subscriptions.add(month);
             return Stream.value(month == next ? second : first);
@@ -168,6 +174,8 @@ void main() {
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
           accountListProvider
               .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
           ledgerMonthlySummaryProvider
               .overrideWith((ref, month) => Stream.value(first)),
           ledgerMonthlyTransactionsProvider
@@ -208,6 +216,8 @@ void main() {
           displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
           accountListProvider
               .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
           ledgerMonthlySummaryProvider.overrideWith(
               (ref, month) => Stream.value(month == next ? second : first)),
           ledgerMonthlyTransactionsProvider

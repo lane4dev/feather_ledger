@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
@@ -142,6 +145,87 @@ void main() {
         isTrue);
     await harness.recurringService.materialize();
     expect(await pending(), hasLength(16));
+  });
+
+  test('a count-limited series replenishes a deleted occurrence at the tail',
+      () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final categoryId = await harness.userCategoryId();
+    final start = fromNow(1);
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Test',
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: start,
+        countLimit: 3);
+    expect(result, isA<Success<void>>());
+    final before = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(before, hasLength(3));
+
+    // Deleting the middle occurrence frees one slot; materialization must
+    // grow exactly one new occurrence at the tail, without resurrecting the
+    // deleted one (spec 006, US37).
+    final middle = before[1];
+    await harness.recurringService.deleteBill(middle.id,
+        scope: RecurringScope.thisOnly);
+    await harness.recurringService.materialize();
+
+    final after = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(after, hasLength(3),
+        reason: 'the freed slot is refilled at the tail');
+    expect(
+        after.map((b) => b.date).toList(),
+        [before[0].date, before[2].date,
+         before[2].date.add(const Duration(days: 1))],
+        reason: 'kept bills stay, and one new bill follows the last');
+    expect((await harness.db.recurringDao.getScheduled(middle.id))!.status,
+        'skipped',
+        reason: 'the deleted occurrence is a tombstone, not a resurrection');
+  });
+
+  test('posted and manual bills still occupy their slot in a count-limited '
+      'series', () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final categoryId = await harness.userCategoryId();
+    final result = await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Test',
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: fromNow(1),
+        countLimit: 3);
+    expect(result, isA<Success<void>>());
+    final before = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    await harness.recurringService.postInstance(before[0].id);
+    await harness.db.recurringDao.markAutoPostIneligible(before[1].id);
+    await harness.recurringService.deleteBill(before[2].id,
+        scope: RecurringScope.thisOnly);
+    await harness.recurringService.materialize();
+
+    // The posted and manual bills keep two of the three slots; only the
+    // deletion frees one, so exactly one new bill appears at the tail.
+    final after = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(after.map((b) => b.date).toList(),
+        [before[1].date, before[2].date.add(const Duration(days: 1))],
+        reason: 'manual bill stays, and one slot is refilled at the tail');
+    expect((await harness.db.recurringDao.getScheduled(before[0].id))!.status,
+        'posted');
+    expect((await harness.db.recurringDao.getScheduled(before[2].id))!.status,
+        'skipped');
   });
 
   test('splitting a count-limited rule retains only its remaining occurrences',
@@ -397,5 +481,84 @@ void main() {
     expect(instance.category?.name, 'Rent');
     expect(instance.account?.name, 'Cash');
     expect(instance.recurringTransactionSeries?.description, 'Rent');
+  });
+
+  test('a dormant daily series materializes every overdue bill, not twelve',
+      () async {
+    // A series left dormant longer than the 12-upcoming cap still owes every
+    // instance that has come due. The rolling window must not hide the debt:
+    // every month a bill fell due in must findable in the ledger.
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final start = fromNow(-40);
+    final result = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: account.id,
+      categoryId: await harness.userCategoryId(),
+      description: 'Daily',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+    );
+    expect(result, isA<Success<void>>());
+
+    final bills = await pending()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final overdue = bills.where((i) => !i.date.isAfter(DateTime.now())).toList();
+
+    expect(overdue.length, greaterThan(12),
+        reason: 'every overdue day is materialized, not just the first twelve');
+    expect(overdue.first.date, start, reason: 'the debt starts on day one');
+    for (var i = 1; i < overdue.length; i++) {
+      expect(overdue[i].date.difference(overdue[i - 1].date),
+          const Duration(days: 1),
+          reason: 'no overdue day is skipped');
+    }
+  });
+
+  test('re-materializing in another timezone never duplicates a bill',
+      () async {
+    tzdata.initializeTimeZones();
+    final newYork = tz.getLocation('America/New_York');
+    final london = tz.getLocation('Europe/London');
+
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final result = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: account.id,
+      categoryId: await harness.userCategoryId(),
+      description: 'Daily',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: fromNow(-5),
+    );
+    expect(result, isA<Success<void>>());
+
+    final before =
+        (await harness.db.recurringDao.watchAllScheduled().first)
+            .map((row) => row.id)
+            .toSet();
+
+    // Identity is the UTC instant (`seriesId + epoch ms`), not the wall time
+    // a zone happens to render it as. Re-running under two different device
+    // zones must add nothing — otherwise every trip across a timezone would
+    // mint a second bill for the same logical occurrence.
+    await ProjectRecurringEventsCommand(
+      harness.recurringRepository,
+      localize: (u) => tz.TZDateTime.from(u, newYork),
+    ).execute();
+    await ProjectRecurringEventsCommand(
+      harness.recurringRepository,
+      localize: (u) => tz.TZDateTime.from(u, london),
+    ).execute();
+
+    final after =
+        (await harness.db.recurringDao.watchAllScheduled().first)
+            .map((row) => row.id)
+            .toSet();
+    expect(after, before);
   });
 }

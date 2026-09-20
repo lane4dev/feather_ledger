@@ -135,6 +135,60 @@ final class MonthlyPendingTransactionsFamily extends $Family
   String toString() => r'monthlyPendingTransactionsProvider';
 }
 
+/// The set of months (normalized to the first of each month) that hold at
+/// least one pending bill in the current currency.
+///
+/// The month picker marks these so an overdue bill is findable without paging
+/// through every month (spec 006, US33). Scoped to the setting's currency,
+/// like the rest of the ledger list.
+
+@ProviderFor(pendingBillMonths)
+final pendingBillMonthsProvider = PendingBillMonthsProvider._();
+
+/// The set of months (normalized to the first of each month) that hold at
+/// least one pending bill in the current currency.
+///
+/// The month picker marks these so an overdue bill is findable without paging
+/// through every month (spec 006, US33). Scoped to the setting's currency,
+/// like the rest of the ledger list.
+
+final class PendingBillMonthsProvider extends $FunctionalProvider<
+        AsyncValue<Set<DateTime>>, Set<DateTime>, Stream<Set<DateTime>>>
+    with $FutureModifier<Set<DateTime>>, $StreamProvider<Set<DateTime>> {
+  /// The set of months (normalized to the first of each month) that hold at
+  /// least one pending bill in the current currency.
+  ///
+  /// The month picker marks these so an overdue bill is findable without paging
+  /// through every month (spec 006, US33). Scoped to the setting's currency,
+  /// like the rest of the ledger list.
+  PendingBillMonthsProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'pendingBillMonthsProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$pendingBillMonthsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Set<DateTime>> $createElement(
+          $ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Set<DateTime>> create(Ref ref) {
+    return pendingBillMonths(ref);
+  }
+}
+
+String _$pendingBillMonthsHash() => r'ead51495d0b7f9ac4da2ee13dcfac3ecc579a578';
+
 /// The month's posted transactions and pending bills, newest first.
 ///
 /// Pending bills are merged into the same day grouping so a bill dated the

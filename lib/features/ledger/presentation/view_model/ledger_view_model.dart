@@ -63,6 +63,30 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
   });
 }
 
+/// The set of months (normalized to the first of each month) that hold at
+/// least one pending bill in the current currency.
+///
+/// The month picker marks these so an overdue bill is findable without paging
+/// through every month (spec 006, US33). Scoped to the setting's currency,
+/// like the rest of the ledger list.
+@riverpod
+Stream<Set<DateTime>> pendingBillMonths(Ref ref) {
+  final service = ref.watch(ledgerServiceProvider);
+  final currencyCode = ref.watch(currencyControllerProvider).value ??
+      AppCurrencies.defaultCurrency.code;
+
+  return service
+      .watchScheduledTransactions(currencyCode: currencyCode)
+      .map((instances) {
+    final months = <DateTime>{};
+    for (final instance in instances) {
+      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
+      months.add(DateTime(instance.date.year, instance.date.month));
+    }
+    return months;
+  });
+}
+
 /// The month's posted transactions and pending bills, newest first.
 ///
 /// Pending bills are merged into the same day grouping so a bill dated the

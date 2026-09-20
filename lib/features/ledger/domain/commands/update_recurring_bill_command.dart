@@ -217,6 +217,18 @@ class UpdateRecurringBillCommand {
     // Same clock time as the rule being replaced, so the new bills land on
     // the same part of the day as the old ones did.
     final restart = _atTimeOf(date, cut);
+    final shift = _daysBetween(cut, restart);
+
+    // Capture the manual bills the split would orphan before they go: their
+    // latch must ride into the new series, not be re-derived fresh by
+    // materialization (spec 006, US36).
+    final manualRows = (await _recurringRepository.scheduledForSeries(series.id))
+        .where((row) =>
+            !row.date.isBefore(cut) &&
+            decodeScheduledStatus(row.status) ==
+                ScheduledTransactionStatus.scheduled &&
+            !row.autoPostEligible)
+        .toList();
 
     final priorOccurrences = series.countLimit == null ||
             !cut.toUtc().isAfter(series.startDate.toUtc())
@@ -276,10 +288,34 @@ class UpdateRecurringBillCommand {
       );
     }
 
+    // Manual bills move with the schedule carrying their latch. A bill whose
+    // new date does not exist in its period (a 31st in April, say) stays at
+    // its original date rather than rolling into the next month — the rule
+    // itself skips that month, so the manual bill must too (spec 006: 月末
+    // 缺失日期不按生成序号对应).
+    for (final row in manualRows) {
+      final moved = _addDays(row.date, shift);
+      final newDate = _samePeriod(row.date, moved, series.frequency)
+          ? moved
+          : row.date;
+      await _recurringRepository.insertOrUpdateScheduled(
+        ScheduledTransactionsViewCompanion(
+          id: Value(scheduledInstanceId(newSeriesId, newDate)),
+          seriesId: Value(newSeriesId),
+          date: Value(newDate),
+          amountMinor: Value(amountMinor),
+          status: Value(row.status),
+          transactionId: Value(row.transactionId),
+          autoPostEligible: const Value(false),
+        ),
+      );
+    }
+
     return newSeriesId;
   }
 
-  /// Rewrites the series' template and rebuilds its pending bills.
+  /// Rewrites the series' template and rebuilds its bills at their shifted
+  /// dates.
   ///
   /// The rows are dropped rather than updated because ids encode dates: a
   /// shifted schedule makes every pending id stale, and stale ids read as
@@ -297,6 +333,11 @@ class UpdateRecurringBillCommand {
     // days, so the rent that came on the 22nd comes on the 25th from now on.
     final shift = _daysBetween(scheduled.date, date);
 
+    // Capture every row before the rewrite: a shifted schedule makes every
+    // pending id stale, but the rows' *state* (posted vs pending, the manual
+    // latch) must ride across the move rather than be re-derived fresh.
+    final instances = await _recurringRepository.scheduledForSeries(series.id);
+
     await _recurringRepository.saveSeries(
       _series(
         series,
@@ -308,7 +349,50 @@ class UpdateRecurringBillCommand {
         description: description,
       ),
     );
-    await _recurringRepository.deletePending(series.id);
+
+    // Drop every row — including posted and skipped ones — and rebuild each
+    // at its shifted date, because a stale id would be re-materialized.
+    await _recurringRepository.deleteAllScheduledForSeries(series.id);
+
+    for (final row in instances) {
+      final movedDate = _addDays(row.date, shift);
+
+      if (decodeScheduledStatus(row.status) ==
+          ScheduledTransactionStatus.posted) {
+        // The recorded transaction stays put: its money already moved on the
+        // original date and the shifted rule must not bill that occurrence
+        // again. Rebuild the posted row in place; when the schedule moved,
+        // tombstone the shifted date so materialization leaves it alone.
+        await _recurringRepository.insertOrUpdateScheduled(_row(row));
+        if (shift != 0) {
+          await _recurringRepository.insertOrUpdateScheduled(
+            ScheduledTransactionsViewCompanion(
+              id: Value(scheduledInstanceId(series.id, movedDate)),
+              seriesId: Value(series.id),
+              date: Value(movedDate),
+              amountMinor: Value(amountMinor),
+              status: Value(ScheduledTransactionStatus.skipped.toStorage()),
+              transactionId: const Value(null),
+            ),
+          );
+        }
+        continue;
+      }
+
+      // Pending and skipped rows move with the schedule, carrying their
+      // status and manual latch; only the amount is the edited one.
+      await _recurringRepository.insertOrUpdateScheduled(
+        ScheduledTransactionsViewCompanion(
+          id: Value(scheduledInstanceId(series.id, movedDate)),
+          seriesId: Value(series.id),
+          date: Value(movedDate),
+          amountMinor: Value(amountMinor),
+          status: Value(row.status),
+          transactionId: Value(row.transactionId),
+          autoPostEligible: Value(row.autoPostEligible),
+        ),
+      );
+    }
   }
 
   Future<ScheduledTransactionViewRow> _requireScheduled(String id) async {
@@ -419,10 +503,15 @@ class UpdateRecurringBillCommand {
         date.millisecond,
       );
 
-  static int _daysBetween(DateTime from, DateTime to) =>
-      DateTime(to.year, to.month, to.day)
-          .difference(DateTime(from.year, from.month, from.day))
-          .inDays;
+  /// Calendar-day difference, never a wall-clock duration. Two adjacent
+  /// local midnights can be 23 or 25 hours apart across a DST change, so a
+  /// `difference(...).inDays` would round to the wrong day. Comparing the
+  /// same two calendar dates as UTC midnights keeps every day exactly 24h.
+  static int _daysBetween(DateTime from, DateTime to) {
+    final fromUtc = DateTime.utc(from.year, from.month, from.day);
+    final toUtc = DateTime.utc(to.year, to.month, to.day);
+    return toUtc.difference(fromUtc).inDays;
+  }
 
   static DateTime _addDays(DateTime date, int days) => DateTime(
         date.year,
@@ -433,6 +522,31 @@ class UpdateRecurringBillCommand {
         date.second,
         date.millisecond,
       );
+
+  /// Whether [shifted] still falls in [original]'s recurrence period. The
+  /// split moves occurrences by the same number of days as the cut moved, but
+  /// a monthly bill on the 30th edited to the 31st has no April 31st: that
+  /// occurrence stays on April 30th rather than rolling into May. The period
+  /// is what the rule recurs on, not a fixed day count.
+  static bool _samePeriod(
+      DateTime original, DateTime shifted, String frequency) {
+    switch (frequency) {
+      case 'YEARLY':
+        return original.year == shifted.year;
+      case 'MONTHLY':
+        return original.year == shifted.year && original.month == shifted.month;
+      case 'WEEKLY':
+        return _weekStart(original).isAtSameMomentAs(_weekStart(shifted));
+      case 'DAILY':
+      default:
+        return true;
+    }
+  }
+
+  static DateTime _weekStart(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return day.subtract(Duration(days: day.weekday - DateTime.monday));
+  }
 }
 
 @riverpod

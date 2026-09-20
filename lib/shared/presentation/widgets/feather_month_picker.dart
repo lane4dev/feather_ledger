@@ -16,12 +16,18 @@ class FeatherMonthPicker extends StatefulWidget {
   final DateTime lastDate;
   final ValueChanged<DateTime> onMonthSelected;
 
+  /// Months (normalized to the first of each month) that hold a pending bill.
+  /// Each is marked with a dot so the user can find an overdue bill without
+  /// paging through every month (spec 006, US33).
+  final Set<DateTime> markedMonths;
+
   const FeatherMonthPicker({
     super.key,
     required this.initialDate,
     required this.firstDate,
     required this.lastDate,
     required this.onMonthSelected,
+    this.markedMonths = const {},
   });
 
   /// Shows the month picker as a modal dialog.
@@ -31,6 +37,7 @@ class FeatherMonthPicker extends StatefulWidget {
     required DateTime firstDate,
     required DateTime lastDate,
     required ValueChanged<DateTime> onMonthSelected,
+    Set<DateTime> markedMonths = const {},
   }) {
     return showDialog(
       context: context,
@@ -40,6 +47,7 @@ class FeatherMonthPicker extends StatefulWidget {
           firstDate: firstDate,
           lastDate: lastDate,
           onMonthSelected: onMonthSelected,
+          markedMonths: markedMonths,
         ),
       ),
     );
@@ -156,11 +164,13 @@ class _FeatherMonthPickerState extends State<FeatherMonthPicker> {
                           index + 1 == widget.initialDate.month;
                       final isCurrentMonth = year == DateTime.now().year &&
                           index + 1 == DateTime.now().month;
+                      final isMarked = widget.markedMonths.contains(monthDate);
 
                       return _MonthTile(
                         label: dateFormat.format(monthDate),
                         isSelected: isSelected,
                         isCurrentMonth: isCurrentMonth,
+                        isMarked: isMarked,
                         onTap: () {
                           widget.onMonthSelected(monthDate);
                           Navigator.pop(context);
@@ -182,12 +192,14 @@ class _MonthTile extends StatelessWidget {
   final String label;
   final bool isSelected;
   final bool isCurrentMonth;
+  final bool isMarked;
   final VoidCallback onTap;
 
   const _MonthTile({
     required this.label,
     required this.isSelected,
     required this.isCurrentMonth,
+    required this.isMarked,
     required this.onTap,
   });
 
@@ -215,11 +227,27 @@ class _MonthTile extends StatelessWidget {
           border: Border.all(color: borderColor, width: 1.5),
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
-          style: AppTypography.sectionTitle(context).copyWith(
-            color: foregroundColor,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: AppTypography.sectionTitle(context).copyWith(
+                color: foregroundColor,
+              ),
+            ),
+            if (isMarked) ...[
+              const SizedBox(height: 3),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

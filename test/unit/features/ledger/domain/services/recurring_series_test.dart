@@ -834,6 +834,32 @@ void main() {
         reason: 'the recorded movement is untouched');
   });
 
+  test('a split keeps a manual bill in the range manual', () async {
+    await seed();
+    await createMonthly();
+    final bills = (await scheduled()).toList();
+    final cut = bills[1];
+    final later = bills[2];
+    await harness.db.recurringDao.markAutoPostIneligible(later.id);
+
+    await editBill(cut,
+        scope: RecurringScope.thisAndFollowing,
+        amountMinor: 60000,
+        date: DateTime(2026, 2, 3));
+
+    // The Apr 1 manual bill rides into the new series at its shifted date,
+    // still manual — the split must not re-derive its eligibility fresh.
+    final moved = (await scheduled())
+        .where((s) =>
+            s.date.year == 2026 && s.date.month == 4 && s.date.day == 3)
+        .toList();
+    expect(moved, hasLength(1));
+    expect(moved.single.autoPostEligible, isFalse,
+        reason: 'the manual latch survives the split');
+    expect(moved.single.amountMinor, 60000,
+        reason: 'the edited amount applies to the range');
+  });
+
   test('editing all rewrites the rule and rebuilds the pending bills',
       () async {
     await seed();
@@ -893,6 +919,56 @@ void main() {
     expect((await harness.db.recurringDao.getScheduled(other.id))!.amountMinor,
         50000,
         reason: 'what was recorded stays what was recorded');
+  });
+
+  test(
+      'editing all keeps manual bills manual and tombstones recorded bills '
+      'when the date moves', () async {
+    await seed();
+    await createMonthly();
+    final bills = (await scheduled())
+        .where((s) => s.status == ScheduledTransactionStatus.scheduled)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final january = bills.first; // Jan 1
+    final february = bills.firstWhere((s) => s.date.month == 2); // Feb 1
+    final april = bills.firstWhere((s) => s.date.month == 4); // Apr 1
+
+    // Jan 1 moved its money; Feb 1 and Apr 1 are latched manual (create-time
+    // latch already did it, but be explicit — the test is about the shift).
+    await harness.recurringService.postInstance(january.id);
+    await harness.db.recurringDao.markAutoPostIneligible(february.id);
+    await harness.db.recurringDao.markAutoPostIneligible(april.id);
+    final events = (await harness.eventStore.readAll()).events.length;
+
+    // Move Feb 1 → Feb 3; the whole schedule follows by +2 days.
+    final result = await editBill(february,
+        scope: RecurringScope.all, date: DateTime(2026, 2, 3));
+    expect(result, isA<Success<void>>());
+
+    final series = await seriesRow();
+    final jan3 = await harness.db.recurringDao
+        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 1, 3)));
+    final feb3 = await harness.db.recurringDao
+        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 2, 3)));
+    final apr3 = await harness.db.recurringDao
+        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 4, 3)));
+
+    // The recorded Jan 1 transaction stays put; the shifted rule must not
+    // bill Jan 3, because that occurrence already moved its money.
+    expect((await harness.db.recurringDao.getScheduled(january.id))!.status,
+        'posted');
+    expect(jan3, isNotNull);
+    expect(jan3!.status, 'skipped');
+
+    // The manual bills moved with their occurrences and stayed manual.
+    expect(feb3, isNotNull);
+    expect(feb3!.autoPostEligible, isFalse);
+    expect(apr3, isNotNull);
+    expect(apr3!.autoPostEligible, isFalse);
+
+    // Nothing new was posted by the edit.
+    expect((await harness.eventStore.readAll()).events.length, events);
   });
 
   test('editing an already-recorded bill is refused', () async {

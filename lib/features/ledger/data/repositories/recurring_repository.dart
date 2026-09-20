@@ -59,6 +59,11 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<void> deleteAllScheduledForSeries(String seriesId) {
+    return _recurringDao.deleteScheduledForSeries(seriesId);
+  }
+
+  @override
   Future<void> deleteSeriesWithInstances(String seriesId) async {
     // Instances first: they reference the series, so the parent has to
     // outlive them while they go.

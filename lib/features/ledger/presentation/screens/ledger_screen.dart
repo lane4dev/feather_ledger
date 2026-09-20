@@ -133,11 +133,16 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   }
 
   void _onMonthTap(DateTime current) {
+    // The picker marks months that still owe a bill (spec 006, US33). Watched
+    // in build so the stream has emitted before the picker opens.
+    final markedMonths = ref.read(pendingBillMonthsProvider).value ??
+        const <DateTime>{};
     FeatherMonthPicker.show(
       context,
       initialDate: current,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      markedMonths: markedMonths,
       onMonthSelected: (picked) {
         _goToMonth(picked);
       },
@@ -149,6 +154,9 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final ledgerState = ref.watch(ledgerViewModelProvider);
     final selectedDate =
         DateTime(ledgerState.selectedDate.year, ledgerState.selectedDate.month);
+    // Keep the pending-months stream alive while the screen is open so the
+    // month picker can read it synchronously in [_onMonthTap].
+    ref.watch(pendingBillMonthsProvider);
     ref.listen(ledgerMonthlyTransactionsProvider(selectedDate),
         (previous, next) {
       if (next.asData?.value.isEmpty != true ||
