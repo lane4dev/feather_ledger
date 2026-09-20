@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(10));
+      expect(database.schemaVersion, equals(11));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {

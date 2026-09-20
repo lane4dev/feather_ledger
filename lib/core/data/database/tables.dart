@@ -218,3 +218,31 @@ class MonthlyAccountBalanceSnapshots extends Table {
         {accountId, currencyCode, year, month},
       ];
 }
+
+/// Persisted automatic-posting batches (spec 006, US46–48).
+///
+/// CRUD-exempt like [RecurringSeries]: never rebuilt from events. A batch
+/// has a fixed cutoff so newly-due bills never join an in-flight batch.
+@DataClassName('AutomaticPostingBatchRow')
+class AutomaticPostingBatches extends Table {
+  TextColumn get id => text()(); // UUID
+  DateTimeColumn get createdAt =>
+      dateTime().clientDefault(() => DateTime.now())();
+  DateTimeColumn get cutoff => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One scheduled bill's membership in an automatic-posting batch and its
+/// current result. Composite key keeps a bill in at most one batch.
+@DataClassName('AutomaticPostingBatchMemberRow')
+class AutomaticPostingBatchMembers extends Table {
+  TextColumn get batchId =>
+      text().references(AutomaticPostingBatches, #id)();
+  TextColumn get scheduledId => text()();
+  TextColumn get result => text()(); // AutomaticPostingMemberResult.name
+
+  @override
+  Set<Column> get primaryKey => {batchId, scheduledId};
+}

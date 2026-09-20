@@ -1,4 +1,5 @@
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 abstract class RecurringRepository {
@@ -73,4 +74,29 @@ abstract class RecurringRepository {
   /// Recorded *transactions* are not instance rows and are not touched — they
   /// survive as ordinary ledger entries.
   Future<void> deleteSeriesWithInstances(String seriesId);
+
+  /// Creates a new automatic-posting batch with a fixed [cutoff] and returns
+  /// its id (spec 006, US46).
+  Future<String> createAutomaticPostingBatch(DateTime cutoff);
+
+  /// The most recently created batch, if any (spec 006, US51/52).
+  Future<AutomaticPostingBatch?> latestAutomaticPostingBatch();
+
+  /// Sets the current result of one member (upsert). Retrying a failed bill
+  /// calls this again and replaces the old result in place (US53).
+  Future<void> setAutomaticPostingMemberResult(
+      String batchId, String scheduledId, AutomaticPostingMemberResult result);
+
+  /// All members of one batch.
+  Future<List<AutomaticPostingBatchMember>> automaticPostingMembers(
+      String batchId);
+
+  /// Every member across batches that still needs work: an interrupted
+  /// pending claim or a failed post awaiting retry (US51/53).
+  Future<List<AutomaticPostingBatchMember>>
+      unsettledAutomaticPostingMembers();
+
+  /// Whether a scheduled bill has already been claimed by any batch. A bill
+  /// is claimed at most once, so a later startup never duplicates it (US52).
+  Future<bool> isAutomaticPostingMember(String scheduledId);
 }

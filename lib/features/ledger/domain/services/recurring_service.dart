@@ -9,6 +9,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 
@@ -22,6 +23,10 @@ part 'recurring_service.g.dart';
 /// crosses into the event-sourced ledger. Everything the screens do goes
 /// through here, so a unit test wires one service rather than five commands.
 class RecurringService {
+  /// How many bills to settle before yielding to the event loop, so the first
+  /// frame and the ledger UI keep updating during a large catch-up (US46).
+  static const int _batchChunk = 8;
+
   final CreateRecurringSeriesCommand _createSeries;
   final DeleteRecurringBillCommand _deleteBill;
   final UpdateRecurringBillCommand _updateBill;
@@ -188,6 +193,13 @@ class RecurringService {
   /// and never auto-posts again, even after the switch or the currency comes
   /// back. A previously latched bill stays latched.
   ///
+  /// Batch (tickets 38–40): the run freezes a cutoff, resumes any members an
+  /// earlier interrupted run left pending or failed (settling them inside
+  /// their ORIGINAL batch), then claims newly-due eligible bills into a fresh
+  /// batch. Each settled member records one terminal result — succeeded,
+  /// failed, user-handled or manual. Processing yields to the event loop every
+  /// [_batchChunk] bills so the first frame and the ledger UI keep updating.
+  ///
   /// Idempotent twice over: the status flip rides the append transaction, and
   /// the deterministic commandId (`'autopost-<instanceId>'`) is deduped at
   /// append time. A failed post leaves the instance `scheduled` and visible in
@@ -198,42 +210,128 @@ class RecurringService {
     if (!autoPostEnabled) return;
     final prefs = preferences;
     if (prefs == null) return;
-    final instances = await _watchScheduled.execute().first;
+
+    // Fixed startup cutoff (spec 006, US37/46): anything due after this
+    // instant is not part of this run's batch — it waits for the next launch.
     final now = DateTime.now();
-    for (final instance in instances) {
-      if (instance.account?.archived != false) continue;
-      if (accountId != null && instance.account?.id != accountId) continue;
-      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
-      if (instance.date.isAfter(now)) continue;
 
-      final series = instance.recurringTransactionSeries;
-      if (series == null) continue;
+    final instances = await _watchScheduled.execute().first;
+    final byId = {for (final i in instances) i.id: i};
 
-      final mode = series.mode;
-      final enabled = prefs.getAutoPostEnabled(mode);
-      final enabledSince = prefs.getAutoPostEnabledSince(mode);
-      final currency = instance.account?.currencyCode;
-      final currencySince =
-          currency == null ? null : prefs.getCurrencyActiveSince(currency);
+    await _resumeUnsettledMembers(prefs, byId, accountId);
 
-      final eligible = enabled &&
-          (enabledSince == null || instance.date.isAfter(enabledSince)) &&
-          (currencySince == null || instance.date.isAfter(currencySince)) &&
-          instance.autoPostEligible;
+    final batchId = await _watchScheduled.createAutomaticPostingBatch(now);
+    final due = instances.where((i) => !i.date.isAfter(now)).toList();
 
-      if (!eligible) {
-        // Latch once, then leave the bill scheduled for the user's 记入.
-        if (instance.autoPostEligible) {
-          await _watchScheduled.markAutoPostIneligible(instance.id);
-        }
+    var index = 0;
+    for (final instance in due) {
+      // A bill already claimed by an earlier batch is settled by that batch
+      // (via the resume above or a previous run) — it never joins a new one
+      // (spec 006, US39: existing batches keep their scope and results).
+      if (await _watchScheduled.isAutomaticPostingMember(instance.id)) {
         continue;
       }
 
-      // postInstance returns Result and never throws; ignoring it *is* the
-      // "continue on failure" policy above.
-      await guard(() => _postInstance.execute(instance.id,
-          commandId: 'autopost-${instance.id}'));
+      final result =
+          await _settleMember(prefs, instance, byId, accountId);
+      if (result != null) {
+        // Claim once: a bill interrupted mid-run was already claimed by its
+        // earlier batch; a fresh bill joins this one. The idempotent upsert
+        // makes the claim safe to repeat (US52).
+        await _watchScheduled.setAutomaticPostingMemberResult(
+            batchId, instance.id, result);
+      }
+
+      // Bounded batch: yield to the event loop so the first frame and the
+      // ledger UI keep updating (US46).
+      if (++index % _batchChunk == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
     }
+  }
+
+  /// Settles members an earlier interrupted run left `pending` or `failed`,
+  /// updating their ORIGINAL batch in place (US51/53). A retried failure that
+  /// now succeeds replaces the failed result rather than adding a second one.
+  Future<void> _resumeUnsettledMembers(
+    PreferencesRepository prefs,
+    Map<String, ScheduledTransactionEntity> byId,
+    String? accountId,
+  ) async {
+    final members = await _watchScheduled.unsettledAutomaticPostingMembers();
+    for (final member in members) {
+      final instance = byId[member.scheduledId];
+      if (instance == null) {
+        // The bill was deleted outright — count it as user-handled.
+        await _watchScheduled.setAutomaticPostingMemberResult(
+            member.batchId,
+            member.scheduledId,
+            AutomaticPostingMemberResult.userHandled);
+        continue;
+      }
+      final result = await _settleMember(prefs, instance, byId, accountId);
+      if (result == null) continue;
+      await _watchScheduled.setAutomaticPostingMemberResult(
+          member.batchId, member.scheduledId, result);
+    }
+  }
+
+  /// Classifies one due instance into a terminal batch result, performing the
+  /// post when it is eligible. Returns null when the instance is outside this
+  /// run's scope (wrong account or an archived account) and must be left
+  /// alone entirely.
+  Future<AutomaticPostingMemberResult?> _settleMember(
+    PreferencesRepository prefs,
+    ScheduledTransactionEntity instance,
+    Map<String, ScheduledTransactionEntity> byId,
+    String? accountId,
+  ) async {
+    if (instance.account?.archived != false) return null;
+    if (accountId != null && instance.account?.id != accountId) return null;
+    if (instance.status != ScheduledTransactionStatus.scheduled) {
+      // The user posted, skipped or deleted it themselves (US54).
+      return AutomaticPostingMemberResult.userHandled;
+    }
+
+    final eligible = _isEligible(prefs, instance);
+    if (!eligible) {
+      // Latch once, then leave the bill scheduled for the user's 记入.
+      if (instance.autoPostEligible) {
+        await _watchScheduled.markAutoPostIneligible(instance.id);
+      }
+      return AutomaticPostingMemberResult.manual;
+    }
+
+    final result = await guard(() => _postInstance.execute(instance.id,
+        commandId: 'autopost-${instance.id}'));
+    return result.when(
+      success: (_) => AutomaticPostingMemberResult.succeeded,
+      failure: (code, _) {
+        // A concurrent user action on the same bill means the user handled
+        // it; everything else is a retryable failure (US53/54).
+        if (code == LedgerErrorCode.scheduledAlreadyPosted ||
+            code == LedgerErrorCode.transactionNotFound) {
+          return AutomaticPostingMemberResult.userHandled;
+        }
+        return AutomaticPostingMemberResult.failed;
+      },
+    );
+  }
+
+  bool _isEligible(
+      PreferencesRepository prefs, ScheduledTransactionEntity instance) {
+    final series = instance.recurringTransactionSeries;
+    if (series == null) return false;
+    final mode = series.mode;
+    final enabled = prefs.getAutoPostEnabled(mode);
+    final enabledSince = prefs.getAutoPostEnabledSince(mode);
+    final currency = instance.account?.currencyCode;
+    final currencySince =
+        currency == null ? null : prefs.getCurrencyActiveSince(currency);
+    return enabled &&
+        (enabledSince == null || instance.date.isAfter(enabledSince)) &&
+        (currencySince == null || instance.date.isAfter(currencySince)) &&
+        instance.autoPostEligible;
   }
 }
 

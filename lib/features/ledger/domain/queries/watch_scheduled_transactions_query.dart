@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 
@@ -34,6 +35,32 @@ class WatchScheduledTransactionsQuery {
   /// date must never auto-post those bills.
   Future<void> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
       _recurringRepository.markSeriesIneligibleBefore(seriesId, cutoff);
+
+  // ---- Automatic-posting batches (spec 006, US46–55) ----
+
+  Future<String> createAutomaticPostingBatch(DateTime cutoff) =>
+      _recurringRepository.createAutomaticPostingBatch(cutoff);
+
+  Future<AutomaticPostingBatch?> latestAutomaticPostingBatch() =>
+      _recurringRepository.latestAutomaticPostingBatch();
+
+  Future<void> setAutomaticPostingMemberResult(
+          String batchId,
+          String scheduledId,
+          AutomaticPostingMemberResult result) =>
+      _recurringRepository.setAutomaticPostingMemberResult(
+          batchId, scheduledId, result);
+
+  Future<List<AutomaticPostingBatchMember>> automaticPostingMembers(
+          String batchId) =>
+      _recurringRepository.automaticPostingMembers(batchId);
+
+  Future<List<AutomaticPostingBatchMember>>
+      unsettledAutomaticPostingMembers() =>
+          _recurringRepository.unsettledAutomaticPostingMembers();
+
+  Future<bool> isAutomaticPostingMember(String scheduledId) =>
+      _recurringRepository.isAutomaticPostingMember(scheduledId);
 }
 
 @riverpod

@@ -7,6 +7,10 @@ mixin _$RecurringDaoMixin on DatabaseAccessor<AppDatabase> {
   $RecurringSeriesTable get recurringSeries => attachedDatabase.recurringSeries;
   $ScheduledTransactionsViewTable get scheduledTransactionsView =>
       attachedDatabase.scheduledTransactionsView;
+  $AutomaticPostingBatchesTable get automaticPostingBatches =>
+      attachedDatabase.automaticPostingBatches;
+  $AutomaticPostingBatchMembersTable get automaticPostingBatchMembers =>
+      attachedDatabase.automaticPostingBatchMembers;
   RecurringDaoManager get managers => RecurringDaoManager(this);
 }
 
@@ -19,4 +23,11 @@ class RecurringDaoManager {
   $$ScheduledTransactionsViewTableTableManager get scheduledTransactionsView =>
       $$ScheduledTransactionsViewTableTableManager(
           _db.attachedDatabase, _db.scheduledTransactionsView);
+  $$AutomaticPostingBatchesTableTableManager get automaticPostingBatches =>
+      $$AutomaticPostingBatchesTableTableManager(
+          _db.attachedDatabase, _db.automaticPostingBatches);
+  $$AutomaticPostingBatchMembersTableTableManager
+      get automaticPostingBatchMembers =>
+          $$AutomaticPostingBatchMembersTableTableManager(
+              _db.attachedDatabase, _db.automaticPostingBatchMembers);
 }

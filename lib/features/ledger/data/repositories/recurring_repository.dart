@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
@@ -7,6 +8,7 @@ import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
 
@@ -166,6 +168,67 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<void> saveSeries(RecurringSeriesCompanion entry) {
     return _recurringDao.saveSeries(entry);
   }
+
+  @override
+  Future<String> createAutomaticPostingBatch(DateTime cutoff) async {
+    final id = const Uuid().v4();
+    await _recurringDao.createAutomaticPostingBatch(
+      AutomaticPostingBatchesCompanion.insert(
+        id: id,
+        cutoff: cutoff,
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<AutomaticPostingBatch?> latestAutomaticPostingBatch() async {
+    final row = await _recurringDao.latestAutomaticPostingBatch();
+    if (row == null) return null;
+    return AutomaticPostingBatch(
+      id: row.id,
+      createdAt: row.createdAt,
+      cutoff: row.cutoff,
+    );
+  }
+
+  @override
+  Future<void> setAutomaticPostingMemberResult(
+          String batchId,
+          String scheduledId,
+          AutomaticPostingMemberResult result) =>
+      _recurringDao.setAutomaticPostingMemberResult(
+          batchId, scheduledId, result.name);
+
+  @override
+  Future<List<AutomaticPostingBatchMember>> automaticPostingMembers(
+      String batchId) async {
+    final rows = await _recurringDao.automaticPostingMembers(batchId);
+    return rows
+        .map((r) => AutomaticPostingBatchMember(
+              batchId: r.batchId,
+              scheduledId: r.scheduledId,
+              result: decodeAutomaticPostingMemberResult(r.result),
+            ))
+        .toList();
+  }
+
+  @override
+  Future<List<AutomaticPostingBatchMember>>
+      unsettledAutomaticPostingMembers() async {
+    final rows = await _recurringDao.unsettledAutomaticPostingMembers();
+    return rows
+        .map((r) => AutomaticPostingBatchMember(
+              batchId: r.batchId,
+              scheduledId: r.scheduledId,
+              result: decodeAutomaticPostingMemberResult(r.result),
+            ))
+        .toList();
+  }
+
+  @override
+  Future<bool> isAutomaticPostingMember(String scheduledId) =>
+      _recurringDao.isAutomaticPostingMember(scheduledId);
 
   RecurringTransactionSeriesEntity _toSeriesEntity(RecurringSeriesRow row) =>
       RecurringTransactionSeriesEntity(

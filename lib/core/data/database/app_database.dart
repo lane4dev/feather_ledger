@@ -30,7 +30,9 @@ part 'app_database.g.dart';
   CategoriesView,
   RecurringSeries,
   ScheduledTransactionsView,
-  MonthlyAccountBalanceSnapshots
+  MonthlyAccountBalanceSnapshots,
+  AutomaticPostingBatches,
+  AutomaticPostingBatchMembers
 ], daos: [
   EventsDao,
   TransactionsDao,
@@ -51,7 +53,9 @@ class AppDatabase extends _$AppDatabase {
   // v10 adds `scheduled_transactions_view.auto_post_eligible` (ticket 31).
   // Default true backfills existing rows (they were eligible under the old
   // model); the column is a per-instance manual latch, not a projection.
-  int get schemaVersion => 10;
+  // v11 adds the automatic-posting batch tables (ticket 38/39). They are
+  // CRUD-exempt progress records, not event-sourced projections.
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +121,13 @@ class AppDatabase extends _$AppDatabase {
           if (from < 10) {
             await m.addColumn(
                 scheduledTransactionsView, scheduledTransactionsView.autoPostEligible);
+          }
+          // v11: automatic-posting batch tables (ticket 38/39). New
+          // CRUD-exempt tables, never rebuilt — createTable is additive and
+          // safe here (it never drops a derived view).
+          if (from < 11) {
+            await m.createTable(automaticPostingBatches);
+            await m.createTable(automaticPostingBatchMembers);
           }
         },
       );

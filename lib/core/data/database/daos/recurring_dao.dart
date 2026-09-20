@@ -1,12 +1,19 @@
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:drift/drift.dart';
 
+import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
+
 import '../app_database.dart';
 import '../tables.dart';
 
 part 'recurring_dao.g.dart';
 
-@DriftAccessor(tables: [RecurringSeries, ScheduledTransactionsView])
+@DriftAccessor(tables: [
+  RecurringSeries,
+  ScheduledTransactionsView,
+  AutomaticPostingBatches,
+  AutomaticPostingBatchMembers
+])
 class RecurringDao extends DatabaseAccessor<AppDatabase>
     with _$RecurringDaoMixin {
   RecurringDao(super.db);
@@ -138,5 +145,61 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     ]);
     return query.watch().map((rows) =>
         rows.map((row) => row.readTable(scheduledTransactionsView)).toList());
+  }
+
+  // ---- Automatic-posting batch persistence (spec 006, US46–48) ----
+
+  Future<void> createAutomaticPostingBatch(
+      AutomaticPostingBatchesCompanion batch) {
+    return into(automaticPostingBatches).insert(batch);
+  }
+
+  Future<AutomaticPostingBatchRow?> latestAutomaticPostingBatch() {
+    final query = select(automaticPostingBatches)
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
+  Future<void> setAutomaticPostingMemberResult(
+    String batchId,
+    String scheduledId,
+    String result,
+  ) {
+    final companion = AutomaticPostingBatchMembersCompanion.insert(
+      batchId: batchId,
+      scheduledId: scheduledId,
+      result: result,
+    );
+    return into(automaticPostingBatchMembers)
+        .insertOnConflictUpdate(companion);
+  }
+
+  Future<List<AutomaticPostingBatchMemberRow>> automaticPostingMembers(
+    String batchId,
+  ) {
+    final query = select(automaticPostingBatchMembers)
+      ..where((t) => t.batchId.equals(batchId));
+    return query.get();
+  }
+
+  /// Every member that still needs work: a pending claim that was
+  /// interrupted, or a failed post awaiting retry.
+  Future<List<AutomaticPostingBatchMemberRow>>
+      unsettledAutomaticPostingMembers() {
+    final query = select(automaticPostingBatchMembers)
+      ..where((t) =>
+          t.result.equals(AutomaticPostingMemberResult.pending.name) |
+          t.result.equals(AutomaticPostingMemberResult.failed.name));
+    return query.get();
+  }
+
+  /// Whether a scheduled id has already been claimed by any batch.
+  Future<bool> isAutomaticPostingMember(String scheduledId) {
+    final query = selectOnly(automaticPostingBatchMembers)
+      ..addColumns([automaticPostingBatchMembers.scheduledId])
+      ..where(automaticPostingBatchMembers.scheduledId.equals(scheduledId))
+      ..limit(1);
+    return query.get().then((rows) => rows.isNotEmpty);
   }
 }

@@ -4729,6 +4729,483 @@ class MonthlyAccountBalanceSnapshotsCompanion
   }
 }
 
+class $AutomaticPostingBatchesTable extends AutomaticPostingBatches
+    with TableInfo<$AutomaticPostingBatchesTable, AutomaticPostingBatchRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AutomaticPostingBatchesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      clientDefault: () => DateTime.now());
+  static const VerificationMeta _cutoffMeta = const VerificationMeta('cutoff');
+  @override
+  late final GeneratedColumn<DateTime> cutoff = GeneratedColumn<DateTime>(
+      'cutoff', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [id, createdAt, cutoff];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'automatic_posting_batches';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<AutomaticPostingBatchRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('cutoff')) {
+      context.handle(_cutoffMeta,
+          cutoff.isAcceptableOrUnknown(data['cutoff']!, _cutoffMeta));
+    } else if (isInserting) {
+      context.missing(_cutoffMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AutomaticPostingBatchRow map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AutomaticPostingBatchRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      cutoff: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}cutoff'])!,
+    );
+  }
+
+  @override
+  $AutomaticPostingBatchesTable createAlias(String alias) {
+    return $AutomaticPostingBatchesTable(attachedDatabase, alias);
+  }
+}
+
+class AutomaticPostingBatchRow extends DataClass
+    implements Insertable<AutomaticPostingBatchRow> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime cutoff;
+  const AutomaticPostingBatchRow(
+      {required this.id, required this.createdAt, required this.cutoff});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['cutoff'] = Variable<DateTime>(cutoff);
+    return map;
+  }
+
+  AutomaticPostingBatchesCompanion toCompanion(bool nullToAbsent) {
+    return AutomaticPostingBatchesCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      cutoff: Value(cutoff),
+    );
+  }
+
+  factory AutomaticPostingBatchRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AutomaticPostingBatchRow(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      cutoff: serializer.fromJson<DateTime>(json['cutoff']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'cutoff': serializer.toJson<DateTime>(cutoff),
+    };
+  }
+
+  AutomaticPostingBatchRow copyWith(
+          {String? id, DateTime? createdAt, DateTime? cutoff}) =>
+      AutomaticPostingBatchRow(
+        id: id ?? this.id,
+        createdAt: createdAt ?? this.createdAt,
+        cutoff: cutoff ?? this.cutoff,
+      );
+  AutomaticPostingBatchRow copyWithCompanion(
+      AutomaticPostingBatchesCompanion data) {
+    return AutomaticPostingBatchRow(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      cutoff: data.cutoff.present ? data.cutoff.value : this.cutoff,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AutomaticPostingBatchRow(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('cutoff: $cutoff')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, createdAt, cutoff);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AutomaticPostingBatchRow &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.cutoff == this.cutoff);
+}
+
+class AutomaticPostingBatchesCompanion
+    extends UpdateCompanion<AutomaticPostingBatchRow> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> cutoff;
+  final Value<int> rowid;
+  const AutomaticPostingBatchesCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.cutoff = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AutomaticPostingBatchesCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    required DateTime cutoff,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        cutoff = Value(cutoff);
+  static Insertable<AutomaticPostingBatchRow> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? cutoff,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (cutoff != null) 'cutoff': cutoff,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AutomaticPostingBatchesCompanion copyWith(
+      {Value<String>? id,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? cutoff,
+      Value<int>? rowid}) {
+    return AutomaticPostingBatchesCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      cutoff: cutoff ?? this.cutoff,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (cutoff.present) {
+      map['cutoff'] = Variable<DateTime>(cutoff.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AutomaticPostingBatchesCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('cutoff: $cutoff, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AutomaticPostingBatchMembersTable extends AutomaticPostingBatchMembers
+    with
+        TableInfo<$AutomaticPostingBatchMembersTable,
+            AutomaticPostingBatchMemberRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AutomaticPostingBatchMembersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _batchIdMeta =
+      const VerificationMeta('batchId');
+  @override
+  late final GeneratedColumn<String> batchId = GeneratedColumn<String>(
+      'batch_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES automatic_posting_batches (id)'));
+  static const VerificationMeta _scheduledIdMeta =
+      const VerificationMeta('scheduledId');
+  @override
+  late final GeneratedColumn<String> scheduledId = GeneratedColumn<String>(
+      'scheduled_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _resultMeta = const VerificationMeta('result');
+  @override
+  late final GeneratedColumn<String> result = GeneratedColumn<String>(
+      'result', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [batchId, scheduledId, result];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'automatic_posting_batch_members';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<AutomaticPostingBatchMemberRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('batch_id')) {
+      context.handle(_batchIdMeta,
+          batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta));
+    } else if (isInserting) {
+      context.missing(_batchIdMeta);
+    }
+    if (data.containsKey('scheduled_id')) {
+      context.handle(
+          _scheduledIdMeta,
+          scheduledId.isAcceptableOrUnknown(
+              data['scheduled_id']!, _scheduledIdMeta));
+    } else if (isInserting) {
+      context.missing(_scheduledIdMeta);
+    }
+    if (data.containsKey('result')) {
+      context.handle(_resultMeta,
+          result.isAcceptableOrUnknown(data['result']!, _resultMeta));
+    } else if (isInserting) {
+      context.missing(_resultMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {batchId, scheduledId};
+  @override
+  AutomaticPostingBatchMemberRow map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AutomaticPostingBatchMemberRow(
+      batchId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}batch_id'])!,
+      scheduledId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}scheduled_id'])!,
+      result: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}result'])!,
+    );
+  }
+
+  @override
+  $AutomaticPostingBatchMembersTable createAlias(String alias) {
+    return $AutomaticPostingBatchMembersTable(attachedDatabase, alias);
+  }
+}
+
+class AutomaticPostingBatchMemberRow extends DataClass
+    implements Insertable<AutomaticPostingBatchMemberRow> {
+  final String batchId;
+  final String scheduledId;
+  final String result;
+  const AutomaticPostingBatchMemberRow(
+      {required this.batchId, required this.scheduledId, required this.result});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['batch_id'] = Variable<String>(batchId);
+    map['scheduled_id'] = Variable<String>(scheduledId);
+    map['result'] = Variable<String>(result);
+    return map;
+  }
+
+  AutomaticPostingBatchMembersCompanion toCompanion(bool nullToAbsent) {
+    return AutomaticPostingBatchMembersCompanion(
+      batchId: Value(batchId),
+      scheduledId: Value(scheduledId),
+      result: Value(result),
+    );
+  }
+
+  factory AutomaticPostingBatchMemberRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AutomaticPostingBatchMemberRow(
+      batchId: serializer.fromJson<String>(json['batchId']),
+      scheduledId: serializer.fromJson<String>(json['scheduledId']),
+      result: serializer.fromJson<String>(json['result']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'batchId': serializer.toJson<String>(batchId),
+      'scheduledId': serializer.toJson<String>(scheduledId),
+      'result': serializer.toJson<String>(result),
+    };
+  }
+
+  AutomaticPostingBatchMemberRow copyWith(
+          {String? batchId, String? scheduledId, String? result}) =>
+      AutomaticPostingBatchMemberRow(
+        batchId: batchId ?? this.batchId,
+        scheduledId: scheduledId ?? this.scheduledId,
+        result: result ?? this.result,
+      );
+  AutomaticPostingBatchMemberRow copyWithCompanion(
+      AutomaticPostingBatchMembersCompanion data) {
+    return AutomaticPostingBatchMemberRow(
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+      scheduledId:
+          data.scheduledId.present ? data.scheduledId.value : this.scheduledId,
+      result: data.result.present ? data.result.value : this.result,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AutomaticPostingBatchMemberRow(')
+          ..write('batchId: $batchId, ')
+          ..write('scheduledId: $scheduledId, ')
+          ..write('result: $result')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(batchId, scheduledId, result);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AutomaticPostingBatchMemberRow &&
+          other.batchId == this.batchId &&
+          other.scheduledId == this.scheduledId &&
+          other.result == this.result);
+}
+
+class AutomaticPostingBatchMembersCompanion
+    extends UpdateCompanion<AutomaticPostingBatchMemberRow> {
+  final Value<String> batchId;
+  final Value<String> scheduledId;
+  final Value<String> result;
+  final Value<int> rowid;
+  const AutomaticPostingBatchMembersCompanion({
+    this.batchId = const Value.absent(),
+    this.scheduledId = const Value.absent(),
+    this.result = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AutomaticPostingBatchMembersCompanion.insert({
+    required String batchId,
+    required String scheduledId,
+    required String result,
+    this.rowid = const Value.absent(),
+  })  : batchId = Value(batchId),
+        scheduledId = Value(scheduledId),
+        result = Value(result);
+  static Insertable<AutomaticPostingBatchMemberRow> custom({
+    Expression<String>? batchId,
+    Expression<String>? scheduledId,
+    Expression<String>? result,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (batchId != null) 'batch_id': batchId,
+      if (scheduledId != null) 'scheduled_id': scheduledId,
+      if (result != null) 'result': result,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AutomaticPostingBatchMembersCompanion copyWith(
+      {Value<String>? batchId,
+      Value<String>? scheduledId,
+      Value<String>? result,
+      Value<int>? rowid}) {
+    return AutomaticPostingBatchMembersCompanion(
+      batchId: batchId ?? this.batchId,
+      scheduledId: scheduledId ?? this.scheduledId,
+      result: result ?? this.result,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (batchId.present) {
+      map['batch_id'] = Variable<String>(batchId.value);
+    }
+    if (scheduledId.present) {
+      map['scheduled_id'] = Variable<String>(scheduledId.value);
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(result.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AutomaticPostingBatchMembersCompanion(')
+          ..write('batchId: $batchId, ')
+          ..write('scheduledId: $scheduledId, ')
+          ..write('result: $result, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4746,6 +5223,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MonthlyAccountBalanceSnapshotsTable
       monthlyAccountBalanceSnapshots =
       $MonthlyAccountBalanceSnapshotsTable(this);
+  late final $AutomaticPostingBatchesTable automaticPostingBatches =
+      $AutomaticPostingBatchesTable(this);
+  late final $AutomaticPostingBatchMembersTable automaticPostingBatchMembers =
+      $AutomaticPostingBatchMembersTable(this);
   late final Index idxLedgerEventsCommandId = Index(
       'idx_ledger_events_command_id',
       'CREATE INDEX idx_ledger_events_command_id ON ledger_events (command_id)');
@@ -4777,6 +5258,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         recurringSeries,
         scheduledTransactionsView,
         monthlyAccountBalanceSnapshots,
+        automaticPostingBatches,
+        automaticPostingBatchMembers,
         idxLedgerEventsCommandId,
         idxTransactionsViewOccurredAt,
         idxTransactionPostingsTx
@@ -7233,6 +7716,521 @@ typedef $$MonthlyAccountBalanceSnapshotsTableProcessedTableManager
         ),
         MonthlyAccountBalanceSnapshot,
         PrefetchHooks Function()>;
+typedef $$AutomaticPostingBatchesTableCreateCompanionBuilder
+    = AutomaticPostingBatchesCompanion Function({
+  required String id,
+  Value<DateTime> createdAt,
+  required DateTime cutoff,
+  Value<int> rowid,
+});
+typedef $$AutomaticPostingBatchesTableUpdateCompanionBuilder
+    = AutomaticPostingBatchesCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> cutoff,
+  Value<int> rowid,
+});
+
+final class $$AutomaticPostingBatchesTableReferences extends BaseReferences<
+    _$AppDatabase, $AutomaticPostingBatchesTable, AutomaticPostingBatchRow> {
+  $$AutomaticPostingBatchesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AutomaticPostingBatchMembersTable,
+      List<AutomaticPostingBatchMemberRow>> _automaticPostingBatchMembersRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.automaticPostingBatchMembers,
+          aliasName:
+              'automatic_posting_batches__id__automatic_posting_batch_members__batch_id');
+
+  $$AutomaticPostingBatchMembersTableProcessedTableManager
+      get automaticPostingBatchMembersRefs {
+    final manager = $$AutomaticPostingBatchMembersTableTableManager(
+            $_db, $_db.automaticPostingBatchMembers)
+        .filter((f) => f.batchId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult
+        .readTableOrNull(_automaticPostingBatchMembersRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$AutomaticPostingBatchesTableFilterComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
+  $$AutomaticPostingBatchesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get cutoff => $composableBuilder(
+      column: $table.cutoff, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> automaticPostingBatchMembersRefs(
+      Expression<bool> Function(
+              $$AutomaticPostingBatchMembersTableFilterComposer f)
+          f) {
+    final $$AutomaticPostingBatchMembersTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.automaticPostingBatchMembers,
+            getReferencedColumn: (t) => t.batchId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$AutomaticPostingBatchMembersTableFilterComposer(
+                  $db: $db,
+                  $table: $db.automaticPostingBatchMembers,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$AutomaticPostingBatchesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
+  $$AutomaticPostingBatchesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get cutoff => $composableBuilder(
+      column: $table.cutoff, builder: (column) => ColumnOrderings(column));
+}
+
+class $$AutomaticPostingBatchesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
+  $$AutomaticPostingBatchesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cutoff =>
+      $composableBuilder(column: $table.cutoff, builder: (column) => column);
+
+  Expression<T> automaticPostingBatchMembersRefs<T extends Object>(
+      Expression<T> Function(
+              $$AutomaticPostingBatchMembersTableAnnotationComposer a)
+          f) {
+    final $$AutomaticPostingBatchMembersTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.automaticPostingBatchMembers,
+            getReferencedColumn: (t) => t.batchId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$AutomaticPostingBatchMembersTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.automaticPostingBatchMembers,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$AutomaticPostingBatchesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AutomaticPostingBatchesTable,
+    AutomaticPostingBatchRow,
+    $$AutomaticPostingBatchesTableFilterComposer,
+    $$AutomaticPostingBatchesTableOrderingComposer,
+    $$AutomaticPostingBatchesTableAnnotationComposer,
+    $$AutomaticPostingBatchesTableCreateCompanionBuilder,
+    $$AutomaticPostingBatchesTableUpdateCompanionBuilder,
+    (AutomaticPostingBatchRow, $$AutomaticPostingBatchesTableReferences),
+    AutomaticPostingBatchRow,
+    PrefetchHooks Function({bool automaticPostingBatchMembersRefs})> {
+  $$AutomaticPostingBatchesTableTableManager(
+      _$AppDatabase db, $AutomaticPostingBatchesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AutomaticPostingBatchesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AutomaticPostingBatchesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AutomaticPostingBatchesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> cutoff = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AutomaticPostingBatchesCompanion(
+            id: id,
+            createdAt: createdAt,
+            cutoff: cutoff,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<DateTime> createdAt = const Value.absent(),
+            required DateTime cutoff,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AutomaticPostingBatchesCompanion.insert(
+            id: id,
+            createdAt: createdAt,
+            cutoff: cutoff,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$AutomaticPostingBatchesTable,
+                        AutomaticPostingBatchRow>(table),
+                    $$AutomaticPostingBatchesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({automaticPostingBatchMembersRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (automaticPostingBatchMembersRefs)
+                  db.automaticPostingBatchMembers
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (automaticPostingBatchMembersRefs)
+                    await $_getPrefetchedDataByColumns<
+                            AutomaticPostingBatchRow,
+                            $AutomaticPostingBatchesTable,
+                            AutomaticPostingBatchMemberRow,
+                            $AutomaticPostingBatchMembersTable>(
+                        currentTable: table,
+                        referencedTable:
+                            $$AutomaticPostingBatchesTableReferences
+                                ._automaticPostingBatchMembersRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$AutomaticPostingBatchesTableReferences(
+                                    db, table, p0)
+                                .automaticPostingBatchMembersRefs,
+                        currentColumn: 'id',
+                        referencedColumn: 'batch_id',
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$AutomaticPostingBatchesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $AutomaticPostingBatchesTable,
+        AutomaticPostingBatchRow,
+        $$AutomaticPostingBatchesTableFilterComposer,
+        $$AutomaticPostingBatchesTableOrderingComposer,
+        $$AutomaticPostingBatchesTableAnnotationComposer,
+        $$AutomaticPostingBatchesTableCreateCompanionBuilder,
+        $$AutomaticPostingBatchesTableUpdateCompanionBuilder,
+        (AutomaticPostingBatchRow, $$AutomaticPostingBatchesTableReferences),
+        AutomaticPostingBatchRow,
+        PrefetchHooks Function({bool automaticPostingBatchMembersRefs})>;
+typedef $$AutomaticPostingBatchMembersTableCreateCompanionBuilder
+    = AutomaticPostingBatchMembersCompanion Function({
+  required String batchId,
+  required String scheduledId,
+  required String result,
+  Value<int> rowid,
+});
+typedef $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder
+    = AutomaticPostingBatchMembersCompanion Function({
+  Value<String> batchId,
+  Value<String> scheduledId,
+  Value<String> result,
+  Value<int> rowid,
+});
+
+final class $$AutomaticPostingBatchMembersTableReferences
+    extends BaseReferences<_$AppDatabase, $AutomaticPostingBatchMembersTable,
+        AutomaticPostingBatchMemberRow> {
+  $$AutomaticPostingBatchMembersTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $AutomaticPostingBatchesTable _batchIdTable(_$AppDatabase db) =>
+      db.automaticPostingBatches.createAlias(
+          'automatic_posting_batch_members__batch_id__automatic_posting_batches__id');
+
+  $$AutomaticPostingBatchesTableProcessedTableManager get batchId {
+    final $_column = $_itemColumn<String>('batch_id')!;
+
+    final manager = $$AutomaticPostingBatchesTableTableManager(
+            $_db, $_db.automaticPostingBatches)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_batchIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$AutomaticPostingBatchMembersTableFilterComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
+  $$AutomaticPostingBatchMembersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get scheduledId => $composableBuilder(
+      column: $table.scheduledId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get result => $composableBuilder(
+      column: $table.result, builder: (column) => ColumnFilters(column));
+
+  $$AutomaticPostingBatchesTableFilterComposer get batchId {
+    final $$AutomaticPostingBatchesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.batchId,
+            referencedTable: $db.automaticPostingBatches,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$AutomaticPostingBatchesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.automaticPostingBatches,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$AutomaticPostingBatchMembersTableOrderingComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
+  $$AutomaticPostingBatchMembersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get scheduledId => $composableBuilder(
+      column: $table.scheduledId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get result => $composableBuilder(
+      column: $table.result, builder: (column) => ColumnOrderings(column));
+
+  $$AutomaticPostingBatchesTableOrderingComposer get batchId {
+    final $$AutomaticPostingBatchesTableOrderingComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.batchId,
+            referencedTable: $db.automaticPostingBatches,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$AutomaticPostingBatchesTableOrderingComposer(
+                  $db: $db,
+                  $table: $db.automaticPostingBatches,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$AutomaticPostingBatchMembersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
+  $$AutomaticPostingBatchMembersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get scheduledId => $composableBuilder(
+      column: $table.scheduledId, builder: (column) => column);
+
+  GeneratedColumn<String> get result =>
+      $composableBuilder(column: $table.result, builder: (column) => column);
+
+  $$AutomaticPostingBatchesTableAnnotationComposer get batchId {
+    final $$AutomaticPostingBatchesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.batchId,
+            referencedTable: $db.automaticPostingBatches,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$AutomaticPostingBatchesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.automaticPostingBatches,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$AutomaticPostingBatchMembersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AutomaticPostingBatchMembersTable,
+    AutomaticPostingBatchMemberRow,
+    $$AutomaticPostingBatchMembersTableFilterComposer,
+    $$AutomaticPostingBatchMembersTableOrderingComposer,
+    $$AutomaticPostingBatchMembersTableAnnotationComposer,
+    $$AutomaticPostingBatchMembersTableCreateCompanionBuilder,
+    $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder,
+    (
+      AutomaticPostingBatchMemberRow,
+      $$AutomaticPostingBatchMembersTableReferences
+    ),
+    AutomaticPostingBatchMemberRow,
+    PrefetchHooks Function({bool batchId})> {
+  $$AutomaticPostingBatchMembersTableTableManager(
+      _$AppDatabase db, $AutomaticPostingBatchMembersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AutomaticPostingBatchMembersTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AutomaticPostingBatchMembersTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AutomaticPostingBatchMembersTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> batchId = const Value.absent(),
+            Value<String> scheduledId = const Value.absent(),
+            Value<String> result = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AutomaticPostingBatchMembersCompanion(
+            batchId: batchId,
+            scheduledId: scheduledId,
+            result: result,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String batchId,
+            required String scheduledId,
+            required String result,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AutomaticPostingBatchMembersCompanion.insert(
+            batchId: batchId,
+            scheduledId: scheduledId,
+            result: result,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$AutomaticPostingBatchMembersTable,
+                        AutomaticPostingBatchMemberRow>(table),
+                    $$AutomaticPostingBatchMembersTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({batchId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (batchId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.batchId,
+                    referencedTable:
+                        $$AutomaticPostingBatchMembersTableReferences
+                            ._batchIdTable(db),
+                    referencedColumn:
+                        $$AutomaticPostingBatchMembersTableReferences
+                            ._batchIdTable(db)
+                            .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$AutomaticPostingBatchMembersTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $AutomaticPostingBatchMembersTable,
+        AutomaticPostingBatchMemberRow,
+        $$AutomaticPostingBatchMembersTableFilterComposer,
+        $$AutomaticPostingBatchMembersTableOrderingComposer,
+        $$AutomaticPostingBatchMembersTableAnnotationComposer,
+        $$AutomaticPostingBatchMembersTableCreateCompanionBuilder,
+        $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder,
+        (
+          AutomaticPostingBatchMemberRow,
+          $$AutomaticPostingBatchMembersTableReferences
+        ),
+        AutomaticPostingBatchMemberRow,
+        PrefetchHooks Function({bool batchId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7257,6 +8255,13 @@ class $AppDatabaseManager {
       get monthlyAccountBalanceSnapshots =>
           $$MonthlyAccountBalanceSnapshotsTableTableManager(
               _db, _db.monthlyAccountBalanceSnapshots);
+  $$AutomaticPostingBatchesTableTableManager get automaticPostingBatches =>
+      $$AutomaticPostingBatchesTableTableManager(
+          _db, _db.automaticPostingBatches);
+  $$AutomaticPostingBatchMembersTableTableManager
+      get automaticPostingBatchMembers =>
+          $$AutomaticPostingBatchMembersTableTableManager(
+              _db, _db.automaticPostingBatchMembers);
 }
 
 // **************************************************************************

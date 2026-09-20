@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -133,18 +135,28 @@ void main() async {
   // otherwise pressing Skip could post the very bill the user just skipped.
   if (reminders.hasPendingResponses) {
     reminders.deferAutoPostCatchUp();
-  } else {
-    try {
-      await container.read(recurringServiceProvider).catchUpAutoPosted();
-    } catch (e) {
-      debugPrint('recurring auto-post catch-up failed: $e');
-    }
   }
 
   setupEdgeToEdge();
 
   runApp(UncontrolledProviderScope(
       container: container, child: const FeatherLedgerApp()));
+
+  // Catch-up runs AFTER the first frame, so opening the app never waits for a
+  // large batch of due bills to settle (spec 006, US46). The fixed cutoff is
+  // captured inside catchUpAutoPosted when this callback fires.
+  if (!reminders.hasPendingResponses) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        container
+            .read(recurringServiceProvider)
+            .catchUpAutoPosted()
+            .catchError((Object e) {
+          debugPrint('recurring auto-post catch-up failed: $e');
+        }),
+      );
+    });
+  }
 }
 
 class FeatherLedgerApp extends ConsumerWidget {
