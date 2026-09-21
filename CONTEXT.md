@@ -29,9 +29,9 @@ _Avoid_: deletion, cancellation, void, undo
 **Archive**:
 Withdrawing an account or category from active use while preserving every historical reference to it.
 An archived account can be restored and still participates in totals according to its inclusion setting.
-Recurring rules and already-due bills remain while an account is archived; future pending bills are
-marked skipped, and generation, posting and reminders pause. Restoring resumes the rules without
-reviving the skipped bills.
+When an account is archived, already-due pending bills are preserved as one-off planned bills, and
+its recurring rules and future pending bills are removed; restoring the account does not revive those
+removed rules.
 Not a delete.
 _Avoid_: delete, deactivate, soft delete
 
@@ -55,39 +55,37 @@ _Avoid_: correction category, edited account balance
 
 **Recurring series**:
 A rule that produces the same transaction on a schedule. Its kind is income or expense only — a transfer
-has two accounts to move between, and a series has one. An auto-posting series has its due instances
-confirmed by the app at launch; the UI label for that is 订阅 (subscription), which stays a label —
-the domain term is recurring series. A one-shot series (start equals end) is the 计划 (planned) entry:
-one pending bill, no recorded transaction.
+has two accounts to move between, and a series has one. A repeating series with automatic posting
+enabled has its due instances confirmed by the app at launch; the UI label for that is 订阅
+(subscription), which stays a label — the domain term is recurring series. A one-shot series is the
+计划 (planned) entry: one pending bill, no recorded transaction. Stopping a recurring series halts
+future generation and removes pending instances while leaving already-posted transactions and history
+intact.
 _Avoid_: recurring transaction, schedule, subscription
 
 **Automatic posting**:
-Recording an eligible scheduled income or expense in the ledger without a separate manual confirmation.
-It records a money movement and does not itself transfer money or pay a bill.
+Recording a due auto-posting scheduled bill in the ledger without a separate manual confirmation, when
+its currency is the current currency and it is not marked manual-only. It records a money movement and
+does not itself transfer money or pay a bill.
 _Avoid_: automatic payment, automatic debit
-
-**Bill eligibility**:
-Whether a scheduled bill may be posted automatically. Decided in one place (`AutomaticPostingPolicy`)
-from the mode switch, the due time against the switch-on and currency-activation boundaries, the
-current currency, and the manual-only latch. Editing a due bill removes it; a restore-confirmation
-window holds an eligible bill behind a barrier instead of posting it.
-_Avoid_: auto-post flag, posting permission
 
 **Source bill**:
 The scheduled occurrence from which a transaction was recorded. Its association remains meaningful
-when the transaction is corrected or its series is deleted; an ordinary transaction need not have one.
+when the transaction is corrected or its series is stopped or deleted; an ordinary transaction need
+not have one.
 _Avoid_: transaction mode, payment source
 
 **Manual-only bill**:
-A pending bill that must be handled by the user rather than posted automatically, even if automatic
-posting is later enabled. A bill made manual-only by a currency or setting change remains manual-only
-when its date is edited.
+A pending bill that must be handled by the user rather than posted automatically (for example, a bill
+due before a backup restore, kept manual on currency switch-back, or already overdue when automatic
+posting is enabled on a rule). Rescheduling a manual-only bill to a future date clears this mark.
 _Avoid_: failed bill, skipped bill
 
 **Entry mode**:
-The intent selected when creating an entry: default, planned, subscription, or repeating. It remains
-the same when pending bills' ordinary fields are edited and is distinct from whether automatic posting
-is enabled. Once posted, the resulting transaction is presented as an ordinary transaction.
+The intent selected when creating an entry: default (immediate transaction), planned (one-off future
+bill), or repeating (recurring series). Automatic posting is an option on a repeating series rather
+than a separate entry mode. Once posted, the resulting transaction is presented as an ordinary
+transaction.
 _Avoid_: payment method, recurrence frequency
 
 ### Money
