@@ -111,9 +111,15 @@ void main() {
           final l10n = AppLocalizations.of(
               tester.element(find.byType(AppReceiptSheet)))!;
           expect(rect.height, lessThanOrEqualTo(740 * 0.9));
+          final formattedDate =
+              DateFormat.yMMMMEEEEd(locale.toString()).format(model.date);
+          // A recorded receipt carries its time in the barcode receipt
+          // number, so its date row is date-only. A pending bill has no
+          // barcode, so it shows the scheduled time next to the date.
           expect(
-              find.text(
-                  DateFormat.yMMMMEEEEd(locale.toString()).format(model.date)),
+              find.text(pending
+                  ? '$formattedDate ${DateFormat.Hm(locale.toString()).format(model.date)}'
+                  : formattedDate),
               findsOneWidget);
           expect(find.byIcon(LucideIcons.x).hitTestable(), findsOneWidget);
           if (pending) {
