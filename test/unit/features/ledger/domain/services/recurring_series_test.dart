@@ -1263,6 +1263,43 @@ void main() {
         reason: 'due before its currency became current = manual');
   });
 
+  test('a bill due while its currency is away is latched manual, not posted',
+      () async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
+        DateTime.now().subtract(const Duration(days: 30)));
+    // USD was current (activated a month ago), then the user switched away
+    // to JPY — the away period has no deactivation record for USD.
+    await prefs.setCurrencyActiveSince(
+        'USD', DateTime.now().subtract(const Duration(days: 30)));
+    await prefs.setCurrency('JPY');
+
+    await restartHarness(autoPostEnabled: true, preferences: prefs);
+    await seed();
+    expect(await createAutoPostingSeries(), isA<Success<void>>());
+
+    for (final row in await harness.db.recurringDao.watchAllScheduled().first) {
+      if (row.date.isAfter(DateTime.now())) continue;
+      await rearmEligible(row.id);
+    }
+
+    final eventsBefore = (await harness.eventStore.readAll()).events.length;
+    await harness.recurringService.catchUpAutoPosted();
+
+    final due = (await scheduled())
+        .where((i) => !i.date.isAfter(DateTime.now()));
+    expect(due, isNotEmpty, reason: 'fixture precondition');
+    expect(
+        due.every((i) =>
+            i.status == ScheduledTransactionStatus.scheduled &&
+            !i.autoPostEligible),
+        isTrue,
+        reason: 'a bill due while its currency was away is manual');
+    expect((await harness.eventStore.readAll()).events.length, eventsBefore,
+        reason: 'no TransactionRecorded while the currency is away');
+  });
+
   // — 自动入账资格（ticket 32：创建与编辑）——————————————————————————
 
   test('a series created already past its first due date latches those bills '

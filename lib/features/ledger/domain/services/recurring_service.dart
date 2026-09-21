@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -48,6 +50,10 @@ class RecurringService {
   /// treated exactly like "every switch off": nothing auto-posts.
   final PreferencesRepository? preferences;
 
+  /// Injectable wall clock (spec 003, P1). The catch-up cutoff and the
+  /// "created already due" latch both read it instead of `DateTime.now()`.
+  final DomainClock _clock;
+
   RecurringService(
     this._createSeries,
     this._deleteBill,
@@ -57,7 +63,8 @@ class RecurringService {
     this._watchScheduled, {
     this.autoPostEnabled = true,
     this.preferences,
-  });
+    DomainClock clock = const SystemClock(),
+  }) : _clock = clock;
 
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
@@ -107,7 +114,7 @@ class RecurringService {
       // A series created already past its first due date must never auto-post
       // those bills (spec 006, US32): they were due before the user even had
       // the rule.
-      await _watchScheduled.markSeriesIneligibleBefore(id, DateTime.now());
+      await _watchScheduled.markSeriesIneligibleBefore(id, _clock.now());
     });
   }
 
@@ -214,7 +221,7 @@ class RecurringService {
 
     // Fixed startup cutoff (spec 006, US37/46): anything due after this
     // instant is not part of this run's batch — it waits for the next launch.
-    final now = DateTime.now();
+    final now = _clock.now();
 
     final instances = await _watchScheduled.execute().first;
     final byId = {for (final i in instances) i.id: i};
@@ -372,6 +379,20 @@ class RecurringService {
     if (instance.status != ScheduledTransactionStatus.scheduled) {
       // The user posted, skipped or deleted it themselves (US54).
       return AutomaticPostingMemberResult.userHandled;
+    }
+
+    // Away currency (spec 006, US33/34): auto-post pauses for any currency
+    // the user is not currently looking at, and a bill that fell due while
+    // its currency was away is latched manual — it never retro-posts. The
+    // switch-on / activation boundaries above are about *when* the currency
+    // became eligible; this is about whether it still is.
+    final currentCurrency =
+        prefs.getCurrency() ?? AppCurrencies.defaultCurrency.code;
+    if (instance.account?.currencyCode != currentCurrency) {
+      if (instance.autoPostEligible) {
+        await _watchScheduled.markAutoPostIneligible(instance.id);
+      }
+      return AutomaticPostingMemberResult.manual;
     }
 
     final eligible = _isEligible(prefs, instance);

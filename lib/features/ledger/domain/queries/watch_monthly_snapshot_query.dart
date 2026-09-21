@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
 import 'package:feather_ledger/core/data/database/daos/monthly_snapshot_dao.dart';
+import 'package:feather_ledger/core/domain/money/money.dart';
 
 part 'watch_monthly_snapshot_query.g.dart';
 
@@ -28,7 +29,7 @@ class MonthlySnapshotTotals {
   final int balanceMinor;
 
   const MonthlySnapshotTotals({
-    this.currencyCode = 'USD',
+    this.currencyCode = Money.defaultCurrencyCode,
     required this.incomeMinor,
     required this.expenseMinor,
     required this.balanceMinor,

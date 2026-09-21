@@ -105,7 +105,7 @@ lib/shared/     跨特性的组件与扩展
 - 读模型是写入时投影出来的 Drift 表：`accounts_view`（单个 `balanceMinor` + archived + `includeInTotals` + `lastUpdatedEventId` 游标）、`transactions_view`（一笔交易一行，含 kind、isReversed、写入时的分类快照）+ `transaction_postings_view`（分录级行）、`categories_view`、`monthly_account_balance_snapshots`。`recurring_series` 与 `scheduled_transactions_view` 豁免于 CRUD 之外（重建永不触碰）。
 - **账户有两个互不相干的关闭开关，方向相反**：`archived` 把它拿出**选择器**、但留在**合计**里（`AccountArchived`）；`includeInTotals` 让它留在**一切显示的地方**、只拿出**合计**（`AccountTotalsInclusionChanged`）。术语见 `CONTEXT.md` 的 Ledger totals。
   - **排除是读时行为，不落进任何投影。** 快照行按账户存，这个开关不改变任何一行的内容，只改变**哪些行进合计**，所以投影器不因它而动（与 `AccountArchived` 一致，都不刷新快照），开关因此瞬时生效且可逆。四个合计点各自读它：`WatchMonthlySnapshotQuery`（头部三个数字里的余额与收支两半）、`reports_dao` 的三个查询（各自 `innerJoin accounts_view`——用 join 而不是事后过滤，是因为 `watch()` 只对语句里出现过的表重新发信号，否则切换开关后图表会一直停在旧数字上）、`ledger_day_group.dart`（每天的收支小计）。
-  - **`accountListProvider` 永不过滤。** `ledgerCurrencyProvider` 靠**账户币种集合**推导；在这里滤掉被排除账户会让账本币种翻转，`850d60c` 修好的「头部对着 ¥1000 读 $0.00」会原样复活。回归测试是 `ledger_currency_test.dart` 里那条「an account out of the totals still decides the currency」。
+  - **`accountListProvider` 永不过滤。** 它返回全部账户（含被排除合计的与已归档的），因为账户管理与建账时的币种候选都需要完整集合；账本范围本身由**设置里的当前币种**决定（见「应用流程」），不再从账户集合推导 —— 在这里过滤不会、也不应影响账本币种。
   - 被排除账户的交易**仍然出现在账本列表里**，只是不进当天小计——所以一天的行加起来可能不等于那天的合计。这是刻意的：规则只有一条，代价是看得到的东西不一定算得进旁边的数字。
 - `LedgerProjectorImpl` 是唯一的投影写入方；每次 append 都在同一个数据库事务里驱动它。余额计算全部位于投影路径内部，由两个协作者分担：投影器维护 `accounts_view.balanceMinor`，`MonthlySnapshotProjectorImpl` 从锚点月份起按账户重算各月收入/支出/转账与期初、期末余额。投影路径之外任何地方都不重算余额。
 - `LedgerRebuildService` 在一个事务内从事件存储重建五个事件溯源视图（启动时若某视图的 projectionVersion 过期就执行；设置页有长按开发者入口）。过期判定只覆盖带 `projectionVersion` 列的四个视图 —— `transaction_postings_view` 没有该列，它的过期只能经由 `transactions_view` 间接发现。未知事件类型硬失败，并报出事件 id。
@@ -317,20 +317,20 @@ lib/shared/     跨特性的组件与扩展
   **播种里没有系统分类了**：余额用途有自己的 kind（ADR-0003），所以账本自己记的东西不再借用分类，seeder 也就不再预置那两条。老库里它们仍在（`categories_view` 里挂着 `systemCode`，被 `watchCategoriesByType` 从所有选择器与管理页滤掉），**没有生产者、也没有引用者**，但**不能删** —— `reversal*Id` 是 `projectedTransactionKind` 认出老记录的唯一凭据，删了会让历史上每一次余额更正重新变成收入。详见 `CategoryConstants` 上的注释。
   **分类名是播种时写进事件 payload**（`CategoryCreated.name`，并快照进 `transactions_view.category_name`）的，所以改 ARB 只影响新装，已有的库保留旧名。
   **顺序是承重的**：`applyPendingRestore` 必须早于任何 `appDatabaseProvider` 读取，否则替换会在活句柄下失败或更糟——成功。该函数之前不得读数据库或任何会读数据库的 provider。
-- **账本的币种由账户决定，不由显示偏好决定**：`ledgerCurrencyProvider` 取账户的币种（账户只有一个币种时
-  就是它，混合时才回退到偏好），头部、列表行、详情抽屉与检索页的货币符号**全部**经
-  `displayCurrencySymbolProvider` 跟它走 —— 不再有第二个答案。原因是**账户在建的时候跟随当时的偏好，
-  而偏好之后会变，且全程没有汇率换算** —— 按偏好去过滤总额，会把全部账户滤掉，于是账本明明有钱却显示
-  全 0（zh 语言环境下尤其容易：账户建的时候跟随偏好，`CurrencyController` 之后按系统 locale 解析出
-  另一个币种）。
-  **这个答案会变，而且第一次给出来时还是错的**：账户列表还在加载时 `ledgerCurrencyProvider` 答不出
-  「账本的币种」，于是回退到偏好，再回退到内建默认 USD。所以**任何消费它的流/订阅都必须 `ref.watch`，
-  不能 `ref.read`** —— 曾经 `LedgerViewModel` 手工订阅月度合计时 `ref.read` 了一次，于是 zh 语言的
-  全新安装在第一帧抓到 USD、随后第一个账户开在 CNY，头部就对着 ¥1000 的账本读 `$0.00`（收入/支出同一
-  个码、同样为 0），**只有切换月份能救**，因为那是唯一重新读一次的地方。现在合计是
-  `ledgerMonthlySummaryProvider(month)`：月份与币种都是 `ref.watch`，Riverpod 自己重订阅。
-  它的回归测试是 `test/unit/features/ledger/presentation/ledger_summary_currency_test.dart`
-  —— 把 `watch` 改回 `read` 它会失败（已变异验证过）。
+- **账本的币种由设置里的当前币种决定，不由账户集合决定**（spec 006）：`ledgerCurrencyProvider` 直接取
+  `currencyControllerProvider.value ?? default`，头部、列表行、详情抽屉、检索页与报表的货币符号全部经
+  `displayCurrencySymbolProvider` 跟它走 —— 不再有第二个答案。账户各自锁定创建时的币种且永不改变，
+  所以「账本范围」与「账户集合」是两个不同的维度：切到没有账户的币种时，账本列表与合计显示空态 +
+  建账户提示（账户仍可在账户管理里看到），这是刻意的，不是数据丢失。
+  **这个答案会变，而且第一次给出来时可能还是错的**：设置尚未解析时 `ledgerCurrencyProvider` 答不出
+  「账本的币种」，于是回退到内建默认 USD。所以**任何消费它的流/订阅都必须 `ref.watch`，不能 `ref.read`**
+  —— 曾经 `LedgerViewModel` 手工订阅月度合计时 `ref.read` 了一次，于是 zh 语言的全新安装在第一帧抓到
+  USD、随后设置解析成 CNY，头部就对着 ¥1000 的账本读 `$0.00`（收入/支出同一个码、同样为 0），**只有
+  切换月份能救**，因为那是唯一重新读一次的地方。现在合计是 `ledgerMonthlySummaryProvider(month)`：
+  月份与币种都是 `ref.watch`，Riverpod 自己重订阅。它的回归测试是
+  `test/unit/features/ledger/presentation/ledger_summary_currency_test.dart`（把 `watch` 改回 `read`
+  会失败，已变异验证过）与 `ledger_currency_test.dart`（「the setting decides, not the accounts」钉住
+  设置优先于账户集合）。
 - 路由：`StatefulShellRoute` 三个 tab —— `/ledger`、`/reports`、`/more`。`/ledger/add`、`/ledger/edit`、`/ledger/search` 推在根导航器上，前两者都指向 `TransactionFormScreen`；账本页的 app bar 只有搜索一个入口（FAB 保持直达 `/ledger/add`，三种 kind 都在那个表单里选）。`/accounts_management`、`/categories_management` 是顶层路由，也是这两种管理页**唯一**的路由（`/more/accounts`、`/more/categories` 已删：选择器里已经能到，More 只是一扇并列的门）。**从 More 点开的每一项都盖在 shell 之上、不共享底部导航栏**：`/more/settings` 与 `/more/about` 带 `parentNavigatorKey: _rootNavigatorKey`（与 `/ledger/add` 同一手法），管理页走的两个顶层路由本来就是。调用一律用 `push`，让返回能回到那个 tab。每项都带一行副标题说明它打开什么（`settingsHint` …）。`test/ui/features/settings/more_screen_test.dart` 用真实 router 跑这条线，**去掉 navigator key 它会失败**（已变异验证过）。
 - 账本状态：`LedgerViewModel`（keepAlive notifier）只持有选中月份与各账户余额 —— **月度合计不在它手里**，
   见上面那条；交易列表直接监听 `ledgerMonthlyTransactionsProvider(month)` family（经 `TransactionUiMapper` 映射，并按天分组 —— 两者都在 provider 内部完成，不在组件里；它把该月的**待入账**实例一并合进同一张表，同一天内已入账在前）。头部读 `ledgerMonthlySummaryProvider(month)`。三个头条数字里**只有两个属于该月**：收入与支出来自 `monthly_account_balance_snapshots`（与报表页同源），

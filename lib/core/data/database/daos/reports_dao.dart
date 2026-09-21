@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/money/money.dart';
 
 import '../app_database.dart';
 import '../tables.dart';
@@ -68,7 +69,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// transactions, not postings: DISTINCT keeps a joined transaction unique.
   /// Joining accounts also makes inclusion changes invalidate the stream.
   Stream<Map<DateTime, int>> watchDailyTransactionCounts(DateTime month,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     final start = DateTime(month.year, month.month - 2, 1);
     final end = DateTime(month.year, month.month + 1, 1);
     final query = selectOnly(transactionsView, distinct: true)
@@ -122,7 +123,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// table in the statement — without the account table in the query, toggling
   /// the flag would leave this chart stale until something else moved.
   Stream<Map<DateTime, int>> watchDailyTransactionAmounts(DateTime datetime,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     final start = DateTime(datetime.year, datetime.month - 2, 1);
     final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
@@ -160,7 +161,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// and reversed rows are excluded.
   Stream<List<ReportCategoryRow>> watchCategoryBreakdown(
       DateTime datetime, CategoryType type,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     final start = DateTime(datetime.year, datetime.month, 1);
     final end = DateTime(datetime.year, datetime.month + 1, 1)
         .subtract(const Duration(seconds: 1));
@@ -207,7 +208,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   /// projection, aggregated across accounts — but only the accounts that
   /// count toward the **ledger totals** (CONTEXT.md), hence the join.
   Stream<ReportMonthlyTotalsRow> watchMonthlyTotals(DateTime datetime,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     return (select(monthlyAccountBalanceSnapshots).join([
       innerJoin(accountsView,
           accountsView.id.equalsExp(monthlyAccountBalanceSnapshots.accountId)),

@@ -4,6 +4,7 @@ import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/reports_dao.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/domain/money/money.dart';
 
 import '../../domain/entities/reports_entities.dart';
 import '../../domain/repositories/reports_repository.dart';
@@ -22,14 +23,14 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
   @override
   Stream<Map<DateTime, int>> watchHeatmapFrequencyData(DateTime month,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     return _dao.watchDailyTransactionCounts(month,
         currencyCode: currencyCode);
   }
 
   @override
   Stream<Map<DateTime, int>> watchHeatmapAmountData(DateTime month,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     return _dao.watchDailyTransactionAmounts(month,
         currencyCode: currencyCode);
   }
@@ -37,7 +38,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
   @override
   Stream<List<ReportCategoryTotal>> watchCategoryBreakdown(
       DateTime month, CategoryType type,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     return _dao
         .watchCategoryBreakdown(month, type, currencyCode: currencyCode)
         .map((rows) {
@@ -60,7 +61,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
   @override
   Stream<ReportMonthlyTotals> watchMonthlyTotals(DateTime month,
-      {String currencyCode = 'USD'}) {
+      {String currencyCode = Money.defaultCurrencyCode}) {
     return _dao
         .watchMonthlyTotals(month, currencyCode: currencyCode)
         .map((row) => ReportMonthlyTotals(
