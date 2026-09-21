@@ -11,7 +11,9 @@ import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../models/transaction_tile_ui_model.dart';
+import '../../domain/entities/ledger_entities.dart';
 import 'ledger_delete_menu.dart';
+import 'recurring_mode_label.dart';
 
 class LedgerReceiptToolbar extends StatelessWidget {
   const LedgerReceiptToolbar({super.key, this.onEdit, this.onDelete});
@@ -57,17 +59,24 @@ class LedgerReceiptContent extends StatelessWidget {
       _ => Theme.of(context).colorScheme.onSurface,
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-            '${transaction.displaySign} $currencySymbol${transaction.displayAmount}',
-            style:
-                AppTypography.amountInput(context).copyWith(color: amountColor),
-            textAlign: TextAlign.center),
-      ),
-      if (status != null) ...[
+      Stack(alignment: Alignment.topRight, children: [
+        Padding(
+            padding:
+                EdgeInsets.only(top: status == null ? 0 : context.spacing.lg),
+            child: Center(
+                child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                  '${transaction.displaySign} $currencySymbol${transaction.displayAmount}',
+                  style: AppTypography.amountInput(context)
+                      .copyWith(color: amountColor),
+                  textAlign: TextAlign.center),
+            ))),
+        if (status != null) AppBadge(label: status!),
+      ]),
+      if (transaction.series case final series?) ...[
         SizedBox(height: context.spacing.sm),
-        Center(child: AppBadge(label: status!)),
+        Center(child: RecurringModeLabel(mode: series.mode)),
       ],
       SizedBox(height: context.spacing.md),
       if (transaction.category != null || transaction.type.isBalancePurpose)
@@ -83,6 +92,15 @@ class LedgerReceiptContent extends StatelessWidget {
           value: status == null
               ? DateFormat.yMMMMEEEEd(locale).format(transaction.date)
               : '${DateFormat.yMMMMEEEEd(locale).format(transaction.date)} ${DateFormat.Hm(locale).format(transaction.date)}'),
+      if (transaction.series case final series?) ...[
+        if (series.mode != RecurringSeriesMode.planned)
+          AppReceiptRow(
+              label: l10n.repeat,
+              value: _recurrenceLabel(series, l10n, locale)),
+        if (series.reminderMinutes case final minutes?)
+          AppReceiptRow(
+              label: l10n.reminder, value: l10n.reminderMinutesValue(minutes)),
+      ],
       if (transaction.type.isBalancePurpose)
         AppReceiptRow(
             label: l10n.transactionType,
@@ -104,6 +122,36 @@ class LedgerReceiptContent extends StatelessWidget {
                 .map((attachment) => attachment.fileName)
                 .join('\n')),
     ]);
+  }
+
+  String _recurrenceLabel(RecurringTransactionSeriesEntity series,
+      AppLocalizations l10n, String locale) {
+    final unit = switch (series.frequency.toUpperCase()) {
+      'DAILY' => l10n.frequencyDaily,
+      'WEEKLY' => l10n.frequencyWeekly,
+      'YEARLY' => l10n.frequencyYearly,
+      _ => l10n.frequencyMonthly,
+    };
+    final parts = <String>['${l10n.repeatEvery} ${series.interval ?? 1} $unit'];
+    final byDay = RegExp(r'(?:^|;)BYDAY=([^;]+)')
+        .firstMatch(series.rrule ?? '')
+        ?.group(1);
+    if (byDay != null) {
+      const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+      final days = byDay
+          .split(',')
+          .map((code) => codes.indexOf(code))
+          .where((day) => day >= 0);
+      parts.add(days
+          .map((day) => DateFormat.E(locale).format(DateTime(2024, 1, day + 1)))
+          .join(', '));
+    }
+    if (series.endDate case final end?) {
+      parts.add('${l10n.repeatUntil} ${DateFormat.yMMMd(locale).format(end)}');
+    } else if (series.limit case final count?) {
+      parts.add('${l10n.repeatCountPrefix} $count ${l10n.repeatCountSuffix}');
+    }
+    return parts.join(' · ');
   }
 
   String _purposeName(AppLocalizations l10n, TransactionKind type) =>

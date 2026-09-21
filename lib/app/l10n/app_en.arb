@@ -651,7 +651,7 @@
   "deleteRecurringTitle": "Delete recurring bill",
   "scopeThisOnly": "This bill",
   "saveRecurringTitle": "Save recurring bill",
-  "scopeThisOnlyUnavailable": "Category, account and note belong to the whole rule",
+  "scopeThisOnlyUnavailable": "Category, account, note and reminder belong to the whole rule",
   "scopeThisAndFollowing": "This and following bills",
   "scopeAll": "All bills",
   "scopeAllHint": "Bills already recorded are kept",

@@ -1,4 +1,5 @@
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -66,6 +67,8 @@ class UpdateRecurringBillCommand {
     required String categoryId,
     required String accountId,
     required String description,
+    bool changeReminder = false,
+    int? reminderMinutes,
   }) async {
     if (amountMinor <= 0) {
       throw const CommandRejected(
@@ -74,15 +77,22 @@ class UpdateRecurringBillCommand {
 
     final scheduled = await _requireScheduled(scheduledId);
     final series = await _requireSeries(scheduled.seriesId);
+    if (changeReminder &&
+        (scope == RecurringScope.thisOnly ||
+            (reminderMinutes != null && reminderMinutes <= 0))) {
+      throw const CommandRejected(LedgerErrorCode.invalidAmount,
+          'Reminder must be positive and applies to a series');
+    }
 
     // An edit is a real change only when one of the fields it can carry
     // actually differs — a no-op save must not flip eligibility (US32).
     final now = DateTime.now();
     final actuallyChanged = amountMinor != scheduled.amountMinor ||
-        !_sameDay(date, scheduled.date) ||
+        !date.isAtSameMomentAs(scheduled.date) ||
         categoryId != series.categoryId ||
         accountId != series.accountId ||
-        description != series.description;
+        description != series.description ||
+        (changeReminder && reminderMinutes != series.reminderMinutes);
 
     // A bill that was already due, or whose new date is in the past, turns
     // manual on a real edit (US32): auto-posting a bill the user just touched
@@ -109,11 +119,12 @@ class UpdateRecurringBillCommand {
     if (actuallyChanged &&
         wasDue &&
         !movedToPast &&
-        !_sameDay(date, scheduled.date) &&
+        !date.isAtSameMomentAs(scheduled.date) &&
         amountMinor == scheduled.amountMinor &&
         categoryId == series.categoryId &&
         accountId == series.accountId &&
-        description == series.description) {
+        description == series.description &&
+        (!changeReminder || reminderMinutes == series.reminderMinutes)) {
       rescheduledToFutureOnly =
           await _recurringRepository.isPendingRestoreCandidate(scheduledId);
     }
@@ -145,12 +156,10 @@ class UpdateRecurringBillCommand {
           categoryId: categoryId,
           accountId: accountId,
           description: description,
+          reminderMinutes: changeReminder ? Value(reminderMinutes) : null,
         );
         return shouldLatch
-            ? [
-                scheduledInstanceId(
-                    newSeriesId, _atTimeOf(date, scheduled.date))
-              ]
+            ? [scheduledInstanceId(newSeriesId, date)]
             : const [];
       case RecurringScope.all:
         await _context.resolveForKind(
@@ -166,12 +175,9 @@ class UpdateRecurringBillCommand {
           categoryId: categoryId,
           accountId: accountId,
           description: description,
+          reminderMinutes: changeReminder ? Value(reminderMinutes) : null,
         );
-        return shouldLatch
-            ? [
-                scheduledInstanceId(series.id, _atTimeOf(date, scheduled.date))
-              ]
-            : const [];
+        return shouldLatch ? [scheduledInstanceId(series.id, date)] : const [];
     }
   }
 
@@ -183,7 +189,7 @@ class UpdateRecurringBillCommand {
     required DateTime date,
     required bool shouldLatch,
   }) async {
-    if (_sameDay(scheduled.date, date)) {
+    if (scheduled.date.isAtSameMomentAs(date)) {
       // Same day: the row keeps its identity, so the amount moves in place.
       await _recurringRepository.insertOrUpdateScheduled(_row(
         scheduled,
@@ -193,17 +199,16 @@ class UpdateRecurringBillCommand {
       return;
     }
 
-    // The picker hands back a day; the bill carries the series' clock time.
-    // Keeping that time is not cosmetic — it is what makes the moved row's id
-    // the same one the rule would derive for that day, so the collision check
-    // below compares like with like.
-    final moved = _atTimeOf(date, scheduled.date);
+    final moved = date;
 
     // A new day means a new row. Ids encode the date and materialization
     // recomputes them, so reusing the old id would leave a row that the rule
     // counts at its old date *and* re-creates at the new one.
     final movedId = scheduledInstanceId(scheduled.seriesId, moved);
-    if (await _recurringRepository.getScheduled(movedId) != null) {
+    final rows =
+        await _recurringRepository.scheduledForSeries(scheduled.seriesId);
+    if (rows
+        .any((row) => row.id != scheduled.id && _sameDay(row.date, moved))) {
       throw const CommandRejected(LedgerErrorCode.scheduledDateTaken,
           'This series already has a bill on that date');
     }
@@ -222,7 +227,7 @@ class UpdateRecurringBillCommand {
         amountMinor: Value(amountMinor),
         status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
         transactionId: const Value(null),
-        autoPostEligible: Value(!shouldLatch),
+        autoPostEligible: Value(scheduled.autoPostEligible && !shouldLatch),
       ),
     );
 
@@ -245,12 +250,11 @@ class UpdateRecurringBillCommand {
     required String categoryId,
     required String accountId,
     required String description,
+    Value<int?>? reminderMinutes,
   }) async {
     final cut = scheduled.date;
     final newSeriesId = const Uuid().v4();
-    // Same clock time as the rule being replaced, so the new bills land on
-    // the same part of the day as the old ones did.
-    final restart = _atTimeOf(date, cut);
+    final restart = date;
     final shift = _daysBetween(cut, restart);
 
     // Capture the bills the split would orphan before they go: their latch
@@ -299,7 +303,8 @@ class UpdateRecurringBillCommand {
       type: series.type,
       // The split is an edit of the same subscription, not a new series.
       autoPost: Value(series.autoPost),
-      reminderMinutes: Value(series.reminderMinutes),
+      mode: Value(series.mode),
+      reminderMinutes: reminderMinutes ?? Value(series.reminderMinutes),
     ));
 
     // A bill the old rule already recorded must not be billed again by the
@@ -330,10 +335,9 @@ class UpdateRecurringBillCommand {
     // itself skips that month, so the manual bill must too (spec 006: 月末
     // 缺失日期不按生成序号对应).
     for (final row in manualRows) {
-      final moved = _addDays(row.date, shift);
-      final newDate = _samePeriod(row.date, moved, series.frequency)
-          ? moved
-          : row.date;
+      final moved = _atTimeOf(_addDays(row.date, shift), restart);
+      final newDate =
+          _samePeriod(row.date, moved, series.frequency) ? moved : row.date;
       await _recurringRepository.insertOrUpdateScheduled(
         ScheduledTransactionsViewCompanion(
           id: Value(scheduledInstanceId(newSeriesId, newDate)),
@@ -352,10 +356,9 @@ class UpdateRecurringBillCommand {
     // leaves an orphaned id. Record a redirect so a notification shown before
     // the split still resolves to the same occurrence (spec 006, US45).
     for (final row in scheduledRows) {
-      final moved = _addDays(row.date, shift);
-      final newDate = _samePeriod(row.date, moved, series.frequency)
-          ? moved
-          : row.date;
+      final moved = _atTimeOf(_addDays(row.date, shift), restart);
+      final newDate =
+          _samePeriod(row.date, moved, series.frequency) ? moved : row.date;
       await _recurringRepository.recordScheduledRedirect(
         row.id,
         newId: scheduledInstanceId(newSeriesId, newDate),
@@ -379,7 +382,55 @@ class UpdateRecurringBillCommand {
     required String categoryId,
     required String accountId,
     required String description,
+    Value<int?>? reminderMinutes,
   }) async {
+    if (series.mode == RecurringSeriesMode.planned) {
+      final rows = await _recurringRepository.scheduledForSeries(series.id);
+      final newId = scheduledInstanceId(series.id, date);
+      if (rows.any((row) =>
+          row.id == newId &&
+          decodeScheduledStatus(row.status) ==
+              ScheduledTransactionStatus.posted)) {
+        throw const CommandRejected(LedgerErrorCode.scheduledDateTaken,
+            'This series already has a recorded bill on that date');
+      }
+      await _recurringRepository.saveSeries(_series(
+        series,
+        startDate: date,
+        endDate: Value(date),
+        rrule: CreateRecurringSeriesCommand.rruleText(
+          frequency: series.frequency,
+          interval: series.interval ?? 1,
+          endDate: date,
+        ),
+        amountMinor: amountMinor,
+        categoryId: categoryId,
+        accountId: accountId,
+        description: description,
+        reminderMinutes: reminderMinutes,
+      ));
+      await _recurringRepository.deletePending(series.id);
+      await _recurringRepository.insertOrUpdateScheduled(
+        ScheduledTransactionsViewCompanion(
+          id: Value(newId),
+          seriesId: Value(series.id),
+          date: Value(date),
+          amountMinor: Value(amountMinor),
+          status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
+          transactionId: const Value(null),
+          autoPostEligible: Value(scheduled.autoPostEligible),
+        ),
+      );
+      for (final row in rows) {
+        if (row.id != newId &&
+            decodeScheduledStatus(row.status) ==
+                ScheduledTransactionStatus.scheduled) {
+          await _recurringRepository.recordScheduledRedirect(row.id,
+              newId: newId);
+        }
+      }
+      return;
+    }
     // Moving this bill's date moves the whole schedule by the same number of
     // days, so the rent that came on the 22nd comes on the 25th from now on.
     final shift = _daysBetween(scheduled.date, date);
@@ -392,12 +443,13 @@ class UpdateRecurringBillCommand {
     await _recurringRepository.saveSeries(
       _series(
         series,
-        startDate: _addDays(series.startDate, shift),
+        startDate: _atTimeOf(_addDays(series.startDate, shift), date),
         rrule: _shiftWeekdays(series.rrule, shift),
         amountMinor: amountMinor,
         categoryId: categoryId,
         accountId: accountId,
         description: description,
+        reminderMinutes: reminderMinutes,
       ),
     );
 
@@ -406,7 +458,7 @@ class UpdateRecurringBillCommand {
     await _recurringRepository.deleteAllScheduledForSeries(series.id);
 
     for (final row in instances) {
-      final movedDate = _addDays(row.date, shift);
+      final movedDate = _atTimeOf(_addDays(row.date, shift), date);
 
       if (decodeScheduledStatus(row.status) ==
           ScheduledTransactionStatus.posted) {
@@ -415,7 +467,7 @@ class UpdateRecurringBillCommand {
         // again. Rebuild the posted row in place; when the schedule moved,
         // tombstone the shifted date so materialization leaves it alone.
         await _recurringRepository.insertOrUpdateScheduled(_row(row));
-        if (shift != 0) {
+        if (!movedDate.isAtSameMomentAs(row.date)) {
           await _recurringRepository.insertOrUpdateScheduled(
             ScheduledTransactionsViewCompanion(
               id: Value(scheduledInstanceId(series.id, movedDate)),
@@ -504,6 +556,7 @@ class UpdateRecurringBillCommand {
     String? categoryId,
     String? accountId,
     String? description,
+    Value<int?>? reminderMinutes,
   }) =>
       RecurringSeriesCompanion(
         id: Value(series.id),
@@ -519,7 +572,8 @@ class UpdateRecurringBillCommand {
         accountId: Value(accountId ?? series.accountId),
         type: Value(series.type),
         autoPost: Value(series.autoPost),
-        reminderMinutes: Value(series.reminderMinutes),
+        mode: Value(series.mode),
+        reminderMinutes: reminderMinutes ?? Value(series.reminderMinutes),
       );
 
   static String _shiftWeekdays(String rule, int shift) {

@@ -1196,7 +1196,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeThisOnlyUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Category, account and note belong to the whole rule'**
+  /// **'Category, account, note and reminder belong to the whole rule'**
   String get scopeThisOnlyUnavailable;
 
   /// No description provided for @scopeThisAndFollowing.

@@ -608,7 +608,7 @@
   "deleteRecurringTitle": "删除周期账单",
   "scopeThisOnly": "该项记录",
   "saveRecurringTitle": "保存周期账单",
-  "scopeThisOnlyUnavailable": "分类、账户和备注属于整条规则",
+  "scopeThisOnlyUnavailable": "分类、账户、备注和提醒属于整条规则",
   "scopeThisAndFollowing": "该项记录和后续记录",
   "scopeAll": "所有记录",
   "scopeAllHint": "已经入账的记录会保留",

@@ -608,7 +608,7 @@
   "deleteRecurringTitle": "刪除週期帳單",
   "scopeThisOnly": "該項記錄",
   "saveRecurringTitle": "保存週期帳單",
-  "scopeThisOnlyUnavailable": "分類、帳戶和備註屬於整條規則",
+  "scopeThisOnlyUnavailable": "分類、帳戶、備註和提醒屬於整條規則",
   "scopeThisAndFollowing": "該項記錄和後續記錄",
   "scopeAll": "所有記錄",
   "scopeAllHint": "已經入帳的記錄會保留",

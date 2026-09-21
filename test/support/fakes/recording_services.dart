@@ -252,6 +252,8 @@ class RecordingRecurringService implements RecurringService {
     required String categoryId,
     required String accountId,
     required String description,
+    bool changeReminder = false,
+    int? reminderMinutes,
   }) async =>
       unitResult;
 

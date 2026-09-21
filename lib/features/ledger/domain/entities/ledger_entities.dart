@@ -121,7 +121,8 @@ class TransactionEntity {
       toAccount: toAccount ?? this.toAccount,
       isReversed: isReversed ?? this.isReversed,
       eventId: eventId ?? this.eventId,
-      sourceScheduledBillId: sourceScheduledBillId ?? this.sourceScheduledBillId,
+      sourceScheduledBillId:
+          sourceScheduledBillId ?? this.sourceScheduledBillId,
     );
   }
 }
@@ -203,6 +204,7 @@ class RecurringTransactionSeriesEntity {
   final String categoryId;
   final String accountId;
   final String frequency; // e.g., 'monthly', 'weekly'
+  final String? rrule;
   final DateTime startDate;
   final DateTime? endDate;
   final int? interval; // e.g., every '2' months
@@ -226,6 +228,7 @@ class RecurringTransactionSeriesEntity {
     required this.categoryId,
     required this.accountId,
     required this.frequency,
+    this.rrule,
     required this.startDate,
     this.endDate,
     this.interval,

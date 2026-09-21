@@ -564,7 +564,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get saveRecurringTitle => '保存周期账单';
 
   @override
-  String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
+  String get scopeThisOnlyUnavailable => '分类、账户、备注和提醒属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '该项记录和后续记录';
@@ -1465,7 +1465,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get saveRecurringTitle => '保存周期账单';
 
   @override
-  String get scopeThisOnlyUnavailable => '分类、账户和备注属于整条规则';
+  String get scopeThisOnlyUnavailable => '分类、账户、备注和提醒属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '该项记录和后续记录';
@@ -2366,7 +2366,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get saveRecurringTitle => '保存週期帳單';
 
   @override
-  String get scopeThisOnlyUnavailable => '分類、帳戶和備註屬於整條規則';
+  String get scopeThisOnlyUnavailable => '分類、帳戶、備註和提醒屬於整條規則';
 
   @override
   String get scopeThisAndFollowing => '該項記錄和後續記錄';

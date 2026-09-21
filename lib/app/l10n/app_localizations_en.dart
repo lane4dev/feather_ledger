@@ -580,7 +580,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scopeThisOnlyUnavailable =>
-      'Category, account and note belong to the whole rule';
+      'Category, account, note and reminder belong to the whole rule';
 
   @override
   String get scopeThisAndFollowing => 'This and following bills';

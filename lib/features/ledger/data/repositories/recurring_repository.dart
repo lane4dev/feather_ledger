@@ -195,10 +195,8 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
-  Future<void> setAutomaticPostingMemberResult(
-          String batchId,
-          String scheduledId,
-          AutomaticPostingMemberResult result) =>
+  Future<void> setAutomaticPostingMemberResult(String batchId,
+          String scheduledId, AutomaticPostingMemberResult result) =>
       _recurringDao.setAutomaticPostingMemberResult(
           batchId, scheduledId, result.name);
 
@@ -233,8 +231,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
       _recurringDao.isAutomaticPostingMember(scheduledId);
 
   @override
-  Future<String> createRestoreConfirmationBatch(
-      DateTime backupExportedAt,
+  Future<String> createRestoreConfirmationBatch(DateTime backupExportedAt,
       {DateTime? createdAt}) async {
     final id = 'restore-${backupExportedAt.millisecondsSinceEpoch}';
     await _recurringDao.createRestoreConfirmationBatch(
@@ -256,7 +253,8 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
-  Future<List<RestoreConfirmationBatch>> pendingRestoreConfirmationBatches() async {
+  Future<List<RestoreConfirmationBatch>>
+      pendingRestoreConfirmationBatches() async {
     final rows = await _recurringDao.pendingRestoreConfirmationBatches();
     return rows.map(_toRestoreConfirmationBatch).toList();
   }
@@ -270,7 +268,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
 
   @override
   Future<void> updateRestoreConfirmationStatus(
-          String id, RestoreConfirmationStatus status) async {
+      String id, RestoreConfirmationStatus status) async {
     await _recurringDao.updateRestoreConfirmationStatus(id, status.name);
   }
 
@@ -349,6 +347,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         accountId: row.accountId,
         type: row.type,
         frequency: row.frequency,
+        rrule: row.rrule,
         interval: row.interval,
         limit: row.countLimit,
         autoPost: row.autoPost,

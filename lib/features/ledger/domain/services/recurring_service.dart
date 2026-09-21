@@ -147,6 +147,8 @@ class RecurringService {
     required String categoryId,
     required String accountId,
     required String description,
+    bool changeReminder = false,
+    int? reminderMinutes,
   }) {
     return guard(() async {
       final toLatch = await _updateBill.execute(
@@ -157,6 +159,8 @@ class RecurringService {
         categoryId: categoryId,
         accountId: accountId,
         description: description,
+        changeReminder: changeReminder,
+        reminderMinutes: reminderMinutes,
       );
       // The series scopes drop rows and expect them back at their new dates;
       // materialization is what puts them there.
@@ -337,10 +341,8 @@ class RecurringService {
       final currency = c.account?.currencyCode;
       return _policy.isEligible(
         mode: mode,
-        switchEnabled:
-            mode == null ? false : prefs.getAutoPostEnabled(mode),
-        enabledSince:
-            mode == null ? null : prefs.getAutoPostEnabledSince(mode),
+        switchEnabled: mode == null ? false : prefs.getAutoPostEnabled(mode),
+        enabledSince: mode == null ? null : prefs.getAutoPostEnabledSince(mode),
         currencyActiveSince:
             currency == null ? null : prefs.getCurrencyActiveSince(currency),
         due: c.date,
@@ -369,10 +371,8 @@ class RecurringService {
       final instance = byId[member.scheduledId];
       if (instance == null) {
         // The bill was deleted outright — count it as user-handled.
-        await _watchScheduled.setAutomaticPostingMemberResult(
-            member.batchId,
-            member.scheduledId,
-            AutomaticPostingMemberResult.userHandled);
+        await _watchScheduled.setAutomaticPostingMemberResult(member.batchId,
+            member.scheduledId, AutomaticPostingMemberResult.userHandled);
         continue;
       }
       final result = await _settleMember(
@@ -407,16 +407,14 @@ class RecurringService {
     final decision = _policy.decideCatchUp(
       mode: mode,
       switchEnabled: mode == null ? false : prefs.getAutoPostEnabled(mode),
-      enabledSince:
-          mode == null ? null : prefs.getAutoPostEnabledSince(mode),
+      enabledSince: mode == null ? null : prefs.getAutoPostEnabledSince(mode),
       currencyActiveSince:
           currency == null ? null : prefs.getCurrencyActiveSince(currency),
       billCurrency: currency,
       currentCurrency: currentCurrency,
       due: instance.date,
       latchedManual: !instance.autoPostEligible,
-      insideRestoreWindow:
-          pendingRestore?.contains(instance.date) ?? false,
+      insideRestoreWindow: pendingRestore?.contains(instance.date) ?? false,
     );
 
     switch (decision) {
@@ -446,7 +444,6 @@ class RecurringService {
         return AutomaticPostingMemberResult.manual;
     }
   }
-
 }
 
 @riverpod

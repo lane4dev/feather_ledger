@@ -117,8 +117,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     final categoriesAsync = ref.watch(categoryListProvider(state.categoryType));
     final accountsAsync = ref.watch(accountUiListProvider);
-    final currencyKey = state.currencyCode ??
-        AppCurrencies.supportedCurrencyCodes.first;
+    final currencyKey =
+        state.currencyCode ?? AppCurrencies.supportedCurrencyCodes.first;
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -182,10 +182,20 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 // itself further down, under the account it happened in.
                 if (!state.isBalancePurpose)
                   _inset(
-                    LedgerTypeSelector(
-                      selectedType: state.type,
-                      onSelectionChanged: vm.setType,
-                    ),
+                    state.isEditing
+                        ? Text(
+                            switch (state.type) {
+                              TransactionKind.income => l10n.income,
+                              TransactionKind.expense => l10n.expense,
+                              TransactionKind.transfer => l10n.transfer,
+                              _ => '',
+                            },
+                            style: Theme.of(context).textTheme.titleMedium,
+                          )
+                        : LedgerTypeSelector(
+                            selectedType: state.type,
+                            onSelectionChanged: vm.setType,
+                          ),
                   ),
                 SizedBox(height: context.spacing.xl),
 

@@ -83,6 +83,7 @@ class TransactionUiMapper {
       displaySign: kind == TransactionKind.income ? '+' : '-',
       isPending: true,
       seriesId: e.seriesId,
+      series: e.recurringTransactionSeries,
     );
   }
 }

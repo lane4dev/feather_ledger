@@ -181,7 +181,8 @@ void main() {
     Future<void> pumpForm(WidgetTester tester,
         {String currencyCode = 'USD',
         double bottomInset = 0,
-        double textScale = 1}) async {
+        double textScale = 1,
+        RecurringSeriesMode? mode}) async {
       final account = AccountEntity(
           id: cash.id,
           name: cash.name,
@@ -201,7 +202,23 @@ void main() {
           displayAmount: tile.displayAmount,
           displaySign: tile.displaySign,
           isPending: true,
-          seriesId: tile.seriesId);
+          seriesId: tile.seriesId,
+          series: mode == null
+              ? null
+              : RecurringTransactionSeriesEntity(
+                  id: 'series_1',
+                  description: 'Rent',
+                  amountMinor: tile.amount,
+                  type: RecurringSeriesKind.expense,
+                  categoryId: rent.id,
+                  accountId: cash.id,
+                  frequency: 'MONTHLY',
+                  startDate: tile.date,
+                  endDate:
+                      mode == RecurringSeriesMode.planned ? tile.date : null,
+                  autoPost: mode == RecurringSeriesMode.subscription,
+                  mode: mode,
+                ));
 
       final router = GoRouter(
         initialLocation: '/ledger/edit-bill',
@@ -255,6 +272,26 @@ void main() {
     Future<void> save(WidgetTester tester) async {
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
+    }
+
+    testWidgets('planned bill saves directly without a scope dialog',
+        (tester) async {
+      await pumpForm(tester, mode: RecurringSeriesMode.planned);
+      await save(tester);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(viewModel.updated, [('sched_1', RecurringScope.all, 500000)]);
+    });
+
+    for (final mode in [
+      RecurringSeriesMode.subscription,
+      RecurringSeriesMode.repeating
+    ]) {
+      testWidgets('$mode asks for the scope before saving', (tester) async {
+        await pumpForm(tester, mode: mode);
+        await save(tester);
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(viewModel.updated, isEmpty);
+      });
     }
 
     Future<void> enterAmount(WidgetTester tester, String amount) async {
@@ -496,6 +533,8 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
     required String categoryId,
     required String accountId,
     required String description,
+    bool changeReminder = false,
+    int? reminderMinutes,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     updated.add((scheduledId, scope, amountMinor));

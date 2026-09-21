@@ -269,13 +269,15 @@ void main() {
       autoPost: false,
     );
 
-    final usd =
-        await harness.recurringService.watchScheduled(currencyCode: 'USD').first;
+    final usd = await harness.recurringService
+        .watchScheduled(currencyCode: 'USD')
+        .first;
     expect(usd, isNotEmpty);
     expect(usd.every((s) => s.account?.currencyCode == 'USD'), isTrue);
 
-    final cny =
-        await harness.recurringService.watchScheduled(currencyCode: 'CNY').first;
+    final cny = await harness.recurringService
+        .watchScheduled(currencyCode: 'CNY')
+        .first;
     expect(cny, isNotEmpty);
     expect(cny.every((s) => s.account?.currencyCode == 'CNY'), isTrue);
   });
@@ -749,6 +751,111 @@ void main() {
     expect(backOnOldDate, isEmpty);
   });
 
+  test('changing one bill time survives materialization', () async {
+    await seed();
+    await createMonthly();
+    final original = await firstScheduled();
+    final moved = original.date.add(const Duration(hours: 1));
+    final result =
+        await editBill(original, scope: RecurringScope.thisOnly, date: moved);
+    expect(result, isA<Success<void>>());
+    await harness.recurringService.materialize();
+    final rows = await scheduled();
+    expect(
+        rows.where((row) =>
+            row.id == original.id &&
+            row.status == ScheduledTransactionStatus.scheduled),
+        isEmpty);
+    expect(
+        rows.where((row) =>
+            row.date == moved &&
+            row.status == ScheduledTransactionStatus.scheduled),
+        hasLength(1));
+    final tombstone = await harness.db.recurringDao.getScheduled(original.id);
+    expect(tombstone!.status, 'skipped');
+  });
+
+  test('editing a series reminder keeps its mode across a split', () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+    final result = await harness.recurringService.updateBill(
+      instance.id,
+      scope: RecurringScope.thisAndFollowing,
+      amountMinor: instance.amountMinor,
+      date: instance.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Rent',
+      changeReminder: true,
+      reminderMinutes: 30,
+    );
+    expect(result, isA<Success<void>>());
+    final rows = await harness.db.recurringDao.getAllSeries();
+    final updated = rows.singleWhere((row) => row.id != instance.seriesId);
+    expect(updated.reminderMinutes, 30);
+    expect(updated.mode, RecurringSeriesMode.repeating);
+  });
+
+  test('changing a series time moves its pending bills without duplicates',
+      () async {
+    await seed();
+    await createMonthly();
+    final original = await firstScheduled();
+    final moved = original.date.add(const Duration(hours: 1));
+    final result =
+        await editBill(original, scope: RecurringScope.all, date: moved);
+    expect(result, isA<Success<void>>());
+    await harness.recurringService.materialize();
+    final pending = (await scheduled())
+        .where((row) => row.status == ScheduledTransactionStatus.scheduled)
+        .toList();
+    expect(pending.where((row) => row.date == original.date), isEmpty);
+    expect(pending.where((row) => row.date == moved), hasLength(1));
+    expect(pending.every((row) => row.date.hour == moved.hour), isTrue);
+  });
+
+  test('editing a one-shot plan moves its rule and its only pending bill',
+      () async {
+    await seed();
+    final start = DateTime(2027, 2, 10, 9);
+    final moved = DateTime(2027, 4, 15, 14, 30);
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 50000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Rent',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: start,
+      endDate: start,
+      mode: RecurringSeriesMode.planned,
+    );
+    final bill = await firstScheduled();
+    final result = await harness.recurringService.updateBill(bill.id,
+        scope: RecurringScope.all,
+        amountMinor: 60000,
+        date: moved,
+        categoryId: expenseCategoryId,
+        accountId: accountId,
+        description: 'Updated',
+        changeReminder: true,
+        reminderMinutes: 30);
+    expect(result, isA<Success<void>>());
+    await harness.recurringService.materialize();
+    final series = await seriesRow();
+    expect(series.startDate, moved);
+    expect(series.endDate, moved);
+    expect(series.reminderMinutes, 30);
+    final pending = (await scheduled())
+        .where((row) => row.status == ScheduledTransactionStatus.scheduled)
+        .toList();
+    expect(pending, hasLength(1));
+    expect(pending.single.date, moved);
+    expect(pending.single.amountMinor, 60000);
+  });
+
   test('moving a bill onto a day that already has one is refused', () async {
     await seed();
     await createMonthly();
@@ -850,8 +957,8 @@ void main() {
     // The Apr 1 manual bill rides into the new series at its shifted date,
     // still manual — the split must not re-derive its eligibility fresh.
     final moved = (await scheduled())
-        .where((s) =>
-            s.date.year == 2026 && s.date.month == 4 && s.date.day == 3)
+        .where(
+            (s) => s.date.year == 2026 && s.date.month == 4 && s.date.day == 3)
         .toList();
     expect(moved, hasLength(1));
     expect(moved.single.autoPostEligible, isFalse,
@@ -1146,7 +1253,8 @@ void main() {
 
   // — 自动入账资格（ticket 31）———————————————————————————————————————
 
-  test('a due bill that fell due before its switch turned on is latched '
+  test(
+      'a due bill that fell due before its switch turned on is latched '
       'manual and never retro-posts', () async {
     // Subscription switch OFF (the default) while the bill is already due.
     await restartHarness(
@@ -1164,17 +1272,15 @@ void main() {
 
     // Still scheduled, but latched permanently manual.
     expect(
-        (await scheduled())
-            .where((i) => dueIds.contains(i.id))
-            .every((i) =>
-                i.status == ScheduledTransactionStatus.scheduled &&
-                !i.autoPostEligible),
+        (await scheduled()).where((i) => dueIds.contains(i.id)).every((i) =>
+            i.status == ScheduledTransactionStatus.scheduled &&
+            !i.autoPostEligible),
         isTrue,
         reason: 'due while the switch was off = manual, and the latch sticks');
 
     // Turn the 订阅 switch ON — the boundary is now — and try again.
-    await (harness.preferences!).setAutoPostEnabled(
-        RecurringSeriesMode.subscription, true);
+    await (harness.preferences!)
+        .setAutoPostEnabled(RecurringSeriesMode.subscription, true);
     final eventsBefore = (await harness.eventStore.readAll()).events.length;
     await harness.recurringService.catchUpAutoPosted();
 
@@ -1191,8 +1297,8 @@ void main() {
       () async {
     final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
     await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    final boundary = prefs.getAutoPostEnabledSince(
-        RecurringSeriesMode.subscription)!;
+    final boundary =
+        prefs.getAutoPostEnabledSince(RecurringSeriesMode.subscription)!;
 
     await restartHarness(autoPostEnabled: true, preferences: prefs);
     await seed();
@@ -1214,8 +1320,8 @@ void main() {
 
     await harness.recurringService.catchUpAutoPosted();
 
-    final due = (await scheduled())
-        .where((i) => !i.date.isAfter(DateTime.now()));
+    final due =
+        (await scheduled()).where((i) => !i.date.isAfter(DateTime.now()));
     expect(due, isNotEmpty, reason: 'fixture precondition');
     expect(
         due.every((i) =>
@@ -1230,8 +1336,7 @@ void main() {
     await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
     // The bill's currency only became current a day after the bill was due.
     final due = DateTime.now().subtract(const Duration(days: 10));
-    await prefs.setCurrencyActiveSince(
-        'USD', due.add(const Duration(days: 1)));
+    await prefs.setCurrencyActiveSince('USD', due.add(const Duration(days: 1)));
 
     await restartHarness(autoPostEnabled: true, preferences: prefs);
     await seed();
@@ -1254,11 +1359,9 @@ void main() {
 
     final instances = await scheduled();
     expect(
-        instances
-            .where((i) => !i.date.isAfter(DateTime.now()))
-            .every((i) =>
-                i.status == ScheduledTransactionStatus.scheduled &&
-                !i.autoPostEligible),
+        instances.where((i) => !i.date.isAfter(DateTime.now())).every((i) =>
+            i.status == ScheduledTransactionStatus.scheduled &&
+            !i.autoPostEligible),
         isTrue,
         reason: 'due before its currency became current = manual');
   });
@@ -1287,8 +1390,8 @@ void main() {
     final eventsBefore = (await harness.eventStore.readAll()).events.length;
     await harness.recurringService.catchUpAutoPosted();
 
-    final due = (await scheduled())
-        .where((i) => !i.date.isAfter(DateTime.now()));
+    final due =
+        (await scheduled()).where((i) => !i.date.isAfter(DateTime.now()));
     expect(due, isNotEmpty, reason: 'fixture precondition');
     expect(
         due.every((i) =>
@@ -1302,7 +1405,8 @@ void main() {
 
   // — 自动入账资格（ticket 32：创建与编辑）——————————————————————————
 
-  test('a series created already past its first due date latches those bills '
+  test(
+      'a series created already past its first due date latches those bills '
       'manual', () async {
     await seed();
     await createMonthly();
@@ -1314,9 +1418,11 @@ void main() {
     expect(future, isNotEmpty, reason: 'fixture precondition');
 
     expect(past.every((i) => !i.autoPostEligible), isTrue,
-        reason: 'already due at creation = manual, and it must never retro-post');
+        reason:
+            'already due at creation = manual, and it must never retro-post');
     expect(future.every((i) => i.autoPostEligible), isTrue,
-        reason: 'a bill that was not yet due at creation keeps its eligibility');
+        reason:
+            'a bill that was not yet due at creation keeps its eligibility');
   });
 
   test('editing a still-future bill keeps its auto-post eligibility', () async {
@@ -1324,7 +1430,8 @@ void main() {
     await createFutureMonthly();
     final instance = await firstScheduled();
 
-    await editBill(instance, scope: RecurringScope.thisOnly, amountMinor: 60000);
+    await editBill(instance,
+        scope: RecurringScope.thisOnly, amountMinor: 60000);
 
     final row = await harness.db.recurringDao.getScheduled(instance.id);
     expect(row!.autoPostEligible, isTrue,
@@ -1334,8 +1441,8 @@ void main() {
   test('editing an already-due bill turns it manual', () async {
     await seed();
     await createMonthly();
-    final due = (await scheduled())
-        .firstWhere((i) => !i.date.isAfter(DateTime.now()));
+    final due =
+        (await scheduled()).firstWhere((i) => !i.date.isAfter(DateTime.now()));
     await rearmEligible(due.id);
 
     await editBill(due, scope: RecurringScope.thisOnly, amountMinor: 60000);
@@ -1348,8 +1455,8 @@ void main() {
   test('a no-op save does not flip eligibility', () async {
     await seed();
     await createMonthly();
-    final due = (await scheduled())
-        .firstWhere((i) => !i.date.isAfter(DateTime.now()));
+    final due =
+        (await scheduled()).firstWhere((i) => !i.date.isAfter(DateTime.now()));
     await rearmEligible(due.id);
 
     await editBill(due,
@@ -1373,7 +1480,8 @@ void main() {
 
     final rows = await harness.db.recurringDao.watchAllScheduled().first;
     final moved = rows.firstWhere((r) =>
-        decodeScheduledStatus(r.status) == ScheduledTransactionStatus.scheduled &&
+        decodeScheduledStatus(r.status) ==
+            ScheduledTransactionStatus.scheduled &&
         !r.date.isAfter(DateTime.now()));
     expect(moved.autoPostEligible, isFalse,
         reason: 'a bill moved into the past must never auto-post');
@@ -1383,18 +1491,21 @@ void main() {
     final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
     // The wall clock was last seen a day in the future — the next decision
     // reads *earlier*, which is evidence of a rollback.
-    await prefs.setLastSeenWallClock(DateTime.now().add(const Duration(days: 1)));
+    await prefs
+        .setLastSeenWallClock(DateTime.now().add(const Duration(days: 1)));
 
     await restartHarness(preferences: prefs);
     await seed();
     await createFutureMonthly();
     final instance = await firstScheduled();
 
-    await editBill(instance, scope: RecurringScope.thisOnly, amountMinor: 60000);
+    await editBill(instance,
+        scope: RecurringScope.thisOnly, amountMinor: 60000);
 
     final row = await harness.db.recurringDao.getScheduled(instance.id);
     expect(row!.autoPostEligible, isFalse,
-        reason: 'unreliable due/not-due ordering makes the touched bill manual');
+        reason:
+            'unreliable due/not-due ordering makes the touched bill manual');
   });
 
   group('通知重定向（ticket 46）', () {
@@ -1411,11 +1522,12 @@ void main() {
         DateTime(newDate.year, newDate.month, newDate.day, instance.date.hour,
             instance.date.minute, instance.date.second),
       );
-      final redirect =
-          await harness.recurringRepository.resolveScheduledRedirect(instance.id);
+      final redirect = await harness.recurringRepository
+          .resolveScheduledRedirect(instance.id);
       expect(redirect, isNotNull);
       expect(redirect!.newId, movedId,
-          reason: 'a notification shown before the move must reach the new date');
+          reason:
+              'a notification shown before the move must reach the new date');
     });
 
     test('deleting one bill records a persistent deleted redirect', () async {
@@ -1429,8 +1541,7 @@ void main() {
 
       var redirect =
           await harness.recurringRepository.resolveScheduledRedirect(oldId);
-      expect(redirect!.newId, isNull,
-          reason: 'the bill is gone, not moved');
+      expect(redirect!.newId, isNull, reason: 'the bill is gone, not moved');
 
       // The record is a DB row (not in-memory state), so a real restart and
       // restore both keep it — the acceptance is about the table persisting.

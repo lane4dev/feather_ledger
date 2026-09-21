@@ -1,5 +1,6 @@
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
 class TransactionTileUiModel {
@@ -29,6 +30,7 @@ class TransactionTileUiModel {
   /// The series a pending bill belongs to, so it can be posted, skipped or
   /// switched off from the row. Null for anything already recorded.
   final String? seriesId;
+  final RecurringTransactionSeriesEntity? series;
 
   const TransactionTileUiModel({
     required this.id,
@@ -44,5 +46,6 @@ class TransactionTileUiModel {
     required this.displaySign,
     this.isPending = false,
     this.seriesId,
+    this.series,
   });
 }
