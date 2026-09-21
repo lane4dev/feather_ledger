@@ -573,25 +573,16 @@ void main() {
       expect(vm.state.repeat, 'MONTHLY',
           reason: 'the row cannot show "does not repeat" — the mode said it does');
 
-      vm.setMode(TransactionFormMode.subscription);
-      expect(vm.state.repeat, 'MONTHLY', reason: 'a series mode keeps its rule');
+      vm.setMode(TransactionFormMode.planned);
+      expect(vm.state.repeat, TransactionFormViewState.repeatNever,
+          reason: 'a planned entry is one-shot and has no frequency to carry');
+
+      vm.setMode(TransactionFormMode.repeating);
+      expect(vm.state.repeat, 'MONTHLY');
 
       vm.setMode(TransactionFormMode.defaultMode);
       expect(vm.state.repeat, TransactionFormViewState.repeatNever,
           reason: 'a default entry has no frequency to carry');
-    });
-
-    test('a subscription starts an auto-posting series', () async {
-      final vm = form(container());
-      vm.setAmountText('500.00');
-      vm.selectAccount('acc_cash');
-      vm.selectCategory('cat_rent');
-      vm.setMode(TransactionFormMode.subscription);
-
-      await vm.submit();
-
-      expect(recurring.created.single['autoPost'], isTrue,
-          reason: '订阅 posts its due instances at launch');
     });
 
     test('a planned entry creates one bill and records nothing', () async {

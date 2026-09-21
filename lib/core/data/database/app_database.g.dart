@@ -2763,6 +2763,16 @@ class $RecurringSeriesTable extends RecurringSeries
   late final GeneratedColumn<int> reminderMinutes = GeneratedColumn<int>(
       'reminder_minutes', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2779,7 +2789,8 @@ class $RecurringSeriesTable extends RecurringSeries
         type,
         autoPost,
         mode,
-        reminderMinutes
+        reminderMinutes,
+        isActive
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2868,6 +2879,10 @@ class $RecurringSeriesTable extends RecurringSeries
           reminderMinutes.isAcceptableOrUnknown(
               data['reminder_minutes']!, _reminderMinutesMeta));
     }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
     return context;
   }
 
@@ -2909,6 +2924,8 @@ class $RecurringSeriesTable extends RecurringSeries
           .read(DriftSqlType.int, data['${effectivePrefix}mode'])!),
       reminderMinutes: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}reminder_minutes']),
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
     );
   }
 
@@ -2940,18 +2957,20 @@ class RecurringSeriesRow extends DataClass
   final String accountId;
   final RecurringSeriesKind type;
 
-  /// Whether due instances post themselves at launch (订阅). The schedule is
-  /// unchanged — this only says who confirms each instance: the app, or the
-  /// user tapping 记入.
+  /// Whether due instances post themselves at launch. Only valid when
+  /// [mode] is [RecurringSeriesMode.repeating].
   final bool autoPost;
 
-  /// The creation mode (计划/订阅/重复). Persisted so the intent survives a
-  /// restart and the backup; immutable after creation. See
-  /// [RecurringSeriesMode] for the ordinal contract.
+  /// The creation mode (计划 / 重复). Persisted so the intent survives a
+  /// restart and the backup; immutable after creation.
   final RecurringSeriesMode mode;
 
   /// Minutes before each scheduled occurrence; null means no reminder.
   final int? reminderMinutes;
+
+  /// Whether this rule is active. Setting false stops future materialization
+  /// without touching historical rows.
+  final bool isActive;
   const RecurringSeriesRow(
       {required this.id,
       required this.rrule,
@@ -2967,7 +2986,8 @@ class RecurringSeriesRow extends DataClass
       required this.type,
       required this.autoPost,
       required this.mode,
-      this.reminderMinutes});
+      this.reminderMinutes,
+      required this.isActive});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3000,6 +3020,7 @@ class RecurringSeriesRow extends DataClass
     if (!nullToAbsent || reminderMinutes != null) {
       map['reminder_minutes'] = Variable<int>(reminderMinutes);
     }
+    map['is_active'] = Variable<bool>(isActive);
     return map;
   }
 
@@ -3028,6 +3049,7 @@ class RecurringSeriesRow extends DataClass
       reminderMinutes: reminderMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(reminderMinutes),
+      isActive: Value(isActive),
     );
   }
 
@@ -3052,6 +3074,7 @@ class RecurringSeriesRow extends DataClass
       mode: $RecurringSeriesTable.$convertermode
           .fromJson(serializer.fromJson<int>(json['mode'])),
       reminderMinutes: serializer.fromJson<int?>(json['reminderMinutes']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
     );
   }
   @override
@@ -3075,6 +3098,7 @@ class RecurringSeriesRow extends DataClass
       'mode': serializer
           .toJson<int>($RecurringSeriesTable.$convertermode.toJson(mode)),
       'reminderMinutes': serializer.toJson<int?>(reminderMinutes),
+      'isActive': serializer.toJson<bool>(isActive),
     };
   }
 
@@ -3093,7 +3117,8 @@ class RecurringSeriesRow extends DataClass
           RecurringSeriesKind? type,
           bool? autoPost,
           RecurringSeriesMode? mode,
-          Value<int?> reminderMinutes = const Value.absent()}) =>
+          Value<int?> reminderMinutes = const Value.absent(),
+          bool? isActive}) =>
       RecurringSeriesRow(
         id: id ?? this.id,
         rrule: rrule ?? this.rrule,
@@ -3112,6 +3137,7 @@ class RecurringSeriesRow extends DataClass
         reminderMinutes: reminderMinutes.present
             ? reminderMinutes.value
             : this.reminderMinutes,
+        isActive: isActive ?? this.isActive,
       );
   RecurringSeriesRow copyWithCompanion(RecurringSeriesCompanion data) {
     return RecurringSeriesRow(
@@ -3136,6 +3162,7 @@ class RecurringSeriesRow extends DataClass
       reminderMinutes: data.reminderMinutes.present
           ? data.reminderMinutes.value
           : this.reminderMinutes,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
     );
   }
 
@@ -3156,7 +3183,8 @@ class RecurringSeriesRow extends DataClass
           ..write('type: $type, ')
           ..write('autoPost: $autoPost, ')
           ..write('mode: $mode, ')
-          ..write('reminderMinutes: $reminderMinutes')
+          ..write('reminderMinutes: $reminderMinutes, ')
+          ..write('isActive: $isActive')
           ..write(')'))
         .toString();
   }
@@ -3177,7 +3205,8 @@ class RecurringSeriesRow extends DataClass
       type,
       autoPost,
       mode,
-      reminderMinutes);
+      reminderMinutes,
+      isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3196,7 +3225,8 @@ class RecurringSeriesRow extends DataClass
           other.type == this.type &&
           other.autoPost == this.autoPost &&
           other.mode == this.mode &&
-          other.reminderMinutes == this.reminderMinutes);
+          other.reminderMinutes == this.reminderMinutes &&
+          other.isActive == this.isActive);
 }
 
 class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
@@ -3215,6 +3245,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
   final Value<bool> autoPost;
   final Value<RecurringSeriesMode> mode;
   final Value<int?> reminderMinutes;
+  final Value<bool> isActive;
   final Value<int> rowid;
   const RecurringSeriesCompanion({
     this.id = const Value.absent(),
@@ -3232,6 +3263,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.autoPost = const Value.absent(),
     this.mode = const Value.absent(),
     this.reminderMinutes = const Value.absent(),
+    this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecurringSeriesCompanion.insert({
@@ -3250,6 +3282,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.autoPost = const Value.absent(),
     this.mode = const Value.absent(),
     this.reminderMinutes = const Value.absent(),
+    this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         rrule = Value(rrule),
@@ -3276,6 +3309,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     Expression<bool>? autoPost,
     Expression<int>? mode,
     Expression<int>? reminderMinutes,
+    Expression<bool>? isActive,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3294,6 +3328,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       if (autoPost != null) 'auto_post': autoPost,
       if (mode != null) 'mode': mode,
       if (reminderMinutes != null) 'reminder_minutes': reminderMinutes,
+      if (isActive != null) 'is_active': isActive,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3314,6 +3349,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       Value<bool>? autoPost,
       Value<RecurringSeriesMode>? mode,
       Value<int?>? reminderMinutes,
+      Value<bool>? isActive,
       Value<int>? rowid}) {
     return RecurringSeriesCompanion(
       id: id ?? this.id,
@@ -3331,6 +3367,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       autoPost: autoPost ?? this.autoPost,
       mode: mode ?? this.mode,
       reminderMinutes: reminderMinutes ?? this.reminderMinutes,
+      isActive: isActive ?? this.isActive,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3385,6 +3422,9 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     if (reminderMinutes.present) {
       map['reminder_minutes'] = Variable<int>(reminderMinutes.value);
     }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3409,6 +3449,7 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
           ..write('autoPost: $autoPost, ')
           ..write('mode: $mode, ')
           ..write('reminderMinutes: $reminderMinutes, ')
+          ..write('isActive: $isActive, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3437,47 +3478,69 @@ class $ScheduledTransactionsViewTable extends ScheduledTransactionsView
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES recurring_series (id)'));
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  static const VerificationMeta _occurrenceKeyMeta =
+      const VerificationMeta('occurrenceKey');
   @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
-      'date', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _amountMinorMeta =
-      const VerificationMeta('amountMinor');
+  late final GeneratedColumn<String> occurrenceKey = GeneratedColumn<String>(
+      'occurrence_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _scheduledDateMeta =
+      const VerificationMeta('scheduledDate');
   @override
-  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
-      'amount_minor', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<DateTime> scheduledDate =
+      GeneratedColumn<DateTime>('scheduled_date', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _amountOverrideMinorMeta =
+      const VerificationMeta('amountOverrideMinor');
+  @override
+  late final GeneratedColumn<int> amountOverrideMinor = GeneratedColumn<int>(
+      'amount_override_minor', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _dateOverrideMeta =
+      const VerificationMeta('dateOverride');
+  @override
+  late final GeneratedColumn<DateTime> dateOverride = GeneratedColumn<DateTime>(
+      'date_override', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _memoOverrideMeta =
+      const VerificationMeta('memoOverride');
+  @override
+  late final GeneratedColumn<String> memoOverride = GeneratedColumn<String>(
+      'memo_override', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
       'status', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _manualOnlyMeta =
+      const VerificationMeta('manualOnly');
+  @override
+  late final GeneratedColumn<bool> manualOnly = GeneratedColumn<bool>(
+      'manual_only', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("manual_only" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _transactionIdMeta =
       const VerificationMeta('transactionId');
   @override
   late final GeneratedColumn<String> transactionId = GeneratedColumn<String>(
       'transaction_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _autoPostEligibleMeta =
-      const VerificationMeta('autoPostEligible');
-  @override
-  late final GeneratedColumn<bool> autoPostEligible = GeneratedColumn<bool>(
-      'auto_post_eligible', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("auto_post_eligible" IN (0, 1))'),
-      defaultValue: const Constant(true));
   @override
   List<GeneratedColumn> get $columns => [
         id,
         seriesId,
-        date,
-        amountMinor,
+        occurrenceKey,
+        scheduledDate,
+        amountOverrideMinor,
+        dateOverride,
+        memoOverride,
         status,
-        transactionId,
-        autoPostEligible
+        manualOnly,
+        transactionId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3501,19 +3564,39 @@ class $ScheduledTransactionsViewTable extends ScheduledTransactionsView
     } else if (isInserting) {
       context.missing(_seriesIdMeta);
     }
-    if (data.containsKey('date')) {
+    if (data.containsKey('occurrence_key')) {
       context.handle(
-          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+          _occurrenceKeyMeta,
+          occurrenceKey.isAcceptableOrUnknown(
+              data['occurrence_key']!, _occurrenceKeyMeta));
     } else if (isInserting) {
-      context.missing(_dateMeta);
+      context.missing(_occurrenceKeyMeta);
     }
-    if (data.containsKey('amount_minor')) {
+    if (data.containsKey('scheduled_date')) {
       context.handle(
-          _amountMinorMeta,
-          amountMinor.isAcceptableOrUnknown(
-              data['amount_minor']!, _amountMinorMeta));
+          _scheduledDateMeta,
+          scheduledDate.isAcceptableOrUnknown(
+              data['scheduled_date']!, _scheduledDateMeta));
     } else if (isInserting) {
-      context.missing(_amountMinorMeta);
+      context.missing(_scheduledDateMeta);
+    }
+    if (data.containsKey('amount_override_minor')) {
+      context.handle(
+          _amountOverrideMinorMeta,
+          amountOverrideMinor.isAcceptableOrUnknown(
+              data['amount_override_minor']!, _amountOverrideMinorMeta));
+    }
+    if (data.containsKey('date_override')) {
+      context.handle(
+          _dateOverrideMeta,
+          dateOverride.isAcceptableOrUnknown(
+              data['date_override']!, _dateOverrideMeta));
+    }
+    if (data.containsKey('memo_override')) {
+      context.handle(
+          _memoOverrideMeta,
+          memoOverride.isAcceptableOrUnknown(
+              data['memo_override']!, _memoOverrideMeta));
     }
     if (data.containsKey('status')) {
       context.handle(_statusMeta,
@@ -3521,23 +3604,27 @@ class $ScheduledTransactionsViewTable extends ScheduledTransactionsView
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('manual_only')) {
+      context.handle(
+          _manualOnlyMeta,
+          manualOnly.isAcceptableOrUnknown(
+              data['manual_only']!, _manualOnlyMeta));
+    }
     if (data.containsKey('transaction_id')) {
       context.handle(
           _transactionIdMeta,
           transactionId.isAcceptableOrUnknown(
               data['transaction_id']!, _transactionIdMeta));
     }
-    if (data.containsKey('auto_post_eligible')) {
-      context.handle(
-          _autoPostEligibleMeta,
-          autoPostEligible.isAcceptableOrUnknown(
-              data['auto_post_eligible']!, _autoPostEligibleMeta));
-    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {seriesId, occurrenceKey},
+      ];
   @override
   ScheduledTransactionViewRow map(Map<String, dynamic> data,
       {String? tablePrefix}) {
@@ -3547,16 +3634,22 @@ class $ScheduledTransactionsViewTable extends ScheduledTransactionsView
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       seriesId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}series_id'])!,
-      date: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}date'])!,
-      amountMinor: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}amount_minor'])!,
+      occurrenceKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}occurrence_key'])!,
+      scheduledDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}scheduled_date'])!,
+      amountOverrideMinor: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}amount_override_minor']),
+      dateOverride: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}date_override']),
+      memoOverride: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}memo_override']),
       status: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      manualOnly: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}manual_only'])!,
       transactionId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}transaction_id']),
-      autoPostEligible: attachedDatabase.typeMapping.read(
-          DriftSqlType.bool, data['${effectivePrefix}auto_post_eligible'])!,
     );
   }
 
@@ -3570,34 +3663,46 @@ class ScheduledTransactionViewRow extends DataClass
     implements Insertable<ScheduledTransactionViewRow> {
   final String id;
   final String seriesId;
-  final DateTime date;
-  final int amountMinor;
+  final String occurrenceKey;
+  final DateTime scheduledDate;
+  final int? amountOverrideMinor;
+  final DateTime? dateOverride;
+  final String? memoOverride;
   final String status;
+  final bool manualOnly;
   final String? transactionId;
-
-  /// Ticket 31: a bill that fell due while its switch was off or its currency
-  /// was not current is marked manual (false) and never auto-posts again.
-  final bool autoPostEligible;
   const ScheduledTransactionViewRow(
       {required this.id,
       required this.seriesId,
-      required this.date,
-      required this.amountMinor,
+      required this.occurrenceKey,
+      required this.scheduledDate,
+      this.amountOverrideMinor,
+      this.dateOverride,
+      this.memoOverride,
       required this.status,
-      this.transactionId,
-      required this.autoPostEligible});
+      required this.manualOnly,
+      this.transactionId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['series_id'] = Variable<String>(seriesId);
-    map['date'] = Variable<DateTime>(date);
-    map['amount_minor'] = Variable<int>(amountMinor);
+    map['occurrence_key'] = Variable<String>(occurrenceKey);
+    map['scheduled_date'] = Variable<DateTime>(scheduledDate);
+    if (!nullToAbsent || amountOverrideMinor != null) {
+      map['amount_override_minor'] = Variable<int>(amountOverrideMinor);
+    }
+    if (!nullToAbsent || dateOverride != null) {
+      map['date_override'] = Variable<DateTime>(dateOverride);
+    }
+    if (!nullToAbsent || memoOverride != null) {
+      map['memo_override'] = Variable<String>(memoOverride);
+    }
     map['status'] = Variable<String>(status);
+    map['manual_only'] = Variable<bool>(manualOnly);
     if (!nullToAbsent || transactionId != null) {
       map['transaction_id'] = Variable<String>(transactionId);
     }
-    map['auto_post_eligible'] = Variable<bool>(autoPostEligible);
     return map;
   }
 
@@ -3605,13 +3710,22 @@ class ScheduledTransactionViewRow extends DataClass
     return ScheduledTransactionsViewCompanion(
       id: Value(id),
       seriesId: Value(seriesId),
-      date: Value(date),
-      amountMinor: Value(amountMinor),
+      occurrenceKey: Value(occurrenceKey),
+      scheduledDate: Value(scheduledDate),
+      amountOverrideMinor: amountOverrideMinor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountOverrideMinor),
+      dateOverride: dateOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dateOverride),
+      memoOverride: memoOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(memoOverride),
       status: Value(status),
+      manualOnly: Value(manualOnly),
       transactionId: transactionId == null && nullToAbsent
           ? const Value.absent()
           : Value(transactionId),
-      autoPostEligible: Value(autoPostEligible),
     );
   }
 
@@ -3621,11 +3735,15 @@ class ScheduledTransactionViewRow extends DataClass
     return ScheduledTransactionViewRow(
       id: serializer.fromJson<String>(json['id']),
       seriesId: serializer.fromJson<String>(json['seriesId']),
-      date: serializer.fromJson<DateTime>(json['date']),
-      amountMinor: serializer.fromJson<int>(json['amountMinor']),
+      occurrenceKey: serializer.fromJson<String>(json['occurrenceKey']),
+      scheduledDate: serializer.fromJson<DateTime>(json['scheduledDate']),
+      amountOverrideMinor:
+          serializer.fromJson<int?>(json['amountOverrideMinor']),
+      dateOverride: serializer.fromJson<DateTime?>(json['dateOverride']),
+      memoOverride: serializer.fromJson<String?>(json['memoOverride']),
       status: serializer.fromJson<String>(json['status']),
+      manualOnly: serializer.fromJson<bool>(json['manualOnly']),
       transactionId: serializer.fromJson<String?>(json['transactionId']),
-      autoPostEligible: serializer.fromJson<bool>(json['autoPostEligible']),
     );
   }
   @override
@@ -3634,47 +3752,71 @@ class ScheduledTransactionViewRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'seriesId': serializer.toJson<String>(seriesId),
-      'date': serializer.toJson<DateTime>(date),
-      'amountMinor': serializer.toJson<int>(amountMinor),
+      'occurrenceKey': serializer.toJson<String>(occurrenceKey),
+      'scheduledDate': serializer.toJson<DateTime>(scheduledDate),
+      'amountOverrideMinor': serializer.toJson<int?>(amountOverrideMinor),
+      'dateOverride': serializer.toJson<DateTime?>(dateOverride),
+      'memoOverride': serializer.toJson<String?>(memoOverride),
       'status': serializer.toJson<String>(status),
+      'manualOnly': serializer.toJson<bool>(manualOnly),
       'transactionId': serializer.toJson<String?>(transactionId),
-      'autoPostEligible': serializer.toJson<bool>(autoPostEligible),
     };
   }
 
   ScheduledTransactionViewRow copyWith(
           {String? id,
           String? seriesId,
-          DateTime? date,
-          int? amountMinor,
+          String? occurrenceKey,
+          DateTime? scheduledDate,
+          Value<int?> amountOverrideMinor = const Value.absent(),
+          Value<DateTime?> dateOverride = const Value.absent(),
+          Value<String?> memoOverride = const Value.absent(),
           String? status,
-          Value<String?> transactionId = const Value.absent(),
-          bool? autoPostEligible}) =>
+          bool? manualOnly,
+          Value<String?> transactionId = const Value.absent()}) =>
       ScheduledTransactionViewRow(
         id: id ?? this.id,
         seriesId: seriesId ?? this.seriesId,
-        date: date ?? this.date,
-        amountMinor: amountMinor ?? this.amountMinor,
+        occurrenceKey: occurrenceKey ?? this.occurrenceKey,
+        scheduledDate: scheduledDate ?? this.scheduledDate,
+        amountOverrideMinor: amountOverrideMinor.present
+            ? amountOverrideMinor.value
+            : this.amountOverrideMinor,
+        dateOverride:
+            dateOverride.present ? dateOverride.value : this.dateOverride,
+        memoOverride:
+            memoOverride.present ? memoOverride.value : this.memoOverride,
         status: status ?? this.status,
+        manualOnly: manualOnly ?? this.manualOnly,
         transactionId:
             transactionId.present ? transactionId.value : this.transactionId,
-        autoPostEligible: autoPostEligible ?? this.autoPostEligible,
       );
   ScheduledTransactionViewRow copyWithCompanion(
       ScheduledTransactionsViewCompanion data) {
     return ScheduledTransactionViewRow(
       id: data.id.present ? data.id.value : this.id,
       seriesId: data.seriesId.present ? data.seriesId.value : this.seriesId,
-      date: data.date.present ? data.date.value : this.date,
-      amountMinor:
-          data.amountMinor.present ? data.amountMinor.value : this.amountMinor,
+      occurrenceKey: data.occurrenceKey.present
+          ? data.occurrenceKey.value
+          : this.occurrenceKey,
+      scheduledDate: data.scheduledDate.present
+          ? data.scheduledDate.value
+          : this.scheduledDate,
+      amountOverrideMinor: data.amountOverrideMinor.present
+          ? data.amountOverrideMinor.value
+          : this.amountOverrideMinor,
+      dateOverride: data.dateOverride.present
+          ? data.dateOverride.value
+          : this.dateOverride,
+      memoOverride: data.memoOverride.present
+          ? data.memoOverride.value
+          : this.memoOverride,
       status: data.status.present ? data.status.value : this.status,
+      manualOnly:
+          data.manualOnly.present ? data.manualOnly.value : this.manualOnly,
       transactionId: data.transactionId.present
           ? data.transactionId.value
           : this.transactionId,
-      autoPostEligible: data.autoPostEligible.present
-          ? data.autoPostEligible.value
-          : this.autoPostEligible,
     );
   }
 
@@ -3683,83 +3825,114 @@ class ScheduledTransactionViewRow extends DataClass
     return (StringBuffer('ScheduledTransactionViewRow(')
           ..write('id: $id, ')
           ..write('seriesId: $seriesId, ')
-          ..write('date: $date, ')
-          ..write('amountMinor: $amountMinor, ')
+          ..write('occurrenceKey: $occurrenceKey, ')
+          ..write('scheduledDate: $scheduledDate, ')
+          ..write('amountOverrideMinor: $amountOverrideMinor, ')
+          ..write('dateOverride: $dateOverride, ')
+          ..write('memoOverride: $memoOverride, ')
           ..write('status: $status, ')
-          ..write('transactionId: $transactionId, ')
-          ..write('autoPostEligible: $autoPostEligible')
+          ..write('manualOnly: $manualOnly, ')
+          ..write('transactionId: $transactionId')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(
-      id, seriesId, date, amountMinor, status, transactionId, autoPostEligible);
+      id,
+      seriesId,
+      occurrenceKey,
+      scheduledDate,
+      amountOverrideMinor,
+      dateOverride,
+      memoOverride,
+      status,
+      manualOnly,
+      transactionId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ScheduledTransactionViewRow &&
           other.id == this.id &&
           other.seriesId == this.seriesId &&
-          other.date == this.date &&
-          other.amountMinor == this.amountMinor &&
+          other.occurrenceKey == this.occurrenceKey &&
+          other.scheduledDate == this.scheduledDate &&
+          other.amountOverrideMinor == this.amountOverrideMinor &&
+          other.dateOverride == this.dateOverride &&
+          other.memoOverride == this.memoOverride &&
           other.status == this.status &&
-          other.transactionId == this.transactionId &&
-          other.autoPostEligible == this.autoPostEligible);
+          other.manualOnly == this.manualOnly &&
+          other.transactionId == this.transactionId);
 }
 
 class ScheduledTransactionsViewCompanion
     extends UpdateCompanion<ScheduledTransactionViewRow> {
   final Value<String> id;
   final Value<String> seriesId;
-  final Value<DateTime> date;
-  final Value<int> amountMinor;
+  final Value<String> occurrenceKey;
+  final Value<DateTime> scheduledDate;
+  final Value<int?> amountOverrideMinor;
+  final Value<DateTime?> dateOverride;
+  final Value<String?> memoOverride;
   final Value<String> status;
+  final Value<bool> manualOnly;
   final Value<String?> transactionId;
-  final Value<bool> autoPostEligible;
   final Value<int> rowid;
   const ScheduledTransactionsViewCompanion({
     this.id = const Value.absent(),
     this.seriesId = const Value.absent(),
-    this.date = const Value.absent(),
-    this.amountMinor = const Value.absent(),
+    this.occurrenceKey = const Value.absent(),
+    this.scheduledDate = const Value.absent(),
+    this.amountOverrideMinor = const Value.absent(),
+    this.dateOverride = const Value.absent(),
+    this.memoOverride = const Value.absent(),
     this.status = const Value.absent(),
+    this.manualOnly = const Value.absent(),
     this.transactionId = const Value.absent(),
-    this.autoPostEligible = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ScheduledTransactionsViewCompanion.insert({
     required String id,
     required String seriesId,
-    required DateTime date,
-    required int amountMinor,
+    required String occurrenceKey,
+    required DateTime scheduledDate,
+    this.amountOverrideMinor = const Value.absent(),
+    this.dateOverride = const Value.absent(),
+    this.memoOverride = const Value.absent(),
     required String status,
+    this.manualOnly = const Value.absent(),
     this.transactionId = const Value.absent(),
-    this.autoPostEligible = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         seriesId = Value(seriesId),
-        date = Value(date),
-        amountMinor = Value(amountMinor),
+        occurrenceKey = Value(occurrenceKey),
+        scheduledDate = Value(scheduledDate),
         status = Value(status);
   static Insertable<ScheduledTransactionViewRow> custom({
     Expression<String>? id,
     Expression<String>? seriesId,
-    Expression<DateTime>? date,
-    Expression<int>? amountMinor,
+    Expression<String>? occurrenceKey,
+    Expression<DateTime>? scheduledDate,
+    Expression<int>? amountOverrideMinor,
+    Expression<DateTime>? dateOverride,
+    Expression<String>? memoOverride,
     Expression<String>? status,
+    Expression<bool>? manualOnly,
     Expression<String>? transactionId,
-    Expression<bool>? autoPostEligible,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (seriesId != null) 'series_id': seriesId,
-      if (date != null) 'date': date,
-      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (occurrenceKey != null) 'occurrence_key': occurrenceKey,
+      if (scheduledDate != null) 'scheduled_date': scheduledDate,
+      if (amountOverrideMinor != null)
+        'amount_override_minor': amountOverrideMinor,
+      if (dateOverride != null) 'date_override': dateOverride,
+      if (memoOverride != null) 'memo_override': memoOverride,
       if (status != null) 'status': status,
+      if (manualOnly != null) 'manual_only': manualOnly,
       if (transactionId != null) 'transaction_id': transactionId,
-      if (autoPostEligible != null) 'auto_post_eligible': autoPostEligible,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3767,20 +3940,26 @@ class ScheduledTransactionsViewCompanion
   ScheduledTransactionsViewCompanion copyWith(
       {Value<String>? id,
       Value<String>? seriesId,
-      Value<DateTime>? date,
-      Value<int>? amountMinor,
+      Value<String>? occurrenceKey,
+      Value<DateTime>? scheduledDate,
+      Value<int?>? amountOverrideMinor,
+      Value<DateTime?>? dateOverride,
+      Value<String?>? memoOverride,
       Value<String>? status,
+      Value<bool>? manualOnly,
       Value<String?>? transactionId,
-      Value<bool>? autoPostEligible,
       Value<int>? rowid}) {
     return ScheduledTransactionsViewCompanion(
       id: id ?? this.id,
       seriesId: seriesId ?? this.seriesId,
-      date: date ?? this.date,
-      amountMinor: amountMinor ?? this.amountMinor,
+      occurrenceKey: occurrenceKey ?? this.occurrenceKey,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      amountOverrideMinor: amountOverrideMinor ?? this.amountOverrideMinor,
+      dateOverride: dateOverride ?? this.dateOverride,
+      memoOverride: memoOverride ?? this.memoOverride,
       status: status ?? this.status,
+      manualOnly: manualOnly ?? this.manualOnly,
       transactionId: transactionId ?? this.transactionId,
-      autoPostEligible: autoPostEligible ?? this.autoPostEligible,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3794,20 +3973,29 @@ class ScheduledTransactionsViewCompanion
     if (seriesId.present) {
       map['series_id'] = Variable<String>(seriesId.value);
     }
-    if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
+    if (occurrenceKey.present) {
+      map['occurrence_key'] = Variable<String>(occurrenceKey.value);
     }
-    if (amountMinor.present) {
-      map['amount_minor'] = Variable<int>(amountMinor.value);
+    if (scheduledDate.present) {
+      map['scheduled_date'] = Variable<DateTime>(scheduledDate.value);
+    }
+    if (amountOverrideMinor.present) {
+      map['amount_override_minor'] = Variable<int>(amountOverrideMinor.value);
+    }
+    if (dateOverride.present) {
+      map['date_override'] = Variable<DateTime>(dateOverride.value);
+    }
+    if (memoOverride.present) {
+      map['memo_override'] = Variable<String>(memoOverride.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (manualOnly.present) {
+      map['manual_only'] = Variable<bool>(manualOnly.value);
+    }
     if (transactionId.present) {
       map['transaction_id'] = Variable<String>(transactionId.value);
-    }
-    if (autoPostEligible.present) {
-      map['auto_post_eligible'] = Variable<bool>(autoPostEligible.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -3820,11 +4008,14 @@ class ScheduledTransactionsViewCompanion
     return (StringBuffer('ScheduledTransactionsViewCompanion(')
           ..write('id: $id, ')
           ..write('seriesId: $seriesId, ')
-          ..write('date: $date, ')
-          ..write('amountMinor: $amountMinor, ')
+          ..write('occurrenceKey: $occurrenceKey, ')
+          ..write('scheduledDate: $scheduledDate, ')
+          ..write('amountOverrideMinor: $amountOverrideMinor, ')
+          ..write('dateOverride: $dateOverride, ')
+          ..write('memoOverride: $memoOverride, ')
           ..write('status: $status, ')
+          ..write('manualOnly: $manualOnly, ')
           ..write('transactionId: $transactionId, ')
-          ..write('autoPostEligible: $autoPostEligible, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4785,999 +4976,6 @@ class MonthlyAccountBalanceSnapshotsCompanion
   }
 }
 
-class $AutomaticPostingBatchesTable extends AutomaticPostingBatches
-    with TableInfo<$AutomaticPostingBatchesTable, AutomaticPostingBatchRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $AutomaticPostingBatchesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now());
-  static const VerificationMeta _cutoffMeta = const VerificationMeta('cutoff');
-  @override
-  late final GeneratedColumn<DateTime> cutoff = GeneratedColumn<DateTime>(
-      'cutoff', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  @override
-  List<GeneratedColumn> get $columns => [id, createdAt, cutoff];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'automatic_posting_batches';
-  @override
-  VerificationContext validateIntegrity(
-      Insertable<AutomaticPostingBatchRow> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    if (data.containsKey('cutoff')) {
-      context.handle(_cutoffMeta,
-          cutoff.isAcceptableOrUnknown(data['cutoff']!, _cutoffMeta));
-    } else if (isInserting) {
-      context.missing(_cutoffMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  AutomaticPostingBatchRow map(Map<String, dynamic> data,
-      {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return AutomaticPostingBatchRow(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-      cutoff: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}cutoff'])!,
-    );
-  }
-
-  @override
-  $AutomaticPostingBatchesTable createAlias(String alias) {
-    return $AutomaticPostingBatchesTable(attachedDatabase, alias);
-  }
-}
-
-class AutomaticPostingBatchRow extends DataClass
-    implements Insertable<AutomaticPostingBatchRow> {
-  final String id;
-  final DateTime createdAt;
-  final DateTime cutoff;
-  const AutomaticPostingBatchRow(
-      {required this.id, required this.createdAt, required this.cutoff});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['cutoff'] = Variable<DateTime>(cutoff);
-    return map;
-  }
-
-  AutomaticPostingBatchesCompanion toCompanion(bool nullToAbsent) {
-    return AutomaticPostingBatchesCompanion(
-      id: Value(id),
-      createdAt: Value(createdAt),
-      cutoff: Value(cutoff),
-    );
-  }
-
-  factory AutomaticPostingBatchRow.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return AutomaticPostingBatchRow(
-      id: serializer.fromJson<String>(json['id']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      cutoff: serializer.fromJson<DateTime>(json['cutoff']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'cutoff': serializer.toJson<DateTime>(cutoff),
-    };
-  }
-
-  AutomaticPostingBatchRow copyWith(
-          {String? id, DateTime? createdAt, DateTime? cutoff}) =>
-      AutomaticPostingBatchRow(
-        id: id ?? this.id,
-        createdAt: createdAt ?? this.createdAt,
-        cutoff: cutoff ?? this.cutoff,
-      );
-  AutomaticPostingBatchRow copyWithCompanion(
-      AutomaticPostingBatchesCompanion data) {
-    return AutomaticPostingBatchRow(
-      id: data.id.present ? data.id.value : this.id,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      cutoff: data.cutoff.present ? data.cutoff.value : this.cutoff,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AutomaticPostingBatchRow(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('cutoff: $cutoff')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, createdAt, cutoff);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is AutomaticPostingBatchRow &&
-          other.id == this.id &&
-          other.createdAt == this.createdAt &&
-          other.cutoff == this.cutoff);
-}
-
-class AutomaticPostingBatchesCompanion
-    extends UpdateCompanion<AutomaticPostingBatchRow> {
-  final Value<String> id;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> cutoff;
-  final Value<int> rowid;
-  const AutomaticPostingBatchesCompanion({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.cutoff = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  AutomaticPostingBatchesCompanion.insert({
-    required String id,
-    this.createdAt = const Value.absent(),
-    required DateTime cutoff,
-    this.rowid = const Value.absent(),
-  })  : id = Value(id),
-        cutoff = Value(cutoff);
-  static Insertable<AutomaticPostingBatchRow> custom({
-    Expression<String>? id,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? cutoff,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (createdAt != null) 'created_at': createdAt,
-      if (cutoff != null) 'cutoff': cutoff,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  AutomaticPostingBatchesCompanion copyWith(
-      {Value<String>? id,
-      Value<DateTime>? createdAt,
-      Value<DateTime>? cutoff,
-      Value<int>? rowid}) {
-    return AutomaticPostingBatchesCompanion(
-      id: id ?? this.id,
-      createdAt: createdAt ?? this.createdAt,
-      cutoff: cutoff ?? this.cutoff,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (cutoff.present) {
-      map['cutoff'] = Variable<DateTime>(cutoff.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AutomaticPostingBatchesCompanion(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('cutoff: $cutoff, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $AutomaticPostingBatchMembersTable extends AutomaticPostingBatchMembers
-    with
-        TableInfo<$AutomaticPostingBatchMembersTable,
-            AutomaticPostingBatchMemberRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $AutomaticPostingBatchMembersTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _batchIdMeta =
-      const VerificationMeta('batchId');
-  @override
-  late final GeneratedColumn<String> batchId = GeneratedColumn<String>(
-      'batch_id', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: true,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES automatic_posting_batches (id)'));
-  static const VerificationMeta _scheduledIdMeta =
-      const VerificationMeta('scheduledId');
-  @override
-  late final GeneratedColumn<String> scheduledId = GeneratedColumn<String>(
-      'scheduled_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _resultMeta = const VerificationMeta('result');
-  @override
-  late final GeneratedColumn<String> result = GeneratedColumn<String>(
-      'result', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  @override
-  List<GeneratedColumn> get $columns => [batchId, scheduledId, result];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'automatic_posting_batch_members';
-  @override
-  VerificationContext validateIntegrity(
-      Insertable<AutomaticPostingBatchMemberRow> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('batch_id')) {
-      context.handle(_batchIdMeta,
-          batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta));
-    } else if (isInserting) {
-      context.missing(_batchIdMeta);
-    }
-    if (data.containsKey('scheduled_id')) {
-      context.handle(
-          _scheduledIdMeta,
-          scheduledId.isAcceptableOrUnknown(
-              data['scheduled_id']!, _scheduledIdMeta));
-    } else if (isInserting) {
-      context.missing(_scheduledIdMeta);
-    }
-    if (data.containsKey('result')) {
-      context.handle(_resultMeta,
-          result.isAcceptableOrUnknown(data['result']!, _resultMeta));
-    } else if (isInserting) {
-      context.missing(_resultMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {batchId, scheduledId};
-  @override
-  AutomaticPostingBatchMemberRow map(Map<String, dynamic> data,
-      {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return AutomaticPostingBatchMemberRow(
-      batchId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}batch_id'])!,
-      scheduledId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}scheduled_id'])!,
-      result: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}result'])!,
-    );
-  }
-
-  @override
-  $AutomaticPostingBatchMembersTable createAlias(String alias) {
-    return $AutomaticPostingBatchMembersTable(attachedDatabase, alias);
-  }
-}
-
-class AutomaticPostingBatchMemberRow extends DataClass
-    implements Insertable<AutomaticPostingBatchMemberRow> {
-  final String batchId;
-  final String scheduledId;
-  final String result;
-  const AutomaticPostingBatchMemberRow(
-      {required this.batchId, required this.scheduledId, required this.result});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['batch_id'] = Variable<String>(batchId);
-    map['scheduled_id'] = Variable<String>(scheduledId);
-    map['result'] = Variable<String>(result);
-    return map;
-  }
-
-  AutomaticPostingBatchMembersCompanion toCompanion(bool nullToAbsent) {
-    return AutomaticPostingBatchMembersCompanion(
-      batchId: Value(batchId),
-      scheduledId: Value(scheduledId),
-      result: Value(result),
-    );
-  }
-
-  factory AutomaticPostingBatchMemberRow.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return AutomaticPostingBatchMemberRow(
-      batchId: serializer.fromJson<String>(json['batchId']),
-      scheduledId: serializer.fromJson<String>(json['scheduledId']),
-      result: serializer.fromJson<String>(json['result']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'batchId': serializer.toJson<String>(batchId),
-      'scheduledId': serializer.toJson<String>(scheduledId),
-      'result': serializer.toJson<String>(result),
-    };
-  }
-
-  AutomaticPostingBatchMemberRow copyWith(
-          {String? batchId, String? scheduledId, String? result}) =>
-      AutomaticPostingBatchMemberRow(
-        batchId: batchId ?? this.batchId,
-        scheduledId: scheduledId ?? this.scheduledId,
-        result: result ?? this.result,
-      );
-  AutomaticPostingBatchMemberRow copyWithCompanion(
-      AutomaticPostingBatchMembersCompanion data) {
-    return AutomaticPostingBatchMemberRow(
-      batchId: data.batchId.present ? data.batchId.value : this.batchId,
-      scheduledId:
-          data.scheduledId.present ? data.scheduledId.value : this.scheduledId,
-      result: data.result.present ? data.result.value : this.result,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AutomaticPostingBatchMemberRow(')
-          ..write('batchId: $batchId, ')
-          ..write('scheduledId: $scheduledId, ')
-          ..write('result: $result')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(batchId, scheduledId, result);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is AutomaticPostingBatchMemberRow &&
-          other.batchId == this.batchId &&
-          other.scheduledId == this.scheduledId &&
-          other.result == this.result);
-}
-
-class AutomaticPostingBatchMembersCompanion
-    extends UpdateCompanion<AutomaticPostingBatchMemberRow> {
-  final Value<String> batchId;
-  final Value<String> scheduledId;
-  final Value<String> result;
-  final Value<int> rowid;
-  const AutomaticPostingBatchMembersCompanion({
-    this.batchId = const Value.absent(),
-    this.scheduledId = const Value.absent(),
-    this.result = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  AutomaticPostingBatchMembersCompanion.insert({
-    required String batchId,
-    required String scheduledId,
-    required String result,
-    this.rowid = const Value.absent(),
-  })  : batchId = Value(batchId),
-        scheduledId = Value(scheduledId),
-        result = Value(result);
-  static Insertable<AutomaticPostingBatchMemberRow> custom({
-    Expression<String>? batchId,
-    Expression<String>? scheduledId,
-    Expression<String>? result,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (batchId != null) 'batch_id': batchId,
-      if (scheduledId != null) 'scheduled_id': scheduledId,
-      if (result != null) 'result': result,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  AutomaticPostingBatchMembersCompanion copyWith(
-      {Value<String>? batchId,
-      Value<String>? scheduledId,
-      Value<String>? result,
-      Value<int>? rowid}) {
-    return AutomaticPostingBatchMembersCompanion(
-      batchId: batchId ?? this.batchId,
-      scheduledId: scheduledId ?? this.scheduledId,
-      result: result ?? this.result,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (batchId.present) {
-      map['batch_id'] = Variable<String>(batchId.value);
-    }
-    if (scheduledId.present) {
-      map['scheduled_id'] = Variable<String>(scheduledId.value);
-    }
-    if (result.present) {
-      map['result'] = Variable<String>(result.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AutomaticPostingBatchMembersCompanion(')
-          ..write('batchId: $batchId, ')
-          ..write('scheduledId: $scheduledId, ')
-          ..write('result: $result, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $RestoreConfirmationBatchesTable extends RestoreConfirmationBatches
-    with
-        TableInfo<$RestoreConfirmationBatchesTable,
-            RestoreConfirmationBatchRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $RestoreConfirmationBatchesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now());
-  static const VerificationMeta _backupExportedAtMeta =
-      const VerificationMeta('backupExportedAt');
-  @override
-  late final GeneratedColumn<DateTime> backupExportedAt =
-      GeneratedColumn<DateTime>('backup_exported_at', aliasedName, false,
-          type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
-  @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>(
-      'status', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('pending'));
-  @override
-  List<GeneratedColumn> get $columns =>
-      [id, createdAt, backupExportedAt, status];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'restore_confirmation_batches';
-  @override
-  VerificationContext validateIntegrity(
-      Insertable<RestoreConfirmationBatchRow> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    if (data.containsKey('backup_exported_at')) {
-      context.handle(
-          _backupExportedAtMeta,
-          backupExportedAt.isAcceptableOrUnknown(
-              data['backup_exported_at']!, _backupExportedAtMeta));
-    } else if (isInserting) {
-      context.missing(_backupExportedAtMeta);
-    }
-    if (data.containsKey('status')) {
-      context.handle(_statusMeta,
-          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  RestoreConfirmationBatchRow map(Map<String, dynamic> data,
-      {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RestoreConfirmationBatchRow(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-      backupExportedAt: attachedDatabase.typeMapping.read(
-          DriftSqlType.dateTime, data['${effectivePrefix}backup_exported_at'])!,
-      status: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
-    );
-  }
-
-  @override
-  $RestoreConfirmationBatchesTable createAlias(String alias) {
-    return $RestoreConfirmationBatchesTable(attachedDatabase, alias);
-  }
-}
-
-class RestoreConfirmationBatchRow extends DataClass
-    implements Insertable<RestoreConfirmationBatchRow> {
-  final String id;
-  final DateTime createdAt;
-  final DateTime backupExportedAt;
-  final String status;
-  const RestoreConfirmationBatchRow(
-      {required this.id,
-      required this.createdAt,
-      required this.backupExportedAt,
-      required this.status});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['backup_exported_at'] = Variable<DateTime>(backupExportedAt);
-    map['status'] = Variable<String>(status);
-    return map;
-  }
-
-  RestoreConfirmationBatchesCompanion toCompanion(bool nullToAbsent) {
-    return RestoreConfirmationBatchesCompanion(
-      id: Value(id),
-      createdAt: Value(createdAt),
-      backupExportedAt: Value(backupExportedAt),
-      status: Value(status),
-    );
-  }
-
-  factory RestoreConfirmationBatchRow.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RestoreConfirmationBatchRow(
-      id: serializer.fromJson<String>(json['id']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      backupExportedAt: serializer.fromJson<DateTime>(json['backupExportedAt']),
-      status: serializer.fromJson<String>(json['status']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'backupExportedAt': serializer.toJson<DateTime>(backupExportedAt),
-      'status': serializer.toJson<String>(status),
-    };
-  }
-
-  RestoreConfirmationBatchRow copyWith(
-          {String? id,
-          DateTime? createdAt,
-          DateTime? backupExportedAt,
-          String? status}) =>
-      RestoreConfirmationBatchRow(
-        id: id ?? this.id,
-        createdAt: createdAt ?? this.createdAt,
-        backupExportedAt: backupExportedAt ?? this.backupExportedAt,
-        status: status ?? this.status,
-      );
-  RestoreConfirmationBatchRow copyWithCompanion(
-      RestoreConfirmationBatchesCompanion data) {
-    return RestoreConfirmationBatchRow(
-      id: data.id.present ? data.id.value : this.id,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      backupExportedAt: data.backupExportedAt.present
-          ? data.backupExportedAt.value
-          : this.backupExportedAt,
-      status: data.status.present ? data.status.value : this.status,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RestoreConfirmationBatchRow(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('backupExportedAt: $backupExportedAt, ')
-          ..write('status: $status')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, createdAt, backupExportedAt, status);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RestoreConfirmationBatchRow &&
-          other.id == this.id &&
-          other.createdAt == this.createdAt &&
-          other.backupExportedAt == this.backupExportedAt &&
-          other.status == this.status);
-}
-
-class RestoreConfirmationBatchesCompanion
-    extends UpdateCompanion<RestoreConfirmationBatchRow> {
-  final Value<String> id;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> backupExportedAt;
-  final Value<String> status;
-  final Value<int> rowid;
-  const RestoreConfirmationBatchesCompanion({
-    this.id = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.backupExportedAt = const Value.absent(),
-    this.status = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  RestoreConfirmationBatchesCompanion.insert({
-    required String id,
-    this.createdAt = const Value.absent(),
-    required DateTime backupExportedAt,
-    this.status = const Value.absent(),
-    this.rowid = const Value.absent(),
-  })  : id = Value(id),
-        backupExportedAt = Value(backupExportedAt);
-  static Insertable<RestoreConfirmationBatchRow> custom({
-    Expression<String>? id,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? backupExportedAt,
-    Expression<String>? status,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (createdAt != null) 'created_at': createdAt,
-      if (backupExportedAt != null) 'backup_exported_at': backupExportedAt,
-      if (status != null) 'status': status,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  RestoreConfirmationBatchesCompanion copyWith(
-      {Value<String>? id,
-      Value<DateTime>? createdAt,
-      Value<DateTime>? backupExportedAt,
-      Value<String>? status,
-      Value<int>? rowid}) {
-    return RestoreConfirmationBatchesCompanion(
-      id: id ?? this.id,
-      createdAt: createdAt ?? this.createdAt,
-      backupExportedAt: backupExportedAt ?? this.backupExportedAt,
-      status: status ?? this.status,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (backupExportedAt.present) {
-      map['backup_exported_at'] = Variable<DateTime>(backupExportedAt.value);
-    }
-    if (status.present) {
-      map['status'] = Variable<String>(status.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RestoreConfirmationBatchesCompanion(')
-          ..write('id: $id, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('backupExportedAt: $backupExportedAt, ')
-          ..write('status: $status, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ScheduledBillRedirectsTable extends ScheduledBillRedirects
-    with TableInfo<$ScheduledBillRedirectsTable, ScheduledBillRedirectRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ScheduledBillRedirectsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _oldIdMeta = const VerificationMeta('oldId');
-  @override
-  late final GeneratedColumn<String> oldId = GeneratedColumn<String>(
-      'old_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _newIdMeta = const VerificationMeta('newId');
-  @override
-  late final GeneratedColumn<String> newId = GeneratedColumn<String>(
-      'new_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      clientDefault: () => DateTime.now());
-  @override
-  List<GeneratedColumn> get $columns => [oldId, newId, createdAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'scheduled_bill_redirects';
-  @override
-  VerificationContext validateIntegrity(
-      Insertable<ScheduledBillRedirectRow> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('old_id')) {
-      context.handle(
-          _oldIdMeta, oldId.isAcceptableOrUnknown(data['old_id']!, _oldIdMeta));
-    } else if (isInserting) {
-      context.missing(_oldIdMeta);
-    }
-    if (data.containsKey('new_id')) {
-      context.handle(
-          _newIdMeta, newId.isAcceptableOrUnknown(data['new_id']!, _newIdMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {oldId};
-  @override
-  ScheduledBillRedirectRow map(Map<String, dynamic> data,
-      {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ScheduledBillRedirectRow(
-      oldId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}old_id'])!,
-      newId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}new_id']),
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-    );
-  }
-
-  @override
-  $ScheduledBillRedirectsTable createAlias(String alias) {
-    return $ScheduledBillRedirectsTable(attachedDatabase, alias);
-  }
-}
-
-class ScheduledBillRedirectRow extends DataClass
-    implements Insertable<ScheduledBillRedirectRow> {
-  final String oldId;
-  final String? newId;
-  final DateTime createdAt;
-  const ScheduledBillRedirectRow(
-      {required this.oldId, this.newId, required this.createdAt});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['old_id'] = Variable<String>(oldId);
-    if (!nullToAbsent || newId != null) {
-      map['new_id'] = Variable<String>(newId);
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  ScheduledBillRedirectsCompanion toCompanion(bool nullToAbsent) {
-    return ScheduledBillRedirectsCompanion(
-      oldId: Value(oldId),
-      newId:
-          newId == null && nullToAbsent ? const Value.absent() : Value(newId),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory ScheduledBillRedirectRow.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ScheduledBillRedirectRow(
-      oldId: serializer.fromJson<String>(json['oldId']),
-      newId: serializer.fromJson<String?>(json['newId']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'oldId': serializer.toJson<String>(oldId),
-      'newId': serializer.toJson<String?>(newId),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  ScheduledBillRedirectRow copyWith(
-          {String? oldId,
-          Value<String?> newId = const Value.absent(),
-          DateTime? createdAt}) =>
-      ScheduledBillRedirectRow(
-        oldId: oldId ?? this.oldId,
-        newId: newId.present ? newId.value : this.newId,
-        createdAt: createdAt ?? this.createdAt,
-      );
-  ScheduledBillRedirectRow copyWithCompanion(
-      ScheduledBillRedirectsCompanion data) {
-    return ScheduledBillRedirectRow(
-      oldId: data.oldId.present ? data.oldId.value : this.oldId,
-      newId: data.newId.present ? data.newId.value : this.newId,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ScheduledBillRedirectRow(')
-          ..write('oldId: $oldId, ')
-          ..write('newId: $newId, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(oldId, newId, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ScheduledBillRedirectRow &&
-          other.oldId == this.oldId &&
-          other.newId == this.newId &&
-          other.createdAt == this.createdAt);
-}
-
-class ScheduledBillRedirectsCompanion
-    extends UpdateCompanion<ScheduledBillRedirectRow> {
-  final Value<String> oldId;
-  final Value<String?> newId;
-  final Value<DateTime> createdAt;
-  final Value<int> rowid;
-  const ScheduledBillRedirectsCompanion({
-    this.oldId = const Value.absent(),
-    this.newId = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ScheduledBillRedirectsCompanion.insert({
-    required String oldId,
-    this.newId = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : oldId = Value(oldId);
-  static Insertable<ScheduledBillRedirectRow> custom({
-    Expression<String>? oldId,
-    Expression<String>? newId,
-    Expression<DateTime>? createdAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (oldId != null) 'old_id': oldId,
-      if (newId != null) 'new_id': newId,
-      if (createdAt != null) 'created_at': createdAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ScheduledBillRedirectsCompanion copyWith(
-      {Value<String>? oldId,
-      Value<String?>? newId,
-      Value<DateTime>? createdAt,
-      Value<int>? rowid}) {
-    return ScheduledBillRedirectsCompanion(
-      oldId: oldId ?? this.oldId,
-      newId: newId ?? this.newId,
-      createdAt: createdAt ?? this.createdAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (oldId.present) {
-      map['old_id'] = Variable<String>(oldId.value);
-    }
-    if (newId.present) {
-      map['new_id'] = Variable<String>(newId.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ScheduledBillRedirectsCompanion(')
-          ..write('oldId: $oldId, ')
-          ..write('newId: $newId, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5795,14 +4993,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MonthlyAccountBalanceSnapshotsTable
       monthlyAccountBalanceSnapshots =
       $MonthlyAccountBalanceSnapshotsTable(this);
-  late final $AutomaticPostingBatchesTable automaticPostingBatches =
-      $AutomaticPostingBatchesTable(this);
-  late final $AutomaticPostingBatchMembersTable automaticPostingBatchMembers =
-      $AutomaticPostingBatchMembersTable(this);
-  late final $RestoreConfirmationBatchesTable restoreConfirmationBatches =
-      $RestoreConfirmationBatchesTable(this);
-  late final $ScheduledBillRedirectsTable scheduledBillRedirects =
-      $ScheduledBillRedirectsTable(this);
   late final Index idxLedgerEventsCommandId = Index(
       'idx_ledger_events_command_id',
       'CREATE INDEX idx_ledger_events_command_id ON ledger_events (command_id)');
@@ -5834,10 +5024,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         recurringSeries,
         scheduledTransactionsView,
         monthlyAccountBalanceSnapshots,
-        automaticPostingBatches,
-        automaticPostingBatchMembers,
-        restoreConfirmationBatches,
-        scheduledBillRedirects,
         idxLedgerEventsCommandId,
         idxTransactionsViewOccurredAt,
         idxTransactionPostingsTx
@@ -7151,6 +6337,7 @@ typedef $$RecurringSeriesTableCreateCompanionBuilder = RecurringSeriesCompanion
   Value<bool> autoPost,
   Value<RecurringSeriesMode> mode,
   Value<int?> reminderMinutes,
+  Value<bool> isActive,
   Value<int> rowid,
 });
 typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
@@ -7170,6 +6357,7 @@ typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
   Value<bool> autoPost,
   Value<RecurringSeriesMode> mode,
   Value<int?> reminderMinutes,
+  Value<bool> isActive,
   Value<int> rowid,
 });
 
@@ -7257,6 +6445,9 @@ class $$RecurringSeriesTableFilterComposer
       column: $table.reminderMinutes,
       builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
   Expression<bool> scheduledTransactionsViewRefs(
       Expression<bool> Function(
               $$ScheduledTransactionsViewTableFilterComposer f)
@@ -7336,6 +6527,9 @@ class $$RecurringSeriesTableOrderingComposer
   ColumnOrderings<int> get reminderMinutes => $composableBuilder(
       column: $table.reminderMinutes,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
 }
 
 class $$RecurringSeriesTableAnnotationComposer
@@ -7391,6 +6585,9 @@ class $$RecurringSeriesTableAnnotationComposer
 
   GeneratedColumn<int> get reminderMinutes => $composableBuilder(
       column: $table.reminderMinutes, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
 
   Expression<T> scheduledTransactionsViewRefs<T extends Object>(
       Expression<T> Function(
@@ -7456,6 +6653,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<bool> autoPost = const Value.absent(),
             Value<RecurringSeriesMode> mode = const Value.absent(),
             Value<int?> reminderMinutes = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion(
@@ -7474,6 +6672,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             autoPost: autoPost,
             mode: mode,
             reminderMinutes: reminderMinutes,
+            isActive: isActive,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -7492,6 +6691,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<bool> autoPost = const Value.absent(),
             Value<RecurringSeriesMode> mode = const Value.absent(),
             Value<int?> reminderMinutes = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion.insert(
@@ -7510,6 +6710,7 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             autoPost: autoPost,
             mode: mode,
             reminderMinutes: reminderMinutes,
+            isActive: isActive,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -7566,22 +6767,28 @@ typedef $$ScheduledTransactionsViewTableCreateCompanionBuilder
     = ScheduledTransactionsViewCompanion Function({
   required String id,
   required String seriesId,
-  required DateTime date,
-  required int amountMinor,
+  required String occurrenceKey,
+  required DateTime scheduledDate,
+  Value<int?> amountOverrideMinor,
+  Value<DateTime?> dateOverride,
+  Value<String?> memoOverride,
   required String status,
+  Value<bool> manualOnly,
   Value<String?> transactionId,
-  Value<bool> autoPostEligible,
   Value<int> rowid,
 });
 typedef $$ScheduledTransactionsViewTableUpdateCompanionBuilder
     = ScheduledTransactionsViewCompanion Function({
   Value<String> id,
   Value<String> seriesId,
-  Value<DateTime> date,
-  Value<int> amountMinor,
+  Value<String> occurrenceKey,
+  Value<DateTime> scheduledDate,
+  Value<int?> amountOverrideMinor,
+  Value<DateTime?> dateOverride,
+  Value<String?> memoOverride,
   Value<String> status,
+  Value<bool> manualOnly,
   Value<String?> transactionId,
-  Value<bool> autoPostEligible,
   Value<int> rowid,
 });
 
@@ -7621,21 +6828,30 @@ class $$ScheduledTransactionsViewTableFilterComposer
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<DateTime> get date => $composableBuilder(
-      column: $table.date, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get occurrenceKey => $composableBuilder(
+      column: $table.occurrenceKey, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get amountMinor => $composableBuilder(
-      column: $table.amountMinor, builder: (column) => ColumnFilters(column));
+  ColumnFilters<DateTime> get scheduledDate => $composableBuilder(
+      column: $table.scheduledDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountOverrideMinor => $composableBuilder(
+      column: $table.amountOverrideMinor,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get dateOverride => $composableBuilder(
+      column: $table.dateOverride, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get memoOverride => $composableBuilder(
+      column: $table.memoOverride, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<bool> get manualOnly => $composableBuilder(
+      column: $table.manualOnly, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get transactionId => $composableBuilder(
       column: $table.transactionId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get autoPostEligible => $composableBuilder(
-      column: $table.autoPostEligible,
-      builder: (column) => ColumnFilters(column));
 
   $$RecurringSeriesTableFilterComposer get seriesId {
     final $$RecurringSeriesTableFilterComposer composer = $composerBuilder(
@@ -7670,21 +6886,34 @@ class $$ScheduledTransactionsViewTableOrderingComposer
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<DateTime> get date => $composableBuilder(
-      column: $table.date, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get occurrenceKey => $composableBuilder(
+      column: $table.occurrenceKey,
+      builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get amountMinor => $composableBuilder(
-      column: $table.amountMinor, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<DateTime> get scheduledDate => $composableBuilder(
+      column: $table.scheduledDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountOverrideMinor => $composableBuilder(
+      column: $table.amountOverrideMinor,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get dateOverride => $composableBuilder(
+      column: $table.dateOverride,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get memoOverride => $composableBuilder(
+      column: $table.memoOverride,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get manualOnly => $composableBuilder(
+      column: $table.manualOnly, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get transactionId => $composableBuilder(
       column: $table.transactionId,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get autoPostEligible => $composableBuilder(
-      column: $table.autoPostEligible,
       builder: (column) => ColumnOrderings(column));
 
   $$RecurringSeriesTableOrderingComposer get seriesId {
@@ -7720,20 +6949,29 @@ class $$ScheduledTransactionsViewTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
+  GeneratedColumn<String> get occurrenceKey => $composableBuilder(
+      column: $table.occurrenceKey, builder: (column) => column);
 
-  GeneratedColumn<int> get amountMinor => $composableBuilder(
-      column: $table.amountMinor, builder: (column) => column);
+  GeneratedColumn<DateTime> get scheduledDate => $composableBuilder(
+      column: $table.scheduledDate, builder: (column) => column);
+
+  GeneratedColumn<int> get amountOverrideMinor => $composableBuilder(
+      column: $table.amountOverrideMinor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dateOverride => $composableBuilder(
+      column: $table.dateOverride, builder: (column) => column);
+
+  GeneratedColumn<String> get memoOverride => $composableBuilder(
+      column: $table.memoOverride, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<bool> get manualOnly => $composableBuilder(
+      column: $table.manualOnly, builder: (column) => column);
+
   GeneratedColumn<String> get transactionId => $composableBuilder(
       column: $table.transactionId, builder: (column) => column);
-
-  GeneratedColumn<bool> get autoPostEligible => $composableBuilder(
-      column: $table.autoPostEligible, builder: (column) => column);
 
   $$RecurringSeriesTableAnnotationComposer get seriesId {
     final $$RecurringSeriesTableAnnotationComposer composer = $composerBuilder(
@@ -7785,41 +7023,53 @@ class $$ScheduledTransactionsViewTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> seriesId = const Value.absent(),
-            Value<DateTime> date = const Value.absent(),
-            Value<int> amountMinor = const Value.absent(),
+            Value<String> occurrenceKey = const Value.absent(),
+            Value<DateTime> scheduledDate = const Value.absent(),
+            Value<int?> amountOverrideMinor = const Value.absent(),
+            Value<DateTime?> dateOverride = const Value.absent(),
+            Value<String?> memoOverride = const Value.absent(),
             Value<String> status = const Value.absent(),
+            Value<bool> manualOnly = const Value.absent(),
             Value<String?> transactionId = const Value.absent(),
-            Value<bool> autoPostEligible = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ScheduledTransactionsViewCompanion(
             id: id,
             seriesId: seriesId,
-            date: date,
-            amountMinor: amountMinor,
+            occurrenceKey: occurrenceKey,
+            scheduledDate: scheduledDate,
+            amountOverrideMinor: amountOverrideMinor,
+            dateOverride: dateOverride,
+            memoOverride: memoOverride,
             status: status,
+            manualOnly: manualOnly,
             transactionId: transactionId,
-            autoPostEligible: autoPostEligible,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             required String seriesId,
-            required DateTime date,
-            required int amountMinor,
+            required String occurrenceKey,
+            required DateTime scheduledDate,
+            Value<int?> amountOverrideMinor = const Value.absent(),
+            Value<DateTime?> dateOverride = const Value.absent(),
+            Value<String?> memoOverride = const Value.absent(),
             required String status,
+            Value<bool> manualOnly = const Value.absent(),
             Value<String?> transactionId = const Value.absent(),
-            Value<bool> autoPostEligible = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ScheduledTransactionsViewCompanion.insert(
             id: id,
             seriesId: seriesId,
-            date: date,
-            amountMinor: amountMinor,
+            occurrenceKey: occurrenceKey,
+            scheduledDate: scheduledDate,
+            amountOverrideMinor: amountOverrideMinor,
+            dateOverride: dateOverride,
+            memoOverride: memoOverride,
             status: status,
+            manualOnly: manualOnly,
             transactionId: transactionId,
-            autoPostEligible: autoPostEligible,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -8311,850 +7561,6 @@ typedef $$MonthlyAccountBalanceSnapshotsTableProcessedTableManager
         ),
         MonthlyAccountBalanceSnapshot,
         PrefetchHooks Function()>;
-typedef $$AutomaticPostingBatchesTableCreateCompanionBuilder
-    = AutomaticPostingBatchesCompanion Function({
-  required String id,
-  Value<DateTime> createdAt,
-  required DateTime cutoff,
-  Value<int> rowid,
-});
-typedef $$AutomaticPostingBatchesTableUpdateCompanionBuilder
-    = AutomaticPostingBatchesCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> cutoff,
-  Value<int> rowid,
-});
-
-final class $$AutomaticPostingBatchesTableReferences extends BaseReferences<
-    _$AppDatabase, $AutomaticPostingBatchesTable, AutomaticPostingBatchRow> {
-  $$AutomaticPostingBatchesTableReferences(
-      super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$AutomaticPostingBatchMembersTable,
-      List<AutomaticPostingBatchMemberRow>> _automaticPostingBatchMembersRefsTable(
-          _$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.automaticPostingBatchMembers,
-          aliasName:
-              'automatic_posting_batches__id__automatic_posting_batch_members__batch_id');
-
-  $$AutomaticPostingBatchMembersTableProcessedTableManager
-      get automaticPostingBatchMembersRefs {
-    final manager = $$AutomaticPostingBatchMembersTableTableManager(
-            $_db, $_db.automaticPostingBatchMembers)
-        .filter((f) => f.batchId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult
-        .readTableOrNull(_automaticPostingBatchMembersRefsTable($_db));
-    return ProcessedTableManager(
-        manager.$state.copyWith(prefetchedData: cache));
-  }
-}
-
-class $$AutomaticPostingBatchesTableFilterComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
-  $$AutomaticPostingBatchesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get cutoff => $composableBuilder(
-      column: $table.cutoff, builder: (column) => ColumnFilters(column));
-
-  Expression<bool> automaticPostingBatchMembersRefs(
-      Expression<bool> Function(
-              $$AutomaticPostingBatchMembersTableFilterComposer f)
-          f) {
-    final $$AutomaticPostingBatchMembersTableFilterComposer composer =
-        $composerBuilder(
-            composer: this,
-            getCurrentColumn: (t) => t.id,
-            referencedTable: $db.automaticPostingBatchMembers,
-            getReferencedColumn: (t) => t.batchId,
-            builder: (joinBuilder,
-                    {$addJoinBuilderToRootComposer,
-                    $removeJoinBuilderFromRootComposer}) =>
-                $$AutomaticPostingBatchMembersTableFilterComposer(
-                  $db: $db,
-                  $table: $db.automaticPostingBatchMembers,
-                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                  joinBuilder: joinBuilder,
-                  $removeJoinBuilderFromRootComposer:
-                      $removeJoinBuilderFromRootComposer,
-                ));
-    return f(composer);
-  }
-}
-
-class $$AutomaticPostingBatchesTableOrderingComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
-  $$AutomaticPostingBatchesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get cutoff => $composableBuilder(
-      column: $table.cutoff, builder: (column) => ColumnOrderings(column));
-}
-
-class $$AutomaticPostingBatchesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchesTable> {
-  $$AutomaticPostingBatchesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get cutoff =>
-      $composableBuilder(column: $table.cutoff, builder: (column) => column);
-
-  Expression<T> automaticPostingBatchMembersRefs<T extends Object>(
-      Expression<T> Function(
-              $$AutomaticPostingBatchMembersTableAnnotationComposer a)
-          f) {
-    final $$AutomaticPostingBatchMembersTableAnnotationComposer composer =
-        $composerBuilder(
-            composer: this,
-            getCurrentColumn: (t) => t.id,
-            referencedTable: $db.automaticPostingBatchMembers,
-            getReferencedColumn: (t) => t.batchId,
-            builder: (joinBuilder,
-                    {$addJoinBuilderToRootComposer,
-                    $removeJoinBuilderFromRootComposer}) =>
-                $$AutomaticPostingBatchMembersTableAnnotationComposer(
-                  $db: $db,
-                  $table: $db.automaticPostingBatchMembers,
-                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                  joinBuilder: joinBuilder,
-                  $removeJoinBuilderFromRootComposer:
-                      $removeJoinBuilderFromRootComposer,
-                ));
-    return f(composer);
-  }
-}
-
-class $$AutomaticPostingBatchesTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $AutomaticPostingBatchesTable,
-    AutomaticPostingBatchRow,
-    $$AutomaticPostingBatchesTableFilterComposer,
-    $$AutomaticPostingBatchesTableOrderingComposer,
-    $$AutomaticPostingBatchesTableAnnotationComposer,
-    $$AutomaticPostingBatchesTableCreateCompanionBuilder,
-    $$AutomaticPostingBatchesTableUpdateCompanionBuilder,
-    (AutomaticPostingBatchRow, $$AutomaticPostingBatchesTableReferences),
-    AutomaticPostingBatchRow,
-    PrefetchHooks Function({bool automaticPostingBatchMembersRefs})> {
-  $$AutomaticPostingBatchesTableTableManager(
-      _$AppDatabase db, $AutomaticPostingBatchesTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$AutomaticPostingBatchesTableFilterComposer(
-                  $db: db, $table: table),
-          createOrderingComposer: () =>
-              $$AutomaticPostingBatchesTableOrderingComposer(
-                  $db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$AutomaticPostingBatchesTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> cutoff = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              AutomaticPostingBatchesCompanion(
-            id: id,
-            createdAt: createdAt,
-            cutoff: cutoff,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            Value<DateTime> createdAt = const Value.absent(),
-            required DateTime cutoff,
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              AutomaticPostingBatchesCompanion.insert(
-            id: id,
-            createdAt: createdAt,
-            cutoff: cutoff,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (
-                    e.readTable<$AutomaticPostingBatchesTable,
-                        AutomaticPostingBatchRow>(table),
-                    $$AutomaticPostingBatchesTableReferences(db, table, e)
-                  ))
-              .toList(),
-          prefetchHooksCallback: ({automaticPostingBatchMembersRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (automaticPostingBatchMembersRefs)
-                  db.automaticPostingBatchMembers
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (automaticPostingBatchMembersRefs)
-                    await $_getPrefetchedDataByColumns<
-                            AutomaticPostingBatchRow,
-                            $AutomaticPostingBatchesTable,
-                            AutomaticPostingBatchMemberRow,
-                            $AutomaticPostingBatchMembersTable>(
-                        currentTable: table,
-                        referencedTable:
-                            $$AutomaticPostingBatchesTableReferences
-                                ._automaticPostingBatchMembersRefsTable(db),
-                        managerFromTypedResult: (p0) =>
-                            $$AutomaticPostingBatchesTableReferences(
-                                    db, table, p0)
-                                .automaticPostingBatchMembersRefs,
-                        currentColumn: 'id',
-                        referencedColumn: 'batch_id',
-                        typedResults: items)
-                ];
-              },
-            );
-          },
-        ));
-}
-
-typedef $$AutomaticPostingBatchesTableProcessedTableManager
-    = ProcessedTableManager<
-        _$AppDatabase,
-        $AutomaticPostingBatchesTable,
-        AutomaticPostingBatchRow,
-        $$AutomaticPostingBatchesTableFilterComposer,
-        $$AutomaticPostingBatchesTableOrderingComposer,
-        $$AutomaticPostingBatchesTableAnnotationComposer,
-        $$AutomaticPostingBatchesTableCreateCompanionBuilder,
-        $$AutomaticPostingBatchesTableUpdateCompanionBuilder,
-        (AutomaticPostingBatchRow, $$AutomaticPostingBatchesTableReferences),
-        AutomaticPostingBatchRow,
-        PrefetchHooks Function({bool automaticPostingBatchMembersRefs})>;
-typedef $$AutomaticPostingBatchMembersTableCreateCompanionBuilder
-    = AutomaticPostingBatchMembersCompanion Function({
-  required String batchId,
-  required String scheduledId,
-  required String result,
-  Value<int> rowid,
-});
-typedef $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder
-    = AutomaticPostingBatchMembersCompanion Function({
-  Value<String> batchId,
-  Value<String> scheduledId,
-  Value<String> result,
-  Value<int> rowid,
-});
-
-final class $$AutomaticPostingBatchMembersTableReferences
-    extends BaseReferences<_$AppDatabase, $AutomaticPostingBatchMembersTable,
-        AutomaticPostingBatchMemberRow> {
-  $$AutomaticPostingBatchMembersTableReferences(
-      super.$_db, super.$_table, super.$_typedResult);
-
-  static $AutomaticPostingBatchesTable _batchIdTable(_$AppDatabase db) =>
-      db.automaticPostingBatches.createAlias(
-          'automatic_posting_batch_members__batch_id__automatic_posting_batches__id');
-
-  $$AutomaticPostingBatchesTableProcessedTableManager get batchId {
-    final $_column = $_itemColumn<String>('batch_id')!;
-
-    final manager = $$AutomaticPostingBatchesTableTableManager(
-            $_db, $_db.automaticPostingBatches)
-        .filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_batchIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-        manager.$state.copyWith(prefetchedData: [item]));
-  }
-}
-
-class $$AutomaticPostingBatchMembersTableFilterComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
-  $$AutomaticPostingBatchMembersTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get scheduledId => $composableBuilder(
-      column: $table.scheduledId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get result => $composableBuilder(
-      column: $table.result, builder: (column) => ColumnFilters(column));
-
-  $$AutomaticPostingBatchesTableFilterComposer get batchId {
-    final $$AutomaticPostingBatchesTableFilterComposer composer =
-        $composerBuilder(
-            composer: this,
-            getCurrentColumn: (t) => t.batchId,
-            referencedTable: $db.automaticPostingBatches,
-            getReferencedColumn: (t) => t.id,
-            builder: (joinBuilder,
-                    {$addJoinBuilderToRootComposer,
-                    $removeJoinBuilderFromRootComposer}) =>
-                $$AutomaticPostingBatchesTableFilterComposer(
-                  $db: $db,
-                  $table: $db.automaticPostingBatches,
-                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                  joinBuilder: joinBuilder,
-                  $removeJoinBuilderFromRootComposer:
-                      $removeJoinBuilderFromRootComposer,
-                ));
-    return composer;
-  }
-}
-
-class $$AutomaticPostingBatchMembersTableOrderingComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
-  $$AutomaticPostingBatchMembersTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get scheduledId => $composableBuilder(
-      column: $table.scheduledId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get result => $composableBuilder(
-      column: $table.result, builder: (column) => ColumnOrderings(column));
-
-  $$AutomaticPostingBatchesTableOrderingComposer get batchId {
-    final $$AutomaticPostingBatchesTableOrderingComposer composer =
-        $composerBuilder(
-            composer: this,
-            getCurrentColumn: (t) => t.batchId,
-            referencedTable: $db.automaticPostingBatches,
-            getReferencedColumn: (t) => t.id,
-            builder: (joinBuilder,
-                    {$addJoinBuilderToRootComposer,
-                    $removeJoinBuilderFromRootComposer}) =>
-                $$AutomaticPostingBatchesTableOrderingComposer(
-                  $db: $db,
-                  $table: $db.automaticPostingBatches,
-                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                  joinBuilder: joinBuilder,
-                  $removeJoinBuilderFromRootComposer:
-                      $removeJoinBuilderFromRootComposer,
-                ));
-    return composer;
-  }
-}
-
-class $$AutomaticPostingBatchMembersTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AutomaticPostingBatchMembersTable> {
-  $$AutomaticPostingBatchMembersTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get scheduledId => $composableBuilder(
-      column: $table.scheduledId, builder: (column) => column);
-
-  GeneratedColumn<String> get result =>
-      $composableBuilder(column: $table.result, builder: (column) => column);
-
-  $$AutomaticPostingBatchesTableAnnotationComposer get batchId {
-    final $$AutomaticPostingBatchesTableAnnotationComposer composer =
-        $composerBuilder(
-            composer: this,
-            getCurrentColumn: (t) => t.batchId,
-            referencedTable: $db.automaticPostingBatches,
-            getReferencedColumn: (t) => t.id,
-            builder: (joinBuilder,
-                    {$addJoinBuilderToRootComposer,
-                    $removeJoinBuilderFromRootComposer}) =>
-                $$AutomaticPostingBatchesTableAnnotationComposer(
-                  $db: $db,
-                  $table: $db.automaticPostingBatches,
-                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                  joinBuilder: joinBuilder,
-                  $removeJoinBuilderFromRootComposer:
-                      $removeJoinBuilderFromRootComposer,
-                ));
-    return composer;
-  }
-}
-
-class $$AutomaticPostingBatchMembersTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $AutomaticPostingBatchMembersTable,
-    AutomaticPostingBatchMemberRow,
-    $$AutomaticPostingBatchMembersTableFilterComposer,
-    $$AutomaticPostingBatchMembersTableOrderingComposer,
-    $$AutomaticPostingBatchMembersTableAnnotationComposer,
-    $$AutomaticPostingBatchMembersTableCreateCompanionBuilder,
-    $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder,
-    (
-      AutomaticPostingBatchMemberRow,
-      $$AutomaticPostingBatchMembersTableReferences
-    ),
-    AutomaticPostingBatchMemberRow,
-    PrefetchHooks Function({bool batchId})> {
-  $$AutomaticPostingBatchMembersTableTableManager(
-      _$AppDatabase db, $AutomaticPostingBatchMembersTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$AutomaticPostingBatchMembersTableFilterComposer(
-                  $db: db, $table: table),
-          createOrderingComposer: () =>
-              $$AutomaticPostingBatchMembersTableOrderingComposer(
-                  $db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$AutomaticPostingBatchMembersTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> batchId = const Value.absent(),
-            Value<String> scheduledId = const Value.absent(),
-            Value<String> result = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              AutomaticPostingBatchMembersCompanion(
-            batchId: batchId,
-            scheduledId: scheduledId,
-            result: result,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String batchId,
-            required String scheduledId,
-            required String result,
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              AutomaticPostingBatchMembersCompanion.insert(
-            batchId: batchId,
-            scheduledId: scheduledId,
-            result: result,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (
-                    e.readTable<$AutomaticPostingBatchMembersTable,
-                        AutomaticPostingBatchMemberRow>(table),
-                    $$AutomaticPostingBatchMembersTableReferences(db, table, e)
-                  ))
-              .toList(),
-          prefetchHooksCallback: ({batchId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins: <
-                  T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic>>(state) {
-                if (batchId) {
-                  state = state.withJoin(
-                    currentTable: table,
-                    currentColumn: table.batchId,
-                    referencedTable:
-                        $$AutomaticPostingBatchMembersTableReferences
-                            ._batchIdTable(db),
-                    referencedColumn:
-                        $$AutomaticPostingBatchMembersTableReferences
-                            ._batchIdTable(db)
-                            .id,
-                  ) as T;
-                }
-
-                return state;
-              },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ));
-}
-
-typedef $$AutomaticPostingBatchMembersTableProcessedTableManager
-    = ProcessedTableManager<
-        _$AppDatabase,
-        $AutomaticPostingBatchMembersTable,
-        AutomaticPostingBatchMemberRow,
-        $$AutomaticPostingBatchMembersTableFilterComposer,
-        $$AutomaticPostingBatchMembersTableOrderingComposer,
-        $$AutomaticPostingBatchMembersTableAnnotationComposer,
-        $$AutomaticPostingBatchMembersTableCreateCompanionBuilder,
-        $$AutomaticPostingBatchMembersTableUpdateCompanionBuilder,
-        (
-          AutomaticPostingBatchMemberRow,
-          $$AutomaticPostingBatchMembersTableReferences
-        ),
-        AutomaticPostingBatchMemberRow,
-        PrefetchHooks Function({bool batchId})>;
-typedef $$RestoreConfirmationBatchesTableCreateCompanionBuilder
-    = RestoreConfirmationBatchesCompanion Function({
-  required String id,
-  Value<DateTime> createdAt,
-  required DateTime backupExportedAt,
-  Value<String> status,
-  Value<int> rowid,
-});
-typedef $$RestoreConfirmationBatchesTableUpdateCompanionBuilder
-    = RestoreConfirmationBatchesCompanion Function({
-  Value<String> id,
-  Value<DateTime> createdAt,
-  Value<DateTime> backupExportedAt,
-  Value<String> status,
-  Value<int> rowid,
-});
-
-class $$RestoreConfirmationBatchesTableFilterComposer
-    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
-  $$RestoreConfirmationBatchesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get backupExportedAt => $composableBuilder(
-      column: $table.backupExportedAt,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get status => $composableBuilder(
-      column: $table.status, builder: (column) => ColumnFilters(column));
-}
-
-class $$RestoreConfirmationBatchesTableOrderingComposer
-    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
-  $$RestoreConfirmationBatchesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get backupExportedAt => $composableBuilder(
-      column: $table.backupExportedAt,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get status => $composableBuilder(
-      column: $table.status, builder: (column) => ColumnOrderings(column));
-}
-
-class $$RestoreConfirmationBatchesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $RestoreConfirmationBatchesTable> {
-  $$RestoreConfirmationBatchesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get backupExportedAt => $composableBuilder(
-      column: $table.backupExportedAt, builder: (column) => column);
-
-  GeneratedColumn<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
-}
-
-class $$RestoreConfirmationBatchesTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $RestoreConfirmationBatchesTable,
-    RestoreConfirmationBatchRow,
-    $$RestoreConfirmationBatchesTableFilterComposer,
-    $$RestoreConfirmationBatchesTableOrderingComposer,
-    $$RestoreConfirmationBatchesTableAnnotationComposer,
-    $$RestoreConfirmationBatchesTableCreateCompanionBuilder,
-    $$RestoreConfirmationBatchesTableUpdateCompanionBuilder,
-    (
-      RestoreConfirmationBatchRow,
-      BaseReferences<_$AppDatabase, $RestoreConfirmationBatchesTable,
-          RestoreConfirmationBatchRow>
-    ),
-    RestoreConfirmationBatchRow,
-    PrefetchHooks Function()> {
-  $$RestoreConfirmationBatchesTableTableManager(
-      _$AppDatabase db, $RestoreConfirmationBatchesTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$RestoreConfirmationBatchesTableFilterComposer(
-                  $db: db, $table: table),
-          createOrderingComposer: () =>
-              $$RestoreConfirmationBatchesTableOrderingComposer(
-                  $db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$RestoreConfirmationBatchesTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> backupExportedAt = const Value.absent(),
-            Value<String> status = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              RestoreConfirmationBatchesCompanion(
-            id: id,
-            createdAt: createdAt,
-            backupExportedAt: backupExportedAt,
-            status: status,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            Value<DateTime> createdAt = const Value.absent(),
-            required DateTime backupExportedAt,
-            Value<String> status = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              RestoreConfirmationBatchesCompanion.insert(
-            id: id,
-            createdAt: createdAt,
-            backupExportedAt: backupExportedAt,
-            status: status,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (
-                    e.readTable<$RestoreConfirmationBatchesTable,
-                        RestoreConfirmationBatchRow>(table),
-                    BaseReferences<
-                        _$AppDatabase,
-                        $RestoreConfirmationBatchesTable,
-                        RestoreConfirmationBatchRow>(db, table, e)
-                  ))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$RestoreConfirmationBatchesTableProcessedTableManager
-    = ProcessedTableManager<
-        _$AppDatabase,
-        $RestoreConfirmationBatchesTable,
-        RestoreConfirmationBatchRow,
-        $$RestoreConfirmationBatchesTableFilterComposer,
-        $$RestoreConfirmationBatchesTableOrderingComposer,
-        $$RestoreConfirmationBatchesTableAnnotationComposer,
-        $$RestoreConfirmationBatchesTableCreateCompanionBuilder,
-        $$RestoreConfirmationBatchesTableUpdateCompanionBuilder,
-        (
-          RestoreConfirmationBatchRow,
-          BaseReferences<_$AppDatabase, $RestoreConfirmationBatchesTable,
-              RestoreConfirmationBatchRow>
-        ),
-        RestoreConfirmationBatchRow,
-        PrefetchHooks Function()>;
-typedef $$ScheduledBillRedirectsTableCreateCompanionBuilder
-    = ScheduledBillRedirectsCompanion Function({
-  required String oldId,
-  Value<String?> newId,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-typedef $$ScheduledBillRedirectsTableUpdateCompanionBuilder
-    = ScheduledBillRedirectsCompanion Function({
-  Value<String> oldId,
-  Value<String?> newId,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-
-class $$ScheduledBillRedirectsTableFilterComposer
-    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
-  $$ScheduledBillRedirectsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get oldId => $composableBuilder(
-      column: $table.oldId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get newId => $composableBuilder(
-      column: $table.newId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-}
-
-class $$ScheduledBillRedirectsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
-  $$ScheduledBillRedirectsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get oldId => $composableBuilder(
-      column: $table.oldId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get newId => $composableBuilder(
-      column: $table.newId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-}
-
-class $$ScheduledBillRedirectsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ScheduledBillRedirectsTable> {
-  $$ScheduledBillRedirectsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get oldId =>
-      $composableBuilder(column: $table.oldId, builder: (column) => column);
-
-  GeneratedColumn<String> get newId =>
-      $composableBuilder(column: $table.newId, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$ScheduledBillRedirectsTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $ScheduledBillRedirectsTable,
-    ScheduledBillRedirectRow,
-    $$ScheduledBillRedirectsTableFilterComposer,
-    $$ScheduledBillRedirectsTableOrderingComposer,
-    $$ScheduledBillRedirectsTableAnnotationComposer,
-    $$ScheduledBillRedirectsTableCreateCompanionBuilder,
-    $$ScheduledBillRedirectsTableUpdateCompanionBuilder,
-    (
-      ScheduledBillRedirectRow,
-      BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
-          ScheduledBillRedirectRow>
-    ),
-    ScheduledBillRedirectRow,
-    PrefetchHooks Function()> {
-  $$ScheduledBillRedirectsTableTableManager(
-      _$AppDatabase db, $ScheduledBillRedirectsTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ScheduledBillRedirectsTableFilterComposer(
-                  $db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ScheduledBillRedirectsTableOrderingComposer(
-                  $db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ScheduledBillRedirectsTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> oldId = const Value.absent(),
-            Value<String?> newId = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              ScheduledBillRedirectsCompanion(
-            oldId: oldId,
-            newId: newId,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String oldId,
-            Value<String?> newId = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              ScheduledBillRedirectsCompanion.insert(
-            oldId: oldId,
-            newId: newId,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (
-                    e.readTable<$ScheduledBillRedirectsTable,
-                        ScheduledBillRedirectRow>(table),
-                    BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
-                        ScheduledBillRedirectRow>(db, table, e)
-                  ))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$ScheduledBillRedirectsTableProcessedTableManager
-    = ProcessedTableManager<
-        _$AppDatabase,
-        $ScheduledBillRedirectsTable,
-        ScheduledBillRedirectRow,
-        $$ScheduledBillRedirectsTableFilterComposer,
-        $$ScheduledBillRedirectsTableOrderingComposer,
-        $$ScheduledBillRedirectsTableAnnotationComposer,
-        $$ScheduledBillRedirectsTableCreateCompanionBuilder,
-        $$ScheduledBillRedirectsTableUpdateCompanionBuilder,
-        (
-          ScheduledBillRedirectRow,
-          BaseReferences<_$AppDatabase, $ScheduledBillRedirectsTable,
-              ScheduledBillRedirectRow>
-        ),
-        ScheduledBillRedirectRow,
-        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9179,20 +7585,6 @@ class $AppDatabaseManager {
       get monthlyAccountBalanceSnapshots =>
           $$MonthlyAccountBalanceSnapshotsTableTableManager(
               _db, _db.monthlyAccountBalanceSnapshots);
-  $$AutomaticPostingBatchesTableTableManager get automaticPostingBatches =>
-      $$AutomaticPostingBatchesTableTableManager(
-          _db, _db.automaticPostingBatches);
-  $$AutomaticPostingBatchMembersTableTableManager
-      get automaticPostingBatchMembers =>
-          $$AutomaticPostingBatchMembersTableTableManager(
-              _db, _db.automaticPostingBatchMembers);
-  $$RestoreConfirmationBatchesTableTableManager
-      get restoreConfirmationBatches =>
-          $$RestoreConfirmationBatchesTableTableManager(
-              _db, _db.restoreConfirmationBatches);
-  $$ScheduledBillRedirectsTableTableManager get scheduledBillRedirects =>
-      $$ScheduledBillRedirectsTableTableManager(
-          _db, _db.scheduledBillRedirects);
 }
 
 // **************************************************************************

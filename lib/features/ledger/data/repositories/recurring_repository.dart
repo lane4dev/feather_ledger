@@ -1,6 +1,4 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/database/daos/account_dao.dart';
@@ -9,10 +7,8 @@ import 'package:feather_ledger/core/data/database/daos/recurring_dao.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
-import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 export 'package:feather_ledger/features/ledger/domain/repositories/recurring_repository.dart';
 
@@ -63,22 +59,26 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<void> deletePendingForSeries(String seriesId) {
+    return _recurringDao.deletePendingScheduledForSeries(seriesId);
+  }
+
+  @override
+  Future<void> deleteScheduledById(String id) {
+    return _recurringDao.deleteScheduledById(id);
+  }
+
+  @override
   Future<void> deleteAllScheduledForSeries(String seriesId) {
     return _recurringDao.deleteScheduledForSeries(seriesId);
   }
 
   @override
   Future<void> deleteSeriesWithInstances(String seriesId) async {
-    // Instances first: they reference the series, so the parent has to
-    // outlive them while they go.
     await _recurringDao.deleteScheduledForSeries(seriesId);
     await _recurringDao.deleteSeries(seriesId);
   }
 
-  /// Groups the instances by series before resolving, because a series'
-  /// description, category and account are the same for every one of its
-  /// instances. Resolving per row would repeat the same three lookups N
-  /// times for N upcoming bills of one series.
   Future<List<ScheduledTransactionEntity>> _toEntities(
       List<ScheduledTransactionViewRow> rows) async {
     final grouped = <String, List<ScheduledTransactionViewRow>>{};
@@ -89,14 +89,9 @@ class RecurringRepositoryImpl implements RecurringRepository {
     final entities = <ScheduledTransactionEntity>[];
     for (final entry in grouped.entries) {
       final seriesRow = await _recurringDao.getSeries(entry.key);
-      // An instance whose series is gone is dropped rather than rendered
-      // half-described — there is nothing to show for it.
       if (seriesRow == null) continue;
 
       final series = _toSeriesEntity(seriesRow);
-      // Archived categories and accounts still resolve: a pending bill
-      // outlives the account it was set up against, and hiding it would
-      // hide money the user expects to move.
       final category =
           await _categoriesDao.getCategoryById(seriesRow.categoryId);
       final account = await _accountsDao.getAccountById(seriesRow.accountId);
@@ -106,15 +101,18 @@ class RecurringRepositoryImpl implements RecurringRepository {
           ScheduledTransactionEntity(
             id: row.id,
             seriesId: row.seriesId,
-            date: row.date,
-            amountMinor: row.amountMinor,
+            occurrenceKey: row.occurrenceKey,
+            scheduledDate: row.scheduledDate,
+            amountOverrideMinor: row.amountOverrideMinor,
+            dateOverride: row.dateOverride,
+            memoOverride: row.memoOverride,
             status: decodeScheduledStatus(row.status),
+            manualOnly: row.manualOnly,
             transactionId: row.transactionId,
             recurringTransactionSeries: series,
             kind: seriesRow.type.toTransactionKind,
             category: category == null ? null : _toCategoryEntity(category),
             account: account == null ? null : _toAccountEntity(account),
-            autoPostEligible: row.autoPostEligible,
           ),
         );
       }
@@ -145,12 +143,11 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<int> skipIfScheduled(String id) => _recurringDao.skipIfScheduled(id);
 
   @override
-  Future<void> markAutoPostIneligible(String id) =>
-      _recurringDao.markAutoPostIneligible(id);
+  Future<void> markManualOnly(String id) => _recurringDao.markManualOnly(id);
 
   @override
-  Future<void> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
-      _recurringDao.markSeriesIneligibleBefore(seriesId, cutoff);
+  Future<void> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff) =>
+      _recurringDao.markSeriesManualOnlyBefore(seriesId, cutoff);
 
   @override
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
@@ -171,171 +168,6 @@ class RecurringRepositoryImpl implements RecurringRepository {
     return _recurringDao.saveSeries(entry);
   }
 
-  @override
-  Future<String> createAutomaticPostingBatch(DateTime cutoff) async {
-    final id = const Uuid().v4();
-    await _recurringDao.createAutomaticPostingBatch(
-      AutomaticPostingBatchesCompanion.insert(
-        id: id,
-        cutoff: cutoff,
-      ),
-    );
-    return id;
-  }
-
-  @override
-  Future<AutomaticPostingBatch?> latestAutomaticPostingBatch() async {
-    final row = await _recurringDao.latestAutomaticPostingBatch();
-    if (row == null) return null;
-    return AutomaticPostingBatch(
-      id: row.id,
-      createdAt: row.createdAt,
-      cutoff: row.cutoff,
-    );
-  }
-
-  @override
-  Future<void> setAutomaticPostingMemberResult(String batchId,
-          String scheduledId, AutomaticPostingMemberResult result) =>
-      _recurringDao.setAutomaticPostingMemberResult(
-          batchId, scheduledId, result.name);
-
-  @override
-  Future<List<AutomaticPostingBatchMember>> automaticPostingMembers(
-      String batchId) async {
-    final rows = await _recurringDao.automaticPostingMembers(batchId);
-    return rows
-        .map((r) => AutomaticPostingBatchMember(
-              batchId: r.batchId,
-              scheduledId: r.scheduledId,
-              result: decodeAutomaticPostingMemberResult(r.result),
-            ))
-        .toList();
-  }
-
-  @override
-  Future<List<AutomaticPostingBatchMember>>
-      unsettledAutomaticPostingMembers() async {
-    final rows = await _recurringDao.unsettledAutomaticPostingMembers();
-    return rows
-        .map((r) => AutomaticPostingBatchMember(
-              batchId: r.batchId,
-              scheduledId: r.scheduledId,
-              result: decodeAutomaticPostingMemberResult(r.result),
-            ))
-        .toList();
-  }
-
-  @override
-  Future<bool> isAutomaticPostingMember(String scheduledId) =>
-      _recurringDao.isAutomaticPostingMember(scheduledId);
-
-  @override
-  Future<String> createRestoreConfirmationBatch(DateTime backupExportedAt,
-      {DateTime? createdAt}) async {
-    final id = 'restore-${backupExportedAt.millisecondsSinceEpoch}';
-    await _recurringDao.createRestoreConfirmationBatch(
-      RestoreConfirmationBatchesCompanion.insert(
-        id: id,
-        backupExportedAt: backupExportedAt,
-        createdAt: createdAt == null ? const Value.absent() : Value(createdAt),
-      ),
-    );
-    return id;
-  }
-
-  @override
-  Future<RestoreConfirmationBatch?>
-      latestPendingRestoreConfirmationBatch() async {
-    final row = await _recurringDao.latestPendingRestoreConfirmationBatch();
-    if (row == null) return null;
-    return _toRestoreConfirmationBatch(row);
-  }
-
-  @override
-  Future<List<RestoreConfirmationBatch>>
-      pendingRestoreConfirmationBatches() async {
-    final rows = await _recurringDao.pendingRestoreConfirmationBatches();
-    return rows.map(_toRestoreConfirmationBatch).toList();
-  }
-
-  @override
-  Future<RestoreConfirmationBatch?> restoreConfirmationBatch(String id) async {
-    final row = await _recurringDao.restoreConfirmationBatch(id);
-    if (row == null) return null;
-    return _toRestoreConfirmationBatch(row);
-  }
-
-  @override
-  Future<void> updateRestoreConfirmationStatus(
-      String id, RestoreConfirmationStatus status) async {
-    await _recurringDao.updateRestoreConfirmationStatus(id, status.name);
-  }
-
-  @override
-  Future<List<ScheduledTransactionEntity>> restoreConfirmationCandidates(
-      String batchId) async {
-    final batch = await restoreConfirmationBatch(batchId);
-    if (batch == null || batch.status != RestoreConfirmationStatus.pending) {
-      return const [];
-    }
-    final all = await watchAllScheduled().first;
-    return all
-        .where((i) =>
-            i.status == ScheduledTransactionStatus.scheduled &&
-            i.autoPostEligible &&
-            batch.contains(i.date))
-        .toList();
-  }
-
-  @override
-  Future<bool> isPendingRestoreCandidate(String scheduledId) async {
-    for (final batch in await pendingRestoreConfirmationBatches()) {
-      final candidates = await restoreConfirmationCandidates(batch.id);
-      if (candidates.any((c) => c.id == scheduledId)) return true;
-    }
-    return false;
-  }
-
-  @override
-  Future<void> recordScheduledRedirect(String oldId, {String? newId}) =>
-      _recurringDao.recordScheduledRedirect(oldId, newId: newId);
-
-  @override
-  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async {
-    // Follow the chain up to a bounded hop count. A stale notification should
-    // reach the current id through any number of edits, but a cycle (which
-    // should never be written) must not hang the handler.
-    var current = oldId;
-    String? resolved;
-    for (var hop = 0; hop < 16; hop++) {
-      final row = await _recurringDao.findScheduledRedirect(current);
-      if (row == null) {
-        return resolved == null
-            ? null
-            : ScheduledBillRedirect(oldId: oldId, newId: resolved);
-      }
-      if (row.newId == null) {
-        return ScheduledBillRedirect(oldId: oldId);
-      }
-      resolved = row.newId;
-      current = row.newId!;
-    }
-    return null;
-  }
-
-  RestoreConfirmationBatch _toRestoreConfirmationBatch(
-          RestoreConfirmationBatchRow row) =>
-      RestoreConfirmationBatch(
-        id: row.id,
-        createdAt: row.createdAt,
-        backupExportedAt: row.backupExportedAt,
-        status: RestoreConfirmationStatus.values.firstWhere(
-          (s) => s.name == row.status,
-          orElse: () => RestoreConfirmationStatus.pending,
-        ),
-      );
-
   RecurringTransactionSeriesEntity _toSeriesEntity(RecurringSeriesRow row) =>
       RecurringTransactionSeriesEntity(
         id: row.id,
@@ -353,6 +185,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
         autoPost: row.autoPost,
         reminderMinutes: row.reminderMinutes,
         mode: row.mode,
+        isActive: row.isActive,
       );
 }
 

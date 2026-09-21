@@ -123,7 +123,7 @@ class _ReminderResponseHandlerState
 
     if (action == null || action.isEmpty) await _finishDeferredAutoPost();
     if (!mounted) return;
-    final (bill, deleted) = await _resolveScheduled(id);
+    final bill = await _resolveScheduled(id);
     if (!mounted) return;
     final service = ref.read(recurringServiceProvider);
     final navigator =
@@ -134,10 +134,6 @@ class _ReminderResponseHandlerState
     void message(String text) => ScaffoldMessenger.maybeOf(navContext)
         ?.showSnackBar(SnackBar(content: Text(text)));
 
-    if (deleted) {
-      message(l10n.notificationDeleted);
-      return;
-    }
     if (bill == null) {
       message(l10n.notificationUnavailable);
       return;
@@ -193,30 +189,15 @@ class _ReminderResponseHandlerState
         builder: (_) => PendingBillSheet(transaction: tile));
   }
 
-  /// Resolves a stale notification's bill id to the current bill (following
-  /// the persisted redirect chain across edits and splits), or to
-  /// "deleted" (`deleted == true`), or to "never existed" (`bill == null`).
-  /// A bill that still exists at a live status returns directly; a skipped or
-  /// missing id consults the redirect table (spec 006, US45).
-  Future<(ScheduledTransactionEntity?, bool deleted)> _resolveScheduled(
-      String id) async {
-    final service = ref.read(recurringServiceProvider);
-    var current = id;
-    for (var hop = 0; hop < 16; hop++) {
-      final items = await service.watchScheduled().first;
-      final bill = items.where((item) => item.id == current).firstOrNull;
-      if (bill != null &&
-          (bill.status == ScheduledTransactionStatus.scheduled ||
-              bill.status == ScheduledTransactionStatus.posted)) {
-        return (bill, false);
-      }
-      // Skipped, failed, or absent: a redirect records where it went.
-      final redirect = await service.resolveScheduledRedirect(current);
-      if (redirect == null) return (null, false);
-      if (redirect.newId == null) return (null, true);
-      current = redirect.newId!;
+  Future<ScheduledTransactionEntity?> _resolveScheduled(String id) async {
+    final bill = await ref.read(recurringServiceProvider).getScheduled(id);
+    if (bill == null) return null;
+    if (bill.status == ScheduledTransactionStatus.scheduled ||
+        bill.status == ScheduledTransactionStatus.posted ||
+        bill.status == ScheduledTransactionStatus.failed) {
+      return bill;
     }
-    return (null, false);
+    return null;
   }
 
   Future<void> _showRecorded(

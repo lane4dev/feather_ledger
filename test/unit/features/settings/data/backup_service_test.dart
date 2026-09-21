@@ -105,14 +105,6 @@ void main() {
         'ALTER TABLE accounts_view DROP COLUMN include_in_totals');
     await db.customStatement(
         'ALTER TABLE transactions_view DROP COLUMN attachments_json');
-    await db
-        .customStatement('ALTER TABLE recurring_series DROP COLUMN auto_post');
-    await db.customStatement(
-        'ALTER TABLE recurring_series DROP COLUMN reminder_minutes');
-    await db
-        .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
-    await db.customStatement(
-        'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
     await db.customStatement(
         'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
     await db.customStatement('PRAGMA user_version = 1');
@@ -154,15 +146,10 @@ void main() {
       expect(manifest.databaseBytes, greaterThan(0));
     });
 
-    test('auto-post switches are local-only and absent from the manifest',
+    test('auto-post watermark is local-only and absent from the manifest',
         () async {
       await seedExpense();
-      await preferences
-          .setAutoPostEnabled(RecurringSeriesMode.planned, true);
-      await preferences
-          .setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-      await preferences
-          .setAutoPostEnabled(RecurringSeriesMode.repeating, true);
+      await preferences.setLastRecurringAutoPost(true);
 
       final path = builtArchivePath(await service().buildArchive());
       final archive = readArchive(path);
@@ -171,10 +158,8 @@ void main() {
             .decode(archive.findFile(RestoreLayout.stagedManifest)!.content)),
       );
 
-      expect(manifest.preferenceKeys, isNot(contains('autopost_planned')));
-      expect(
-          manifest.preferenceKeys, isNot(contains('autopost_subscription')));
-      expect(manifest.preferenceKeys, isNot(contains('autopost_repeating')));
+      expect(manifest.preferenceKeys,
+          isNot(contains('last_recurring_auto_post')));
     });
 
     test('the snapshot is a complete SQLite database', () async {

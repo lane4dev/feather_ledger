@@ -10,32 +10,24 @@ enum ScheduledTransactionStatus {
   failed,
 }
 
-/// The derived id of one materialized instance.
-///
-/// Stable for a given (series, date), and that stability *is* the idempotency
-/// of materialization: a second run recomputes this id and finds the row it
-/// made instead of adding another. **Do not change the shape** — every row
-/// already in `scheduled_transactions_view` is named this way, and a row whose
-/// id no longer matches its date would be re-created alongside itself.
-String scheduledInstanceId(String seriesId, DateTime date) =>
-    '${seriesId}_${date.millisecondsSinceEpoch}';
+/// Occurrence key for a one-shot planned bill (`(series_id, occurrence_key)`).
+const kPlannedOccurrenceKey = 'single';
 
-/// How far an edit or a delete reaches into a recurring series (spec 004, US2).
-///
-/// The scopes mean the same thing for both, which is why they share one enum:
-/// they name how much of the *series* the action takes with it, not which row
-/// it starts from. A bill is re-derived from its rule, so "how far" is the
-/// only question that has a stable answer.
+/// Semantic occurrence key (`YYYY-MM-DD`) for one rule-generated instance.
+String scheduledOccurrenceKey(DateTime date) {
+  final y = date.year.toString().padLeft(4, '0');
+  final m = date.month.toString().padLeft(2, '0');
+  final d = date.day.toString().padLeft(2, '0');
+  return '$y-$m-$d';
+}
+
+/// How far an edit reaches into a recurring series.
 enum RecurringScope {
-  /// The one bill that was opened. The series carries on unchanged.
+  /// Only this single occurrence (stored as sparse override columns).
   thisOnly,
 
-  /// This bill and every later one. Earlier bills — recorded or still
-  /// pending — are untouched.
-  thisAndFollowing,
-
-  /// The whole series. Bills already recorded are kept.
-  all,
+  /// Update the rule template and unposted future occurrences.
+  updateRule,
 }
 
 /// The `scheduled_transactions_view.status` column stores the enum *name*
@@ -130,9 +122,13 @@ class TransactionEntity {
 class ScheduledTransactionEntity {
   final String id;
   final String seriesId;
-  final int amountMinor;
-  final DateTime date;
+  final String occurrenceKey;
+  final DateTime scheduledDate;
+  final int? amountOverrideMinor;
+  final DateTime? dateOverride;
+  final String? memoOverride;
   final ScheduledTransactionStatus status;
+  final bool manualOnly;
   final String? transactionId;
   final RecurringTransactionSeriesEntity? recurringTransactionSeries;
 
@@ -144,52 +140,65 @@ class ScheduledTransactionEntity {
   final CategoryEntity? category;
   final AccountEntity? account;
 
-  /// Ticket 31: once a bill has lost its auto-post eligibility (its switch
-  /// was off, or its currency was not current, when it fell due) it stays
-  /// manual forever — re-enabling the switch must not retro-post old bills.
-  /// `false` still renders as a normal pending row; it only blocks [catchUp].
-  final bool autoPostEligible;
+  DateTime get effectiveDate => dateOverride ?? scheduledDate;
+  int get effectiveAmountMinor =>
+      amountOverrideMinor ?? recurringTransactionSeries?.amountMinor ?? 0;
+  String get effectiveMemo =>
+      memoOverride ?? recurringTransactionSeries?.description ?? '';
+
+  /// Convenience aliases matching the effective values.
+  DateTime get date => effectiveDate;
+  int get amountMinor => effectiveAmountMinor;
 
   const ScheduledTransactionEntity({
     required this.id,
     required this.seriesId,
-    required this.amountMinor,
-    required this.date,
+    required this.occurrenceKey,
+    required this.scheduledDate,
+    this.amountOverrideMinor,
+    this.dateOverride,
+    this.memoOverride,
     this.status = ScheduledTransactionStatus.scheduled,
+    this.manualOnly = false,
     this.transactionId,
     this.recurringTransactionSeries,
     this.kind,
     this.category,
     this.account,
-    this.autoPostEligible = true,
   });
 
   ScheduledTransactionEntity copyWith({
     String? id,
     String? seriesId,
-    int? amountMinor,
-    DateTime? date,
+    String? occurrenceKey,
+    DateTime? scheduledDate,
+    int? amountOverrideMinor,
+    DateTime? dateOverride,
+    String? memoOverride,
     ScheduledTransactionStatus? status,
+    bool? manualOnly,
     String? transactionId,
     RecurringTransactionSeriesEntity? recurringTransactionSeries,
     TransactionKind? kind,
     CategoryEntity? category,
     AccountEntity? account,
-    bool? autoPostEligible,
   }) {
     return ScheduledTransactionEntity(
       id: id ?? this.id,
       seriesId: seriesId ?? this.seriesId,
-      amountMinor: amountMinor ?? this.amountMinor,
-      date: date ?? this.date,
+      occurrenceKey: occurrenceKey ?? this.occurrenceKey,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      amountOverrideMinor: amountOverrideMinor ?? this.amountOverrideMinor,
+      dateOverride: dateOverride ?? this.dateOverride,
+      memoOverride: memoOverride ?? this.memoOverride,
       status: status ?? this.status,
+      manualOnly: manualOnly ?? this.manualOnly,
       transactionId: transactionId ?? this.transactionId,
       recurringTransactionSeries:
           recurringTransactionSeries ?? this.recurringTransactionSeries,
       kind: kind ?? this.kind,
       category: category ?? this.category,
       account: account ?? this.account,
-      autoPostEligible: autoPostEligible ?? this.autoPostEligible,
     );
   }
 }
@@ -210,15 +219,13 @@ class RecurringTransactionSeriesEntity {
   final int? interval; // e.g., every '2' months
   final int? limit; // e.g., limit to '5' occurrences
 
-  /// Whether due instances post themselves at launch (订阅). Required here so
-  /// a construction site cannot silently drop it — the flag rides every
-  /// series rewrite (edit scopes) or the split series loses auto-posting.
+  /// Whether due instances post themselves at launch.
   final bool autoPost;
   final int? reminderMinutes;
 
-  /// The creation mode (计划/订阅/重复). Immutable after creation; persists
-  /// across restart and backup so the three intents stay distinguishable.
+  /// The creation mode (计划 / 重复). Immutable after creation.
   final RecurringSeriesMode mode;
+  final bool isActive;
 
   const RecurringTransactionSeriesEntity({
     required this.id,
@@ -236,19 +243,6 @@ class RecurringTransactionSeriesEntity {
     required this.autoPost,
     this.reminderMinutes,
     required this.mode,
+    this.isActive = true,
   });
-}
-
-/// A persistent link from a bill's old scheduled id — the one a shown
-/// notification payload holds — to its current id, or to "deleted" (spec 006,
-/// US45). Bills' ids encode their date, so a reschedule or split orphans the
-/// old id; this record lets a stale notification resolve to the same
-/// occurrence (or report it deleted) across restarts and restores.
-///
-/// `newId == null` means the bill was deleted.
-class ScheduledBillRedirect {
-  final String oldId;
-  final String? newId;
-
-  const ScheduledBillRedirect({required this.oldId, this.newId});
 }

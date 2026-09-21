@@ -14,7 +14,7 @@ import '../models/custom_recurrence.dart';
 /// one-shot series (计划: `startDate == endDate`) and an `autoPost` flag
 /// (订阅), and has no mode concept. [TransactionFormMode.defaultMode] is a
 /// plain recorded entry.
-enum TransactionFormMode { defaultMode, planned, subscription, repeating }
+enum TransactionFormMode { defaultMode, planned, repeating }
 
 /// What the transaction form is holding, and the rules that read it.
 ///
@@ -194,18 +194,14 @@ class TransactionFormViewState {
   /// only where [canRepeat] holds. Default and 计划 have none — the picker
   /// never offers "does not repeat", because the mode already answered that.
   bool get showsRepeatRow =>
-      canRepeat &&
-      (mode == TransactionFormMode.repeating ||
-          mode == TransactionFormMode.subscription);
+      canRepeat && mode == TransactionFormMode.repeating;
 
   /// Whether the attachment row shows. A series row cannot carry attachments,
   /// and an invisible picked-files list would be a leak.
   bool get showsAttachments => mode != TransactionFormMode.planned;
 
-  /// Whether saving creates a recurring series (重复 / 订阅).
-  bool get wantsSeries =>
-      mode == TransactionFormMode.repeating ||
-      mode == TransactionFormMode.subscription;
+  /// Whether saving creates a recurring series (重复).
+  bool get wantsSeries => mode == TransactionFormMode.repeating;
 
   // Categories are typed by CategoryType, which has no transfer member; a
   // transfer has no category at all.

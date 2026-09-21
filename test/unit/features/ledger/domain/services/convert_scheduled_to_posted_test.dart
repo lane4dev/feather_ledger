@@ -61,8 +61,9 @@ void main() {
         ScheduledTransactionsViewCompanion.insert(
       id: 'sched_1',
       seriesId: 'series_1',
-      date: DateTime(2026, 1, 5),
-      amountMinor: scheduledAmountMinor,
+      occurrenceKey: '2026-01-05',
+      scheduledDate: DateTime(2026, 1, 5),
+      amountOverrideMinor: Value(scheduledAmountMinor),
       status: 'scheduled',
       transactionId: const Value(null),
     ));
@@ -191,7 +192,8 @@ void main() {
     expect(seriesAfter.single.amountMinor, 5000);
     expect(scheduledAfter!.status, 'posted',
         reason: 'status survives the rebuild (CRUD exemption)');
-    expect(scheduledAfter.amountMinor, scheduledBefore!.amountMinor);
+    expect(scheduledAfter.amountOverrideMinor,
+        scheduledBefore!.amountOverrideMinor);
   });
 }
 

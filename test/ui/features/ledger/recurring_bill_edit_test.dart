@@ -216,7 +216,7 @@ void main() {
                   startDate: tile.date,
                   endDate:
                       mode == RecurringSeriesMode.planned ? tile.date : null,
-                  autoPost: mode == RecurringSeriesMode.subscription,
+                  autoPost: mode == RecurringSeriesMode.repeating,
                   mode: mode,
                 ));
 
@@ -279,20 +279,15 @@ void main() {
       await pumpForm(tester, mode: RecurringSeriesMode.planned);
       await save(tester);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(viewModel.updated, [('sched_1', RecurringScope.all, 500000)]);
+      expect(viewModel.updated, [('sched_1', RecurringScope.updateRule, 500000)]);
     });
 
-    for (final mode in [
-      RecurringSeriesMode.subscription,
-      RecurringSeriesMode.repeating
-    ]) {
-      testWidgets('$mode asks for the scope before saving', (tester) async {
-        await pumpForm(tester, mode: mode);
-        await save(tester);
-        expect(find.byType(AlertDialog), findsOneWidget);
-        expect(viewModel.updated, isEmpty);
-      });
-    }
+    testWidgets('repeating asks for the scope before saving', (tester) async {
+      await pumpForm(tester, mode: RecurringSeriesMode.repeating);
+      await save(tester);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(viewModel.updated, isEmpty);
+    });
 
     Future<void> enterAmount(WidgetTester tester, String amount) async {
       await tester.enterText(
@@ -372,7 +367,6 @@ void main() {
 
       expect(find.text('Save recurring bill'), findsOneWidget);
       expect(find.text('This bill'), findsOneWidget);
-      expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);
       expect(viewModel.updated, isEmpty,
           reason: 'nothing is written until the reach is chosen');
@@ -382,14 +376,9 @@ void main() {
       await pumpForm(tester);
       await save(tester);
 
-      for (final label in [
-        'This bill',
-        'This and following bills',
-        'All bills'
-      ]) {
+      for (final label in ['This bill', 'All bills']) {
         final radio = find.byType(Radio<RecurringScope>);
-        final index = ['This bill', 'This and following bills', 'All bills']
-            .indexOf(label);
+        final index = ['This bill', 'All bills'].indexOf(label);
         // The radio is not centred against the whole title-plus-hint block:
         // its middle lands on the label's line, not between the two.
         final radioMiddle = tester.getCenter(radio.at(index)).dy;
@@ -408,8 +397,7 @@ void main() {
       await save(tester);
 
       final firstBottom = tester.getBottomLeft(find.text('This bill')).dy;
-      final secondTop =
-          tester.getTopLeft(find.text('This and following bills')).dy;
+      final secondTop = tester.getTopLeft(find.text('All bills')).dy;
       final gap = secondTop - firstBottom;
 
       // A default ListTile reserves two-line height for every option; these
@@ -425,7 +413,7 @@ void main() {
       await enterAmount(tester, '6000.00');
 
       await save(tester);
-      await tester.tap(find.text('This and following bills'));
+      await tester.tap(find.text('All bills'));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(
           of: find.byType(AlertDialog),
@@ -435,7 +423,7 @@ void main() {
       expect(viewModel.updated, hasLength(1));
       final call = viewModel.updated.single;
       expect(call.$1, 'sched_1');
-      expect(call.$2, RecurringScope.thisAndFollowing);
+      expect(call.$2, RecurringScope.updateRule);
       expect(call.$3, 600000);
     });
 
@@ -533,7 +521,6 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
     required String categoryId,
     required String accountId,
     required String description,
-    bool changeReminder = false,
     int? reminderMinutes,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');

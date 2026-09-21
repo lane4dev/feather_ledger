@@ -1,8 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:rrule/rrule.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 
@@ -75,8 +77,24 @@ class ProjectRecurringEventsCommand {
     final existing = {
       for (final row
           in await _recurringRepository.scheduledForSeries(series.id))
-        row.id: decodeScheduledStatus(row.status),
+        row.occurrenceKey: decodeScheduledStatus(row.status),
     };
+
+    if (series.mode == RecurringSeriesMode.planned) {
+      if (!existing.containsKey(kPlannedOccurrenceKey)) {
+        await _recurringRepository.insertMaterializedIfActive(
+          ScheduledTransactionsViewCompanion(
+            id: Value(const Uuid().v4()),
+            seriesId: Value(series.id),
+            occurrenceKey: const Value(kPlannedOccurrenceKey),
+            scheduledDate: Value(series.startDate),
+            status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
+            manualOnly: const Value(false),
+          ),
+        );
+      }
+      return;
+    }
 
     if (series.endDate != null || series.countLimit != null) {
       final before = series.endDate == null
@@ -203,21 +221,22 @@ class ProjectRecurringEventsCommand {
     for (final date in candidates) {
       if (kept >= budget) break;
 
-      final id = scheduledInstanceId(series.id, date);
-      final status = existing[id];
+      final localDate = _localize(date);
+      final key = scheduledOccurrenceKey(date.toUtc());
+      final status = existing[key];
 
       if (status == null) {
         await _recurringRepository.insertMaterializedIfActive(
           ScheduledTransactionsViewCompanion(
-            id: Value(id),
+            id: Value(const Uuid().v4()),
             seriesId: Value(series.id),
-            date: Value(_localize(date)),
-            amountMinor: Value(series.amountMinor),
+            occurrenceKey: Value(key),
+            scheduledDate: Value(localDate),
             status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
-            transactionId: const Value(null),
+            manualOnly: const Value(false),
           ),
         );
-        existing[id] = ScheduledTransactionStatus.scheduled;
+        existing[key] = ScheduledTransactionStatus.scheduled;
         kept++;
       } else if (status == ScheduledTransactionStatus.scheduled) {
         kept++;
@@ -226,11 +245,6 @@ class ProjectRecurringEventsCommand {
     return kept;
   }
 
-  /// Materializes every instance that has already come due.
-  ///
-  /// The walk is bounded by `before` (`now`), so it stays finite regardless of
-  /// how long the series slept; `includeBefore` folds in an instance due at
-  /// exactly this instant so no day is left dangling.
   Future<void> _fillOverdue({
     required RecurringSeriesRow series,
     required RecurrenceRule rule,
@@ -245,20 +259,21 @@ class ProjectRecurringEventsCommand {
     );
 
     for (final date in candidates) {
-      final id = scheduledInstanceId(series.id, date);
-      if (existing.containsKey(id)) continue;
+      final localDate = _localize(date);
+      final key = scheduledOccurrenceKey(date.toUtc());
+      if (existing.containsKey(key)) continue;
 
       await _recurringRepository.insertMaterializedIfActive(
         ScheduledTransactionsViewCompanion(
-          id: Value(id),
+          id: Value(const Uuid().v4()),
           seriesId: Value(series.id),
-          date: Value(_localize(date)),
-          amountMinor: Value(series.amountMinor),
+          occurrenceKey: Value(key),
+          scheduledDate: Value(localDate),
           status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
-          transactionId: const Value(null),
+          manualOnly: const Value(false),
         ),
       );
-      existing[id] = ScheduledTransactionStatus.scheduled;
+      existing[key] = ScheduledTransactionStatus.scheduled;
     }
   }
 

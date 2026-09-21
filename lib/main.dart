@@ -18,7 +18,6 @@ import 'core/data/repositories/preferences_repository.dart';
 import 'core/presentation/providers/theme_provider.dart';
 import 'core/presentation/providers/locale_provider.dart';
 import 'features/ledger/data/event_sourcing/drift_event_store.dart';
-import 'features/ledger/data/repositories/recurring_repository.dart';
 import 'features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'features/ledger/domain/services/recurring_service.dart';
 import 'features/ledger/data/notifications/recurring_reminders.dart';
@@ -68,9 +67,7 @@ void main() async {
   // `applyPendingRestore` and here.
   final restoreExportedAt = readRestoreBarrier(supportDir);
   if (restoreExportedAt != null) {
-    await container
-        .read(recurringRepositoryProvider)
-        .createRestoreConfirmationBatch(restoreExportedAt);
+    // Stage 4 wires markPreRestoreManualOnly(restoreExportedAt) here.
     await clearRestoreBarrier(supportDir);
   }
 
@@ -166,6 +163,7 @@ void main() async {
             .catchUpAutoPosted()
             .catchError((Object e) {
           debugPrint('recurring auto-post catch-up failed: $e');
+          return 0;
         }),
       );
     });

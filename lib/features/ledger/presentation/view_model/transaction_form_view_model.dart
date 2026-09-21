@@ -109,8 +109,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// carry them, and an invisible list is a leak.
   void setMode(TransactionFormMode mode) {
     if (mode == state.mode) return;
-    final wantsFrequency = mode == TransactionFormMode.repeating ||
-        mode == TransactionFormMode.subscription;
+    final wantsFrequency = mode == TransactionFormMode.repeating;
     state = state.copyWith(
       mode: mode,
       customRecurrence: wantsFrequency ? state.customRecurrence : null,
@@ -341,9 +340,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           endDate: form.customRecurrence?.endDate,
           countLimit: form.customRecurrence?.countLimit,
           weekdays: form.customRecurrence?.weekdays ?? const [],
-          // 订阅: the app confirms each due instance at launch instead of
-          // waiting for the user's 记入.
-          autoPost: form.mode == TransactionFormMode.subscription,
+          autoPost: false,
           reminderMinutes: form.reminderMinutes,
           mode: _seriesMode(form.mode),
         );
@@ -389,7 +386,6 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// creates a series, so it has no counterpart here.
   RecurringSeriesMode _seriesMode(TransactionFormMode mode) => switch (mode) {
         TransactionFormMode.planned => RecurringSeriesMode.planned,
-        TransactionFormMode.subscription => RecurringSeriesMode.subscription,
         TransactionFormMode.repeating => RecurringSeriesMode.repeating,
         TransactionFormMode.defaultMode =>
           throw StateError('a default entry creates no series'),

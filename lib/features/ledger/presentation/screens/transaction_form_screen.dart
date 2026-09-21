@@ -885,7 +885,6 @@ class _TransactionFormModeSelector extends StatelessWidget {
   String _label(TransactionFormMode mode) => switch (mode) {
         TransactionFormMode.defaultMode => l10n.transactionModeDefault,
         TransactionFormMode.planned => l10n.transactionModePlanned,
-        TransactionFormMode.subscription => l10n.transactionModeSubscription,
         TransactionFormMode.repeating => l10n.transactionModeRepeating,
       };
 }

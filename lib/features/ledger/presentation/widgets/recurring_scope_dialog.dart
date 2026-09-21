@@ -88,17 +88,14 @@ class RecurringScopeDialogState extends State<RecurringScopeDialog> {
 
   String? _hint(AppLocalizations l10n, RecurringScope scope) {
     if (widget.unavailable.contains(scope)) return widget.unavailableHint;
-    // Only the widest scope needs reassuring: it is the one that reads as
-    // "throw the whole series away".
-    if (scope == RecurringScope.all) return l10n.scopeAllHint;
+    if (scope == RecurringScope.updateRule) return l10n.scopeAllHint;
     return null;
   }
 
   static String _label(AppLocalizations l10n, RecurringScope scope) =>
       switch (scope) {
         RecurringScope.thisOnly => l10n.scopeThisOnly,
-        RecurringScope.thisAndFollowing => l10n.scopeThisAndFollowing,
-        RecurringScope.all => l10n.scopeAll,
+        RecurringScope.updateRule => l10n.scopeAll,
       };
 }
 

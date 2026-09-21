@@ -150,40 +150,49 @@ class RecurringSeries extends Table {
   // has one account, so a transfer is not representable (ADR-0002).
   IntColumn get type => intEnum<RecurringSeriesKind>()();
 
-  /// Whether due instances post themselves at launch (订阅). The schedule is
-  /// unchanged — this only says who confirms each instance: the app, or the
-  /// user tapping 记入.
+  /// Whether due instances post themselves at launch. Only valid when
+  /// [mode] is [RecurringSeriesMode.repeating].
   BoolColumn get autoPost => boolean().withDefault(const Constant(false))();
 
-  /// The creation mode (计划/订阅/重复). Persisted so the intent survives a
-  /// restart and the backup; immutable after creation. See
-  /// [RecurringSeriesMode] for the ordinal contract.
-  IntColumn get mode => intEnum<RecurringSeriesMode>().withDefault(const Constant(0))();
+  /// The creation mode (计划 / 重复). Persisted so the intent survives a
+  /// restart and the backup; immutable after creation.
+  IntColumn get mode =>
+      intEnum<RecurringSeriesMode>().withDefault(const Constant(0))();
 
   /// Minutes before each scheduled occurrence; null means no reminder.
   IntColumn get reminderMinutes => integer().nullable()();
+
+  /// Whether this rule is active. Setting false stops future materialization
+  /// without touching historical rows.
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
 // Scheduled Transactions Projection — CRUD-exempt like [RecurringSeries]:
-// instances are materialized and status-updated directly, never rebuilt.
+// instances use stable UUID PKs and a semantic unique constraint on
+// (seriesId, occurrenceKey).
 @DataClassName('ScheduledTransactionViewRow')
 class ScheduledTransactionsView extends Table {
-  TextColumn get id => text()(); // Derived ID e.g. "seriesId_date"
+  TextColumn get id => text()(); // Independent UUID
   TextColumn get seriesId => text().references(RecurringSeries, #id)();
-  DateTimeColumn get date => dateTime()();
-  IntColumn get amountMinor => integer()();
-  TextColumn get status => text()(); // 'pending', 'posted', 'skipped'
+  TextColumn get occurrenceKey => text()(); // YYYY-MM-DD or 'single'
+  DateTimeColumn get scheduledDate => dateTime()();
+  IntColumn get amountOverrideMinor => integer().nullable()();
+  DateTimeColumn get dateOverride => dateTime().nullable()();
+  TextColumn get memoOverride => text().nullable()();
+  TextColumn get status => text()(); // 'scheduled', 'posted', 'skipped', 'failed'
+  BoolColumn get manualOnly => boolean().withDefault(const Constant(false))();
   TextColumn get transactionId => text().nullable()();
-
-  /// Ticket 31: a bill that fell due while its switch was off or its currency
-  /// was not current is marked manual (false) and never auto-posts again.
-  BoolColumn get autoPostEligible => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {seriesId, occurrenceKey},
+      ];
 }
 
 /// Monthly per-account balance snapshot (spec 003, US7/T051): one row per
@@ -222,68 +231,4 @@ class MonthlyAccountBalanceSnapshots extends Table {
   List<Set<Column>> get uniqueKeys => [
         {accountId, currencyCode, year, month},
       ];
-}
-
-/// Persisted automatic-posting batches (spec 006, US46–48).
-///
-/// CRUD-exempt like [RecurringSeries]: never rebuilt from events. A batch
-/// has a fixed cutoff so newly-due bills never join an in-flight batch.
-@DataClassName('AutomaticPostingBatchRow')
-class AutomaticPostingBatches extends Table {
-  TextColumn get id => text()(); // UUID
-  DateTimeColumn get createdAt =>
-      dateTime().clientDefault(() => DateTime.now())();
-  DateTimeColumn get cutoff => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// One scheduled bill's membership in an automatic-posting batch and its
-/// current result. Composite key keeps a bill in at most one batch.
-@DataClassName('AutomaticPostingBatchMemberRow')
-class AutomaticPostingBatchMembers extends Table {
-  TextColumn get batchId =>
-      text().references(AutomaticPostingBatches, #id)();
-  TextColumn get scheduledId => text()();
-  TextColumn get result => text()(); // AutomaticPostingMemberResult.name
-
-  @override
-  Set<Column> get primaryKey => {batchId, scheduledId};
-}
-
-/// Persisted restore-confirmation barriers (spec 006, US58/US63).
-///
-/// CRUD-exempt like [RecurringSeries]: never rebuilt from events. One row per
-/// applied restore; the window `(backupExportedAt, createdAt]` is the set of
-/// bills that must await explicit confirmation before auto-posting.
-@DataClassName('RestoreConfirmationBatchRow')
-class RestoreConfirmationBatches extends Table {
-  TextColumn get id => text()(); // deterministic: restore-<exportedAt millis>
-  DateTimeColumn get createdAt =>
-      dateTime().clientDefault(() => DateTime.now())();
-  DateTimeColumn get backupExportedAt => dateTime()();
-  TextColumn get status =>
-      text().withDefault(const Constant('pending'))();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// A persistent link from a bill's old scheduled id — the one a shown
-/// notification payload holds — to its current id, or to "deleted" (spec 006,
-/// US45). Bills' ids encode their date, so a reschedule or split orphans the
-/// old id; this table is what lets a stale notification resolve to the same
-/// occurrence (or report it deleted) across restarts and restores.
-///
-/// CRUD-exempt: never rebuilt from events.
-@DataClassName('ScheduledBillRedirectRow')
-class ScheduledBillRedirects extends Table {
-  TextColumn get oldId => text()();
-  TextColumn get newId => text().nullable()(); // null = deleted
-  DateTimeColumn get createdAt =>
-      dateTime().clientDefault(() => DateTime.now())();
-
-  @override
-  Set<Column> get primaryKey => {oldId};
 }

@@ -1,6 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 
-import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
+import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/transaction_attachment_store.dart';
@@ -202,21 +202,21 @@ class RecordingRecurringService implements RecurringService {
   LedgerErrorCode? failure;
 
   @override
-  Future<Result<void>> createSeries({
+  Future<Result<String>> createSeries({
     required RecurringSeriesKind type,
     required int amountMinor,
     required String accountId,
     required String categoryId,
-    required String description,
+    String description = '',
     required String frequency,
-    required int interval,
+    int interval = 1,
     required DateTime startDate,
     DateTime? endDate,
     int? countLimit,
     List<int> weekdays = const [],
     bool autoPost = false,
     int? reminderMinutes,
-    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+    RecurringSeriesMode? mode,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     created.add({
@@ -233,9 +233,9 @@ class RecordingRecurringService implements RecurringService {
       'weekdays': weekdays,
       'autoPost': autoPost,
       'reminderMinutes': reminderMinutes,
-      'mode': mode,
+      'mode': mode ?? RecurringSeriesMode.repeating,
     });
-    return unitResult;
+    return const Result.success('series-id');
   }
 
   @override
@@ -252,7 +252,12 @@ class RecordingRecurringService implements RecurringService {
     required String categoryId,
     required String accountId,
     required String description,
-    bool changeReminder = false,
+    String? frequency,
+    int? interval,
+    DateTime? endDate,
+    int? countLimit,
+    List<int>? weekdays,
+    bool? autoPost,
     int? reminderMinutes,
   }) async =>
       unitResult;
@@ -266,37 +271,18 @@ class RecordingRecurringService implements RecurringService {
   Future<void> materialize() async {}
 
   @override
-  Future<void> catchUpAutoPosted({String? accountId}) async {}
+  Future<int> catchUpAutoPosted({String? accountId}) async => 0;
 
   @override
-  Future<void> confirmRestoreBatch(String batchId) async {}
+  Future<List<RecurringSeriesRow>> getAllSeries() async => const [];
 
   @override
-  Future<void> rejectRestoreBatch(String batchId) async {}
-
-  @override
-  Future<void> latchRestoreCandidatesForMode(
-      RecurringSeriesMode mode) async {}
-
-  @override
-  Future<List<ScheduledTransactionEntity>> restoreConfirmationEligible(
-          String batchId) async =>
-      const [];
-
-  @override
-  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async =>
-      null;
+  Future<ScheduledTransactionEntity?> getScheduled(String id) async => null;
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
       throw UnimplementedError();
-
-  @override
-  bool get autoPostEnabled => false;
-
-  @override
-  PreferencesRepository? get preferences => null;
 }
 
 /// Attachment storage, without a filesystem: `importFiles` hands back one

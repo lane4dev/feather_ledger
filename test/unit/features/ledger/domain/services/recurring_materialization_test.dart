@@ -210,7 +210,7 @@ void main() {
       ..sort((a, b) => a.date.compareTo(b.date));
 
     await harness.recurringService.postInstance(before[0].id);
-    await harness.db.recurringDao.markAutoPostIneligible(before[1].id);
+    await harness.db.recurringDao.markManualOnly(before[1].id);
     await harness.recurringService.deleteBill(before[2].id,
         scope: RecurringScope.thisOnly);
     await harness.recurringService.materialize();
@@ -228,7 +228,7 @@ void main() {
         'skipped');
   });
 
-  test('splitting a count-limited rule retains only its remaining occurrences',
+  test('updating a count-limited rule retains its occurrences',
       () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
@@ -248,7 +248,7 @@ void main() {
       ..sort((a, b) => a.date.compareTo(b.date));
     final fourth = before[3];
     final edited = await harness.recurringService.updateBill(fourth.id,
-        scope: RecurringScope.thisAndFollowing,
+        scope: RecurringScope.updateRule,
         amountMinor: 200,
         date: fourth.date,
         categoryId: categoryId,
@@ -257,7 +257,7 @@ void main() {
     expect(edited, isA<Success<void>>());
     final after = await pending();
     expect(after, hasLength(16));
-    expect(after.where((item) => item.amountMinor == 200), hasLength(13));
+    expect(after.where((item) => item.amountMinor == 200), hasLength(16));
     await harness.recurringService.materialize();
     expect(await pending(), hasLength(16));
   });
@@ -281,7 +281,7 @@ void main() {
     expect(await pending(), hasLength(16));
   });
 
-  test('reminder setting survives materialization and splitting a series',
+  test('reminder setting survives materialization and updating a series',
       () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
@@ -304,12 +304,13 @@ void main() {
         bills.every((b) => b.recurringTransactionSeries?.reminderMinutes == 15),
         isTrue);
     final edited = await harness.recurringService.updateBill(bills[1].id,
-        scope: RecurringScope.thisAndFollowing,
+        scope: RecurringScope.updateRule,
         amountMinor: 200,
         date: bills[1].date,
         categoryId: category,
         accountId: account.id,
-        description: 'Changed');
+        description: 'Changed',
+        reminderMinutes: 15);
     expect(edited, isA<Success<void>>());
     expect(
         (await pending())
@@ -449,12 +450,12 @@ void main() {
     expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
   });
 
-  test('a series deleted from here on gains no new instances', () async {
+  test('a series deleted via updateRule gains no new instances', () async {
     await createSeries(frequency: 'MONTHLY', startInDays: 5);
     final cut = (await pending()).first;
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.updateRule);
     final afterDelete =
         (await harness.db.recurringDao.watchAllScheduled().first)
             .map((r) => r.id)

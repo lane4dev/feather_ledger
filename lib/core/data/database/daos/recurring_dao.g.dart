@@ -7,14 +7,6 @@ mixin _$RecurringDaoMixin on DatabaseAccessor<AppDatabase> {
   $RecurringSeriesTable get recurringSeries => attachedDatabase.recurringSeries;
   $ScheduledTransactionsViewTable get scheduledTransactionsView =>
       attachedDatabase.scheduledTransactionsView;
-  $AutomaticPostingBatchesTable get automaticPostingBatches =>
-      attachedDatabase.automaticPostingBatches;
-  $AutomaticPostingBatchMembersTable get automaticPostingBatchMembers =>
-      attachedDatabase.automaticPostingBatchMembers;
-  $RestoreConfirmationBatchesTable get restoreConfirmationBatches =>
-      attachedDatabase.restoreConfirmationBatches;
-  $ScheduledBillRedirectsTable get scheduledBillRedirects =>
-      attachedDatabase.scheduledBillRedirects;
   RecurringDaoManager get managers => RecurringDaoManager(this);
 }
 
@@ -27,18 +19,4 @@ class RecurringDaoManager {
   $$ScheduledTransactionsViewTableTableManager get scheduledTransactionsView =>
       $$ScheduledTransactionsViewTableTableManager(
           _db.attachedDatabase, _db.scheduledTransactionsView);
-  $$AutomaticPostingBatchesTableTableManager get automaticPostingBatches =>
-      $$AutomaticPostingBatchesTableTableManager(
-          _db.attachedDatabase, _db.automaticPostingBatches);
-  $$AutomaticPostingBatchMembersTableTableManager
-      get automaticPostingBatchMembers =>
-          $$AutomaticPostingBatchMembersTableTableManager(
-              _db.attachedDatabase, _db.automaticPostingBatchMembers);
-  $$RestoreConfirmationBatchesTableTableManager
-      get restoreConfirmationBatches =>
-          $$RestoreConfirmationBatchesTableTableManager(
-              _db.attachedDatabase, _db.restoreConfirmationBatches);
-  $$ScheduledBillRedirectsTableTableManager get scheduledBillRedirects =>
-      $$ScheduledBillRedirectsTableTableManager(
-          _db.attachedDatabase, _db.scheduledBillRedirects);
 }

@@ -394,7 +394,7 @@ class _RecurringBillFormScreenState
     // A one-shot plan has only one occurrence, so its whole series is the
     // entry being edited. Repeating series still ask how far the edit reaches.
     final scope = widget.transaction.series?.mode == RecurringSeriesMode.planned
-        ? RecurringScope.all
+        ? RecurringScope.updateRule
         : await showDialog<RecurringScope>(
             context: context,
             builder: (context) => RecurringScopeDialog(
@@ -419,8 +419,6 @@ class _RecurringBillFormScreenState
               description: _note.text.trim().isEmpty
                   ? widget.transaction.category!.name
                   : _note.text.trim(),
-              changeReminder: _reminderMinutes !=
-                  widget.transaction.series?.reminderMinutes,
               reminderMinutes: _reminderMinutes,
             );
 

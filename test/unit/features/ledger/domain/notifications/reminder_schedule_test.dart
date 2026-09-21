@@ -14,8 +14,8 @@ void main() {
       ScheduledTransactionEntity(
           id: id,
           seriesId: 'series',
-          amountMinor: 100,
-          date: date,
+          occurrenceKey: scheduledOccurrenceKey(date),
+          scheduledDate: date,
           status: status,
           account: account,
           recurringTransactionSeries: RecurringTransactionSeriesEntity(

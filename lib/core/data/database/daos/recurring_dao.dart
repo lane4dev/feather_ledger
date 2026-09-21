@@ -1,8 +1,6 @@
-import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:drift/drift.dart';
 
-import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
-import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../app_database.dart';
 import '../tables.dart';
@@ -12,10 +10,6 @@ part 'recurring_dao.g.dart';
 @DriftAccessor(tables: [
   RecurringSeries,
   ScheduledTransactionsView,
-  AutomaticPostingBatches,
-  AutomaticPostingBatchMembers,
-  RestoreConfirmationBatches,
-  ScheduledBillRedirects
 ])
 class RecurringDao extends DatabaseAccessor<AppDatabase>
     with _$RecurringDaoMixin {
@@ -29,7 +23,8 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       innerJoin(db.accountsView,
           db.accountsView.id.equalsExp(recurringSeries.accountId)),
     ])
-      ..where(db.accountsView.archived.equals(false) &
+      ..where(recurringSeries.isActive.equals(true) &
+          db.accountsView.archived.equals(false) &
           db.accountsView.deleted.equals(false));
     return (await query.get())
         .map((row) => row.readTable(recurringSeries))
@@ -40,7 +35,7 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       ScheduledTransactionsViewCompanion entry) async {
     await db.transaction(() async {
       final series = await getSeries(entry.seriesId.value);
-      if (series == null) return;
+      if (series == null || !series.isActive) return;
       final account = await db.accountDao.getAccountById(series.accountId);
       if (account == null || account.archived || account.deleted) return;
       await into(scheduledTransactionsView)
@@ -58,11 +53,6 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
-  /// Every instance of one series, whatever its status.
-  ///
-  /// Materialization needs the whole set at once: it walks the rule's
-  /// candidate dates and has to know, per date, whether an instance already
-  /// exists and whether the user has already decided about it.
   Future<List<ScheduledTransactionViewRow>> scheduledForSeries(
       String seriesId) {
     return (select(scheduledTransactionsView)
@@ -75,28 +65,26 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     return into(scheduledTransactionsView).insertOnConflictUpdate(entry);
   }
 
-  /// Atomically claim a pending bill for skipping without overwriting a post.
   Future<int> skipIfScheduled(String id) => (update(scheduledTransactionsView)
-        ..where((t) => t.id.equals(id) & t.status.equals('scheduled')))
+        ..where((t) =>
+            t.id.equals(id) &
+            (t.status.equals('scheduled') | t.status.equals('failed'))))
       .write(
           const ScheduledTransactionsViewCompanion(status: Value('skipped')));
 
-  /// Latches a bill's auto-post eligibility to false (spec 006, US31).
-  Future<int> markAutoPostIneligible(String id) =>
+  Future<int> markManualOnly(String id) =>
       (update(scheduledTransactionsView)..where((t) => t.id.equals(id))).write(
-          const ScheduledTransactionsViewCompanion(
-              autoPostEligible: Value(false)));
+          const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
 
-  /// Latches every still-eligible pending bill of one series due at or before
-  /// [cutoff] (spec 006, US32).
-  Future<int> markSeriesIneligibleBefore(String seriesId, DateTime cutoff) =>
+  Future<int> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff) =>
       (update(scheduledTransactionsView)
             ..where((t) =>
                 t.seriesId.equals(seriesId) &
-                t.autoPostEligible.equals(true) &
-                t.date.isSmallerOrEqualValue(cutoff)))
+                t.manualOnly.equals(false) &
+                coalesce([t.dateOverride, t.scheduledDate])
+                    .isSmallerOrEqualValue(cutoff)))
           .write(const ScheduledTransactionsViewCompanion(
-              autoPostEligible: Value(false)));
+              manualOnly: Value(true)));
 
   Future<void> saveSeries(RecurringSeriesCompanion entry) async {
     await db.transaction(() async {
@@ -116,13 +104,6 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  /// Deletes instance rows of one series.
-  ///
-  /// [from] keeps the instances at or after that date, [status] keeps one
-  /// storage-encoded status. The two filters together say "the pending bills
-  /// from here on"; passing neither deletes every row of the series, which is
-  /// what removing the series itself needs. Which status counts as pending is
-  /// the caller's policy — this table accessor does not know the enum.
   Future<int> deleteScheduledForSeries(
     String seriesId, {
     DateTime? from,
@@ -130,9 +111,26 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
   }) {
     final query = delete(scheduledTransactionsView)
       ..where((t) => t.seriesId.equals(seriesId));
-    if (from != null) query.where((t) => t.date.isBiggerOrEqualValue(from));
+    if (from != null) {
+      query.where((t) =>
+          coalesce([t.dateOverride, t.scheduledDate])
+              .isBiggerOrEqualValue(from));
+    }
     if (status != null) query.where((t) => t.status.equals(status));
     return query.go();
+  }
+
+  Future<int> deletePendingScheduledForSeries(String seriesId) {
+    return (delete(scheduledTransactionsView)
+          ..where((t) =>
+              t.seriesId.equals(seriesId) &
+              (t.status.equals('scheduled') | t.status.equals('failed'))))
+        .go();
+  }
+
+  Future<int> deleteScheduledById(String id) {
+    return (delete(scheduledTransactionsView)..where((t) => t.id.equals(id)))
+        .go();
   }
 
   Future<int> deleteSeries(String seriesId) {
@@ -148,120 +146,5 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     ]);
     return query.watch().map((rows) =>
         rows.map((row) => row.readTable(scheduledTransactionsView)).toList());
-  }
-
-  // ---- Automatic-posting batch persistence (spec 006, US46–48) ----
-
-  Future<void> createAutomaticPostingBatch(
-      AutomaticPostingBatchesCompanion batch) {
-    return into(automaticPostingBatches).insert(batch);
-  }
-
-  Future<AutomaticPostingBatchRow?> latestAutomaticPostingBatch() {
-    final query = select(automaticPostingBatches)
-      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
-      ..limit(1);
-    return query.getSingleOrNull();
-  }
-
-  Future<void> setAutomaticPostingMemberResult(
-    String batchId,
-    String scheduledId,
-    String result,
-  ) {
-    final companion = AutomaticPostingBatchMembersCompanion.insert(
-      batchId: batchId,
-      scheduledId: scheduledId,
-      result: result,
-    );
-    return into(automaticPostingBatchMembers)
-        .insertOnConflictUpdate(companion);
-  }
-
-  Future<List<AutomaticPostingBatchMemberRow>> automaticPostingMembers(
-    String batchId,
-  ) {
-    final query = select(automaticPostingBatchMembers)
-      ..where((t) => t.batchId.equals(batchId));
-    return query.get();
-  }
-
-  /// Every member that still needs work: a pending claim that was
-  /// interrupted, or a failed post awaiting retry.
-  Future<List<AutomaticPostingBatchMemberRow>>
-      unsettledAutomaticPostingMembers() {
-    final query = select(automaticPostingBatchMembers)
-      ..where((t) =>
-          t.result.equals(AutomaticPostingMemberResult.pending.name) |
-          t.result.equals(AutomaticPostingMemberResult.failed.name));
-    return query.get();
-  }
-
-  /// Whether a scheduled id has already been claimed by any batch.
-  Future<bool> isAutomaticPostingMember(String scheduledId) {
-    final query = selectOnly(automaticPostingBatchMembers)
-      ..addColumns([automaticPostingBatchMembers.scheduledId])
-      ..where(automaticPostingBatchMembers.scheduledId.equals(scheduledId))
-      ..limit(1);
-    return query.get().then((rows) => rows.isNotEmpty);
-  }
-
-  // ---- Restore-confirmation barrier persistence (spec 006, US58) ----
-
-  Future<void> createRestoreConfirmationBatch(
-      RestoreConfirmationBatchesCompanion batch) {
-    return into(restoreConfirmationBatches).insertOnConflictUpdate(batch);
-  }
-
-  /// The most recent barrier still awaiting a user decision.
-  Future<RestoreConfirmationBatchRow?>
-      latestPendingRestoreConfirmationBatch() {
-    final query = select(restoreConfirmationBatches)
-      ..where((t) => t.status.equals(RestoreConfirmationStatus.pending.name))
-      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
-      ..limit(1);
-    return query.getSingleOrNull();
-  }
-
-  /// Every barrier still awaiting a user decision, oldest first.
-  Future<List<RestoreConfirmationBatchRow>>
-      pendingRestoreConfirmationBatches() {
-    final query = select(restoreConfirmationBatches)
-      ..where((t) => t.status.equals(RestoreConfirmationStatus.pending.name))
-      ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]);
-    return query.get();
-  }
-
-  /// One barrier by id, whatever its status.
-  Future<RestoreConfirmationBatchRow?> restoreConfirmationBatch(String id) {
-    final query = select(restoreConfirmationBatches)
-      ..where((t) => t.id.equals(id))
-      ..limit(1);
-    return query.getSingleOrNull();
-  }
-
-  /// Moves a barrier to [status]. Idempotent upsert.
-  Future<void> updateRestoreConfirmationStatus(String id, String status) {
-    return (update(restoreConfirmationBatches)..where((t) => t.id.equals(id)))
-        .write(RestoreConfirmationBatchesCompanion(status: Value(status)));
-  }
-
-  /// Records that the bill at [oldId] now lives at [newId] (or was deleted
-  /// when `newId` is null). Idempotent upsert.
-  Future<void> recordScheduledRedirect(String oldId, {String? newId}) {
-    return into(scheduledBillRedirects).insertOnConflictUpdate(
-      ScheduledBillRedirectsCompanion.insert(
-        oldId: oldId,
-        newId: Value(newId),
-      ),
-    );
-  }
-
-  /// The single redirect whose source is [oldId], if any.
-  Future<ScheduledBillRedirectRow?> findScheduledRedirect(String oldId) {
-    final query = select(scheduledBillRedirects)
-      ..where((t) => t.oldId.equals(oldId))
-      ..limit(1);
-    return query.getSingleOrNull();
   }
 }

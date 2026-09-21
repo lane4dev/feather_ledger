@@ -18,10 +18,6 @@ class RecurringModeLabel extends StatelessWidget {
           LucideIcons.calendar,
           l10n.transactionModePlanned
         ),
-      RecurringSeriesMode.subscription => (
-          LucideIcons.refreshCw,
-          l10n.transactionModeSubscription
-        ),
       RecurringSeriesMode.repeating => (
           LucideIcons.repeat,
           l10n.transactionModeRepeating

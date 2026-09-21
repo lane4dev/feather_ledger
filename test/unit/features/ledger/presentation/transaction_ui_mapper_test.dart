@@ -35,8 +35,9 @@ void main() {
       ScheduledTransactionEntity(
         id: 'sched_1',
         seriesId: 'series_1',
-        amountMinor: amountMinor,
-        date: DateTime(2026, 11, 1),
+        occurrenceKey: '2026-11-01',
+        scheduledDate: DateTime(2026, 11, 1),
+        amountOverrideMinor: amountMinor,
         status: ScheduledTransactionStatus.scheduled,
         kind: kind ?? TransactionKind.expense,
       );

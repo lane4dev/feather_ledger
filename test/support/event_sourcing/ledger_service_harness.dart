@@ -23,6 +23,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/record_transactio
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
+import 'package:feather_ledger/features/ledger/domain/queries/get_scheduled_transaction_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snapshot_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
@@ -112,13 +113,13 @@ class LedgerServiceHarness {
     recurringService = RecurringService(
       CreateRecurringSeriesCommand(recurringRepository, contextResolver),
       DeleteRecurringBillCommand(recurringRepository),
-      UpdateRecurringBillCommand(recurringRepository, contextResolver,
-          preferences: preferences),
+      UpdateRecurringBillCommand(recurringRepository, contextResolver),
       ConvertScheduledToPostedCommand(
           eventStore, projector, recurringRepository, contextResolver),
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),
-      autoPostEnabled: autoPostEnabled,
+      GetScheduledTransactionQuery(recurringRepository),
+      recurringRepository,
       preferences: preferences,
     );
     ledgerService = LedgerService(

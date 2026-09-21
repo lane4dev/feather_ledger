@@ -179,10 +179,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
         if (seriesRow != null) {
           result.add(ScheduledTransactionEntity(
             id: row.id,
-            amountMinor: row.amountMinor,
-            date: row.date,
             seriesId: row.seriesId,
+            occurrenceKey: row.occurrenceKey,
+            scheduledDate: row.scheduledDate,
+            amountOverrideMinor: row.amountOverrideMinor,
+            dateOverride: row.dateOverride,
+            memoOverride: row.memoOverride,
             status: decodeScheduledStatus(row.status),
+            manualOnly: row.manualOnly,
             transactionId: row.transactionId,
             recurringTransactionSeries: RecurringTransactionSeriesEntity(
               id: seriesRow.id,
@@ -199,8 +203,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
               autoPost: seriesRow.autoPost,
               reminderMinutes: seriesRow.reminderMinutes,
               mode: seriesRow.mode,
+              isActive: seriesRow.isActive,
             ),
-            autoPostEligible: row.autoPostEligible,
           ));
         }
       }
@@ -219,10 +223,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
     return ScheduledTransactionEntity(
       id: scheduledRow.id,
-      amountMinor: scheduledRow.amountMinor,
-      date: scheduledRow.date,
       seriesId: scheduledRow.seriesId,
+      occurrenceKey: scheduledRow.occurrenceKey,
+      scheduledDate: scheduledRow.scheduledDate,
+      amountOverrideMinor: scheduledRow.amountOverrideMinor,
+      dateOverride: scheduledRow.dateOverride,
+      memoOverride: scheduledRow.memoOverride,
       status: decodeScheduledStatus(scheduledRow.status),
+      manualOnly: scheduledRow.manualOnly,
       transactionId: scheduledRow.transactionId,
       recurringTransactionSeries: RecurringTransactionSeriesEntity(
         id: seriesRow.id,
@@ -239,8 +247,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
         autoPost: seriesRow.autoPost,
         reminderMinutes: seriesRow.reminderMinutes,
         mode: seriesRow.mode,
+        isActive: seriesRow.isActive,
       ),
-      autoPostEligible: scheduledRow.autoPostEligible,
     );
   }
 
@@ -265,6 +273,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
       autoPost: seriesRow.autoPost,
       reminderMinutes: seriesRow.reminderMinutes,
       mode: seriesRow.mode,
+      isActive: seriesRow.isActive,
     );
   }
 
@@ -287,6 +296,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         autoPost: seriesRow.autoPost,
         reminderMinutes: seriesRow.reminderMinutes,
         mode: seriesRow.mode,
+        isActive: seriesRow.isActive,
       );
     }).toList();
   }
@@ -297,10 +307,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
     await _recurringDao.insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion(
         id: Value(scheduled.id),
-        amountMinor: Value(scheduled.amountMinor),
-        date: Value(scheduled.date),
         seriesId: Value(scheduled.seriesId),
+        occurrenceKey: Value(scheduled.occurrenceKey),
+        scheduledDate: Value(scheduled.scheduledDate),
+        amountOverrideMinor: Value(scheduled.amountOverrideMinor),
+        dateOverride: Value(scheduled.dateOverride),
+        memoOverride: Value(scheduled.memoOverride),
         status: Value(scheduled.status.toStorage()),
+        manualOnly: Value(scheduled.manualOnly),
         transactionId: Value(scheduled.transactionId),
       ),
     );

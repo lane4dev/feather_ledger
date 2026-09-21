@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(14));
+      expect(database.schemaVersion, equals(15));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {
@@ -34,10 +34,6 @@ void main() {
       await old.customStatement('SELECT 1');
       await old
           .customStatement('ALTER TABLE accounts_view DROP COLUMN deleted');
-      await old
-          .customStatement('ALTER TABLE recurring_series DROP COLUMN mode');
-      await old.customStatement(
-          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
       await old.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
       await old.customStatement(
@@ -53,14 +49,6 @@ void main() {
 
     test('migrates a v1 database by adding the column, keeping its rows',
         () async {
-      // `onUpgrade` is otherwise unreachable from the suite: every other test
-      // opens a fresh database, so `onCreate` builds the current schema and
-      // the migration branch never runs. A schema is only migrated once per
-      // install, which is precisely why it needs a test of its own.
-      //
-      // The fixture goes backwards from the real schema rather than forward
-      // from a checked-in copy, so it cannot describe a shape that no longer
-      // exists.
       final file = File(p.join(
           Directory.systemTemp.createTempSync('feather_v1').path, 'v1.sqlite'));
       final v1 = AppDatabase.internal(NativeDatabase(file));
@@ -71,25 +59,11 @@ void main() {
       await v1.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN attachments_json');
       await v1.customStatement(
-          'ALTER TABLE recurring_series DROP COLUMN auto_post');
-      await v1.customStatement(
-          'ALTER TABLE recurring_series DROP COLUMN reminder_minutes');
-      await v1.customStatement(
-          'ALTER TABLE recurring_series DROP COLUMN mode');
-      await v1.customStatement(
-          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
-      await v1.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
       await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
           "VALUES ('acc_v1', 'Cash', 0, 'USD', 5000, 0, 1, 2)");
-      await v1.customStatement(
-          'INSERT INTO recurring_series (id, rrule, start_date, end_date, '
-          'frequency, interval, count_limit, amount_minor, description, '
-          'category_id, account_id, type) '
-          "VALUES ('ser_v1', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', "
-          "1, NULL, 1200, 'Rent', 'cat', 'acc_v1', 1)");
       await v1.customStatement('PRAGMA user_version = 1');
       await v1.close();
 
@@ -104,56 +78,125 @@ void main() {
       expect(row.includeInTotals, isTrue,
           reason: 'every account that predates the flag counts toward the '
               'totals — nobody had opted out before it existed');
-
-      final series = await upgraded.recurringDao.getSeries('ser_v1');
-      expect(series, isNotNull,
-          reason: 'the CRUD-exempt table is not rebuilt, so the migration is '
-              'the only chance its rows have');
-      expect(series!.reminderMinutes, isNull);
-      expect(series.autoPost, isFalse,
-          reason: 'no series predated the flag, so none auto-posts');
-      expect(series.mode, RecurringSeriesMode.repeating,
-          reason: 'a pre-mode recurring row (auto_post=false, start!=end) '
-              'backfills to 重复');
     });
 
-    test('v8 recurring series gain a mode backfilled from their shape',
+    test(
+        'migrates a v14 database to v15 by dropping obsolete tables, cleanly rebuilding recurring CRUD tables, and preserving ledger_events & event-sourced views',
         () async {
       final file = File(p.join(
-          Directory.systemTemp.createTempSync('feather_v8').path, 'v8.sqlite'));
-      final v8 = AppDatabase.internal(NativeDatabase(file));
-      await v8.customStatement('SELECT 1'); // opens it, running createAll
-      await v8.customStatement(
-          'ALTER TABLE recurring_series DROP COLUMN mode');
-      await v8.customStatement(
-          'ALTER TABLE scheduled_transactions_view DROP COLUMN auto_post_eligible');
-      await v8.customStatement(
-          'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
-      await v8.customStatement(
-          'INSERT INTO recurring_series (id, rrule, start_date, end_date, '
-          'frequency, interval, count_limit, amount_minor, description, '
-          'category_id, account_id, type, auto_post, reminder_minutes) VALUES '
-          "('sub', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', 1, NULL, "
-          "100, 'Sub', 'c', 'a', 1, 1, NULL), "
-          "('plan', 'FREQ=MONTHLY', 1780000000000, 1780000000000, 'MONTHLY', "
-          "1, NULL, 200, 'Plan', 'c', 'a', 1, 0, NULL), "
-          "('rep', 'FREQ=MONTHLY', 1780000000000, NULL, 'MONTHLY', 1, NULL, "
-          "300, 'Rep', 'c', 'a', 1, 0, NULL)");
-      await v8.customStatement('PRAGMA user_version = 8');
-      await v8.close();
+          Directory.systemTemp.createTempSync('feather_v14').path,
+          'v14.sqlite'));
+      final v14 = AppDatabase.internal(NativeDatabase(file));
+      await v14.customStatement('SELECT 1');
+      await v14.customStatement('''
+        CREATE TABLE IF NOT EXISTS automatic_posting_batches (
+          id TEXT PRIMARY KEY,
+          currency_code TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          status TEXT NOT NULL
+        )
+      ''');
+      await v14.customStatement('''
+        CREATE TABLE IF NOT EXISTS automatic_posting_batch_members (
+          batch_id TEXT NOT NULL,
+          scheduled_bill_id TEXT NOT NULL,
+          outcome TEXT NOT NULL,
+          PRIMARY KEY (batch_id, scheduled_bill_id)
+        )
+      ''');
+      await v14.customStatement('''
+        CREATE TABLE IF NOT EXISTS restore_confirmation_batches (
+          id TEXT PRIMARY KEY,
+          currency_code TEXT NOT NULL,
+          exported_at INTEGER NOT NULL,
+          status TEXT NOT NULL
+        )
+      ''');
+      await v14.customStatement('''
+        CREATE TABLE IF NOT EXISTS scheduled_bill_redirects (
+          from_id TEXT PRIMARY KEY,
+          to_id TEXT NOT NULL
+        )
+      ''');
+      await v14.customStatement(
+          'INSERT INTO ledger_events (event_id, stream_id, aggregate_type, event_type, stream_version, occurred_at, recorded_at, command_id, payload) '
+          "VALUES ('evt-1', 'acc-1', 0, 'AccountCreated', 1, 1780000000000, 1780000000000, 'cmd-1', '{}')");
+      await v14.customStatement(
+          'INSERT INTO accounts_view (id, name, type, currency_code, '
+          'balance_minor, archived, deleted, include_in_totals, last_updated_event_id, projection_version) '
+          "VALUES ('acc-1', 'Cash', 0, 'USD', 5000, 0, 0, 1, 1, 3)");
+      await v14.customStatement(
+          'INSERT INTO categories_view (id, name, icon_key, color_int, type, archived, last_updated_event_id, projection_version) '
+          "VALUES ('cat-1', 'Food', 'food', 0, 1, 0, 1, 3)");
+      await v14.customStatement(
+          'INSERT INTO transactions_view (transaction_id, occurred_at, kind, description, original_event_id, projection_version) '
+          "VALUES ('tx-1', 1780000000000, 1, 'Lunch', 1, 3)");
+      await v14.customStatement(
+          'INSERT INTO transaction_postings_view (id, transaction_id, account_id, direction, amount_minor, currency_code, category_id) '
+          "VALUES ('tx-1:0', 'tx-1', 'acc-1', 1, 1200, 'USD', 'cat-1')");
+      await v14.customStatement('PRAGMA user_version = 14');
+      await v14.close();
 
       final upgraded = AppDatabase.internal(NativeDatabase(file));
       addTearDown(upgraded.close);
 
-      expect((await upgraded.recurringDao.getSeries('sub'))!.mode,
-          RecurringSeriesMode.subscription,
-          reason: 'auto_post=1 ⇒ 订阅');
-      expect((await upgraded.recurringDao.getSeries('plan'))!.mode,
-          RecurringSeriesMode.planned,
-          reason: 'start_date=end_date ⇒ 计划');
-      expect((await upgraded.recurringDao.getSeries('rep'))!.mode,
-          RecurringSeriesMode.repeating,
-          reason: 'recurring without auto_post ⇒ 重复');
+      expect(upgraded.schemaVersion, 15);
+      final tables = await upgraded
+          .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+          .get();
+      final tableNames = tables.map((r) => r.read<String>('name')).toSet();
+      expect(tableNames, isNot(contains('automatic_posting_batches')));
+      expect(tableNames, isNot(contains('automatic_posting_batch_members')));
+      expect(tableNames, isNot(contains('restore_confirmation_batches')));
+      expect(tableNames, isNot(contains('scheduled_bill_redirects')));
+
+      final seriesCols = (await upgraded
+              .customSelect('PRAGMA table_info(recurring_series)')
+              .get())
+          .map((r) => r.read<String>('name'))
+          .toSet();
+      expect(seriesCols, contains('is_active'));
+
+      final scheduledCols = (await upgraded
+              .customSelect('PRAGMA table_info(scheduled_transactions_view)')
+              .get())
+          .map((r) => r.read<String>('name'))
+          .toSet();
+      expect(
+        scheduledCols,
+        containsAll([
+          'id',
+          'series_id',
+          'occurrence_key',
+          'scheduled_date',
+          'amount_override_minor',
+          'date_override',
+          'memo_override',
+          'manual_only',
+          'status',
+        ]),
+      );
+      expect(scheduledCols, isNot(contains('auto_post_eligible')));
+
+      final eventsCount = await upgraded
+          .customSelect('SELECT COUNT(*) AS c FROM ledger_events')
+          .getSingle();
+      expect(eventsCount.read<int>('c'), 1);
+      final account = await upgraded.accountDao.getAccountById('acc-1');
+      expect(account, isNotNull);
+      expect(account!.balanceMinor, 5000);
+      final categoriesCount = await upgraded
+          .customSelect('SELECT COUNT(*) AS c FROM categories_view')
+          .getSingle();
+      expect(categoriesCount.read<int>('c'), 1);
+      final txCount = await upgraded
+          .customSelect('SELECT COUNT(*) AS c FROM transactions_view')
+          .getSingle();
+      expect(txCount.read<int>('c'), 1);
+      final postingsCount = await upgraded
+          .customSelect('SELECT COUNT(*) AS c FROM transaction_postings_view')
+          .getSingle();
+      expect(postingsCount.read<int>('c'), 1);
     });
 
     test('should create all tables on initialization', () async {

@@ -114,13 +114,15 @@ class AccountLifecycleCommand {
           final overdue = await (_db.select(_db.scheduledTransactionsView)
                 ..where((row) =>
                     row.seriesId.equals(rule.id) &
-                    row.date.isSmallerOrEqualValue(now) &
+                    coalesce([row.dateOverride, row.scheduledDate])
+                        .isSmallerOrEqualValue(now) &
                     row.status.isIn(['scheduled', 'failed'])))
               .get();
           // A pending bill needs a series for its account and template. Keep
           // overdue bills as one-off plans before removing the original rule.
           for (final bill in overdue) {
             final planId = const Uuid().v4();
+            final effectiveDate = bill.dateOverride ?? bill.scheduledDate;
             await _db
                 .into(_db.recurringSeries)
                 .insert(rule.toCompanion(true).copyWith(
@@ -128,14 +130,20 @@ class AccountLifecycleCommand {
                       rrule: const Value('FREQ=DAILY;COUNT=1'),
                       frequency: const Value('DAILY'),
                       interval: const Value(1),
-                      startDate: Value(bill.date),
-                      endDate: const Value(null),
+                      startDate: Value(effectiveDate),
+                      endDate: Value(effectiveDate),
                       countLimit: const Value(1),
+                      autoPost: const Value(false),
+                      mode: const Value(RecurringSeriesMode.planned),
+                      isActive: const Value(true),
                     ));
             await _db.into(_db.scheduledTransactionsView).insert(
                   bill.toCompanion(true).copyWith(
-                        id: Value(scheduledInstanceId(planId, bill.date)),
+                        id: Value(const Uuid().v4()),
                         seriesId: Value(planId),
+                        occurrenceKey: const Value(kPlannedOccurrenceKey),
+                        scheduledDate: Value(effectiveDate),
+                        dateOverride: const Value(null),
                       ),
                 );
           }

@@ -65,24 +65,29 @@ class ConvertScheduledToPostedCommand {
       kind: series.type.toTransactionKind,
     );
 
+    final effectiveDate = scheduled.dateOverride ?? scheduled.scheduledDate;
+    final effectiveAmountMinor =
+        scheduled.amountOverrideMinor ?? series.amountMinor;
+    final effectiveMemo = scheduled.memoOverride ?? series.description;
+
     final transaction = series.type == RecurringSeriesKind.income
         ? Transaction.income(
             transactionId: const Uuid().v4(),
-            occurredAt: scheduled.date,
-            amountMinor: scheduled.amountMinor,
+            occurredAt: effectiveDate,
+            amountMinor: effectiveAmountMinor,
             accountId: context.account.id,
             currencyCode: context.account.currencyCode,
             categoryId: context.category!.id,
-            description: series.description,
+            description: effectiveMemo,
           )
         : Transaction.expense(
             transactionId: const Uuid().v4(),
-            occurredAt: scheduled.date,
-            amountMinor: scheduled.amountMinor,
+            occurredAt: effectiveDate,
+            amountMinor: effectiveAmountMinor,
             accountId: context.account.id,
             currencyCode: context.account.currencyCode,
             categoryId: context.category!.id,
-            description: series.description,
+            description: effectiveMemo,
           );
 
     transaction.validateOrThrow();
@@ -122,9 +127,13 @@ class ConvertScheduledToPostedCommand {
           ScheduledTransactionsViewCompanion(
             id: Value(scheduled.id),
             seriesId: Value(scheduled.seriesId),
-            date: Value(scheduled.date),
-            amountMinor: Value(scheduled.amountMinor),
+            occurrenceKey: Value(scheduled.occurrenceKey),
+            scheduledDate: Value(scheduled.scheduledDate),
+            amountOverrideMinor: Value(scheduled.amountOverrideMinor),
+            dateOverride: Value(scheduled.dateOverride),
+            memoOverride: Value(scheduled.memoOverride),
             status: Value(ScheduledTransactionStatus.posted.toStorage()),
+            manualOnly: Value(scheduled.manualOnly),
             transactionId: Value(transaction.transactionId),
           ),
         );

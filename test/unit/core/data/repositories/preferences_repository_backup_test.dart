@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/app/config/app_languages.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
-import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../../../../support/mocks/mock_shared_preferences.dart';
 
@@ -99,45 +98,21 @@ void main() {
     expect(repository.getShowBalance(), isTrue, reason: 'fell back to default');
   });
 
-  test('auto-post switches default off and persist per mode', () async {
-    expect(repository.getAutoPostEnabled(RecurringSeriesMode.planned), isFalse);
-    expect(
-        repository.getAutoPostEnabled(RecurringSeriesMode.subscription), isFalse);
-    expect(
-        repository.getAutoPostEnabled(RecurringSeriesMode.repeating), isFalse);
+  test('lastRecurringAutoPost defaults false, persists locally, and is excluded from backup',
+      () async {
+    expect(repository.getLastRecurringAutoPost(), isFalse);
 
-    await repository.setAutoPostEnabled(RecurringSeriesMode.planned, true);
-    await repository.setAutoPostEnabled(RecurringSeriesMode.repeating, true);
-
-    expect(repository.getAutoPostEnabled(RecurringSeriesMode.planned), isTrue);
-    expect(
-        repository.getAutoPostEnabled(RecurringSeriesMode.subscription), isFalse,
-        reason: 'each switch is configured separately');
-    expect(
-        repository.getAutoPostEnabled(RecurringSeriesMode.repeating), isTrue);
-  });
-
-  test('auto-post switches are not carried by the backup', () async {
-    // Source device: every switch on.
-    await repository.setAutoPostEnabled(RecurringSeriesMode.planned, true);
-    await repository.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    await repository.setAutoPostEnabled(RecurringSeriesMode.repeating, true);
+    await repository.setLastRecurringAutoPost(true);
+    expect(repository.getLastRecurringAutoPost(), isTrue);
 
     final exported = repository.exportAll();
-    expect(exported.keys, isNot(contains('autopost_planned')));
-    expect(exported.keys, isNot(contains('autopost_subscription')));
-    expect(exported.keys, isNot(contains('autopost_repeating')));
+    expect(exported.keys, isNot(contains('last_recurring_auto_post')));
 
-    // Target device has its own, different switches: restore keeps them.
     final targetStore = MockSharedPreferences();
     final target = PreferencesRepositoryImpl(targetStore);
-    await target.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
+    await target.setLastRecurringAutoPost(false);
     await target.importAll(exported);
-
-    expect(target.getAutoPostEnabled(RecurringSeriesMode.planned), isFalse,
-        reason: 'the target device keeps its own switch');
-    expect(target.getAutoPostEnabled(RecurringSeriesMode.subscription), isTrue,
-        reason: 'restore must not overwrite a local-only switch');
-    expect(target.getAutoPostEnabled(RecurringSeriesMode.repeating), isFalse);
+    expect(target.getLastRecurringAutoPost(), isFalse,
+        reason: 'restore must not overwrite local lastRecurringAutoPost');
   });
 }

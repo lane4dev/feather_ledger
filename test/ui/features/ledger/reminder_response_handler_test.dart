@@ -63,20 +63,17 @@ class _Reminders implements RecurringReminders {
 }
 
 class _Recurring implements RecurringService {
-  _Recurring(this.bill,
-      {this.failSkip = false, Map<String, ScheduledBillRedirect>? redirects})
-      : redirects = redirects ?? {};
+  _Recurring(this.bill, {this.failSkip = false});
   ScheduledTransactionEntity bill;
   final bool failSkip;
-  final Map<String, ScheduledBillRedirect> redirects;
   final calls = <String>[];
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
       Stream.value([bill]);
   @override
-  Future<ScheduledBillRedirect?> resolveScheduledRedirect(String oldId) async =>
-      redirects[oldId];
+  Future<ScheduledTransactionEntity?> getScheduled(String id) async =>
+      bill.id == id ? bill : null;
   @override
   Future<Result<void>> postInstance(String id, {String? commandId}) async {
     calls.add('post');
@@ -98,12 +95,14 @@ class _Recurring implements RecurringService {
   }
 
   @override
-  Future<void> catchUpAutoPosted({String? accountId}) async {
+  Future<int> catchUpAutoPosted({String? accountId}) async {
     calls.add('catchup');
     if (bill.status == ScheduledTransactionStatus.scheduled) {
       bill = bill.copyWith(
           status: ScheduledTransactionStatus.posted, transactionId: 'tx');
+      return 1;
     }
+    return 0;
   }
 
   @override
@@ -155,14 +154,14 @@ void main() {
       bool initialResponse = true,
       bool alreadyPosted = false,
       CurrencyController? currency,
-      String payloadId = 'bill',
-      Map<String, ScheduledBillRedirect> redirects = const {}}) async {
+      String payloadId = 'bill'}) async {
     final when = DateTime(2026, 11, 15, 12);
     final bill = ScheduledTransactionEntity(
         id: 'bill',
         seriesId: 'series',
-        amountMinor: 100,
-        date: when,
+        occurrenceKey: scheduledOccurrenceKey(when),
+        scheduledDate: when,
+        amountOverrideMinor: 100,
         account: account,
         category: category,
         kind: TransactionKind.expense);
@@ -171,8 +170,7 @@ void main() {
             ? bill.copyWith(
                 status: ScheduledTransactionStatus.posted, transactionId: 'tx')
             : bill,
-        failSkip: failSkip,
-        redirects: redirects);
+        failSkip: failSkip);
     final reminders = _Reminders()..deferred = deferred;
     if (initialResponse) {
       reminders.queued.add(NotificationResponse(
@@ -284,21 +282,8 @@ void main() {
     expect(recorder.setCalls, isEmpty);
   });
 
-  testWidgets('a notification shown before a reschedule opens the new bill',
-      (tester) async {
-    await pump(tester,
-        payloadId: 'old',
-        redirects: {
-          'old': const ScheduledBillRedirect(oldId: 'old', newId: 'bill'),
-        });
-    expect(find.byType(PendingBillSheet), findsOneWidget);
-  });
-
-  testWidgets('a deleted bill reports deleted, not unavailable', (tester) async {
-    await pump(tester,
-        payloadId: 'old',
-        redirects: {'old': const ScheduledBillRedirect(oldId: 'old')});
-    expect(find.text('This bill has been deleted.'), findsOneWidget);
-    expect(find.text('This bill is no longer available.'), findsNothing);
+  testWidgets('a missing bill reports unavailable', (tester) async {
+    await pump(tester, payloadId: 'missing');
+    expect(find.text('This bill is no longer available.'), findsOneWidget);
   });
 }

@@ -75,8 +75,8 @@ void main() {
     final item = ScheduledTransactionEntity(
         id: 'bill-1',
         seriesId: 'series',
-        amountMinor: 100,
-        date: when,
+        occurrenceKey: scheduledOccurrenceKey(when),
+        scheduledDate: when,
         recurringTransactionSeries: RecurringTransactionSeriesEntity(
             id: 'series',
             description: 'Rent',
@@ -111,7 +111,7 @@ void main() {
     expect(pending.values.single['payload'], 'recurring-reminder:bill-1');
     final oldSchedule = pending.values.single['scheduledDateTimeISO8601'];
     bills.controller
-        .add([item.copyWith(date: when.add(const Duration(days: 1)))]);
+        .add([item.copyWith(dateOverride: when.add(const Duration(days: 1)))]);
     await tester.pumpAndSettle();
     expect(pending, hasLength(1));
     expect(
@@ -166,8 +166,8 @@ void main() {
     final item = ScheduledTransactionEntity(
         id: 'bill',
         seriesId: 's',
-        amountMinor: 100,
-        date: when,
+        occurrenceKey: scheduledOccurrenceKey(when),
+        scheduledDate: when,
         recurringTransactionSeries: RecurringTransactionSeriesEntity(
             id: 's',
             description: 'Rent',
@@ -239,8 +239,8 @@ void main() {
         ScheduledTransactionEntity(
             id: id,
             seriesId: 'series-$id',
-            amountMinor: 100,
-            date: when,
+            occurrenceKey: scheduledOccurrenceKey(when),
+            scheduledDate: when,
             status: ScheduledTransactionStatus.scheduled,
             recurringTransactionSeries: RecurringTransactionSeriesEntity(
                 id: 'series-$id',

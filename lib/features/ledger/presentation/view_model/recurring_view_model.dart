@@ -30,7 +30,7 @@ class RecurringViewModel extends _$RecurringViewModel {
   }) =>
       ref.read(recurringServiceProvider).deleteBill(scheduledId, scope: scope);
 
-  /// Edits a pending bill at one of the three scopes. Moves no money and
+  /// Edits a pending bill at one of the two scopes. Moves no money and
   /// writes no event.
   Future<Result<void>> updateBill(
     String scheduledId, {
@@ -40,7 +40,6 @@ class RecurringViewModel extends _$RecurringViewModel {
     required String categoryId,
     required String accountId,
     required String description,
-    bool changeReminder = false,
     int? reminderMinutes,
   }) =>
       ref.read(recurringServiceProvider).updateBill(
@@ -51,7 +50,6 @@ class RecurringViewModel extends _$RecurringViewModel {
             categoryId: categoryId,
             accountId: accountId,
             description: description,
-            changeReminder: changeReminder,
             reminderMinutes: reminderMinutes,
           );
 }

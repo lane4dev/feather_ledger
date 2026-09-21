@@ -185,7 +185,7 @@ void main() {
   testWidgets('default mode shows the modes, not a frequency', (tester) async {
     await pumpForm(tester);
 
-    for (final label in ['Default', 'Planned', 'Subscription', 'Repeating']) {
+    for (final label in ['Default', 'Planned', 'Repeating']) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('Repeat'), findsNothing,
@@ -236,11 +236,11 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('custom repeat settings are saved for a subscription',
+  testWidgets('custom repeat settings are saved for a repeating series',
       (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
-    await chooseMode(tester, 'Subscription');
+    await chooseMode(tester, 'Repeating');
     await chooseRepeat(tester, 'Custom');
     expect(find.byType(AlertDialog), findsOneWidget);
     await tester.tap(find.byType(DropdownButton<String>));
@@ -273,7 +273,7 @@ void main() {
     expect(recurring.created.single['weekdays'], isNotEmpty);
     expect(recurring.created.single['interval'], 2);
     expect(recurring.created.single['countLimit'], 16);
-    expect(recurring.created.single['autoPost'], isTrue);
+    expect(recurring.created.single['autoPost'], isFalse);
     await teardownTree(tester);
   });
 
@@ -460,18 +460,18 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('a subscription starts an auto-posting series', (tester) async {
+  testWidgets('a repeating entry starts a manual series by default',
+      (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
-    await chooseMode(tester, 'Subscription');
+    await chooseMode(tester, 'Repeating');
 
     await save(tester);
 
     expect(ledger.addedTransactions, hasLength(1));
     final series = recurring.created.single;
     expect(series['frequency'], 'MONTHLY');
-    expect(series['autoPost'], isTrue,
-        reason: '订阅 posts its due instances at launch, without asking');
+    expect(series['autoPost'], isFalse);
     final recorded = ledger.addedTransactions.single['date']! as DateTime;
     final start = series['startDate']! as DateTime;
     expect(DateTime(start.year, start.month, start.day),

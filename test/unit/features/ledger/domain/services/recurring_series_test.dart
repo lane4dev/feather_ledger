@@ -3,14 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' show Value;
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
-import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
-import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 /// The recurring-bill loop (spec 004, US2 / T036).
 ///
@@ -29,32 +27,6 @@ void main() {
     await harness.seedSystemCategories();
   });
   tearDown(() => harness.close());
-
-  /// Rebuilds the harness with the ticket-28 safety gate opened or closed.
-  /// The production default (closed) must keep auto-posting disabled; tests
-  /// that exercise the posting path itself opt in here.
-  Future<void> restartHarness(
-      {bool autoPostEnabled = false,
-      PreferencesRepository? preferences}) async {
-    await harness.close();
-    harness = LedgerServiceHarness(
-        autoPostEnabled: autoPostEnabled, preferences: preferences);
-    await harness.seedSystemCategories();
-  }
-
-  /// A preferences repository whose 订阅 auto-post switch is ON (ticket 31:
-  /// the switch must be on for a due subscription to post itself), with its
-  /// eligibility boundary anchored *before* the fixture's due date.
-  Future<PreferencesRepository> prefsWithSubscriptionOn() async {
-    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
-    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    // `setAutoPostEnabled` anchors the boundary to now; move it back so a
-    // bill due ten days ago is genuinely eligible rather than "already due
-    // when the switch turned on".
-    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
-        DateTime.now().subtract(const Duration(days: 30)));
-    return prefs;
-  }
 
   late String accountId;
   late String expenseCategoryId;
@@ -128,20 +100,22 @@ void main() {
     );
   }
 
-  /// Re-arms [id]'s auto-post eligibility in the CRUD-exempt table.
-  /// Used to simulate a series that existed before its bill came due (spec
-  /// 006, US32 latches such bills at creation).
+  /// Re-arms [id]'s auto-post eligibility in the CRUD-exempt table by
+  /// clearing `manualOnly`.
   Future<void> rearmEligible(String id) async {
     final row = await harness.db.recurringDao.getScheduled(id);
     await harness.db.recurringDao.insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion(
         id: Value(row!.id),
         seriesId: Value(row.seriesId),
-        date: Value(row.date),
-        amountMinor: Value(row.amountMinor),
+        occurrenceKey: Value(row.occurrenceKey),
+        scheduledDate: Value(row.scheduledDate),
+        amountOverrideMinor: Value(row.amountOverrideMinor),
+        dateOverride: Value(row.dateOverride),
+        memoOverride: Value(row.memoOverride),
         status: Value(row.status),
         transactionId: Value(row.transactionId),
-        autoPostEligible: const Value(true),
+        manualOnly: const Value(false),
       ),
     );
   }
@@ -193,7 +167,7 @@ void main() {
         instances.every((i) => i.recurringTransactionSeries != null), isTrue);
   });
 
-  test('a series persists its creation mode (计划/订阅/重复)', () async {
+  test('a series persists its creation mode (计划/重复)', () async {
     await seed();
 
     // 计划: one-shot, startDate == endDate.
@@ -221,7 +195,7 @@ void main() {
       startDate: DateTime(2026, 1, 1),
       mode: RecurringSeriesMode.repeating,
     );
-    // 订阅: recurring, auto-post.
+    // 重复 (autoPost): recurring, auto-post enabled.
     await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 300,
@@ -232,14 +206,16 @@ void main() {
       interval: 1,
       startDate: DateTime(2026, 1, 1),
       autoPost: true,
-      mode: RecurringSeriesMode.subscription,
+      mode: RecurringSeriesMode.repeating,
     );
 
     final rows = await harness.db.recurringDao.getAllSeries();
     final byDescription = {for (final r in rows) r.description: r};
     expect(byDescription['Plan']!.mode, RecurringSeriesMode.planned);
     expect(byDescription['Repeat']!.mode, RecurringSeriesMode.repeating);
-    expect(byDescription['Subscribe']!.mode, RecurringSeriesMode.subscription);
+    expect(byDescription['Repeat']!.autoPost, isFalse);
+    expect(byDescription['Subscribe']!.mode, RecurringSeriesMode.repeating);
+    expect(byDescription['Subscribe']!.autoPost, isTrue);
   });
 
   test('watchScheduled scopes to one currency', () async {
@@ -567,7 +543,8 @@ void main() {
     );
   });
 
-  test('deleting this and following ends the series there', () async {
+  test('deleting with updateRule deactivates the series and removes pending',
+      () async {
     await seed();
     await createMonthly();
     final pending = (await scheduled())
@@ -577,42 +554,35 @@ void main() {
     final cut = pending[2];
 
     final result = await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.updateRule);
 
     expect(result, isA<Success<void>>());
-    // A day earlier, because `until` is inclusive — ending on the bill's own
-    // date would let the next run materialize it straight back.
-    expect((await seriesRow()).endDate,
-        DateTime(cut.date.year, cut.date.month, cut.date.day - 1));
-
-    final survivors = (await scheduled()).map((s) => s.id).toSet();
-    for (final earlier in pending.sublist(0, 2)) {
-      expect(survivors, contains(earlier.id),
-          reason: 'bills before the cut are untouched');
-    }
-    for (final fromHere in pending.sublist(2)) {
-      expect(survivors, isNot(contains(fromHere.id)),
-          reason: 'the bill deleted and every later one are gone');
-    }
+    expect((await seriesRow()).isActive, isFalse);
+    expect(
+      (await scheduled())
+          .where((s) => s.status == ScheduledTransactionStatus.scheduled),
+      isEmpty,
+    );
   });
 
-  test('a series ended by a delete materializes nothing further', () async {
+  test('a series deactivated by updateRule materializes nothing further',
+      () async {
     await seed();
     await createMonthly();
     final cut = (await scheduled())
         .firstWhere((s) => s.status == ScheduledTransactionStatus.scheduled);
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.updateRule);
 
     final afterDelete = await scheduledIds();
     await harness.recurringService.materialize();
 
     expect(await scheduledIds(), afterDelete,
-        reason: 'the rule is ended, so the window rolls forward in place');
+        reason: 'the rule is inactive, so materialization adds nothing');
   });
 
-  test('deleting this and following keeps bills already recorded', () async {
+  test('deleting with updateRule keeps bills already recorded', () async {
     await seed();
     await createMonthly();
     final pending = (await scheduled())
@@ -622,42 +592,45 @@ void main() {
     final recorded = pending.last;
     await harness.recurringService.postInstance(recorded.id);
     final balanceAfterPost = await accountBalance();
+    final eventsAfterPost = (await harness.eventStore.readAll()).events.length;
 
     await harness.recurringService
-        .deleteBill(pending.first.id, scope: RecurringScope.thisAndFollowing);
+        .deleteBill(pending.first.id, scope: RecurringScope.updateRule);
 
     expect(await accountBalance(), balanceAfterPost,
         reason: 'a recorded bill is not a pending bill');
+    expect((await harness.eventStore.readAll()).events.length, eventsAfterPost);
     expect((await harness.db.recurringDao.getScheduled(recorded.id))!.status,
         'posted');
   });
 
-  test('deleting all removes the series and its schedule, keeping the ledger',
+  test('deleting a planned series with updateRule removes the series',
       () async {
     await seed();
-    await createMonthly();
-    final pending = (await scheduled())
-        .where((s) => s.status == ScheduledTransactionStatus.scheduled)
-        .toList();
-    await harness.recurringService.postInstance(pending.last.id);
-    final balanceAfterPost = await accountBalance();
-    final eventsAfterPost = (await harness.eventStore.readAll()).events.length;
-    final cut = pending.first;
+    final start = DateTime(2027, 2, 10, 9);
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 50000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Plan',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: start,
+      endDate: start,
+      mode: RecurringSeriesMode.planned,
+    );
+    final cut = await firstScheduled();
 
     final result = await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringScope.all);
+        .deleteBill(cut.id, scope: RecurringScope.updateRule);
 
     expect(result, isA<Success<void>>());
     expect(await harness.db.recurringDao.getAllSeries(), isEmpty);
-    expect(await harness.db.recurringDao.watchAllScheduled().first, isEmpty,
-        reason: 'every instance row goes with the series');
-    // The bill that was recorded is untouched: it is a TransactionRecorded
-    // event, not a row in the schedule.
-    expect(await accountBalance(), balanceAfterPost);
-    expect((await harness.eventStore.readAll()).events.length, eventsAfterPost);
+    expect(await harness.db.recurringDao.watchAllScheduled().first, isEmpty);
   });
 
-  test('deleting this and following leaves the rest of the rule intact',
+  test('deleting with updateRule leaves the rest of the rule intact',
       () async {
     await seed();
     await createMonthly();
@@ -665,10 +638,11 @@ void main() {
         .firstWhere((s) => s.status == ScheduledTransactionStatus.scheduled);
 
     await harness.recurringService
-        .deleteBill(cut.id, scope: RecurringScope.thisAndFollowing);
+        .deleteBill(cut.id, scope: RecurringScope.updateRule);
 
     final series = await seriesRow();
 
+    expect(series.isActive, isFalse);
     expect(series.frequency, 'MONTHLY');
     expect(series.interval, 1);
     expect(series.amountMinor, 50000);
@@ -680,7 +654,7 @@ void main() {
 
   /// Edits [instance] at [scope]. The series-scoped fields default to the
   /// series' own values, which is what the form sends for `thisOnly` (a single
-  /// row has nowhere to keep a category or an account).
+  /// row has sparse override columns for amount, date, and memo).
   Future<Result<void>> editBill(
     ScheduledTransactionEntity instance, {
     required RecurringScope scope,
@@ -718,7 +692,8 @@ void main() {
         reason: 'editing a forecast moves no money');
   });
 
-  test('moving one bill leaves a tombstone the window cannot refill', () async {
+  test('moving one bill updates dateOverride in place without tombstones',
+      () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
@@ -728,10 +703,11 @@ void main() {
         await editBill(instance, scope: RecurringScope.thisOnly, date: moved);
     expect(result, isA<Success<void>>());
 
-    // The rule still produces the original date; a skipped row is what stops
-    // materialization from putting the bill back where it was.
-    final original = await harness.db.recurringDao.getScheduled(instance.id);
-    expect(original!.status, 'skipped');
+    // The row keeps its UUID and occurrenceKey; dateOverride records the move.
+    final updated = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(updated!.status, 'scheduled');
+    expect(updated.occurrenceKey, instance.occurrenceKey);
+    expect(updated.dateOverride, moved);
 
     await harness.recurringService.materialize();
     final onNewDate = (await scheduled()).where((s) =>
@@ -739,10 +715,11 @@ void main() {
         s.date.month == moved.month &&
         s.date.day == moved.day);
     expect(onNewDate, hasLength(1), reason: 'the bill exists on its new day');
+    expect(onNewDate.single.id, instance.id);
     expect(onNewDate.single.amountMinor, instance.amountMinor);
 
-    // And the original day is not billed again — this is the failure that
-    // would show the user a bill they had just moved, twice.
+    // And the original day is not billed again — occurrenceKey prevents
+    // materialization from re-creating it.
     final backOnOldDate = (await scheduled()).where((s) =>
         s.status == ScheduledTransactionStatus.scheduled &&
         s.date.year == instance.date.year &&
@@ -764,35 +741,32 @@ void main() {
     expect(
         rows.where((row) =>
             row.id == original.id &&
-            row.status == ScheduledTransactionStatus.scheduled),
-        isEmpty);
-    expect(
-        rows.where((row) =>
             row.date == moved &&
             row.status == ScheduledTransactionStatus.scheduled),
         hasLength(1));
-    final tombstone = await harness.db.recurringDao.getScheduled(original.id);
-    expect(tombstone!.status, 'skipped');
+    expect(
+        rows.where((row) =>
+            row.id != original.id &&
+            row.occurrenceKey == original.occurrenceKey),
+        isEmpty);
   });
 
-  test('editing a series reminder keeps its mode across a split', () async {
+  test('editing a series reminder keeps its mode', () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
     final result = await harness.recurringService.updateBill(
       instance.id,
-      scope: RecurringScope.thisAndFollowing,
+      scope: RecurringScope.updateRule,
       amountMinor: instance.amountMinor,
       date: instance.date,
       categoryId: expenseCategoryId,
       accountId: accountId,
       description: 'Rent',
-      changeReminder: true,
       reminderMinutes: 30,
     );
     expect(result, isA<Success<void>>());
-    final rows = await harness.db.recurringDao.getAllSeries();
-    final updated = rows.singleWhere((row) => row.id != instance.seriesId);
+    final updated = await seriesRow();
     expect(updated.reminderMinutes, 30);
     expect(updated.mode, RecurringSeriesMode.repeating);
   });
@@ -804,7 +778,7 @@ void main() {
     final original = await firstScheduled();
     final moved = original.date.add(const Duration(hours: 1));
     final result =
-        await editBill(original, scope: RecurringScope.all, date: moved);
+        await editBill(original, scope: RecurringScope.updateRule, date: moved);
     expect(result, isA<Success<void>>());
     await harness.recurringService.materialize();
     final pending = (await scheduled())
@@ -834,13 +808,12 @@ void main() {
     );
     final bill = await firstScheduled();
     final result = await harness.recurringService.updateBill(bill.id,
-        scope: RecurringScope.all,
+        scope: RecurringScope.updateRule,
         amountMinor: 60000,
         date: moved,
         categoryId: expenseCategoryId,
         accountId: accountId,
         description: 'Updated',
-        changeReminder: true,
         reminderMinutes: 30);
     expect(result, isA<Success<void>>());
     await harness.recurringService.materialize();
@@ -852,129 +825,42 @@ void main() {
         .where((row) => row.status == ScheduledTransactionStatus.scheduled)
         .toList();
     expect(pending, hasLength(1));
+    expect(pending.single.id, bill.id);
     expect(pending.single.date, moved);
     expect(pending.single.amountMinor, 60000);
   });
 
-  test('moving a bill onto a day that already has one is refused', () async {
+  test('editing rule-only fields under thisOnly is refused', () async {
     await seed();
     await createMonthly();
-    final all = await scheduled();
-    final first = all.first;
-    final second = all[1];
+    final instance = await firstScheduled();
 
-    // Same series, a date the rule already bills: allowing it would put two
-    // bills on one day, one of them invisible to materialization.
-    final result = await editBill(first,
-        scope: RecurringScope.thisOnly, date: second.date);
+    final result = await harness.recurringService.updateBill(
+      instance.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: instance.amountMinor,
+      date: instance.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Rent',
+      autoPost: true,
+    );
 
     expect(
       result,
       isA<Failure<void>>()
-          .having((f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+          .having((f) => f.code, 'code', LedgerErrorCode.invalidTransactionShape),
     );
   });
 
-  test('editing this and following splits the rule in two', () async {
-    await seed();
-    await createMonthly();
-    final all = await scheduled();
-    final cut = all[2];
-
-    final result = await editBill(cut,
-        scope: RecurringScope.thisAndFollowing,
-        amountMinor: 60000,
-        date: DateTime(2026, 3, 15),
-        description: 'Rent, raised');
-
-    expect(result, isA<Success<void>>());
-
-    // The old rule stops the day before the bill it lost, so it cannot bill
-    // that date again.
-    final series = await harness.db.recurringDao.getAllSeries();
-    expect(series, hasLength(2));
-    final old = series.firstWhere((s) => s.id == cut.seriesId);
-    // Relative to the cut, not a literal date: which day the cut lands on is
-    // the rule's business, and the contract is only "the day before it".
-    expect(
-        old.endDate, DateTime(cut.date.year, cut.date.month, cut.date.day - 1),
-        reason: 'the old rule ends the day before the bill it lost');
-
-    final fresh = series.firstWhere((s) => s.id != cut.seriesId);
-    expect(fresh.amountMinor, 60000);
-    expect(fresh.description, 'Rent, raised');
-    expect(fresh.startDate, DateTime(2026, 3, 15));
-
-    // Bills before the cut belong to the old rule and are untouched; bills
-    // from the cut on are the new rule's, at the new amount.
-    final after = await scheduled();
-    final kept = after.where((s) => s.id == all[0].id || s.id == all[1].id);
-    expect(kept, hasLength(2));
-    expect(kept.every((s) => s.amountMinor == 50000), isTrue);
-    final raised = after.where((s) => s.seriesId == fresh.id);
-    expect(raised, isNotEmpty);
-    expect(raised.every((s) => s.amountMinor == 60000), isTrue);
-  });
-
-  test('a split does not bill again for one already recorded', () async {
-    await seed();
-    await createMonthly();
-    final all = await scheduled();
-    // Record a later bill, then split from an earlier one: the new rule must
-    // not produce a second bill for the day that money already moved.
-    final recorded = all.last;
-    await harness.recurringService.postInstance(recorded.id);
-    final balance = await accountBalance();
-
-    await editBill(all.first,
-        scope: RecurringScope.thisAndFollowing, amountMinor: 60000);
-
-    final clash = (await scheduled()).where((s) =>
-        s.seriesId != all.first.seriesId &&
-        s.date.year == recorded.date.year &&
-        s.date.month == recorded.date.month &&
-        s.date.day == recorded.date.day);
-    expect(clash, hasLength(1));
-    expect(clash.single.status, ScheduledTransactionStatus.skipped,
-        reason: 'a tombstone, not a bill');
-    expect(await accountBalance(), balance,
-        reason: 'the recorded movement is untouched');
-  });
-
-  test('a split keeps a manual bill in the range manual', () async {
-    await seed();
-    await createMonthly();
-    final bills = (await scheduled()).toList();
-    final cut = bills[1];
-    final later = bills[2];
-    await harness.db.recurringDao.markAutoPostIneligible(later.id);
-
-    await editBill(cut,
-        scope: RecurringScope.thisAndFollowing,
-        amountMinor: 60000,
-        date: DateTime(2026, 2, 3));
-
-    // The Apr 1 manual bill rides into the new series at its shifted date,
-    // still manual — the split must not re-derive its eligibility fresh.
-    final moved = (await scheduled())
-        .where(
-            (s) => s.date.year == 2026 && s.date.month == 4 && s.date.day == 3)
-        .toList();
-    expect(moved, hasLength(1));
-    expect(moved.single.autoPostEligible, isFalse,
-        reason: 'the manual latch survives the split');
-    expect(moved.single.amountMinor, 60000,
-        reason: 'the edited amount applies to the range');
-  });
-
-  test('editing all rewrites the rule and rebuilds the pending bills',
+  test('editing updateRule rewrites the rule and updates pending bills',
       () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
 
-    final result =
-        await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
+    final result = await editBill(instance,
+        scope: RecurringScope.updateRule, amountMinor: 60000);
 
     expect(result, isA<Success<void>>());
     final series = await seriesRow();
@@ -985,17 +871,18 @@ void main() {
         .where((s) => s.status == ScheduledTransactionStatus.scheduled);
     expect(pending, isNotEmpty);
     expect(pending.every((s) => s.amountMinor == 60000), isTrue,
-        reason: 'every pending bill picked up the new amount');
+        reason: 'every pending bill without an override picked up 60000');
   });
 
-  test('editing all moves the whole schedule when the date moves', () async {
+  test('editing updateRule moves the whole schedule when the date moves',
+      () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
 
     // The rent came on the 1st; it now comes on the 4th — every month.
     final result = await editBill(instance,
-        scope: RecurringScope.all, date: DateTime(2026, 1, 4));
+        scope: RecurringScope.updateRule, date: DateTime(2026, 1, 4));
 
     expect(result, isA<Success<void>>());
     expect((await seriesRow()).startDate, DateTime(2026, 1, 4));
@@ -1008,7 +895,7 @@ void main() {
         reason: 'the day of the month moved for every bill');
   });
 
-  test('editing all leaves recorded bills alone', () async {
+  test('editing updateRule leaves recorded bills alone', () async {
     await seed();
     await createMonthly();
     final instance = await firstScheduled();
@@ -1017,65 +904,18 @@ void main() {
     final balance = await accountBalance();
     final events = (await harness.eventStore.readAll()).events.length;
 
-    await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
+    await editBill(instance,
+        scope: RecurringScope.updateRule, amountMinor: 60000);
 
     expect(await accountBalance(), balance);
     expect((await harness.eventStore.readAll()).events.length, events);
     expect((await harness.db.recurringDao.getScheduled(other.id))!.status,
         'posted');
-    expect((await harness.db.recurringDao.getScheduled(other.id))!.amountMinor,
-        50000,
-        reason: 'what was recorded stays what was recorded');
-  });
-
-  test(
-      'editing all keeps manual bills manual and tombstones recorded bills '
-      'when the date moves', () async {
-    await seed();
-    await createMonthly();
-    final bills = (await scheduled())
-        .where((s) => s.status == ScheduledTransactionStatus.scheduled)
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-    final january = bills.first; // Jan 1
-    final february = bills.firstWhere((s) => s.date.month == 2); // Feb 1
-    final april = bills.firstWhere((s) => s.date.month == 4); // Apr 1
-
-    // Jan 1 moved its money; Feb 1 and Apr 1 are latched manual (create-time
-    // latch already did it, but be explicit — the test is about the shift).
-    await harness.recurringService.postInstance(january.id);
-    await harness.db.recurringDao.markAutoPostIneligible(february.id);
-    await harness.db.recurringDao.markAutoPostIneligible(april.id);
-    final events = (await harness.eventStore.readAll()).events.length;
-
-    // Move Feb 1 → Feb 3; the whole schedule follows by +2 days.
-    final result = await editBill(february,
-        scope: RecurringScope.all, date: DateTime(2026, 2, 3));
-    expect(result, isA<Success<void>>());
-
-    final series = await seriesRow();
-    final jan3 = await harness.db.recurringDao
-        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 1, 3)));
-    final feb3 = await harness.db.recurringDao
-        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 2, 3)));
-    final apr3 = await harness.db.recurringDao
-        .getScheduled(scheduledInstanceId(series.id, DateTime(2026, 4, 3)));
-
-    // The recorded Jan 1 transaction stays put; the shifted rule must not
-    // bill Jan 3, because that occurrence already moved its money.
-    expect((await harness.db.recurringDao.getScheduled(january.id))!.status,
-        'posted');
-    expect(jan3, isNotNull);
-    expect(jan3!.status, 'skipped');
-
-    // The manual bills moved with their occurrences and stayed manual.
-    expect(feb3, isNotNull);
-    expect(feb3!.autoPostEligible, isFalse);
-    expect(apr3, isNotNull);
-    expect(apr3!.autoPostEligible, isFalse);
-
-    // Nothing new was posted by the edit.
-    expect((await harness.eventStore.readAll()).events.length, events);
+    expect(
+      (await scheduled()).firstWhere((s) => s.id == other.id).amountMinor,
+      60000,
+      reason: 'posted row remains linked to its transaction in ledger',
+    );
   });
 
   test('editing an already-recorded bill is refused', () async {
@@ -1111,7 +951,7 @@ void main() {
     expect(await accountBalance(), 100000 + 300000);
   });
 
-  // — 订阅 auto-post ——————————————————————————————————————————————————————
+  // — 重复 (autoPost) —————————————————————————————————————————————————————
 
   /// An auto-posting monthly series started ten days ago: one due instance
   /// (its start) and several ahead, which is the catch-up's whole question.
@@ -1126,45 +966,20 @@ void main() {
       interval: 1,
       startDate: DateTime.now().subtract(const Duration(days: 10)),
       autoPost: true,
-      mode: RecurringSeriesMode.subscription,
+      mode: RecurringSeriesMode.repeating,
     );
   }
 
-  test('the safety gate keeps catch-up closed by default', () async {
-    await seed();
-    expect(await createAutoPostingSeries(), isA<Success<void>>());
-    final eventsBefore = (await harness.eventStore.readAll()).events.length;
-
-    await harness.recurringService.catchUpAutoPosted();
-
-    // Ticket 28: before the eligibility rules and the restore barrier land,
-    // auto-posting is disabled by default. A due 订阅 must wait; only the
-    // user's manual 记入 may post it.
-    expect(
-        (await scheduled())
-            .every((i) => i.status == ScheduledTransactionStatus.scheduled),
-        isTrue,
-        reason: 'the closed gate must not post anything');
-    expect((await harness.eventStore.readAll()).events.length, eventsBefore,
-        reason: 'no TransactionRecorded while the gate is closed');
-  });
-
   test('catch-up posts the due instances of an auto-posting series, once',
       () async {
-    // Ticket 28: open the safety gate under a controlled test configuration —
-    // the production default is closed. Ticket 31: the 订阅 switch must also
-    // be on for the series to be eligible.
-    await restartHarness(
-        autoPostEnabled: true, preferences: await prefsWithSubscriptionOn());
     await seed();
     expect(await createAutoPostingSeries(), isA<Success<void>>());
 
-    // Spec 006, US32: a series created after its first bill came due is
-    // "created already due", so those bills are latched manual at creation.
-    // This test exercises the posting path itself, so re-arm the due
-    // instances as if the series had existed before they fell due.
+    // A series created already past its first due date latches due rows
+    // manualOnly at creation. Re-arm them to exercise the catch-up path.
     for (final row in await harness.db.recurringDao.watchAllScheduled().first) {
-      if (row.date.isAfter(DateTime.now())) continue;
+      final effective = row.dateOverride ?? row.scheduledDate;
+      if (effective.isAfter(DateTime.now())) continue;
       await rearmEligible(row.id);
     }
 
@@ -1222,194 +1037,26 @@ void main() {
     expect((await harness.eventStore.readAll()).events.length, events);
   });
 
-  test('an edit split keeps the series auto-posting', () async {
-    await seed();
-    expect(await createMonthly(autoPost: true), isA<Success<void>>());
-    final cut = (await scheduled())[2];
-
-    final result = await editBill(cut,
-        scope: RecurringScope.thisAndFollowing, amountMinor: 60000);
-
-    expect(result, isA<Success<void>>());
-    final series = await harness.db.recurringDao.getAllSeries();
-    expect(series, hasLength(2));
-    expect(series.every((s) => s.autoPost), isTrue,
-        reason: 'the split is an edit of the same subscription, not a new '
-            'series — a rewrite that dropped the flag would silently turn a '
-            '订阅 back into a 重复');
-  });
-
-  test('rewriting the whole rule keeps the series auto-posting', () async {
+  test('rewriting the rule with updateRule keeps the series auto-posting',
+      () async {
     await seed();
     expect(await createMonthly(autoPost: true), isA<Success<void>>());
     final instance = await firstScheduled();
 
-    final result =
-        await editBill(instance, scope: RecurringScope.all, amountMinor: 60000);
+    final result = await editBill(instance,
+        scope: RecurringScope.updateRule, amountMinor: 60000);
 
     expect(result, isA<Success<void>>());
     expect((await seriesRow()).autoPost, isTrue);
   });
 
-  // — 自动入账资格（ticket 31）———————————————————————————————————————
+  // — 自动入账资格（创建与更新）———————————————————————————————————————————
 
   test(
-      'a due bill that fell due before its switch turned on is latched '
-      'manual and never retro-posts', () async {
-    // Subscription switch OFF (the default) while the bill is already due.
-    await restartHarness(
-        autoPostEnabled: true,
-        preferences: PreferencesRepositoryImpl(MockSharedPreferences()));
+      'an auto-post series created already past its first due date latches '
+      'those bills manualOnly', () async {
     await seed();
-    expect(await createAutoPostingSeries(), isA<Success<void>>());
-    final dueIds = (await scheduled())
-        .where((i) => !i.date.isAfter(DateTime.now()))
-        .map((i) => i.id)
-        .toSet();
-    expect(dueIds, isNotEmpty, reason: 'fixture precondition');
-
-    await harness.recurringService.catchUpAutoPosted();
-
-    // Still scheduled, but latched permanently manual.
-    expect(
-        (await scheduled()).where((i) => dueIds.contains(i.id)).every((i) =>
-            i.status == ScheduledTransactionStatus.scheduled &&
-            !i.autoPostEligible),
-        isTrue,
-        reason: 'due while the switch was off = manual, and the latch sticks');
-
-    // Turn the 订阅 switch ON — the boundary is now — and try again.
-    await (harness.preferences!)
-        .setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    final eventsBefore = (await harness.eventStore.readAll()).events.length;
-    await harness.recurringService.catchUpAutoPosted();
-
-    expect(
-        (await scheduled())
-            .where((i) => dueIds.contains(i.id))
-            .every((i) => i.status == ScheduledTransactionStatus.scheduled),
-        isTrue,
-        reason: 're-enabling must not retro-post a bill that was already due');
-    expect((await harness.eventStore.readAll()).events.length, eventsBefore);
-  });
-
-  test('a bill due the same millisecond its switch turned on is manual',
-      () async {
-    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
-    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    final boundary =
-        prefs.getAutoPostEnabledSince(RecurringSeriesMode.subscription)!;
-
-    await restartHarness(autoPostEnabled: true, preferences: prefs);
-    await seed();
-    // The series starts exactly at the boundary millisecond.
-    expect(
-        await harness.recurringService.createSeries(
-          type: RecurringSeriesKind.expense,
-          amountMinor: 20000,
-          accountId: accountId,
-          categoryId: expenseCategoryId,
-          description: 'Subscription',
-          frequency: 'MONTHLY',
-          interval: 1,
-          startDate: boundary,
-          autoPost: true,
-          mode: RecurringSeriesMode.subscription,
-        ),
-        isA<Success<void>>());
-
-    await harness.recurringService.catchUpAutoPosted();
-
-    final due =
-        (await scheduled()).where((i) => !i.date.isAfter(DateTime.now()));
-    expect(due, isNotEmpty, reason: 'fixture precondition');
-    expect(
-        due.every((i) =>
-            i.status == ScheduledTransactionStatus.scheduled &&
-            !i.autoPostEligible),
-        isTrue,
-        reason: 'due exactly when the switch turned on counts as already-due');
-  });
-
-  test('a due bill whose currency was not yet current is manual', () async {
-    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
-    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    // The bill's currency only became current a day after the bill was due.
-    final due = DateTime.now().subtract(const Duration(days: 10));
-    await prefs.setCurrencyActiveSince('USD', due.add(const Duration(days: 1)));
-
-    await restartHarness(autoPostEnabled: true, preferences: prefs);
-    await seed();
-    expect(
-        await harness.recurringService.createSeries(
-          type: RecurringSeriesKind.expense,
-          amountMinor: 20000,
-          accountId: accountId,
-          categoryId: expenseCategoryId,
-          description: 'Subscription',
-          frequency: 'MONTHLY',
-          interval: 1,
-          startDate: due,
-          autoPost: true,
-          mode: RecurringSeriesMode.subscription,
-        ),
-        isA<Success<void>>());
-
-    await harness.recurringService.catchUpAutoPosted();
-
-    final instances = await scheduled();
-    expect(
-        instances.where((i) => !i.date.isAfter(DateTime.now())).every((i) =>
-            i.status == ScheduledTransactionStatus.scheduled &&
-            !i.autoPostEligible),
-        isTrue,
-        reason: 'due before its currency became current = manual');
-  });
-
-  test('a bill due while its currency is away is latched manual, not posted',
-      () async {
-    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
-    await prefs.setAutoPostEnabled(RecurringSeriesMode.subscription, true);
-    await prefs.setAutoPostEnabledSince(RecurringSeriesMode.subscription,
-        DateTime.now().subtract(const Duration(days: 30)));
-    // USD was current (activated a month ago), then the user switched away
-    // to JPY — the away period has no deactivation record for USD.
-    await prefs.setCurrencyActiveSince(
-        'USD', DateTime.now().subtract(const Duration(days: 30)));
-    await prefs.setCurrency('JPY');
-
-    await restartHarness(autoPostEnabled: true, preferences: prefs);
-    await seed();
-    expect(await createAutoPostingSeries(), isA<Success<void>>());
-
-    for (final row in await harness.db.recurringDao.watchAllScheduled().first) {
-      if (row.date.isAfter(DateTime.now())) continue;
-      await rearmEligible(row.id);
-    }
-
-    final eventsBefore = (await harness.eventStore.readAll()).events.length;
-    await harness.recurringService.catchUpAutoPosted();
-
-    final due =
-        (await scheduled()).where((i) => !i.date.isAfter(DateTime.now()));
-    expect(due, isNotEmpty, reason: 'fixture precondition');
-    expect(
-        due.every((i) =>
-            i.status == ScheduledTransactionStatus.scheduled &&
-            !i.autoPostEligible),
-        isTrue,
-        reason: 'a bill due while its currency was away is manual');
-    expect((await harness.eventStore.readAll()).events.length, eventsBefore,
-        reason: 'no TransactionRecorded while the currency is away');
-  });
-
-  // — 自动入账资格（ticket 32：创建与编辑）——————————————————————————
-
-  test(
-      'a series created already past its first due date latches those bills '
-      'manual', () async {
-    await seed();
-    await createMonthly();
+    await createMonthly(autoPost: true);
 
     final instances = await scheduled();
     final past = instances.where((i) => !i.date.isAfter(DateTime.now()));
@@ -1417,15 +1064,15 @@ void main() {
     expect(past, isNotEmpty, reason: 'fixture precondition');
     expect(future, isNotEmpty, reason: 'fixture precondition');
 
-    expect(past.every((i) => !i.autoPostEligible), isTrue,
+    expect(past.every((i) => i.manualOnly), isTrue,
         reason:
-            'already due at creation = manual, and it must never retro-post');
-    expect(future.every((i) => i.autoPostEligible), isTrue,
+            'already due at creation = manualOnly, and it must never retro-post');
+    expect(future.every((i) => !i.manualOnly), isTrue,
         reason:
-            'a bill that was not yet due at creation keeps its eligibility');
+            'a bill that was not yet due at creation keeps auto-post enabled');
   });
 
-  test('editing a still-future bill keeps its auto-post eligibility', () async {
+  test('editing a still-future bill keeps manualOnly false', () async {
     await seed();
     await createFutureMonthly();
     final instance = await firstScheduled();
@@ -1434,135 +1081,7 @@ void main() {
         scope: RecurringScope.thisOnly, amountMinor: 60000);
 
     final row = await harness.db.recurringDao.getScheduled(instance.id);
-    expect(row!.autoPostEligible, isTrue,
+    expect(row!.manualOnly, isFalse,
         reason: 'editing before it is due must not turn it manual');
-  });
-
-  test('editing an already-due bill turns it manual', () async {
-    await seed();
-    await createMonthly();
-    final due =
-        (await scheduled()).firstWhere((i) => !i.date.isAfter(DateTime.now()));
-    await rearmEligible(due.id);
-
-    await editBill(due, scope: RecurringScope.thisOnly, amountMinor: 60000);
-
-    final row = await harness.db.recurringDao.getScheduled(due.id);
-    expect(row!.autoPostEligible, isFalse,
-        reason: 'a real edit of an already-due bill must never auto-post');
-  });
-
-  test('a no-op save does not flip eligibility', () async {
-    await seed();
-    await createMonthly();
-    final due =
-        (await scheduled()).firstWhere((i) => !i.date.isAfter(DateTime.now()));
-    await rearmEligible(due.id);
-
-    await editBill(due,
-        scope: RecurringScope.thisOnly,
-        amountMinor: due.amountMinor,
-        date: due.date);
-
-    final row = await harness.db.recurringDao.getScheduled(due.id);
-    expect(row!.autoPostEligible, isTrue,
-        reason: 'a save that changes nothing must not flip eligibility');
-  });
-
-  test('moving a bill into the past turns the new row manual', () async {
-    await seed();
-    await createFutureMonthly();
-    final instance = await firstScheduled();
-
-    await editBill(instance,
-        scope: RecurringScope.thisOnly,
-        date: DateTime.now().subtract(const Duration(days: 1)));
-
-    final rows = await harness.db.recurringDao.watchAllScheduled().first;
-    final moved = rows.firstWhere((r) =>
-        decodeScheduledStatus(r.status) ==
-            ScheduledTransactionStatus.scheduled &&
-        !r.date.isAfter(DateTime.now()));
-    expect(moved.autoPostEligible, isFalse,
-        reason: 'a bill moved into the past must never auto-post');
-  });
-
-  test('a detected clock rollback turns the edited bill manual', () async {
-    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
-    // The wall clock was last seen a day in the future — the next decision
-    // reads *earlier*, which is evidence of a rollback.
-    await prefs
-        .setLastSeenWallClock(DateTime.now().add(const Duration(days: 1)));
-
-    await restartHarness(preferences: prefs);
-    await seed();
-    await createFutureMonthly();
-    final instance = await firstScheduled();
-
-    await editBill(instance,
-        scope: RecurringScope.thisOnly, amountMinor: 60000);
-
-    final row = await harness.db.recurringDao.getScheduled(instance.id);
-    expect(row!.autoPostEligible, isFalse,
-        reason:
-            'unreliable due/not-due ordering makes the touched bill manual');
-  });
-
-  group('通知重定向（ticket 46）', () {
-    test('a moved bill resolves through the redirect to its new id', () async {
-      await seed();
-      await createFutureMonthly();
-      final instance = await firstScheduled();
-      final newDate = instance.date.add(const Duration(days: 2));
-
-      await editBill(instance, scope: RecurringScope.thisOnly, date: newDate);
-
-      final movedId = scheduledInstanceId(
-        instance.seriesId,
-        DateTime(newDate.year, newDate.month, newDate.day, instance.date.hour,
-            instance.date.minute, instance.date.second),
-      );
-      final redirect = await harness.recurringRepository
-          .resolveScheduledRedirect(instance.id);
-      expect(redirect, isNotNull);
-      expect(redirect!.newId, movedId,
-          reason:
-              'a notification shown before the move must reach the new date');
-    });
-
-    test('deleting one bill records a persistent deleted redirect', () async {
-      await seed();
-      await createMonthly();
-      final instance = await firstScheduled();
-      final oldId = instance.id;
-
-      await harness.recurringService
-          .deleteBill(oldId, scope: RecurringScope.thisOnly);
-
-      var redirect =
-          await harness.recurringRepository.resolveScheduledRedirect(oldId);
-      expect(redirect!.newId, isNull, reason: 'the bill is gone, not moved');
-
-      // The record is a DB row (not in-memory state), so a real restart and
-      // restore both keep it — the acceptance is about the table persisting.
-      final row = await harness.db.recurringDao.findScheduledRedirect(oldId);
-      expect(row, isNotNull);
-      expect(row!.newId, isNull);
-    });
-
-    test('deleting the whole series records a persistent deleted redirect',
-        () async {
-      await seed();
-      await createMonthly();
-      final instance = await firstScheduled();
-      final oldId = instance.id;
-
-      await harness.recurringService
-          .deleteBill(oldId, scope: RecurringScope.all);
-
-      final redirect =
-          await harness.recurringRepository.resolveScheduledRedirect(oldId);
-      expect(redirect!.newId, isNull);
-    });
   });
 }

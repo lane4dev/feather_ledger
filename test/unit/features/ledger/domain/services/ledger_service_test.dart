@@ -23,6 +23,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/reverse_transacti
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
+import 'package:feather_ledger/features/ledger/domain/queries/get_scheduled_transaction_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_snapshot_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_transactions_query.dart';
@@ -84,6 +85,8 @@ void main() {
       convertScheduledCommand,
       ProjectRecurringEventsCommand(recurringRepository),
       WatchScheduledTransactionsQuery(recurringRepository),
+      GetScheduledTransactionQuery(recurringRepository),
+      recurringRepository,
     );
 
     service = LedgerService(

@@ -155,17 +155,16 @@ void main() {
       expect(viewModel.posted, isEmpty);
     });
 
-    testWidgets('deleting offers all three scopes, narrowest first',
+    testWidgets('deleting offers both scopes, narrowest first',
         (tester) async {
       await pumpSheet(tester);
 
       await openDeleteDialog(tester);
 
       // The title carries the verb; the options only name the reach, because
-      // the same three labels serve editing.
+      // the same labels serve editing.
       expect(find.text('Delete recurring bill'), findsOneWidget);
       expect(find.text('This bill'), findsOneWidget);
-      expect(find.text('This and following bills'), findsOneWidget);
       expect(find.text('All bills'), findsOneWidget);
       expect(find.text('Bills already recorded are kept'), findsOneWidget,
           reason: 'the widest scope is the one that needs reassuring');
@@ -177,12 +176,12 @@ void main() {
       await pumpSheet(tester);
 
       await openDeleteDialog(tester);
-      await tester.tap(find.text('This and following bills'));
+      await tester.tap(find.text('All bills'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(AppButton, 'Delete'));
       await tester.pumpAndSettle();
 
-      expect(viewModel.deleted, [('sched_1', RecurringScope.thisAndFollowing)]);
+      expect(viewModel.deleted, [('sched_1', RecurringScope.updateRule)]);
     });
 
     testWidgets('the narrowest scope is the one preselected', (tester) async {

@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart'; // New import
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 part 'get_scheduled_transaction_query.g.dart';
 
@@ -17,15 +17,19 @@ class GetScheduledTransactionQuery {
     final seriesRow =
         await _recurringRepository.getSeries(scheduledRow.seriesId);
     if (seriesRow == null) {
-      return null; // Should not happen if data integrity holds
+      return null;
     }
 
     return ScheduledTransactionEntity(
       id: scheduledRow.id,
       seriesId: scheduledRow.seriesId,
-      date: scheduledRow.date,
-      amountMinor: scheduledRow.amountMinor,
+      occurrenceKey: scheduledRow.occurrenceKey,
+      scheduledDate: scheduledRow.scheduledDate,
+      amountOverrideMinor: scheduledRow.amountOverrideMinor,
+      dateOverride: scheduledRow.dateOverride,
+      memoOverride: scheduledRow.memoOverride,
       status: decodeScheduledStatus(scheduledRow.status),
+      manualOnly: scheduledRow.manualOnly,
       transactionId: scheduledRow.transactionId,
       recurringTransactionSeries: RecurringTransactionSeriesEntity(
         id: seriesRow.id,
@@ -37,11 +41,13 @@ class GetScheduledTransactionQuery {
         accountId: seriesRow.accountId,
         type: seriesRow.type,
         frequency: seriesRow.frequency,
+        rrule: seriesRow.rrule,
         interval: seriesRow.interval,
         limit: seriesRow.countLimit,
         autoPost: seriesRow.autoPost,
         reminderMinutes: seriesRow.reminderMinutes,
         mode: seriesRow.mode,
+        isActive: seriesRow.isActive,
       ),
     );
   }
