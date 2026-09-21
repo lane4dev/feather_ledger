@@ -40,7 +40,16 @@ class RecurringViewModel extends _$RecurringViewModel {
     required String categoryId,
     required String accountId,
     required String description,
+    String? frequency,
+    int? interval,
+    DateTime? endDate,
+    int? countLimit,
+    List<int>? weekdays,
+    bool? autoPost,
     int? reminderMinutes,
+    bool clearEndDate = false,
+    bool clearCountLimit = false,
+    bool clearReminder = false,
   }) =>
       ref.read(recurringServiceProvider).updateBill(
             scheduledId,
@@ -50,6 +59,15 @@ class RecurringViewModel extends _$RecurringViewModel {
             categoryId: categoryId,
             accountId: accountId,
             description: description,
+            frequency: frequency,
+            interval: interval,
+            endDate: endDate,
+            countLimit: countLimit,
+            weekdays: weekdays,
+            autoPost: autoPost,
             reminderMinutes: reminderMinutes,
+            clearEndDate: clearEndDate,
+            clearCountLimit: clearCountLimit,
+            clearReminder: clearReminder,
           );
 }

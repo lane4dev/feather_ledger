@@ -453,6 +453,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
 
   @override
+  String get errorCountLimitTooSmall => '总次数必须大于已入账和已跳过的次数';
+
+  @override
   String get editRecurringTitle => '编辑周期账单';
 
   @override
@@ -558,13 +561,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get scopeThisOnly => '该项记录';
+  String get scopeThisOnly => '仅编辑本期';
 
   @override
   String get saveRecurringTitle => '保存周期账单';
 
   @override
-  String get scopeThisOnlyUnavailable => '分类、账户、备注和提醒属于整条规则';
+  String get scopeThisOnlyUnavailable => '分类、账户、重复规则、自动入账和提醒属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '该项记录和后续记录';
@@ -574,6 +577,51 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scopeAllHint => '已经入账的记录会保留';
+
+  @override
+  String get scopeUpdateRule => '修改重复规则';
+
+  @override
+  String get scopeUpdateRuleHint => '已入账记录保留不变；后续待入账账单按新规则生成';
+
+  @override
+  String get skipThisBill => '跳过本期';
+
+  @override
+  String get skipBillTitle => '跳过本期账单？';
+
+  @override
+  String get skipBillConfirm => '本期账单将标记为已跳过，后续重复规则仍按计划继续生成。';
+
+  @override
+  String get skipBillAction => '跳过';
+
+  @override
+  String get billSkipped => '已跳过本期账单';
+
+  @override
+  String get stopRepeatingRule => '停止重复';
+
+  @override
+  String get stopRepeatingTitle => '停止重复规则？';
+
+  @override
+  String get stopRepeatingConfirm => '将删除该规则下所有未入账账单；已入账的历史记录会保留。';
+
+  @override
+  String get stopRepeatingAction => '停止重复';
+
+  @override
+  String get repeatingStopped => '已停止重复规则';
+
+  @override
+  String get deletePlan => '删除该计划';
+
+  @override
+  String get deletePlanTitle => '删除该计划？';
+
+  @override
+  String get deletePlanConfirm => '该计划账单将被永久删除。';
 
   @override
   String get billDeleted => '账单已删除';
@@ -648,26 +696,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String overdueBillsAdded(int count) {
     return '新补齐了 $count 笔已到期账单';
   }
-
-  @override
-  String get autoPostSettingsTitle => '自动入账账单';
-
-  @override
-  String get restoreConfirmationTitle => '恢复确认';
-
-  @override
-  String get restoreConfirmationRisk => '这些账单可能已在另一台设备上记录。';
-
-  @override
-  String restoreConfirmationCount(int count) {
-    return '$count 笔账单';
-  }
-
-  @override
-  String get restoreReject => '转为手动';
-
-  @override
-  String get restoreDefer => '稍后';
 
   @override
   String get repeatNever => '不重复';
@@ -911,6 +939,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkUnavailableMessage => '请确认设备上有可用的浏览器，然后重试。';
+
+  @override
+  String autoPostedCountMessage(int count) {
+    return '已自动记入 $count 笔订阅';
+  }
+
+  @override
+  String get failedBill => '自动入账失败';
+
+  @override
+  String get failedBillBanner => '自动入账失败，请检查账户或分类后重试记入或跳过本期。';
+
+  @override
+  String get retryPost => '重试记入';
+
+  @override
+  String currencyBacklogTitle(String currency) {
+    return '$currency 有待处理订阅';
+  }
+
+  @override
+  String currencyBacklogMessage(int count) {
+    return '切换到其他币种期间，有 $count 笔开启自动入账的订阅已到期。';
+  }
+
+  @override
+  String get currencyBacklogPostAll => '全部入账';
+
+  @override
+  String get currencyBacklogKeepPending => '保留为待入账';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1362,6 +1420,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
 
   @override
+  String get errorCountLimitTooSmall => '总次数必须大于已入账和已跳过的次数';
+
+  @override
   String get editRecurringTitle => '编辑周期账单';
 
   @override
@@ -1467,13 +1528,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get deleteRecurringTitle => '删除周期账单';
 
   @override
-  String get scopeThisOnly => '该项记录';
+  String get scopeThisOnly => '仅编辑本期';
 
   @override
   String get saveRecurringTitle => '保存周期账单';
 
   @override
-  String get scopeThisOnlyUnavailable => '分类、账户、备注和提醒属于整条规则';
+  String get scopeThisOnlyUnavailable => '分类、账户、重复规则、自动入账和提醒属于整条规则';
 
   @override
   String get scopeThisAndFollowing => '该项记录和后续记录';
@@ -1483,6 +1544,51 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get scopeAllHint => '已经入账的记录会保留';
+
+  @override
+  String get scopeUpdateRule => '修改重复规则';
+
+  @override
+  String get scopeUpdateRuleHint => '已入账记录保留不变；后续待入账账单按新规则生成';
+
+  @override
+  String get skipThisBill => '跳过本期';
+
+  @override
+  String get skipBillTitle => '跳过本期账单？';
+
+  @override
+  String get skipBillConfirm => '本期账单将标记为已跳过，后续重复规则仍按计划继续生成。';
+
+  @override
+  String get skipBillAction => '跳过';
+
+  @override
+  String get billSkipped => '已跳过本期账单';
+
+  @override
+  String get stopRepeatingRule => '停止重复';
+
+  @override
+  String get stopRepeatingTitle => '停止重复规则？';
+
+  @override
+  String get stopRepeatingConfirm => '将删除该规则下所有未入账账单；已入账的历史记录会保留。';
+
+  @override
+  String get stopRepeatingAction => '停止重复';
+
+  @override
+  String get repeatingStopped => '已停止重复规则';
+
+  @override
+  String get deletePlan => '删除该计划';
+
+  @override
+  String get deletePlanTitle => '删除该计划？';
+
+  @override
+  String get deletePlanConfirm => '该计划账单将被永久删除。';
 
   @override
   String get billDeleted => '账单已删除';
@@ -1557,26 +1663,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String overdueBillsAdded(int count) {
     return '新补齐了 $count 笔已到期账单';
   }
-
-  @override
-  String get autoPostSettingsTitle => '自动入账账单';
-
-  @override
-  String get restoreConfirmationTitle => '恢复确认';
-
-  @override
-  String get restoreConfirmationRisk => '这些账单可能已在另一台设备上记录。';
-
-  @override
-  String restoreConfirmationCount(int count) {
-    return '$count 笔账单';
-  }
-
-  @override
-  String get restoreReject => '转为手动';
-
-  @override
-  String get restoreDefer => '稍后';
 
   @override
   String get repeatNever => '不重复';
@@ -1820,6 +1906,36 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get linkUnavailableMessage => '请确认设备上有可用的浏览器，然后重试。';
+
+  @override
+  String autoPostedCountMessage(int count) {
+    return '已自动记入 $count 笔订阅';
+  }
+
+  @override
+  String get failedBill => '自动入账失败';
+
+  @override
+  String get failedBillBanner => '自动入账失败，请检查账户或分类后重试记入或跳过本期。';
+
+  @override
+  String get retryPost => '重试记入';
+
+  @override
+  String currencyBacklogTitle(String currency) {
+    return '$currency 有待处理订阅';
+  }
+
+  @override
+  String currencyBacklogMessage(int count) {
+    return '切换到其他币种期间，有 $count 笔开启自动入账的订阅已到期。';
+  }
+
+  @override
+  String get currencyBacklogPostAll => '全部入账';
+
+  @override
+  String get currencyBacklogKeepPending => '保留为待入账';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2271,6 +2387,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get errorScheduledDateTaken => '這條規則在那天已經有一筆帳單了';
 
   @override
+  String get errorCountLimitTooSmall => '總次數必須大於已入帳和已跳過的次數';
+
+  @override
   String get editRecurringTitle => '編輯週期帳單';
 
   @override
@@ -2376,13 +2495,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get deleteRecurringTitle => '刪除週期帳單';
 
   @override
-  String get scopeThisOnly => '該項記錄';
+  String get scopeThisOnly => '僅編輯本期';
 
   @override
   String get saveRecurringTitle => '保存週期帳單';
 
   @override
-  String get scopeThisOnlyUnavailable => '分類、帳戶、備註和提醒屬於整條規則';
+  String get scopeThisOnlyUnavailable => '分類、帳戶、重複規則、自動入帳和提醒屬於整條規則';
 
   @override
   String get scopeThisAndFollowing => '該項記錄和後續記錄';
@@ -2392,6 +2511,51 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get scopeAllHint => '已經入帳的記錄會保留';
+
+  @override
+  String get scopeUpdateRule => '修改重複規則';
+
+  @override
+  String get scopeUpdateRuleHint => '已入帳記錄保留不變；後續待入帳帳單按新規則生成';
+
+  @override
+  String get skipThisBill => '跳過本期';
+
+  @override
+  String get skipBillTitle => '跳過本期帳單？';
+
+  @override
+  String get skipBillConfirm => '本期帳單將標記為已跳過，後續重複規則仍按計畫繼續生成。';
+
+  @override
+  String get skipBillAction => '跳過';
+
+  @override
+  String get billSkipped => '已跳過本期帳單';
+
+  @override
+  String get stopRepeatingRule => '停止重複';
+
+  @override
+  String get stopRepeatingTitle => '停止重複規則？';
+
+  @override
+  String get stopRepeatingConfirm => '將刪除該規則下所有未入帳帳單；已入帳的歷史記錄會保留。';
+
+  @override
+  String get stopRepeatingAction => '停止重複';
+
+  @override
+  String get repeatingStopped => '已停止重複規則';
+
+  @override
+  String get deletePlan => '刪除該計畫';
+
+  @override
+  String get deletePlanTitle => '刪除該計畫？';
+
+  @override
+  String get deletePlanConfirm => '該計畫帳單將被永久刪除。';
 
   @override
   String get billDeleted => '帳單已刪除';
@@ -2466,26 +2630,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String overdueBillsAdded(int count) {
     return '新補齊了 $count 筆已到期帳單';
   }
-
-  @override
-  String get autoPostSettingsTitle => '自動入帳帳單';
-
-  @override
-  String get restoreConfirmationTitle => '恢復確認';
-
-  @override
-  String get restoreConfirmationRisk => '這些帳單可能已在另一台裝置上記錄。';
-
-  @override
-  String restoreConfirmationCount(int count) {
-    return '$count 筆帳單';
-  }
-
-  @override
-  String get restoreReject => '轉為手動';
-
-  @override
-  String get restoreDefer => '稍後';
 
   @override
   String get repeatNever => '不重複';
@@ -2729,4 +2873,34 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get linkUnavailableMessage => '請確認裝置上有可用的瀏覽器，然後再試一次。';
+
+  @override
+  String autoPostedCountMessage(int count) {
+    return '已自動記入 $count 筆訂閱';
+  }
+
+  @override
+  String get failedBill => '自動入帳失敗';
+
+  @override
+  String get failedBillBanner => '自動入帳失敗，請檢查帳戶或分類後重試記入或跳過本期。';
+
+  @override
+  String get retryPost => '重試記入';
+
+  @override
+  String currencyBacklogTitle(String currency) {
+    return '$currency 有待處理訂閱';
+  }
+
+  @override
+  String currencyBacklogMessage(int count) {
+    return '切換到其他幣種期間，有 $count 筆開啟自動入帳的訂閱已到期。';
+  }
+
+  @override
+  String get currencyBacklogPostAll => '全部入帳';
+
+  @override
+  String get currencyBacklogKeepPending => '保留為待入帳';
 }

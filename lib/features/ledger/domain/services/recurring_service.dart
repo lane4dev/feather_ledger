@@ -114,9 +114,12 @@ class RecurringService {
     List<int>? weekdays,
     bool? autoPost,
     int? reminderMinutes,
+    bool clearEndDate = false,
+    bool clearCountLimit = false,
+    bool clearReminder = false,
   }) =>
       guard(() async {
-        await _updateBill.execute(
+        final seriesIdToLatch = await _updateBill.execute(
           scheduledId: scheduledId,
           scope: scope,
           amountMinor: amountMinor,
@@ -131,8 +134,15 @@ class RecurringService {
           weekdays: weekdays,
           autoPost: autoPost,
           reminderMinutes: reminderMinutes,
+          clearEndDate: clearEndDate,
+          clearCountLimit: clearCountLimit,
+          clearReminder: clearReminder,
         );
         await _materialize.execute();
+        if (seriesIdToLatch != null) {
+          await _recurringRepository.markSeriesManualOnlyBefore(
+              seriesIdToLatch, _clock.now());
+        }
       });
 
   Future<Result<void>> postInstance(String scheduledId,
@@ -157,21 +167,78 @@ class RecurringService {
     final now = _clock.now();
     final currentCurrency = _preferences?.getCurrency();
     final scheduled = await _watchScheduled.execute().first;
-    var posted = 0;
-
-    for (final instance in scheduled) {
+    final due = scheduled.where((instance) {
       final series = instance.recurringTransactionSeries;
-      if (series == null || !series.autoPost) continue;
-      if (instance.manualOnly) continue;
-      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
-      if (instance.account?.archived == true) continue;
-      if (accountId != null && series.accountId != accountId) continue;
+      if (series == null || !series.isActive || !series.autoPost) return false;
+      if (instance.manualOnly) return false;
+      if (instance.status != ScheduledTransactionStatus.scheduled) return false;
+      if (instance.account?.archived == true) return false;
+      if (accountId != null && series.accountId != accountId) return false;
       if (currentCurrency != null &&
           instance.account?.currencyCode != currentCurrency) {
-        continue;
+        return false;
       }
-      if (instance.effectiveDate.isAfter(now)) continue;
+      return !instance.effectiveDate.isAfter(now);
+    }).toList()
+      ..sort((a, b) => a.effectiveDate.compareTo(b.effectiveDate));
 
+    return _postAutoDueInstances(due);
+  }
+
+  /// Marks all scheduled instances across every currency with
+  /// `effectiveDate <= restoreTime` as `manualOnly = true` after a backup
+  /// restore so they never auto-post unexpectedly at launch or currency switch.
+  Future<int> markPreRestoreManualOnly([DateTime? restoreTime]) {
+    return _recurringRepository
+        .markAllScheduledManualOnlyBefore(restoreTime ?? _clock.now());
+  }
+
+  /// Returns due auto-posting instances in [currencyCode] that accumulated
+  /// while another currency was active (`isActive && autoPost && !manualOnly
+  /// && scheduled && effectiveDate <= now`).
+  Future<List<ScheduledTransactionEntity>> getCurrencyBacklog(
+      String currencyCode) async {
+    final now = _clock.now();
+    final scheduled = await _watchScheduled.execute().first;
+    final backlog = scheduled.where((instance) {
+      final series = instance.recurringTransactionSeries;
+      if (series == null || !series.isActive || !series.autoPost) return false;
+      if (instance.manualOnly) return false;
+      if (instance.status != ScheduledTransactionStatus.scheduled) return false;
+      if (instance.account?.archived == true) return false;
+      if (instance.account?.currencyCode != currencyCode) return false;
+      return !instance.effectiveDate.isAfter(now);
+    }).toList()
+      ..sort((a, b) => a.effectiveDate.compareTo(b.effectiveDate));
+    return backlog;
+  }
+
+  /// Settles due auto-posting backlog for [currencyCode] after switching back:
+  /// either posts all due bills now (`postAll: true`) or freezes them as manual
+  /// pending bills (`postAll: false`).
+  Future<int> settleCurrencyBacklog(
+    String currencyCode, {
+    required bool postAll,
+  }) async {
+    final backlog = await getCurrencyBacklog(currencyCode);
+    if (backlog.isEmpty) return 0;
+    if (postAll) {
+      return _postAutoDueInstances(backlog);
+    }
+    for (final instance in backlog) {
+      await _recurringRepository.markManualOnly(instance.id);
+    }
+    return 0;
+  }
+
+  Future<int> _postAutoDueInstances(
+      List<ScheduledTransactionEntity> due) async {
+    var posted = 0;
+    for (var i = 0; i < due.length; i++) {
+      if (i > 0 && i % 20 == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      final instance = due[i];
       final result = await postInstance(
         instance.id,
         commandId: 'autopost-${instance.id}',

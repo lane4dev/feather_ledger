@@ -366,8 +366,8 @@ void main() {
       await save(tester);
 
       expect(find.text('Save recurring bill'), findsOneWidget);
-      expect(find.text('This bill'), findsOneWidget);
-      expect(find.text('All bills'), findsOneWidget);
+      expect(find.text('Only this bill'), findsOneWidget);
+      expect(find.text('Update repeating rule'), findsOneWidget);
       expect(viewModel.updated, isEmpty,
           reason: 'nothing is written until the reach is chosen');
     });
@@ -376,9 +376,10 @@ void main() {
       await pumpForm(tester);
       await save(tester);
 
-      for (final label in ['This bill', 'All bills']) {
+      for (final label in ['Only this bill', 'Update repeating rule']) {
         final radio = find.byType(Radio<RecurringScope>);
-        final index = ['This bill', 'All bills'].indexOf(label);
+        final index =
+            ['Only this bill', 'Update repeating rule'].indexOf(label);
         // The radio is not centred against the whole title-plus-hint block:
         // its middle lands on the label's line, not between the two.
         final radioMiddle = tester.getCenter(radio.at(index)).dy;
@@ -396,8 +397,9 @@ void main() {
       await pumpForm(tester);
       await save(tester);
 
-      final firstBottom = tester.getBottomLeft(find.text('This bill')).dy;
-      final secondTop = tester.getTopLeft(find.text('All bills')).dy;
+      final firstBottom = tester.getBottomLeft(find.text('Only this bill')).dy;
+      final secondTop =
+          tester.getTopLeft(find.text('Update repeating rule')).dy;
       final gap = secondTop - firstBottom;
 
       // A default ListTile reserves two-line height for every option; these
@@ -413,7 +415,7 @@ void main() {
       await enterAmount(tester, '6000.00');
 
       await save(tester);
-      await tester.tap(find.text('All bills'));
+      await tester.tap(find.text('Update repeating rule'));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(
           of: find.byType(AlertDialog),
@@ -470,9 +472,34 @@ void main() {
 
       // The option is still listed — a missing one reads as a bug — but it
       // cannot be chosen, and the dialog says why.
-      expect(find.text('This bill'), findsOneWidget);
+      expect(find.text('Only this bill'), findsOneWidget);
       expect(radioFor(tester, RecurringScope.thisOnly).enabled, isFalse);
       expect(find.textContaining('belong to the whole rule'), findsOneWidget);
+    });
+
+    testWidgets('editing the note keeps "Only this bill" available',
+        (tester) async {
+      await pumpForm(tester, mode: RecurringSeriesMode.repeating);
+
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'Rent'), 'October rent');
+      await tester.pumpAndSettle();
+
+      await save(tester);
+
+      expect(radioFor(tester, RecurringScope.thisOnly).enabled, isTrue);
+    });
+
+    testWidgets('toggling auto-post rules out "Only this bill"',
+        (tester) async {
+      await pumpForm(tester, mode: RecurringSeriesMode.repeating);
+
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      await save(tester);
+
+      expect(radioFor(tester, RecurringScope.thisOnly).enabled, isFalse);
     });
 
     testWidgets('with only the amount touched, every reach stays available',
@@ -521,6 +548,15 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
     required String categoryId,
     required String accountId,
     required String description,
+    String? frequency,
+    int? interval,
+    DateTime? endDate,
+    int? countLimit,
+    List<int>? weekdays,
+    bool? autoPost,
+    bool clearEndDate = false,
+    bool clearCountLimit = false,
+    bool clearReminder = false,
     int? reminderMinutes,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');

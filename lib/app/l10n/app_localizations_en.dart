@@ -465,6 +465,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This series already has a bill on that date';
 
   @override
+  String get errorCountLimitTooSmall =>
+      'Total occurrences must be greater than the bills already recorded or skipped';
+
+  @override
   String get editRecurringTitle => 'Edit recurring bill';
 
   @override
@@ -573,14 +577,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteRecurringTitle => 'Delete recurring bill';
 
   @override
-  String get scopeThisOnly => 'This bill';
+  String get scopeThisOnly => 'Only this bill';
 
   @override
   String get saveRecurringTitle => 'Save recurring bill';
 
   @override
   String get scopeThisOnlyUnavailable =>
-      'Category, account, note and reminder belong to the whole rule';
+      'Category, account, repeat, auto-post and reminder belong to the whole rule';
 
   @override
   String get scopeThisAndFollowing => 'This and following bills';
@@ -590,6 +594,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scopeAllHint => 'Bills already recorded are kept';
+
+  @override
+  String get scopeUpdateRule => 'Update repeating rule';
+
+  @override
+  String get scopeUpdateRuleHint =>
+      'Recorded bills are kept; future pending bills follow the updated rule';
+
+  @override
+  String get skipThisBill => 'Skip this bill';
+
+  @override
+  String get skipBillTitle => 'Skip this bill?';
+
+  @override
+  String get skipBillConfirm =>
+      'This bill will not be recorded, while future bills in this repeating rule continue as scheduled.';
+
+  @override
+  String get skipBillAction => 'Skip';
+
+  @override
+  String get billSkipped => 'Bill skipped';
+
+  @override
+  String get stopRepeatingRule => 'Stop repeating';
+
+  @override
+  String get stopRepeatingTitle => 'Stop repeating rule?';
+
+  @override
+  String get stopRepeatingConfirm =>
+      'All pending bills under this rule will be removed. Bills already recorded are kept.';
+
+  @override
+  String get stopRepeatingAction => 'Stop repeating';
+
+  @override
+  String get repeatingStopped => 'Repeating rule stopped';
+
+  @override
+  String get deletePlan => 'Delete plan';
+
+  @override
+  String get deletePlanTitle => 'Delete plan?';
+
+  @override
+  String get deletePlanConfirm =>
+      'This planned bill will be permanently removed.';
 
   @override
   String get billDeleted => 'Bill deleted';
@@ -670,27 +723,6 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get autoPostSettingsTitle => 'Auto-post bills';
-
-  @override
-  String get restoreConfirmationTitle => 'Restore confirmation';
-
-  @override
-  String get restoreConfirmationRisk =>
-      'These bills may have been recorded on another device.';
-
-  @override
-  String restoreConfirmationCount(int count) {
-    return '$count bills';
-  }
-
-  @override
-  String get restoreReject => 'Turn manual';
-
-  @override
-  String get restoreDefer => 'Later';
 
   @override
   String get repeatNever => 'Does not repeat';
@@ -944,4 +976,49 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get linkUnavailableMessage =>
       'Please check that a browser is available and try again.';
+
+  @override
+  String autoPostedCountMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Auto-posted $count subscriptions',
+      one: 'Auto-posted 1 subscription',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get failedBill => 'Auto-post failed';
+
+  @override
+  String get failedBillBanner =>
+      'Automatic posting failed. Check the account or category, then retry or skip.';
+
+  @override
+  String get retryPost => 'Retry post';
+
+  @override
+  String currencyBacklogTitle(String currency) {
+    return 'Due subscriptions in $currency';
+  }
+
+  @override
+  String currencyBacklogMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count auto-posting subscriptions became due while using another currency.',
+      one:
+          '1 auto-posting subscription became due while using another currency.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get currencyBacklogPostAll => 'Post all';
+
+  @override
+  String get currencyBacklogKeepPending => 'Keep as pending';
 }

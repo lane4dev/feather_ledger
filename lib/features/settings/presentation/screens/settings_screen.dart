@@ -21,6 +21,7 @@ import 'package:feather_ledger/core/presentation/providers/theme_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/locale_provider.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_service.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/currency_backlog_dialog.dart';
 import 'package:feather_ledger/features/settings/domain/services/backup_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -341,16 +342,19 @@ class SettingsScreen extends ConsumerWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) => SimpleDialog(
+      builder: (dialogContext) => SimpleDialog(
         title: Text(l10n.currencySymbol),
         children: AppCurrencies.supportedCurrencyCodes.map((currencyCode) {
           return FeatherDialogOption(
             label: AppCurrencies.getName(currencyCode, l10n),
             value: currencyCode,
             groupValue: currentCurrency,
-            onChanged: (value) {
+            onChanged: (value) async {
               ref.read(currencyControllerProvider.notifier).setCurrency(value);
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
+              // A switch back to a currency with accumulated due auto-post
+              // bills asks once how to settle them (spec 006, US49).
+              await showCurrencyBacklogDialog(context, ref, value);
             },
           );
         }).toList(),

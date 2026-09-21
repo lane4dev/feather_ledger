@@ -131,25 +131,6 @@ class FakeAppLocalizations implements AppLocalizations {
   String get transactionModeRepeating => 'Repeating';
 
   @override
-  String get autoPostSettingsTitle => 'Auto-post bills';
-
-  @override
-  String get restoreConfirmationTitle => 'Restore confirmation';
-
-  @override
-  String get restoreConfirmationRisk =>
-      'These bills may have been recorded on another device.';
-
-  @override
-  String restoreConfirmationCount(int count) => '$count bills';
-
-  @override
-  String get restoreReject => 'Turn manual';
-
-  @override
-  String get restoreDefer => 'Later';
-
-  @override
   String get appTitle => 'Accounted For';
 
   @override
@@ -334,6 +315,10 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get errorScheduledDateTaken =>
       'This series already has a bill on that date';
+
+  @override
+  String get errorCountLimitTooSmall =>
+      'Total occurrences must be greater than the bills already recorded or skipped';
 
   @override
   String get editRecurringTitle => 'Edit recurring bill';
@@ -734,14 +719,14 @@ class FakeAppLocalizations implements AppLocalizations {
   String get deleteRecurringTitle => 'Delete recurring bill';
 
   @override
-  String get scopeThisOnly => 'This bill';
+  String get scopeThisOnly => 'Only this bill';
 
   @override
   String get saveRecurringTitle => 'Save recurring bill';
 
   @override
   String get scopeThisOnlyUnavailable =>
-      'Category, account and note belong to the whole rule';
+      'Category, account, repeat, auto-post and reminder belong to the whole rule';
 
   @override
   String get scopeThisAndFollowing => 'This and following bills';
@@ -751,6 +736,55 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get scopeAllHint => 'Bills already recorded are kept';
+
+  @override
+  String get scopeUpdateRule => 'Update repeating rule';
+
+  @override
+  String get scopeUpdateRuleHint =>
+      'Recorded bills are kept; future pending bills follow the updated rule';
+
+  @override
+  String get skipThisBill => 'Skip this bill';
+
+  @override
+  String get skipBillTitle => 'Skip this bill?';
+
+  @override
+  String get skipBillConfirm =>
+      'This bill will not be recorded, while future bills in this repeating rule continue as scheduled.';
+
+  @override
+  String get skipBillAction => 'Skip';
+
+  @override
+  String get billSkipped => 'Bill skipped';
+
+  @override
+  String get stopRepeatingRule => 'Stop repeating';
+
+  @override
+  String get stopRepeatingTitle => 'Stop repeating rule?';
+
+  @override
+  String get stopRepeatingConfirm =>
+      'All pending bills under this rule will be removed. Bills already recorded are kept.';
+
+  @override
+  String get stopRepeatingAction => 'Stop repeating';
+
+  @override
+  String get repeatingStopped => 'Repeating rule stopped';
+
+  @override
+  String get deletePlan => 'Delete plan';
+
+  @override
+  String get deletePlanTitle => 'Delete plan?';
+
+  @override
+  String get deletePlanConfirm =>
+      'This planned bill will be permanently removed.';
 
   @override
   String get billDeleted => 'Bill deleted';
@@ -865,4 +899,34 @@ class FakeAppLocalizations implements AppLocalizations {
       "Balance adjustments will be reversed. Deleting records also reverses transfers on the other account; moving records changes the destination account balance. Scheduled rules follow the selected action.";
   @override
   String get accountConfirmOperation => "Confirm";
+
+  @override
+  String autoPostedCountMessage(int count) => count == 1
+      ? 'Auto-posted 1 subscription'
+      : 'Auto-posted $count subscriptions';
+
+  @override
+  String get failedBill => 'Auto-post failed';
+
+  @override
+  String get failedBillBanner =>
+      'Automatic posting failed. Check the account or category, then retry or skip.';
+
+  @override
+  String get retryPost => 'Retry post';
+
+  @override
+  String currencyBacklogTitle(String currency) =>
+      'Due subscriptions in $currency';
+
+  @override
+  String currencyBacklogMessage(int count) => count == 1
+      ? '1 auto-posting subscription became due while using another currency.'
+      : '$count auto-posting subscriptions became due while using another currency.';
+
+  @override
+  String get currencyBacklogPostAll => 'Post all';
+
+  @override
+  String get currencyBacklogKeepPending => 'Keep as pending';
 }

@@ -16,9 +16,15 @@ import 'ledger_delete_menu.dart';
 import 'recurring_mode_label.dart';
 
 class LedgerReceiptToolbar extends StatelessWidget {
-  const LedgerReceiptToolbar({super.key, this.onEdit, this.onDelete});
+  const LedgerReceiptToolbar({
+    super.key,
+    this.onEdit,
+    this.onDelete,
+    this.overflowActions,
+  });
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final List<LedgerOverflowAction>? overflowActions;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +39,10 @@ class LedgerReceiptToolbar extends StatelessWidget {
           icon: const Icon(LucideIcons.squarePen),
           onPressed: onEdit,
           tooltip: l10n.edit),
-      LedgerDeleteMenu(onDelete: () => onDelete?.call()),
+      LedgerDeleteMenu(
+        onDelete: () => onDelete?.call(),
+        actions: overflowActions,
+      ),
     ]);
   }
 }

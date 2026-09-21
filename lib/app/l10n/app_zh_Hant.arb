@@ -519,6 +519,7 @@
   },
   "errorScheduledAlreadyPosted": "該週期交易已入帳",
   "errorScheduledDateTaken": "這條規則在那天已經有一筆帳單了",
+  "errorCountLimitTooSmall": "總次數必須大於已入帳和已跳過的次數",
   "editRecurringTitle": "編輯週期帳單",
   "nextStep": "下一步",
   "billUpdated": "帳單已更新",
@@ -606,12 +607,27 @@
   "postInstance": "記入",
   "instancePosted": "已記入",
   "deleteRecurringTitle": "刪除週期帳單",
-  "scopeThisOnly": "該項記錄",
+  "scopeThisOnly": "僅編輯本期",
   "saveRecurringTitle": "保存週期帳單",
-  "scopeThisOnlyUnavailable": "分類、帳戶、備註和提醒屬於整條規則",
+  "scopeThisOnlyUnavailable": "分類、帳戶、重複規則、自動入帳和提醒屬於整條規則",
   "scopeThisAndFollowing": "該項記錄和後續記錄",
   "scopeAll": "所有記錄",
   "scopeAllHint": "已經入帳的記錄會保留",
+  "scopeUpdateRule": "修改重複規則",
+  "scopeUpdateRuleHint": "已入帳記錄保留不變；後續待入帳帳單按新規則生成",
+  "skipThisBill": "跳過本期",
+  "skipBillTitle": "跳過本期帳單？",
+  "skipBillConfirm": "本期帳單將標記為已跳過，後續重複規則仍按計畫繼續生成。",
+  "skipBillAction": "跳過",
+  "billSkipped": "已跳過本期帳單",
+  "stopRepeatingRule": "停止重複",
+  "stopRepeatingTitle": "停止重複規則？",
+  "stopRepeatingConfirm": "將刪除該規則下所有未入帳帳單；已入帳的歷史記錄會保留。",
+  "stopRepeatingAction": "停止重複",
+  "repeatingStopped": "已停止重複規則",
+  "deletePlan": "刪除該計畫",
+  "deletePlanTitle": "刪除該計畫？",
+  "deletePlanConfirm": "該計畫帳單將被永久刪除。",
   "billDeleted": "帳單已刪除",
   "frequencyDaily": "天",
   "frequencyWeekly": "週",
@@ -636,32 +652,6 @@
   "transactionModeRepeating": "重複",
   "autoPostWhenDue": "到期自動入帳",
   "overdueBillsAdded": "新補齊了 {count} 筆已到期帳單",
-  "autoPostSettingsTitle": "自動入帳帳單",
-  "restoreConfirmationTitle": "恢復確認",
-  "@restoreConfirmationTitle": {
-    "description": "Section title listing restore batches awaiting confirmation"
-  },
-  "restoreConfirmationRisk": "這些帳單可能已在另一台裝置上記錄。",
-  "@restoreConfirmationRisk": {
-    "description": "Hint that a restored batch's bills may already exist on another device"
-  },
-  "restoreConfirmationCount": "{count} 筆帳單",
-  "@restoreConfirmationCount": {
-    "description": "Number of bills in a pending restore confirmation batch",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "restoreReject": "轉為手動",
-  "@restoreReject": {
-    "description": "Action that turns a restore batch's bills permanently manual"
-  },
-  "restoreDefer": "稍後",
-  "@restoreDefer": {
-    "description": "Action that defers a restore confirmation without posting"
-  },
   "repeatNever": "不重複",
   "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}",
   "addAttachment": "新增附件",
@@ -753,5 +743,13 @@
         "type": "String"
       }
     }
-  }
+  },
+  "autoPostedCountMessage": "已自動記入 {count} 筆訂閱",
+  "failedBill": "自動入帳失敗",
+  "failedBillBanner": "自動入帳失敗，請檢查帳戶或分類後重試記入或跳過本期。",
+  "retryPost": "重試記入",
+  "currencyBacklogTitle": "{currency} 有待處理訂閱",
+  "currencyBacklogMessage": "切換到其他幣種期間，有 {count} 筆開啟自動入帳的訂閱已到期。",
+  "currencyBacklogPostAll": "全部入帳",
+  "currencyBacklogKeepPending": "保留為待入帳"
 }

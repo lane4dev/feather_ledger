@@ -87,6 +87,23 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
           .write(const ScheduledTransactionsViewCompanion(
               manualOnly: Value(true)));
 
+  Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff) =>
+      (update(scheduledTransactionsView)
+            ..where((t) =>
+                t.status.equals('scheduled') &
+                t.manualOnly.equals(false) &
+                coalesce([t.dateOverride, t.scheduledDate])
+                    .isSmallerOrEqualValue(cutoff)))
+          .write(const ScheduledTransactionsViewCompanion(
+              manualOnly: Value(true)));
+
+  Future<int> resetFailedToScheduledForSeries(String seriesId) =>
+      (update(scheduledTransactionsView)
+            ..where((t) =>
+                t.seriesId.equals(seriesId) & t.status.equals('failed')))
+          .write(const ScheduledTransactionsViewCompanion(
+              status: Value('scheduled')));
+
   Future<void> saveSeries(RecurringSeriesCompanion entry) async {
     await db.transaction(() async {
       if (entry.accountId.present) {

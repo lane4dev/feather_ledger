@@ -1,12 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 
@@ -28,7 +28,10 @@ class UpdateRecurringBillCommand {
     DomainClock? clock,
   }) : _clock = clock ?? const SystemClock();
 
-  Future<void> execute({
+  /// Returns `series.id` when `updateRule` changed the schedule/startDate of an
+  /// active `autoPost` repeating rule so the caller can latch `<= now`
+  /// materialized occurrences as `manualOnly = true`.
+  Future<String?> execute({
     required String scheduledId,
     required RecurringScope scope,
     required int amountMinor,
@@ -43,11 +46,20 @@ class UpdateRecurringBillCommand {
     List<int>? weekdays,
     bool? autoPost,
     int? reminderMinutes,
+    bool clearEndDate = false,
+    bool clearCountLimit = false,
+    bool clearReminder = false,
   }) async {
     if (amountMinor <= 0) {
       throw const CommandRejected(
         LedgerErrorCode.invalidAmount,
         'Amount must be positive',
+      );
+    }
+    if (reminderMinutes != null && reminderMinutes <= 0) {
+      throw const CommandRejected(
+        LedgerErrorCode.invalidAmount,
+        'Reminder must be positive',
       );
     }
 
@@ -79,13 +91,28 @@ class UpdateRecurringBillCommand {
       );
     }
 
+    final existingWeekdays =
+        CreateRecurringSeriesCommand.weekdaysFromRrule(series.rrule);
+    final normalizedFrequency = frequency?.toUpperCase();
     final hasRuleChange = categoryId != series.categoryId ||
         accountId != series.accountId ||
         (autoPost != null && autoPost != series.autoPost) ||
-        (frequency != null && frequency != series.frequency) ||
+        (normalizedFrequency != null &&
+            normalizedFrequency != series.frequency) ||
         (interval != null && interval != series.interval) ||
-        (endDate != null && endDate != series.endDate) ||
-        (countLimit != null && countLimit != series.countLimit);
+        (clearEndDate && series.endDate != null) ||
+        (!clearEndDate &&
+            endDate != null &&
+            !_sameMoment(endDate, series.endDate)) ||
+        (clearCountLimit && series.countLimit != null) ||
+        (!clearCountLimit &&
+            countLimit != null &&
+            countLimit != series.countLimit) ||
+        (weekdays != null && !_sameWeekdays(weekdays, existingWeekdays)) ||
+        (clearReminder && series.reminderMinutes != null) ||
+        (!clearReminder &&
+            reminderMinutes != null &&
+            reminderMinutes != series.reminderMinutes);
     if (scope == RecurringScope.thisOnly && hasRuleChange) {
       throw const CommandRejected(
         LedgerErrorCode.invalidTransactionShape,
@@ -100,6 +127,7 @@ class UpdateRecurringBillCommand {
     );
 
     if (scope == RecurringScope.thisOnly) {
+      final clearToAuto = series.autoPost && date.isAfter(_clock.now());
       await _recurringRepository.insertOrUpdateScheduled(
         ScheduledTransactionsViewCompanion(
           id: Value(scheduled.id),
@@ -113,36 +141,83 @@ class UpdateRecurringBillCommand {
           memoOverride: Value(
               description == series.description ? null : description),
           status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
-          manualOnly: Value(scheduled.manualOnly),
+          manualOnly: Value(clearToAuto ? false : scheduled.manualOnly),
           transactionId: Value(scheduled.transactionId),
         ),
       );
-      return;
+      return null;
     }
 
-    final effectiveAutoPost = autoPost ?? series.autoPost;
-    final nextFrequency = frequency ?? series.frequency;
+    final effectiveAutoPost = series.mode == RecurringSeriesMode.planned
+        ? false
+        : (autoPost ?? series.autoPost);
+    final nextFrequency = normalizedFrequency ?? series.frequency;
     final nextInterval = interval ?? series.interval ?? 1;
-    final nextRrule = _buildRrule(
-      frequency: nextFrequency,
-      interval: nextInterval,
-      weekdays: weekdays ?? const [],
-    );
-
-    final currentDate = scheduled.dateOverride ?? scheduled.scheduledDate;
+    final nextWeekdays = nextFrequency == 'WEEKLY'
+        ? (weekdays ?? existingWeekdays)
+        : const <int>[];
     final nextEndDate = series.mode == RecurringSeriesMode.planned
         ? date
-        : (endDate ?? series.endDate);
-    final nextCountLimit = countLimit ?? series.countLimit;
+        : (clearEndDate ? null : (endDate ?? series.endDate));
+    final nextCountLimit = series.mode == RecurringSeriesMode.planned
+        ? null
+        : (clearCountLimit ? null : (countLimit ?? series.countLimit));
+    final nextReminderMinutes =
+        clearReminder ? null : (reminderMinutes ?? series.reminderMinutes);
+
+    if (nextInterval < 1 ||
+        (nextCountLimit != null && nextCountLimit < 1) ||
+        (nextCountLimit != null && nextEndDate != null) ||
+        nextWeekdays.any((d) => d < 1 || d > 7)) {
+      throw const CommandRejected(
+        LedgerErrorCode.invalidAmount,
+        'Invalid recurrence rule',
+      );
+    }
+
+    final currentDate = scheduled.dateOverride ?? scheduled.scheduledDate;
     final scheduleChanged = !date.isAtSameMomentAs(currentDate) ||
         nextFrequency != series.frequency ||
-        nextInterval != series.interval ||
-        nextEndDate != series.endDate ||
-        nextCountLimit != series.countLimit;
+        nextInterval != (series.interval ?? 1) ||
+        !_sameMoment(nextEndDate, series.endDate) ||
+        nextCountLimit != series.countLimit ||
+        !_sameWeekdays(nextWeekdays, existingWeekdays);
 
     final nextStartDate = series.mode == RecurringSeriesMode.planned
         ? date
         : (scheduleChanged ? date : series.startDate);
+
+    if (nextEndDate != null && nextEndDate.isBefore(nextStartDate)) {
+      throw const CommandRejected(
+        LedgerErrorCode.invalidAmount,
+        'Series end date must not be before its start date',
+      );
+    }
+
+    if (series.mode == RecurringSeriesMode.repeating &&
+        nextCountLimit != null) {
+      final rows = await _recurringRepository.scheduledForSeries(series.id);
+      final k = rows
+          .where((row) =>
+              row.status == ScheduledTransactionStatus.posted.toStorage() ||
+              row.status == ScheduledTransactionStatus.skipped.toStorage())
+          .length;
+      if (nextCountLimit < k + 1) {
+        throw CommandRejected(
+          LedgerErrorCode.countLimitTooSmall,
+          'countLimit ($nextCountLimit) must be at least ${k + 1} '
+          '($k recorded/skipped + 1 remaining)',
+        );
+      }
+    }
+
+    final nextRrule = CreateRecurringSeriesCommand.rruleText(
+      frequency: nextFrequency,
+      interval: nextInterval,
+      endDate: nextEndDate,
+      countLimit: nextCountLimit,
+      weekdays: nextWeekdays,
+    );
 
     await _recurringRepository.saveSeries(
       RecurringSeriesCompanion(
@@ -159,7 +234,7 @@ class UpdateRecurringBillCommand {
         accountId: Value(accountId),
         type: Value(series.type),
         autoPost: Value(effectiveAutoPost),
-        reminderMinutes: Value(reminderMinutes),
+        reminderMinutes: Value(nextReminderMinutes),
         mode: Value(series.mode),
         isActive: Value(series.isActive),
       ),
@@ -180,42 +255,32 @@ class UpdateRecurringBillCommand {
           transactionId: Value(scheduled.transactionId),
         ),
       );
-      return;
+      return null;
     }
 
     if (scheduleChanged) {
       await _recurringRepository.deletePendingForSeries(series.id);
-      if (effectiveAutoPost && !date.isAfter(_clock.now())) {
-        await _recurringRepository.insertOrUpdateScheduled(
-          ScheduledTransactionsViewCompanion(
-            id: Value(const Uuid().v4()),
-            seriesId: Value(series.id),
-            occurrenceKey: Value(scheduledOccurrenceKey(date.toUtc())),
-            scheduledDate: Value(date),
-            status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
-            manualOnly: const Value(true),
-          ),
-        );
-      }
-    } else if (!series.autoPost && effectiveAutoPost) {
+      return effectiveAutoPost ? series.id : null;
+    }
+
+    await _recurringRepository.resetFailedToScheduledForSeries(series.id);
+    if (!series.autoPost && effectiveAutoPost) {
       await _recurringRepository.markSeriesManualOnlyBefore(
           series.id, _clock.now());
     }
+    return null;
   }
 
-  String _buildRrule({
-    required String frequency,
-    required int interval,
-    required List<int> weekdays,
-  }) {
-    final buffer = StringBuffer('FREQ=${frequency.toUpperCase()}');
-    if (interval > 1) buffer.write(';INTERVAL=$interval');
-    if (weekdays.isNotEmpty) {
-      const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-      final byDay = weekdays.map((d) => codes[(d - 1).clamp(0, 6)]).join(',');
-      buffer.write(';BYDAY=$byDay');
-    }
-    return buffer.toString();
+  static bool _sameMoment(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.isAtSameMomentAs(b);
+  }
+
+  static bool _sameWeekdays(List<int> a, List<int> b) {
+    final sa = a.toSet();
+    final sb = b.toSet();
+    return sa.length == sb.length && sa.containsAll(sb);
   }
 }
 

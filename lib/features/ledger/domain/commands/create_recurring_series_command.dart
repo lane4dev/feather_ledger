@@ -12,10 +12,9 @@ part 'create_recurring_series_command.g.dart';
 /// Creates a recurring series (spec 004, US2 / FR-006/FR-007).
 ///
 /// `recurring_series` is the CRUD-exempt table: this writes it directly and
-/// emits no event, exactly like [InsertOrUpdateScheduledTransactionCommand].
-/// The kind is [RecurringSeriesKind], so a transfer — which needs a second
-/// account a series does not have — is unrepresentable rather than rejected
-/// (ADR-0002).
+/// emits no event. The kind is [RecurringSeriesKind], so a transfer — which
+/// needs a second account a series does not have — is unrepresentable rather
+/// than rejected (ADR-0002).
 ///
 /// It takes named values rather than a Drift companion so the view model
 /// never imports Drift, and so the account/category red lines still run
@@ -135,6 +134,18 @@ class CreateRecurringSeriesCommand {
           '${utc.day.toString().padLeft(2, '0')}T000000Z');
     }
     return buffer.toString();
+  }
+
+  static List<int> weekdaysFromRrule(String? rrule) {
+    final match =
+        RegExp(r'(?:^|;)BYDAY=([^;]+)').firstMatch(rrule ?? '')?.group(1);
+    if (match == null || match.isEmpty) return const [];
+    const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+    return match
+        .split(',')
+        .map((code) => codes.indexOf(code.trim().toUpperCase()) + 1)
+        .where((day) => day >= 1 && day <= 7)
+        .toList();
   }
 }
 

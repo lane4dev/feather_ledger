@@ -27,6 +27,7 @@ enum LedgerErrorCode {
   transactionAlreadyReversed,
   scheduledAlreadyPosted,
   scheduledDateTaken,
+  countLimitTooSmall,
   systemCategoryProtected,
   unknownEvent,
 }

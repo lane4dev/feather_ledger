@@ -57,6 +57,11 @@ abstract final class RestoreLayout {
   /// recorded in the database on the next launch even if this one dies before
   /// that happens.
   static const restoreBarrierMarker = 'restore_barrier.json';
+
+  /// Lightweight flag written next to the live database on every committed
+  /// restore swap (even if the manifest omitted `exportedAt`) so startup runs
+  /// `markPreRestoreManualOnly()` once before clearing it.
+  static const restoreAppliedMarker = 'restore_applied';
 }
 
 /// Whether a validated restore is waiting to be applied.
@@ -124,13 +129,14 @@ Future<Map<String, Object?>?> applyPendingRestore(Directory supportDir) async {
     rethrow;
   }
 
-  // 4. Committed. Write the restore barrier (if the manifest carries an
-  //    exported-at instant) BEFORE clearing staging — a crash between now and
-  //    the barrier landing in the database must not lose the window.
+  // 4. Committed. Write the restore markers BEFORE clearing staging — a crash
+  //    between now and the watermark landing in the database must not lose
+  //    pre-restore protection.
   final backupExportedAt = _readStagedExportedAt(staging);
   if (backupExportedAt != null) {
     await _writeRestoreBarrier(supportDir, backupExportedAt);
   }
+  await _writeRestoreApplied(supportDir);
 
   // 5. Clear the staging area, marker included — a stale marker would
   //    re-apply a backup the user has already moved past.
@@ -214,6 +220,29 @@ DateTime? readRestoreBarrier(Directory supportDir) {
 /// Removes the barrier marker after it has been recorded in the database.
 Future<void> clearRestoreBarrier(Directory supportDir) async {
   final file = File(p.join(supportDir.path, RestoreLayout.restoreBarrierMarker));
+  if (file.existsSync()) {
+    await file.delete();
+  }
+}
+
+Future<void> _writeRestoreApplied(Directory supportDir) async {
+  final target =
+      File(p.join(supportDir.path, RestoreLayout.restoreAppliedMarker));
+  final temp = File('${target.path}.tmp');
+  await temp.writeAsString('');
+  await temp.rename(target.path);
+}
+
+/// Whether a backup restore was committed and still awaits startup
+/// pre-restore manual-only watermarking.
+bool hasRestoreApplied(Directory supportDir) =>
+    File(p.join(supportDir.path, RestoreLayout.restoreAppliedMarker))
+        .existsSync();
+
+/// Removes the applied-restore marker once watermarking has completed.
+Future<void> clearRestoreApplied(Directory supportDir) async {
+  final file =
+      File(p.join(supportDir.path, RestoreLayout.restoreAppliedMarker));
   if (file.existsSync()) {
     await file.delete();
   }

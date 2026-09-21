@@ -22,12 +22,16 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option
 import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../domain/commands/create_recurring_series_command.dart';
 import '../../domain/entities/ledger_entities.dart';
+import '../models/custom_recurrence.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../models/transaction_date_label.dart';
+import '../widgets/custom_recurrence_dialog.dart';
 import '../widgets/ledger_note_field.dart';
 import '../theme/ledger_theme.dart';
 import '../view_model/recurring_view_model.dart';
+import '../view_model/transaction_form_view_state.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
 import '../widgets/ledger_selection_sheet.dart';
@@ -69,25 +73,49 @@ class _RecurringBillFormScreenState
   String? _accountId;
   late final TextEditingController _note;
   int? _reminderMinutes;
+  late bool _autoPost;
+  late String _frequency;
+  late int _interval;
+  late List<int> _weekdays;
+  DateTime? _endDate;
+  int? _countLimit;
+  late final List<int> _initialWeekdays;
 
   /// Whether the user changed something only the series can hold. If they
   /// did, "only this bill" stops being an answer this edit can have.
-  bool get _changedSeriesFields =>
-      _categoryId != widget.transaction.category!.id ||
-      _accountId != widget.transaction.account.id ||
-      _note.text.trim() != (widget.transaction.note ?? '').trim() ||
-      _reminderMinutes != widget.transaction.series?.reminderMinutes;
+  bool get _changedSeriesFields {
+    final series = widget.transaction.series;
+    return _categoryId != widget.transaction.category!.id ||
+        _accountId != widget.transaction.account.id ||
+        _reminderMinutes != series?.reminderMinutes ||
+        (series != null &&
+            (_autoPost != series.autoPost ||
+                _frequency != series.frequency ||
+                _interval != (series.interval ?? 1) ||
+                !_sameMoment(_endDate, series.endDate) ||
+                _countLimit != series.limit ||
+                !_sameWeekdays(_weekdays, _initialWeekdays)));
+  }
 
   @override
   void initState() {
     super.initState();
     final bill = widget.transaction;
+    final series = bill.series;
     _amount = TextEditingController(text: formatMinor(bill.amount));
     _date = bill.date;
     _categoryId = bill.category!.id;
     _accountId = bill.account.id;
     _note = TextEditingController(text: bill.note ?? '');
-    _reminderMinutes = bill.series?.reminderMinutes;
+    _reminderMinutes = series?.reminderMinutes;
+    _autoPost = series?.autoPost ?? false;
+    _frequency = series?.frequency ?? 'MONTHLY';
+    _interval = series?.interval ?? 1;
+    _initialWeekdays =
+        CreateRecurringSeriesCommand.weekdaysFromRrule(series?.rrule);
+    _weekdays = List<int>.of(_initialWeekdays);
+    _endDate = series?.endDate;
+    _countLimit = series?.limit;
   }
 
   @override
@@ -148,6 +176,13 @@ class _RecurringBillFormScreenState
               _inset(const FeatherDivider()),
               SizedBox(height: context.spacing.sm),
               _dateRow(l10n, labelWidth),
+              if (widget.transaction.series?.mode ==
+                  RecurringSeriesMode.repeating) ...[
+                SizedBox(height: context.spacing.sm),
+                _repeatRow(l10n, labelWidth),
+                SizedBox(height: context.spacing.sm),
+                _autoPostRow(l10n, labelWidth),
+              ],
               if (widget.transaction.series != null) ...[
                 SizedBox(height: context.spacing.sm),
                 LedgerFormRow(
@@ -387,13 +422,138 @@ class _RecurringBillFormScreenState
     setState(() => _reminderMinutes = minutes == 0 ? null : minutes);
   }
 
+  bool get _isCustomRecurrence =>
+      _interval > 1 ||
+      _weekdays.isNotEmpty ||
+      _endDate != null ||
+      _countLimit != null;
+
+  Widget _repeatRow(AppLocalizations l10n, double labelWidth) => LedgerFormRow(
+        icon: LucideIcons.repeat,
+        onTap: _pickRepeat,
+        child: LedgerSelectorField(
+          label: l10n.repeat,
+          labelWidth: labelWidth,
+          text: _isCustomRecurrence
+              ? l10n.customRepeat
+              : _frequencyLabel(l10n, _frequency),
+        ),
+      );
+
+  Widget _autoPostRow(AppLocalizations l10n, double labelWidth) =>
+      LedgerFormRow(
+        icon: LucideIcons.refreshCw,
+        onTap: () => setState(() => _autoPost = !_autoPost),
+        child: Row(
+          children: [
+            SizedBox(
+              width: labelWidth,
+              child: Text(
+                l10n.autoPostWhenDue,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Switch.adaptive(
+                  value: _autoPost,
+                  onChanged: (value) => setState(() => _autoPost = value),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _pickRepeat() async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = _isCustomRecurrence ? 'CUSTOM' : _frequency;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.repeat),
+        children: [
+          for (final option in [
+            ...TransactionFormViewState.repeatFrequencies,
+            'CUSTOM',
+          ])
+            FeatherDialogOption<String>(
+              label: option == 'CUSTOM'
+                  ? l10n.customRepeat
+                  : _frequencyLabel(l10n, option),
+              value: option,
+              groupValue: current,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+        ],
+      ),
+    );
+    if (!mounted || result == null) return;
+    if (result != 'CUSTOM') {
+      setState(() {
+        _frequency = result;
+        _interval = 1;
+        _weekdays = const [];
+        _endDate = null;
+        _countLimit = null;
+      });
+      return;
+    }
+    final selected = await showDialog<CustomRecurrence>(
+      context: context,
+      builder: (_) => CustomRecurrenceDialog(
+        initial: CustomRecurrence(
+          frequency: _frequency,
+          interval: _interval,
+          startDate: _date,
+          weekdays: _weekdays.isEmpty ? [_date.weekday] : _weekdays,
+          endDate: _endDate,
+          countLimit: _countLimit,
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _frequency = selected.frequency;
+      _interval = selected.interval;
+      _weekdays = List<int>.of(selected.weekdays);
+      _endDate = selected.endDate;
+      _countLimit = selected.countLimit;
+      _date = selected.startDate;
+    });
+  }
+
+  static String _frequencyLabel(AppLocalizations l10n, String frequency) =>
+      switch (frequency) {
+        'DAILY' => l10n.frequencyDaily,
+        'WEEKLY' => l10n.frequencyWeekly,
+        'YEARLY' => l10n.frequencyYearly,
+        _ => l10n.frequencyMonthly,
+      };
+
+  static bool _sameMoment(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.isAtSameMomentAs(b);
+  }
+
+  static bool _sameWeekdays(List<int> a, List<int> b) {
+    final sa = a.toSet();
+    final sb = b.toSet();
+    return sa.length == sb.length && sa.containsAll(sb);
+  }
+
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context)!;
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final series = widget.transaction.series;
     // A one-shot plan has only one occurrence, so its whole series is the
-    // entry being edited. Repeating series still ask how far the edit reaches.
-    final scope = widget.transaction.series?.mode == RecurringSeriesMode.planned
+    // entry being edited. Repeating series ask how far the edit reaches.
+    final scope = series?.mode == RecurringSeriesMode.planned
         ? RecurringScope.updateRule
         : await showDialog<RecurringScope>(
             context: context,
@@ -408,6 +568,8 @@ class _RecurringBillFormScreenState
           );
     if (scope == null || !mounted) return;
 
+    final isRepeatingUpdate = scope == RecurringScope.updateRule &&
+        series?.mode == RecurringSeriesMode.repeating;
     final result =
         await ref.read(recurringViewModelProvider.notifier).updateBill(
               widget.transaction.id,
@@ -416,10 +578,24 @@ class _RecurringBillFormScreenState
               date: _date,
               categoryId: _categoryId ?? widget.transaction.category!.id,
               accountId: _accountId ?? widget.transaction.account.id,
-              description: _note.text.trim().isEmpty
-                  ? widget.transaction.category!.name
-                  : _note.text.trim(),
-              reminderMinutes: _reminderMinutes,
+              description: _note.text.trim(),
+              frequency: isRepeatingUpdate ? _frequency : null,
+              interval: isRepeatingUpdate ? _interval : null,
+              weekdays: isRepeatingUpdate ? _weekdays : null,
+              endDate: isRepeatingUpdate ? _endDate : null,
+              countLimit: isRepeatingUpdate ? _countLimit : null,
+              clearEndDate: isRepeatingUpdate &&
+                  _endDate == null &&
+                  series?.endDate != null,
+              clearCountLimit: isRepeatingUpdate &&
+                  _countLimit == null &&
+                  series?.limit != null,
+              autoPost: isRepeatingUpdate ? _autoPost : null,
+              reminderMinutes:
+                  scope == RecurringScope.updateRule ? _reminderMinutes : null,
+              clearReminder: scope == RecurringScope.updateRule &&
+                  _reminderMinutes == null &&
+                  series?.reminderMinutes != null,
             );
 
     if (!mounted) return;

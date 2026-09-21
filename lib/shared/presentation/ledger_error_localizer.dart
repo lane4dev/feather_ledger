@@ -36,6 +36,7 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
         LedgerErrorCode.scheduledAlreadyPosted =>
           l10n.errorScheduledAlreadyPosted,
         LedgerErrorCode.scheduledDateTaken => l10n.errorScheduledDateTaken,
+        LedgerErrorCode.countLimitTooSmall => l10n.errorCountLimitTooSmall,
         LedgerErrorCode.unknownEvent => l10n.errorUnknownEvent,
       };
 }

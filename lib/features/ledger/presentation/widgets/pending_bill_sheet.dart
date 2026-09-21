@@ -6,24 +6,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import '../../domain/entities/ledger_entities.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../view_model/recurring_view_model.dart';
+import 'ledger_delete_menu.dart';
 import 'ledger_receipt_content.dart';
-import 'recurring_scope_dialog.dart';
 
 /// What you can do with an upcoming recurring bill (spec 004, US2).
 ///
 /// Deliberately not the transaction detail sheet: a pending bill has no event
-/// stream to show. What it can do is be recorded, edited, or deleted —
-/// recording is the bottom button, and the other two sit where a recorded
-/// transaction's sheet puts them, the pencil and the overflow menu.
+/// stream to show. What it can do is be recorded, edited, or skipped/stopped
+/// (or deleted for a one-off plan) — recording is the bottom button, and the
+/// rest sit where a recorded transaction's sheet puts them: the pencil and
+/// the overflow menu.
 class PendingBillSheet extends ConsumerWidget {
   const PendingBillSheet({
     super.key,
@@ -39,10 +42,33 @@ class PendingBillSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final currency = currencySymbol ??
         AppCurrencies.getSymbol(transaction.account.currencyCode);
+    final isPlanned = transaction.series?.mode == RecurringSeriesMode.planned;
+
     return AppReceiptSheet(
       toolbar: LedgerReceiptToolbar(
         onEdit: () => _edit(context),
-        onDelete: () => _delete(context, ref, l10n),
+        overflowActions: isPlanned
+            ? [
+                LedgerOverflowAction(
+                  label: l10n.deletePlan,
+                  icon: LucideIcons.trash2,
+                  destructive: true,
+                  onSelected: () => _deletePlan(context, ref, l10n),
+                ),
+              ]
+            : [
+                LedgerOverflowAction(
+                  label: l10n.skipThisBill,
+                  icon: LucideIcons.skipForward,
+                  onSelected: () => _skipBill(context, ref, l10n),
+                ),
+                LedgerOverflowAction(
+                  label: l10n.stopRepeatingRule,
+                  icon: LucideIcons.circleOff,
+                  destructive: true,
+                  onSelected: () => _stopRepeating(context, ref, l10n),
+                ),
+              ],
       ),
       footer: AppBottomActionBar(
           child: AppButton(
@@ -92,29 +118,106 @@ class PendingBillSheet extends ConsumerWidget {
     );
   }
 
-  /// Deleting asks how far it reaches first: the same gesture means "not this
-  /// month" or "never again", and the difference is not recoverable.
-  Future<void> _delete(
+  Future<void> _skipBill(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    final scope = await showDialog<RecurringScope>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => RecurringScopeDialog(
-        title: l10n.deleteRecurringTitle,
-        confirmLabel: l10n.delete,
-        destructive: true,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.skipBillTitle),
+        content: Text(l10n.skipBillConfirm),
+        actions: [
+          AppButton.text(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          AppButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.skipBillAction),
+          ),
+        ],
       ),
     );
-    if (scope == null || !context.mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     await _run(
       context,
       l10n,
       () => ref
           .read(recurringViewModelProvider.notifier)
-          .deleteBill(transaction.id, scope: scope),
+          .deleteBill(transaction.id, scope: RecurringScope.thisOnly),
+      success: l10n.billSkipped,
+    );
+  }
+
+  Future<void> _stopRepeating(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.stopRepeatingTitle),
+        content: Text(l10n.stopRepeatingConfirm),
+        actions: [
+          AppButton.text(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          AppButton(
+            destructive: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.stopRepeatingAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await _run(
+      context,
+      l10n,
+      () => ref
+          .read(recurringViewModelProvider.notifier)
+          .deleteBill(transaction.id, scope: RecurringScope.updateRule),
+      success: l10n.repeatingStopped,
+    );
+  }
+
+  Future<void> _deletePlan(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deletePlanTitle),
+        content: Text(l10n.deletePlanConfirm),
+        actions: [
+          AppButton.text(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          AppButton(
+            destructive: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await _run(
+      context,
+      l10n,
+      () => ref
+          .read(recurringViewModelProvider.notifier)
+          .deleteBill(transaction.id, scope: RecurringScope.updateRule),
       success: l10n.billDeleted,
     );
   }

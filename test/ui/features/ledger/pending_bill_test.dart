@@ -40,7 +40,10 @@ void main() {
     type: CategoryType.expense,
   );
 
-  TransactionTileUiModel tile({required bool isPending}) =>
+  TransactionTileUiModel tile({
+    required bool isPending,
+    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+  }) =>
       TransactionTileUiModel(
         id: isPending ? 'sched_1' : 'tx_1',
         amount: 500000,
@@ -53,6 +56,20 @@ void main() {
         displaySign: '-',
         isPending: isPending,
         seriesId: isPending ? 'series_1' : null,
+        series: isPending
+            ? RecurringTransactionSeriesEntity(
+                id: 'series_1',
+                description: 'Rent',
+                amountMinor: 500000,
+                type: RecurringSeriesKind.expense,
+                categoryId: rent.id,
+                accountId: cash.id,
+                frequency: 'MONTHLY',
+                startDate: DateTime(2026, 11, 1, 14, 35),
+                autoPost: false,
+                mode: mode,
+              )
+            : null,
       );
 
   Widget wrap(Widget child) => MaterialApp(
@@ -103,11 +120,16 @@ void main() {
 
     setUp(() => viewModel = _RecordingRecurringViewModel());
 
-    Future<void> pumpSheet(WidgetTester tester) async {
+    Future<void> pumpSheet(
+      WidgetTester tester, {
+      RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+    }) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [recurringViewModelProvider.overrideWith(() => viewModel)],
-          child: wrap(PendingBillSheet(transaction: tile(isPending: true))),
+          child: wrap(
+            PendingBillSheet(transaction: tile(isPending: true, mode: mode)),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -118,12 +140,10 @@ void main() {
       expect(find.textContaining('14:35'), findsOneWidget);
     });
 
-    /// Delete lives in the top-right overflow menu, so reaching the scope
-    /// dialog is two taps: the menu, then the item.
-    Future<void> openDeleteDialog(WidgetTester tester) async {
+    Future<void> openMenuItem(WidgetTester tester, String itemText) async {
       await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(itemText));
       await tester.pumpAndSettle();
     }
 
@@ -155,51 +175,72 @@ void main() {
       expect(viewModel.posted, isEmpty);
     });
 
-    testWidgets('deleting offers both scopes, narrowest first',
+    testWidgets('repeating overflow offers Skip and Stop without scope dialog',
         (tester) async {
-      await pumpSheet(tester);
+      await pumpSheet(tester, mode: RecurringSeriesMode.repeating);
 
-      await openDeleteDialog(tester);
+      await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+      await tester.pumpAndSettle();
 
-      // The title carries the verb; the options only name the reach, because
-      // the same labels serve editing.
-      expect(find.text('Delete recurring bill'), findsOneWidget);
-      expect(find.text('This bill'), findsOneWidget);
-      expect(find.text('All bills'), findsOneWidget);
-      expect(find.text('Bills already recorded are kept'), findsOneWidget,
-          reason: 'the widest scope is the one that needs reassuring');
-      expect(viewModel.deleted, isEmpty,
-          reason: 'nothing happens until the dialog is confirmed');
+      expect(find.text('Skip this bill'), findsOneWidget);
+      expect(find.text('Stop repeating'), findsOneWidget);
+      expect(find.text('Delete plan'), findsNothing);
     });
 
-    testWidgets('deleting applies the chosen scope', (tester) async {
-      await pumpSheet(tester);
+    testWidgets('skipping a repeating bill confirms then calls thisOnly',
+        (tester) async {
+      await pumpSheet(tester, mode: RecurringSeriesMode.repeating);
 
-      await openDeleteDialog(tester);
-      await tester.tap(find.text('All bills'));
+      await openMenuItem(tester, 'Skip this bill');
+      expect(find.text('Skip this bill?'), findsOneWidget);
+      expect(viewModel.deleted, isEmpty);
+
+      await tester.tap(find.widgetWithText(AppButton, 'Skip'));
       await tester.pumpAndSettle();
+
+      expect(viewModel.deleted, [('sched_1', RecurringScope.thisOnly)]);
+    });
+
+    testWidgets('stopping a repeating rule confirms then calls updateRule',
+        (tester) async {
+      await pumpSheet(tester, mode: RecurringSeriesMode.repeating);
+
+      await openMenuItem(tester, 'Stop repeating');
+      expect(find.text('Stop repeating rule?'), findsOneWidget);
+      expect(viewModel.deleted, isEmpty);
+
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Stop repeating')));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.deleted, [('sched_1', RecurringScope.updateRule)]);
+    });
+
+    testWidgets('planned bill overflow only offers Delete plan',
+        (tester) async {
+      await pumpSheet(tester, mode: RecurringSeriesMode.planned);
+
+      await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete plan'), findsOneWidget);
+      expect(find.text('Skip this bill'), findsNothing);
+      expect(find.text('Stop repeating'), findsNothing);
+
+      await tester.tap(find.text('Delete plan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete plan?'), findsOneWidget);
       await tester.tap(find.widgetWithText(AppButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(viewModel.deleted, [('sched_1', RecurringScope.updateRule)]);
     });
 
-    testWidgets('the narrowest scope is the one preselected', (tester) async {
-      await pumpSheet(tester);
-
-      await openDeleteDialog(tester);
-      // Confirm without touching the radios: it must not take more than the
-      // bill that was opened.
-      await tester.tap(find.widgetWithText(AppButton, 'Delete'));
-      await tester.pumpAndSettle();
-
-      expect(viewModel.deleted, [('sched_1', RecurringScope.thisOnly)]);
-    });
-
     testWidgets('cancelling the dialog deletes nothing', (tester) async {
       await pumpSheet(tester);
 
-      await openDeleteDialog(tester);
+      await openMenuItem(tester, 'Skip this bill');
       await tester.tap(find.widgetWithText(AppButton, 'Cancel'));
       await tester.pumpAndSettle();
 
@@ -212,8 +253,8 @@ void main() {
       viewModel.failure = LedgerErrorCode.scheduledAlreadyPosted;
       await pumpSheet(tester);
 
-      await openDeleteDialog(tester);
-      await tester.tap(find.widgetWithText(AppButton, 'Delete'));
+      await openMenuItem(tester, 'Skip this bill');
+      await tester.tap(find.widgetWithText(AppButton, 'Skip'));
       await tester.pumpAndSettle();
 
       expect(find.text('This scheduled transaction was already posted'),

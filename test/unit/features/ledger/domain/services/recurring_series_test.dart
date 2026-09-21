@@ -831,6 +831,162 @@ void main() {
     expect(pending.single.amountMinor, 60000);
   });
 
+  test('thisOnly supports sparse memo override including explicit empty memo',
+      () async {
+    await seed();
+    await createMonthly();
+    final instance = await firstScheduled();
+
+    final explicitEmpty = await harness.recurringService.updateBill(
+      instance.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: instance.amountMinor,
+      date: instance.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: '',
+    );
+    expect(explicitEmpty, isA<Success<void>>());
+    final emptyRow = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(emptyRow!.memoOverride, '');
+    final emptyEntity =
+        (await scheduled()).firstWhere((s) => s.id == instance.id);
+    expect(emptyEntity.effectiveMemo, '');
+
+    final inherited = await harness.recurringService.updateBill(
+      instance.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: instance.amountMinor,
+      date: instance.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Rent',
+    );
+    expect(inherited, isA<Success<void>>());
+    final inheritedRow = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(inheritedRow!.memoOverride, isNull);
+    final inheritedEntity =
+        (await scheduled()).firstWhere((s) => s.id == instance.id);
+    expect(inheritedEntity.effectiveMemo, 'Rent');
+  });
+
+  test('thisOnly allows moving an occurrence onto an already occupied date',
+      () async {
+    await seed();
+    await createMonthly();
+    final pending = (await scheduled())
+        .where((s) => s.status == ScheduledTransactionStatus.scheduled)
+        .toList();
+    final first = pending[0];
+    final second = pending[1];
+
+    final result = await editBill(
+      first,
+      scope: RecurringScope.thisOnly,
+      date: second.date,
+    );
+    expect(result, isA<Success<void>>());
+
+    final after = (await scheduled())
+        .where((s) => s.date == second.date)
+        .toList();
+    expect(after.map((s) => s.id), containsAll([first.id, second.id]));
+  });
+
+  test('updateRule enforces countLimit >= K + 1 where K = posted + skipped',
+      () async {
+    await seed();
+    final start = DateTime.now().add(const Duration(days: 1));
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 50000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+      countLimit: 5,
+    );
+    final items = await scheduled()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    await harness.recurringService.postInstance(items[0].id);
+    await harness.recurringService
+        .deleteBill(items[1].id, scope: RecurringScope.thisOnly);
+
+    final tooSmall = await harness.recurringService.updateBill(
+      items[2].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 50000,
+      date: items[2].date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 2,
+    );
+    expect(
+      tooSmall,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.countLimitTooSmall),
+    );
+
+    final valid = await harness.recurringService.updateBill(
+      items[2].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 50000,
+      date: items[2].date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 3,
+    );
+    expect(valid, isA<Success<void>>());
+  });
+
+  test('updateRule without schedule change preserves existing thisOnly overrides',
+      () async {
+    await seed();
+    await createMonthly();
+    final items = await scheduled()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final first = items[0];
+    final second = items[1];
+
+    await harness.recurringService.updateBill(
+      first.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: 77777,
+      date: first.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Custom memo',
+    );
+
+    final result = await harness.recurringService.updateBill(
+      second.id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 60000,
+      date: second.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Updated Rent',
+    );
+    expect(result, isA<Success<void>>());
+
+    final afterFirst =
+        (await scheduled()).firstWhere((s) => s.id == first.id);
+    final afterSecond =
+        (await scheduled()).firstWhere((s) => s.id == second.id);
+    expect(afterFirst.amountMinor, 77777);
+    expect(afterFirst.effectiveMemo, 'Custom memo');
+    expect(afterSecond.amountMinor, 60000);
+    expect(afterSecond.effectiveMemo, 'Updated Rent');
+  });
+
   test('editing rule-only fields under thisOnly is refused', () async {
     await seed();
     await createMonthly();
@@ -970,6 +1126,65 @@ void main() {
       mode: RecurringSeriesMode.repeating,
     );
   }
+
+  test('thisOnly clears manualOnly when moving a past autoPost bill to future',
+      () async {
+    await seed();
+    await createAutoPostingSeries();
+    final due = (await scheduled()).firstWhere(
+      (s) => !s.date.isAfter(DateTime.now()),
+    );
+    expect(due.manualOnly, isTrue);
+
+    final future = DateTime.now().add(const Duration(days: 30));
+    final result = await harness.recurringService.updateBill(
+      due.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: due.amountMinor,
+      date: future,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Subscription',
+    );
+    expect(result, isA<Success<void>>());
+
+    final updated = await harness.db.recurringDao.getScheduled(due.id);
+    expect(updated!.manualOnly, isFalse);
+  });
+
+  test('thisOnly resets a failed bill back to scheduled', () async {
+    await seed();
+    await createAutoPostingSeries();
+    final instance = await firstScheduled();
+    await harness.db.recurringDao.insertOrUpdateScheduled(
+      ScheduledTransactionsViewCompanion(
+        id: Value(instance.id),
+        seriesId: Value(instance.seriesId),
+        occurrenceKey: Value(instance.occurrenceKey),
+        scheduledDate: Value(instance.scheduledDate),
+        amountOverrideMinor: Value(instance.amountOverrideMinor),
+        dateOverride: Value(instance.dateOverride),
+        memoOverride: Value(instance.memoOverride),
+        status: const Value('failed'),
+        manualOnly: Value(instance.manualOnly),
+        transactionId: Value(instance.transactionId),
+      ),
+    );
+
+    final result = await harness.recurringService.updateBill(
+      instance.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: 25000,
+      date: instance.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Subscription',
+    );
+    expect(result, isA<Success<void>>());
+
+    final updated = await harness.db.recurringDao.getScheduled(instance.id);
+    expect(updated!.status, 'scheduled');
+  });
 
   test('catch-up posts the due instances of an auto-posting series, once',
       () async {

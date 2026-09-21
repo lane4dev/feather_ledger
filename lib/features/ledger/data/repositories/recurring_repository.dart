@@ -150,6 +150,14 @@ class RecurringRepositoryImpl implements RecurringRepository {
       _recurringDao.markSeriesManualOnlyBefore(seriesId, cutoff);
 
   @override
+  Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff) =>
+      _recurringDao.markAllScheduledManualOnlyBefore(cutoff);
+
+  @override
+  Future<int> resetFailedToScheduledForSeries(String seriesId) =>
+      _recurringDao.resetFailedToScheduledForSeries(seriesId);
+
+  @override
   Future<List<RecurringSeriesRow>> getAllRecurringSeries() {
     return _recurringDao.getAllSeries();
   }

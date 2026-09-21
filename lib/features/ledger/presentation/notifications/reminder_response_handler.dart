@@ -203,15 +203,10 @@ class _ReminderResponseHandlerState
   Future<void> _showRecorded(
       ScheduledTransactionEntity bill, BuildContext navContext) async {
     final service = ref.read(ledgerServiceProvider);
-    // The event-backed source-bill link names the latest correction (US47),
-    // not the reversed original in `transaction_id`; fall back to that id for
-    // pre-model rows that carry no source bill.
-    var transaction = await service.getTransactionBySourceBill(bill.id);
-    if (transaction == null && bill.transactionId != null) {
-      final items = await service.watchTransactions(bill.date).first;
-      transaction =
-          items.where((item) => item.id == bill.transactionId).firstOrNull;
-    }
+    // The event-backed source-bill link names the latest correction (US47);
+    // a posted bill resolves through it alone — the old redirect chain's
+    // `transaction_id` fallback is gone with the table.
+    final transaction = await service.getTransactionBySourceBill(bill.id);
     if (!mounted || !navContext.mounted) return;
     if (transaction == null) {
       final l10n = AppLocalizations.of(navContext)!;

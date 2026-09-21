@@ -976,6 +976,12 @@ abstract class AppLocalizations {
   /// **'This series already has a bill on that date'**
   String get errorScheduledDateTaken;
 
+  /// No description provided for @errorCountLimitTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Total occurrences must be greater than the bills already recorded or skipped'**
+  String get errorCountLimitTooSmall;
+
   /// No description provided for @editRecurringTitle.
   ///
   /// In en, this message translates to:
@@ -1184,7 +1190,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeThisOnly.
   ///
   /// In en, this message translates to:
-  /// **'This bill'**
+  /// **'Only this bill'**
   String get scopeThisOnly;
 
   /// No description provided for @saveRecurringTitle.
@@ -1196,7 +1202,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeThisOnlyUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Category, account, note and reminder belong to the whole rule'**
+  /// **'Category, account, repeat, auto-post and reminder belong to the whole rule'**
   String get scopeThisOnlyUnavailable;
 
   /// No description provided for @scopeThisAndFollowing.
@@ -1216,6 +1222,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bills already recorded are kept'**
   String get scopeAllHint;
+
+  /// No description provided for @scopeUpdateRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Update repeating rule'**
+  String get scopeUpdateRule;
+
+  /// No description provided for @scopeUpdateRuleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded bills are kept; future pending bills follow the updated rule'**
+  String get scopeUpdateRuleHint;
+
+  /// No description provided for @skipThisBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this bill'**
+  String get skipThisBill;
+
+  /// No description provided for @skipBillTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this bill?'**
+  String get skipBillTitle;
+
+  /// No description provided for @skipBillConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This bill will not be recorded, while future bills in this repeating rule continue as scheduled.'**
+  String get skipBillConfirm;
+
+  /// No description provided for @skipBillAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skipBillAction;
+
+  /// No description provided for @billSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill skipped'**
+  String get billSkipped;
+
+  /// No description provided for @stopRepeatingRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop repeating'**
+  String get stopRepeatingRule;
+
+  /// No description provided for @stopRepeatingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop repeating rule?'**
+  String get stopRepeatingTitle;
+
+  /// No description provided for @stopRepeatingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'All pending bills under this rule will be removed. Bills already recorded are kept.'**
+  String get stopRepeatingConfirm;
+
+  /// No description provided for @stopRepeatingAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop repeating'**
+  String get stopRepeatingAction;
+
+  /// No description provided for @repeatingStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating rule stopped'**
+  String get repeatingStopped;
+
+  /// No description provided for @deletePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete plan'**
+  String get deletePlan;
+
+  /// No description provided for @deletePlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete plan?'**
+  String get deletePlanTitle;
+
+  /// No description provided for @deletePlanConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This planned bill will be permanently removed.'**
+  String get deletePlanConfirm;
 
   /// No description provided for @billDeleted.
   ///
@@ -1360,42 +1456,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Added 1 overdue bill to review} other{Added {count} overdue bills to review}}'**
   String overdueBillsAdded(int count);
-
-  /// Section title for the three per-kind auto-post switches
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-post bills'**
-  String get autoPostSettingsTitle;
-
-  /// Section title listing restore batches awaiting confirmation
-  ///
-  /// In en, this message translates to:
-  /// **'Restore confirmation'**
-  String get restoreConfirmationTitle;
-
-  /// Hint that a restored batch's bills may already exist on another device
-  ///
-  /// In en, this message translates to:
-  /// **'These bills may have been recorded on another device.'**
-  String get restoreConfirmationRisk;
-
-  /// Number of bills in a pending restore confirmation batch
-  ///
-  /// In en, this message translates to:
-  /// **'{count} bills'**
-  String restoreConfirmationCount(int count);
-
-  /// Action that turns a restore batch's bills permanently manual
-  ///
-  /// In en, this message translates to:
-  /// **'Turn manual'**
-  String get restoreReject;
-
-  /// Action that defers a restore confirmation without posting
-  ///
-  /// In en, this message translates to:
-  /// **'Later'**
-  String get restoreDefer;
 
   /// No description provided for @repeatNever.
   ///
@@ -1858,6 +1918,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please check that a browser is available and try again.'**
   String get linkUnavailableMessage;
+
+  /// No description provided for @autoPostedCountMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Auto-posted 1 subscription} other{Auto-posted {count} subscriptions}}'**
+  String autoPostedCountMessage(int count);
+
+  /// No description provided for @failedBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-post failed'**
+  String get failedBill;
+
+  /// No description provided for @failedBillBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic posting failed. Check the account or category, then retry or skip.'**
+  String get failedBillBanner;
+
+  /// No description provided for @retryPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry post'**
+  String get retryPost;
+
+  /// No description provided for @currencyBacklogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Due subscriptions in {currency}'**
+  String currencyBacklogTitle(String currency);
+
+  /// No description provided for @currencyBacklogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 auto-posting subscription became due while using another currency.} other{{count} auto-posting subscriptions became due while using another currency.}}'**
+  String currencyBacklogMessage(int count);
+
+  /// No description provided for @currencyBacklogPostAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Post all'**
+  String get currencyBacklogPostAll;
+
+  /// No description provided for @currencyBacklogKeepPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep as pending'**
+  String get currencyBacklogKeepPending;
 }
 
 class _AppLocalizationsDelegate

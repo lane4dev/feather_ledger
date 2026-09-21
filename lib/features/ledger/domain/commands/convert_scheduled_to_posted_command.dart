@@ -147,7 +147,8 @@ class ConvertScheduledToPostedCommand {
       throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
           'Scheduled instance already posted');
     }
-    if (value != ScheduledTransactionStatus.scheduled) {
+    if (value != ScheduledTransactionStatus.scheduled &&
+        value != ScheduledTransactionStatus.failed) {
       throw const CommandRejected(LedgerErrorCode.transactionNotFound,
           'Scheduled instance no longer pending');
     }

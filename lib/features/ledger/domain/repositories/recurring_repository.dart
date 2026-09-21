@@ -19,6 +19,10 @@ abstract class RecurringRepository {
 
   Future<void> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff);
 
+  Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff);
+
+  Future<int> resetFailedToScheduledForSeries(String seriesId);
+
   Future<List<RecurringSeriesRow>> getAllRecurringSeries();
 
   Future<List<RecurringSeriesRow>> getMaterializableRecurringSeries();

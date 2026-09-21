@@ -69,14 +69,13 @@ class TransactionUiMapper {
     // as "- $-500.00".
     final amount = e.amountMinor.abs();
 
+    final note = e.effectiveMemo;
     return TransactionTileUiModel(
       id: e.id,
       amount: amount,
       type: kind,
       date: e.date,
-      // The series' description is what the user named this bill; a pending
-      // instance has no note of its own.
-      note: e.recurringTransactionSeries?.description,
+      note: note.isEmpty ? null : note,
       category: category,
       account: account,
       displayAmount: formatMinor(amount),

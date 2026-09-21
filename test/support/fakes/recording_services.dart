@@ -259,6 +259,9 @@ class RecordingRecurringService implements RecurringService {
     List<int>? weekdays,
     bool? autoPost,
     int? reminderMinutes,
+    bool clearEndDate = false,
+    bool clearCountLimit = false,
+    bool clearReminder = false,
   }) async =>
       unitResult;
 
@@ -272,6 +275,19 @@ class RecordingRecurringService implements RecurringService {
 
   @override
   Future<int> catchUpAutoPosted({String? accountId}) async => 0;
+
+  @override
+  Future<int> markPreRestoreManualOnly([DateTime? restoreTime]) async => 0;
+
+  @override
+  Future<List<ScheduledTransactionEntity>> getCurrencyBacklog(
+          String currencyCode) async =>
+      const [];
+
+  @override
+  Future<int> settleCurrencyBacklog(String currencyCode,
+          {required bool postAll}) async =>
+      0;
 
   @override
   Future<List<RecurringSeriesRow>> getAllSeries() async => const [];

@@ -68,7 +68,18 @@ void main() async {
   // `applyPendingRestore` and here.
   final restoreExportedAt = readRestoreBarrier(supportDir);
   if (restoreExportedAt != null) {
-    // Stage 4 wires markPreRestoreManualOnly(restoreExportedAt) here.
+    // A restored ledger (spec 006, US58) may carry due auto-post bills the
+    // user already settled on the source device. Watermark every due bill
+    // across currencies as manual-only before any auto-posting can run; a
+    // bad row must not block startup, but the crash-safe marker must still
+    // be dropped.
+    try {
+      await container
+          .read(recurringServiceProvider)
+          .markPreRestoreManualOnly(restoreExportedAt);
+    } catch (e) {
+      debugPrint('restore watermark failed: $e');
+    }
     await clearRestoreBarrier(supportDir);
   }
 
@@ -168,13 +179,37 @@ void main() async {
         container
             .read(recurringServiceProvider)
             .catchUpAutoPosted()
-            .catchError((Object e) {
+            .then((posted) {
+          if (posted > 0) {
+            _showAutoPostSnackBar(container, posted);
+          }
+          return posted;
+        }).catchError((Object e) {
           debugPrint('recurring auto-post catch-up failed: $e');
           return 0;
         }),
       );
     });
   }
+}
+
+/// Reports the number of bills settled by the startup auto-post catch-up.
+/// The catch-up runs after the first frame, so the navigator overlay is
+/// available; a SnackBar under it outlives the splash without blocking it.
+void _showAutoPostSnackBar(ProviderContainer container, int count) {
+  final context = container
+      .read(goRouterProvider)
+      .routerDelegate
+      .navigatorKey
+      .currentState
+      ?.overlay
+      ?.context;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  if (l10n == null) return;
+  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    SnackBar(content: Text(l10n.autoPostedCountMessage(count))),
+  );
 }
 
 class FeatherLedgerApp extends ConsumerWidget {
