@@ -1349,6 +1349,12 @@ abstract class AppLocalizations {
   /// **'Repeating'**
   String get transactionModeRepeating;
 
+  /// Toggle in transaction form controlling whether a repeating series auto-posts when bills fall due
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-post when due'**
+  String get autoPostWhenDue;
+
   /// Section title for the three per-kind auto-post switches
   ///
   /// In en, this message translates to:

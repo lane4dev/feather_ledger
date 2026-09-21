@@ -1084,4 +1084,53 @@ void main() {
     expect(row!.manualOnly, isFalse,
         reason: 'editing before it is due must not turn it manual');
   });
+
+  test(
+      'an auto-post series starting today latches today\'s bill manualOnly '
+      'while keeping future bills automatic', () async {
+    await seed();
+    final now = DateTime.now();
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 50000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Rent',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: now,
+      autoPost: true,
+      mode: RecurringSeriesMode.repeating,
+    );
+
+    final instances = await scheduled();
+    final dueNow = instances.where((i) => !i.effectiveDate.isAfter(now));
+    final future = instances.where((i) => i.effectiveDate.isAfter(now));
+    expect(dueNow, hasLength(1));
+    expect(dueNow.single.manualOnly, isTrue);
+    expect(future, isNotEmpty);
+    expect(future.every((i) => !i.manualOnly), isTrue);
+  });
+
+  test('creating a planned series ignores autoPost: true and stores false',
+      () async {
+    await seed();
+    final result = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 50000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Trip',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: DateTime.now().add(const Duration(days: 5)),
+      endDate: DateTime.now().add(const Duration(days: 5)),
+      autoPost: true,
+      mode: RecurringSeriesMode.planned,
+    );
+
+    expect(result, isA<Success<void>>());
+    expect((await seriesRow()).mode, RecurringSeriesMode.planned);
+    expect((await seriesRow()).autoPost, isFalse);
+  });
 }

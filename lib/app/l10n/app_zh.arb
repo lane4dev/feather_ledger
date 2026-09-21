@@ -634,6 +634,7 @@
   "transactionModePlanned": "计划",
   "transactionModeSubscription": "订阅",
   "transactionModeRepeating": "重复",
+  "autoPostWhenDue": "到期自动入账",
   "autoPostSettingsTitle": "自动入账账单",
   "restoreConfirmationTitle": "恢复确认",
   "@restoreConfirmationTitle": {

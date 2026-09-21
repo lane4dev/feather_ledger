@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
@@ -72,17 +75,50 @@ final class TransactionFormSaveFailed extends TransactionFormOutcome {
 /// `ProviderScope` per form.
 @riverpod
 class TransactionFormViewModel extends _$TransactionFormViewModel {
+  bool _autoPostTouched = false;
+
   @override
-  TransactionFormViewState build(TransactionTileUiModel? original) =>
-      original == null
-          ? TransactionFormViewState.initial(
-              // The form locks its currency at open time (spec 006, US21): a
-              // one-time read, not a watch, so a later setting change cannot
-              // re-currency a half-filled form.
-              currencyCode: ref.read(currencyControllerProvider).value ??
-                  AppCurrencies.defaultCurrency.code,
-            )
-          : TransactionFormViewState.fromTile(original);
+  TransactionFormViewState build(TransactionTileUiModel? original) {
+    _autoPostTouched = false;
+    if (original != null) {
+      return TransactionFormViewState.fromTile(original);
+    }
+    final prefsAsync = ref.read(preferencesRepositoryProvider);
+    final initialAutoPost =
+        prefsAsync.value?.getLastRecurringAutoPost() ?? false;
+    if (prefsAsync.isLoading) {
+      ref.listen(preferencesRepositoryProvider, (_, next) {
+        final repo = next.value;
+        if (repo != null && !_autoPostTouched) {
+          state = state.copyWith(autoPost: repo.getLastRecurringAutoPost());
+        }
+      });
+    }
+    return TransactionFormViewState.initial(
+      // The form locks its currency at open time (spec 006, US21): a
+      // one-time read, not a watch, so a later setting change cannot
+      // re-currency a half-filled form.
+      currencyCode: ref.read(currencyControllerProvider).value ??
+          AppCurrencies.defaultCurrency.code,
+      autoPost: initialAutoPost,
+    );
+  }
+
+  void setAutoPost(bool enabled) {
+    _autoPostTouched = true;
+    state = state.copyWith(autoPost: enabled);
+    final repo = ref.read(preferencesRepositoryProvider).value;
+    if (repo != null) {
+      unawaited(repo.setLastRecurringAutoPost(enabled));
+    } else {
+      unawaited(
+        ref.read(preferencesRepositoryProvider.future).then(
+              (r) => r.setLastRecurringAutoPost(enabled),
+              onError: (_, __) {},
+            ),
+      );
+    }
+  }
 
   void setAmountText(String text) => state = state.copyWith(amountText: text);
 
@@ -340,7 +376,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           endDate: form.customRecurrence?.endDate,
           countLimit: form.customRecurrence?.countLimit,
           weekdays: form.customRecurrence?.weekdays ?? const [],
-          autoPost: false,
+          autoPost: form.autoPost,
           reminderMinutes: form.reminderMinutes,
           mode: _seriesMode(form.mode),
         );
@@ -367,6 +403,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           interval: 1,
           startDate: form.date,
           endDate: form.date,
+          autoPost: false,
           reminderMinutes: form.reminderMinutes,
           mode: RecurringSeriesMode.planned,
         );

@@ -80,6 +80,7 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       (update(scheduledTransactionsView)
             ..where((t) =>
                 t.seriesId.equals(seriesId) &
+                t.status.equals('scheduled') &
                 t.manualOnly.equals(false) &
                 coalesce([t.dateOverride, t.scheduledDate])
                     .isSmallerOrEqualValue(cutoff)))

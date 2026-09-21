@@ -677,6 +677,10 @@
   "transactionModePlanned": "Planned",
   "transactionModeSubscription": "Subscription",
   "transactionModeRepeating": "Repeating",
+  "autoPostWhenDue": "Auto-post when due",
+  "@autoPostWhenDue": {
+    "description": "Toggle in transaction form controlling whether a repeating series auto-posts when bills fall due"
+  },
   "autoPostSettingsTitle": "Auto-post bills",
   "@autoPostSettingsTitle": {
     "description": "Section title for the three per-kind auto-post switches"

@@ -634,6 +634,7 @@
   "transactionModePlanned": "計畫",
   "transactionModeSubscription": "訂閱",
   "transactionModeRepeating": "重複",
+  "autoPostWhenDue": "到期自動入帳",
   "autoPostSettingsTitle": "自動入帳帳單",
   "restoreConfirmationTitle": "恢復確認",
   "@restoreConfirmationTitle": {

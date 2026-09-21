@@ -42,6 +42,10 @@ class TransactionFormViewState {
   /// where [canRepeat] holds — the selector is not rendered otherwise.
   final TransactionFormMode mode;
 
+  /// Whether a repeating rule created from this form auto-posts due bills.
+  /// Meaningful only when [showsAutoPostRow] holds.
+  final bool autoPost;
+
   /// The debit leg: the account of an income/expense, and a transfer's **from**.
   final String? accountId;
   final String? categoryId;
@@ -71,6 +75,7 @@ class TransactionFormViewState {
     this.customRecurrence,
     this.reminderMinutes,
     required this.mode,
+    this.autoPost = false,
     required this.accountId,
     required this.categoryId,
     required this.toAccountId,
@@ -84,7 +89,10 @@ class TransactionFormViewState {
   static const repeatOptions = [repeatNever, ...repeatFrequencies];
 
   /// A blank entry: the common case, and the one the FAB is for.
-  factory TransactionFormViewState.initial({String? currencyCode}) =>
+  factory TransactionFormViewState.initial({
+    String? currencyCode,
+    bool autoPost = false,
+  }) =>
       TransactionFormViewState(
         original: null,
         type: TransactionKind.expense,
@@ -93,6 +101,7 @@ class TransactionFormViewState {
         note: '',
         repeat: repeatNever,
         mode: TransactionFormMode.defaultMode,
+        autoPost: autoPost,
         accountId: null,
         categoryId: null,
         toAccountId: null,
@@ -146,6 +155,7 @@ class TransactionFormViewState {
     Object? customRecurrence = _unset,
     Object? reminderMinutes = _unset,
     TransactionFormMode? mode,
+    bool? autoPost,
     Object? accountId = _unset,
     Object? categoryId = _unset,
     Object? toAccountId = _unset,
@@ -167,6 +177,7 @@ class TransactionFormViewState {
             ? this.customRecurrence
             : customRecurrence as CustomRecurrence?,
         mode: mode ?? this.mode,
+        autoPost: autoPost ?? this.autoPost,
         accountId: identical(accountId, _unset)
             ? this.accountId
             : accountId as String?,
@@ -194,6 +205,10 @@ class TransactionFormViewState {
   /// only where [canRepeat] holds. Default and 计划 have none — the picker
   /// never offers "does not repeat", because the mode already answered that.
   bool get showsRepeatRow =>
+      canRepeat && mode == TransactionFormMode.repeating;
+
+  /// Whether the auto-post toggle shows: only when creating a repeating rule.
+  bool get showsAutoPostRow =>
       canRepeat && mode == TransactionFormMode.repeating;
 
   /// Whether the attachment row shows. A series row cannot carry attachments,

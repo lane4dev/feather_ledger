@@ -808,6 +808,9 @@ class FakeAppLocalizations implements AppLocalizations {
   String get repeat => 'Repeat';
 
   @override
+  String get autoPostWhenDue => 'Auto-post when due';
+
+  @override
   String get repeatNever => 'Does not repeat';
 
   @override

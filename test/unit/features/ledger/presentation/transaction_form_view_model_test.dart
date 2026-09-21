@@ -2,6 +2,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -18,6 +19,7 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/features/ledger/presentation/view_model/transaction_form_view_state.dart';
 
 import '../../../../support/fakes/recording_services.dart';
+import '../../../../support/mocks/mock_shared_preferences.dart';
 
 /// The transaction form's rules, without a widget in sight.
 ///
@@ -104,7 +106,10 @@ void main() {
     store = RecordingAttachmentStore();
   });
 
-  ProviderContainer container({String currency = 'USD'}) {
+  ProviderContainer container({
+    String currency = 'USD',
+    PreferencesRepository? preferences,
+  }) {
     final container = ProviderContainer(
       overrides: [
         ledgerServiceProvider.overrideWithValue(ledger),
@@ -119,6 +124,9 @@ void main() {
           ),
         ),
         currencyControllerProvider.overrideWith(() => _FixedCurrency(currency)),
+        if (preferences != null)
+          preferencesRepositoryProvider
+              .overrideWith((ref) async => preferences),
       ],
     );
     addTearDown(container.dispose);
@@ -618,6 +626,42 @@ void main() {
       expect(ledger.addedTransactions, isEmpty);
       expect(recurring.created, isEmpty,
           reason: 'the fake records nothing when it fails');
+    });
+
+    test('autoPost defaults to false, persists lastRecurringAutoPost, and applies only to repeating',
+        () async {
+      final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+      final c1 = container(preferences: prefs);
+      await c1.read(preferencesRepositoryProvider.future);
+
+      final vm1 = form(c1);
+      expect(vm1.state.autoPost, isFalse);
+      expect(vm1.state.showsAutoPostRow, isFalse);
+
+      vm1.setMode(TransactionFormMode.repeating);
+      expect(vm1.state.showsAutoPostRow, isTrue);
+      vm1.setAutoPost(true);
+      expect(vm1.state.autoPost, isTrue);
+      expect(prefs.getLastRecurringAutoPost(), isTrue);
+
+      vm1.setAmountText('250.00');
+      vm1.selectAccount('acc_cash');
+      vm1.selectCategory('cat_rent');
+      await vm1.submit();
+      expect(recurring.created.last['autoPost'], isTrue);
+
+      // Reopening remembers true, yet Planned still writes autoPost = false.
+      final c2 = container(preferences: prefs);
+      await c2.read(preferencesRepositoryProvider.future);
+      final vm2 = form(c2);
+      expect(vm2.state.autoPost, isTrue);
+      vm2.setMode(TransactionFormMode.planned);
+      expect(vm2.state.showsAutoPostRow, isFalse);
+      vm2.setAmountText('120.00');
+      vm2.selectAccount('acc_cash');
+      vm2.selectCategory('cat_rent');
+      await vm2.submit();
+      expect(recurring.created.last['autoPost'], isFalse);
     });
   });
 

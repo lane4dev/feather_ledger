@@ -658,6 +658,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionModeRepeating => 'Repeating';
 
   @override
+  String get autoPostWhenDue => 'Auto-post when due';
+
+  @override
   String get autoPostSettingsTitle => 'Auto-post bills';
 
   @override

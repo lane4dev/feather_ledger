@@ -248,6 +248,28 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   _repeatRow(l10n, labelWidth, state),
                 ],
 
+                if (state.showsAutoPostRow) ...[
+                  const SizedBox(height: 8),
+                  LedgerFormRow(
+                    icon: LucideIcons.refreshCw,
+                    onTap: () => vm.setAutoPost(!state.autoPost),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.autoPostWhenDue,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: state.autoPost,
+                          onChanged: vm.setAutoPost,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 if (state.canRepeat &&
                     state.mode != TransactionFormMode.defaultMode) ...[
                   const SizedBox(height: 8),
@@ -855,7 +877,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 }
 
-/// The four modes the form offers (see [TransactionFormMode]): what the entry
+/// The three modes the form offers (see [TransactionFormMode]): what the entry
 /// is, chosen before the details. Rendered only where a mode is meaningful —
 /// a new income/expense entry.
 class _TransactionFormModeSelector extends StatelessWidget {
