@@ -14,6 +14,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_
 import 'package:feather_ledger/features/ledger/domain/entities/automatic_posting_batch.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
+import 'package:feather_ledger/features/ledger/domain/services/automatic_posting_policy.dart';
 import 'package:feather_ledger/features/settings/domain/models/restore_confirmation_batch.dart';
 
 part 'recurring_service.g.dart';
@@ -29,6 +30,10 @@ class RecurringService {
   /// How many bills to settle before yielding to the event loop, so the first
   /// frame and the ledger UI keep updating during a large catch-up (US46).
   static const int _batchChunk = 8;
+
+  /// Pure eligibility decision table (spec 006, "bill eligibility"). Stateless,
+  /// so one const instance serves every call.
+  static const AutomaticPostingPolicy _policy = AutomaticPostingPolicy();
 
   final CreateRecurringSeriesCommand _createSeries;
   final DeleteRecurringBillCommand _deleteBill;
@@ -232,7 +237,14 @@ class RecurringService {
     final pendingRestore =
         await _watchScheduled.latestPendingRestoreConfirmationBatch();
 
-    await _resumeUnsettledMembers(prefs, byId, accountId);
+    // The current currency is a settle-scope fact (spec 006, US33/34): read
+    // once and handed to the policy, which latches any bill whose currency
+    // the user is not currently looking at.
+    final currentCurrency =
+        prefs.getCurrency() ?? AppCurrencies.defaultCurrency.code;
+
+    await _resumeUnsettledMembers(
+        prefs, byId, accountId, currentCurrency, pendingRestore);
 
     final batchId = await _watchScheduled.createAutomaticPostingBatch(now);
     final due = instances.where((i) => !i.date.isAfter(now)).toList();
@@ -246,19 +258,8 @@ class RecurringService {
         continue;
       }
 
-      // Bills inside a pending restore's confirmation window wait behind the
-      // barrier ONLY while they are still eligible (spec 006, US65): when the
-      // target device's switch is off (or the currency is away), the bill must
-      // be latched manual instead of preserved for confirmation.
-      final eligible = _isEligible(prefs, instance);
-      if (pendingRestore != null &&
-          pendingRestore.contains(instance.date) &&
-          eligible) {
-        continue;
-      }
-
-      final result =
-          await _settleMember(prefs, instance, byId, accountId);
+      final result = await _settleMember(
+          prefs, instance, accountId, currentCurrency, pendingRestore);
       if (result != null) {
         // Claim once: a bill interrupted mid-run was already claimed by its
         // earlier batch; a fresh bill joins this one. The idempotent upsert
@@ -330,7 +331,22 @@ class RecurringService {
     if (prefs == null) return const [];
     final candidates =
         await _watchScheduled.restoreConfirmationCandidates(batchId);
-    return candidates.where((c) => _isEligible(prefs, c)).toList();
+    return candidates.where((c) {
+      final series = c.recurringTransactionSeries;
+      final mode = series?.mode;
+      final currency = c.account?.currencyCode;
+      return _policy.isEligible(
+        mode: mode,
+        switchEnabled:
+            mode == null ? false : prefs.getAutoPostEnabled(mode),
+        enabledSince:
+            mode == null ? null : prefs.getAutoPostEnabledSince(mode),
+        currencyActiveSince:
+            currency == null ? null : prefs.getCurrencyActiveSince(currency),
+        due: c.date,
+        latchedManual: !c.autoPostEligible,
+      );
+    }).toList();
   }
 
   /// Resolves a stale notification's bill id to its current id (or
@@ -345,6 +361,8 @@ class RecurringService {
     PreferencesRepository prefs,
     Map<String, ScheduledTransactionEntity> byId,
     String? accountId,
+    String currentCurrency,
+    RestoreConfirmationBatch? pendingRestore,
   ) async {
     final members = await _watchScheduled.unsettledAutomaticPostingMembers();
     for (final member in members) {
@@ -357,7 +375,8 @@ class RecurringService {
             AutomaticPostingMemberResult.userHandled);
         continue;
       }
-      final result = await _settleMember(prefs, instance, byId, accountId);
+      final result = await _settleMember(
+          prefs, instance, accountId, currentCurrency, pendingRestore);
       if (result == null) continue;
       await _watchScheduled.setAutomaticPostingMemberResult(
           member.batchId, member.scheduledId, result);
@@ -371,8 +390,9 @@ class RecurringService {
   Future<AutomaticPostingMemberResult?> _settleMember(
     PreferencesRepository prefs,
     ScheduledTransactionEntity instance,
-    Map<String, ScheduledTransactionEntity> byId,
     String? accountId,
+    String currentCurrency,
+    RestoreConfirmationBatch? pendingRestore,
   ) async {
     if (instance.account?.archived != false) return null;
     if (accountId != null && instance.account?.id != accountId) return null;
@@ -381,60 +401,52 @@ class RecurringService {
       return AutomaticPostingMemberResult.userHandled;
     }
 
-    // Away currency (spec 006, US33/34): auto-post pauses for any currency
-    // the user is not currently looking at, and a bill that fell due while
-    // its currency was away is latched manual — it never retro-posts. The
-    // switch-on / activation boundaries above are about *when* the currency
-    // became eligible; this is about whether it still is.
-    final currentCurrency =
-        prefs.getCurrency() ?? AppCurrencies.defaultCurrency.code;
-    if (instance.account?.currencyCode != currentCurrency) {
-      if (instance.autoPostEligible) {
-        await _watchScheduled.markAutoPostIneligible(instance.id);
-      }
-      return AutomaticPostingMemberResult.manual;
-    }
-
-    final eligible = _isEligible(prefs, instance);
-    if (!eligible) {
-      // Latch once, then leave the bill scheduled for the user's 记入.
-      if (instance.autoPostEligible) {
-        await _watchScheduled.markAutoPostIneligible(instance.id);
-      }
-      return AutomaticPostingMemberResult.manual;
-    }
-
-    final result = await guard(() => _postInstance.execute(instance.id,
-        commandId: 'autopost-${instance.id}'));
-    return result.when(
-      success: (_) => AutomaticPostingMemberResult.succeeded,
-      failure: (code, _) {
-        // A concurrent user action on the same bill means the user handled
-        // it; everything else is a retryable failure (US53/54).
-        if (code == LedgerErrorCode.scheduledAlreadyPosted ||
-            code == LedgerErrorCode.transactionNotFound) {
-          return AutomaticPostingMemberResult.userHandled;
-        }
-        return AutomaticPostingMemberResult.failed;
-      },
-    );
-  }
-
-  bool _isEligible(
-      PreferencesRepository prefs, ScheduledTransactionEntity instance) {
     final series = instance.recurringTransactionSeries;
-    if (series == null) return false;
-    final mode = series.mode;
-    final enabled = prefs.getAutoPostEnabled(mode);
-    final enabledSince = prefs.getAutoPostEnabledSince(mode);
+    final mode = series?.mode;
     final currency = instance.account?.currencyCode;
-    final currencySince =
-        currency == null ? null : prefs.getCurrencyActiveSince(currency);
-    return enabled &&
-        (enabledSince == null || instance.date.isAfter(enabledSince)) &&
-        (currencySince == null || instance.date.isAfter(currencySince)) &&
-        instance.autoPostEligible;
+    final decision = _policy.decideCatchUp(
+      mode: mode,
+      switchEnabled: mode == null ? false : prefs.getAutoPostEnabled(mode),
+      enabledSince:
+          mode == null ? null : prefs.getAutoPostEnabledSince(mode),
+      currencyActiveSince:
+          currency == null ? null : prefs.getCurrencyActiveSince(currency),
+      billCurrency: currency,
+      currentCurrency: currentCurrency,
+      due: instance.date,
+      latchedManual: !instance.autoPostEligible,
+      insideRestoreWindow:
+          pendingRestore?.contains(instance.date) ?? false,
+    );
+
+    switch (decision) {
+      case PostBill():
+        final result = await guard(() => _postInstance.execute(instance.id,
+            commandId: 'autopost-${instance.id}'));
+        return result.when(
+          success: (_) => AutomaticPostingMemberResult.succeeded,
+          failure: (code, _) {
+            // A concurrent user action on the same bill means the user
+            // handled it; everything else is a retryable failure (US53/54).
+            if (code == LedgerErrorCode.scheduledAlreadyPosted ||
+                code == LedgerErrorCode.transactionNotFound) {
+              return AutomaticPostingMemberResult.userHandled;
+            }
+            return AutomaticPostingMemberResult.failed;
+          },
+        );
+      case AwaitConfirmation():
+        // Wait behind the restore barrier; do not claim a result.
+        return null;
+      case ManualBill():
+        // Latch once, then leave the bill scheduled for the user's 记入.
+        if (instance.autoPostEligible) {
+          await _watchScheduled.markAutoPostIneligible(instance.id);
+        }
+        return AutomaticPostingMemberResult.manual;
+    }
   }
+
 }
 
 @riverpod

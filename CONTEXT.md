@@ -66,6 +66,13 @@ Recording an eligible scheduled income or expense in the ledger without a separa
 It records a money movement and does not itself transfer money or pay a bill.
 _Avoid_: automatic payment, automatic debit
 
+**Bill eligibility**:
+Whether a scheduled bill may be posted automatically. Decided in one place (`AutomaticPostingPolicy`)
+from the mode switch, the due time against the switch-on and currency-activation boundaries, the
+current currency, and the manual-only latch. Editing a due bill removes it; a restore-confirmation
+window holds an eligible bill behind a barrier instead of posting it.
+_Avoid_: auto-post flag, posting permission
+
 **Source bill**:
 The scheduled occurrence from which a transaction was recorded. Its association remains meaningful
 when the transaction is corrected or its series is deleted; an ordinary transaction need not have one.

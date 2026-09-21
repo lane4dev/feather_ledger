@@ -9,6 +9,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/services/automatic_posting_policy.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 
 part 'update_recurring_bill_command.g.dart';
@@ -39,6 +40,9 @@ part 'update_recurring_bill_command.g.dart';
 class UpdateRecurringBillCommand {
   final RecurringRepository _recurringRepository;
   final PostingContextResolver _context;
+
+  /// Pure eligibility decision table (spec 006, "bill eligibility").
+  static const AutomaticPostingPolicy _policy = AutomaticPostingPolicy();
 
   /// Local eligibility boundaries (spec 006, US32). Null means clock-rollback
   /// detection is unavailable — eligibility still applies, but a rollback is
@@ -114,8 +118,13 @@ class UpdateRecurringBillCommand {
           await _recurringRepository.isPendingRestoreCandidate(scheduledId);
     }
 
-    final shouldLatch = actuallyChanged &&
-        (movedToPast || rollback || (wasDue && !rescheduledToFutureOnly));
+    final shouldLatch = _policy.editShouldLatch(
+      actuallyChanged: actuallyChanged,
+      wasDue: wasDue,
+      movedToPast: movedToPast,
+      rollback: rollback,
+      rescheduledToFutureOnly: rescheduledToFutureOnly,
+    );
 
     switch (scope) {
       case RecurringScope.thisOnly:
