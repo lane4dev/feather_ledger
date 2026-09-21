@@ -585,6 +585,76 @@ final class LedgerMonthlySummaryFamily extends $Family
   String toString() => r'ledgerMonthlySummaryProvider';
 }
 
+/// Session-only count of overdue bills newly materialized at startup.
+///
+/// Kept purely in memory so dismissing hides the banner for the rest of the
+/// session without persisting extra UI flags or re-prompting on already
+/// materialized rows.
+
+@ProviderFor(OverdueMaterializationCount)
+final overdueMaterializationCountProvider =
+    OverdueMaterializationCountProvider._();
+
+/// Session-only count of overdue bills newly materialized at startup.
+///
+/// Kept purely in memory so dismissing hides the banner for the rest of the
+/// session without persisting extra UI flags or re-prompting on already
+/// materialized rows.
+final class OverdueMaterializationCountProvider
+    extends $NotifierProvider<OverdueMaterializationCount, int> {
+  /// Session-only count of overdue bills newly materialized at startup.
+  ///
+  /// Kept purely in memory so dismissing hides the banner for the rest of the
+  /// session without persisting extra UI flags or re-prompting on already
+  /// materialized rows.
+  OverdueMaterializationCountProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'overdueMaterializationCountProvider',
+          isAutoDispose: false,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$overdueMaterializationCountHash();
+
+  @$internal
+  @override
+  OverdueMaterializationCount create() => OverdueMaterializationCount();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<int>(value),
+    );
+  }
+}
+
+String _$overdueMaterializationCountHash() =>
+    r'0b1044c3a6be7e7025f6f896e47b881d1a080807';
+
+/// Session-only count of overdue bills newly materialized at startup.
+///
+/// Kept purely in memory so dismissing hides the banner for the rest of the
+/// session without persisting extra UI flags or re-prompting on already
+/// materialized rows.
+
+abstract class _$OverdueMaterializationCount extends $Notifier<int> {
+  int build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<int, int>;
+    final element = ref.element
+        as $ClassProviderElement<AnyNotifier<int, int>, int, Object?, Object?>;
+    return element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(LedgerViewModel)
 final ledgerViewModelProvider = LedgerViewModelProvider._();
 

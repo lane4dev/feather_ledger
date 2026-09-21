@@ -33,16 +33,18 @@ void main() {
       type: CategoryType.expense,
     );
 
-    // A daily series started two months back owes bills in at least two
-    // different months, none of which the picker may hide.
-    final start = DateTime(DateTime.now().year, DateTime.now().month - 2, 1);
+    // A monthly series starting next month produces upcoming bills across
+    // multiple future months within the 90-day lookahead, none of which
+    // the picker may hide.
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month + 1, 1);
     final result = await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 100,
       accountId: account.id,
       categoryId: await harness.userCategoryId(),
-      description: 'Daily',
-      frequency: 'DAILY',
+      description: 'Monthly',
+      frequency: 'MONTHLY',
       interval: 1,
       startDate: start,
     );

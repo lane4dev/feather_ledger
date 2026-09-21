@@ -681,6 +681,15 @@
   "@autoPostWhenDue": {
     "description": "Toggle in transaction form controlling whether a repeating series auto-posts when bills fall due"
   },
+  "overdueBillsAdded": "{count, plural, =1{Added 1 overdue bill to review} other{Added {count} overdue bills to review}}",
+  "@overdueBillsAdded": {
+    "description": "Session banner on ledger screen when bounded materialization adds newly discovered overdue bills",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "autoPostSettingsTitle": "Auto-post bills",
   "@autoPostSettingsTitle": {
     "description": "Section title for the three per-kind auto-post switches"

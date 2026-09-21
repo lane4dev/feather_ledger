@@ -635,6 +635,7 @@
   "transactionModeSubscription": "訂閱",
   "transactionModeRepeating": "重複",
   "autoPostWhenDue": "到期自動入帳",
+  "overdueBillsAdded": "新補齊了 {count} 筆已到期帳單",
   "autoPostSettingsTitle": "自動入帳帳單",
   "restoreConfirmationTitle": "恢復確認",
   "@restoreConfirmationTitle": {

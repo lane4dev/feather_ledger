@@ -175,6 +175,21 @@ Stream<MonthlySummaryUiModel> ledgerMonthlySummary(Ref ref, DateTime month) {
       );
 }
 
+/// Session-only count of overdue bills newly materialized at startup.
+///
+/// Kept purely in memory so dismissing hides the banner for the rest of the
+/// session without persisting extra UI flags or re-prompting on already
+/// materialized rows.
+@Riverpod(keepAlive: true)
+class OverdueMaterializationCount extends _$OverdueMaterializationCount {
+  @override
+  int build() => 0;
+
+  void set(int count) => state = count > 0 ? count : 0;
+
+  void dismiss() => state = 0;
+}
+
 @Riverpod(keepAlive: true)
 class LedgerViewModel extends _$LedgerViewModel {
   @override

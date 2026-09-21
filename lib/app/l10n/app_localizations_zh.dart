@@ -645,6 +645,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoPostWhenDue => '到期自动入账';
 
   @override
+  String overdueBillsAdded(int count) {
+    return '新补齐了 $count 笔已到期账单';
+  }
+
+  @override
   String get autoPostSettingsTitle => '自动入账账单';
 
   @override
@@ -1549,6 +1554,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get autoPostWhenDue => '到期自动入账';
 
   @override
+  String overdueBillsAdded(int count) {
+    return '新补齐了 $count 笔已到期账单';
+  }
+
+  @override
   String get autoPostSettingsTitle => '自动入账账单';
 
   @override
@@ -2451,6 +2461,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get autoPostWhenDue => '到期自動入帳';
+
+  @override
+  String overdueBillsAdded(int count) {
+    return '新補齊了 $count 筆已到期帳單';
+  }
 
   @override
   String get autoPostSettingsTitle => '自動入帳帳單';

@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../view_model/ledger_view_model.dart';
 import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
+import '../widgets/overdue_materialization_banner.dart';
 
 /// Asks the app shell to reveal its navigation bar.
 class LedgerShowNavigationNotification extends Notification {
@@ -220,6 +221,9 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 onPressed: () => context.push('/ledger/search'),
               )
             ],
+          ),
+          const SliverToBoxAdapter(
+            child: OverdueMaterializationBanner(),
           ),
           SliverFillRemaining(
               child: PageView.builder(

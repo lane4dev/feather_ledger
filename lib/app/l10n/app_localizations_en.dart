@@ -661,6 +661,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoPostWhenDue => 'Auto-post when due';
 
   @override
+  String overdueBillsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count overdue bills to review',
+      one: 'Added 1 overdue bill to review',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get autoPostSettingsTitle => 'Auto-post bills';
 
   @override

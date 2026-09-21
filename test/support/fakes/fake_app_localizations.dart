@@ -811,6 +811,11 @@ class FakeAppLocalizations implements AppLocalizations {
   String get autoPostWhenDue => 'Auto-post when due';
 
   @override
+  String overdueBillsAdded(int count) => count == 1
+      ? 'Added 1 overdue bill to review'
+      : 'Added $count overdue bills to review';
+
+  @override
   String get repeatNever => 'Does not repeat';
 
   @override

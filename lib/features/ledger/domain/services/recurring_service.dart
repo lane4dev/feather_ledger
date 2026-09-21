@@ -151,7 +151,7 @@ class RecurringService {
     return result;
   }
 
-  Future<void> materialize() => _materialize.execute();
+  Future<int> materialize() => _materialize.execute();
 
   Future<int> catchUpAutoPosted({String? accountId}) async {
     final now = _clock.now();

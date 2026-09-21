@@ -22,6 +22,7 @@ import 'features/ledger/data/projections/ledger_rebuild_service.dart';
 import 'features/ledger/domain/services/recurring_service.dart';
 import 'features/ledger/data/notifications/recurring_reminders.dart';
 import 'features/ledger/presentation/notifications/reminder_response_handler.dart';
+import 'features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'features/settings/domain/services/category_service.dart';
 
 void setupEdgeToEdge() async {
@@ -113,7 +114,13 @@ void main() async {
   // The catch is not decoration: this is new work over user data on the
   // launch path, and one bad series row must not stop the ledger opening.
   try {
-    await container.read(recurringServiceProvider).materialize();
+    final materializedOverdue =
+        await container.read(recurringServiceProvider).materialize();
+    if (materializedOverdue > 0) {
+      container
+          .read(overdueMaterializationCountProvider.notifier)
+          .set(materializedOverdue);
+    }
   } catch (e) {
     debugPrint('recurring catch-up failed: $e');
   }

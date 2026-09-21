@@ -1355,6 +1355,12 @@ abstract class AppLocalizations {
   /// **'Auto-post when due'**
   String get autoPostWhenDue;
 
+  /// Session banner on ledger screen when bounded materialization adds newly discovered overdue bills
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 overdue bill to review} other{Added {count} overdue bills to review}}'**
+  String overdueBillsAdded(int count);
+
   /// Section title for the three per-kind auto-post switches
   ///
   /// In en, this message translates to:

@@ -1,7 +1,9 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
@@ -138,16 +140,17 @@ void main() {
         weekdays: [weekday, other]);
     expect(result, isA<Success<void>>());
     final bills = await pending();
-    expect(bills, hasLength(16));
+    expect(bills, hasLength(3),
+        reason: '90-day window caps upcoming materialized bills at 3');
     expect(
         bills
             .every((b) => b.date.weekday == weekday || b.date.weekday == other),
         isTrue);
-    await harness.recurringService.materialize();
-    expect(await pending(), hasLength(16));
+    expect(await harness.recurringService.materialize(), 0);
+    expect(await pending(), hasLength(3));
   });
 
-  test('a count-limited series replenishes a deleted occurrence at the tail',
+  test('a count-limited series does not replenish a skipped occurrence',
       () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
@@ -168,9 +171,8 @@ void main() {
       ..sort((a, b) => a.date.compareTo(b.date));
     expect(before, hasLength(3));
 
-    // Deleting the middle occurrence frees one slot; materialization must
-    // grow exactly one new occurrence at the tail, without resurrecting the
-    // deleted one (spec 006, US37).
+    // Skipping an occurrence consumes its countLimit slot rather than
+    // extending the tail (recurring-simplification Stage 3).
     final middle = before[1];
     await harness.recurringService.deleteBill(middle.id,
         scope: RecurringScope.thisOnly);
@@ -178,20 +180,16 @@ void main() {
 
     final after = await pending()
       ..sort((a, b) => a.date.compareTo(b.date));
-    expect(after, hasLength(3),
-        reason: 'the freed slot is refilled at the tail');
-    expect(
-        after.map((b) => b.date).toList(),
-        [before[0].date, before[2].date,
-         before[2].date.add(const Duration(days: 1))],
-        reason: 'kept bills stay, and one new bill follows the last');
+    expect(after, hasLength(2),
+        reason: 'skipped slot is consumed, not replenished at the tail');
+    expect(after.map((b) => b.date).toList(), [before[0].date, before[2].date]);
     expect((await harness.db.recurringDao.getScheduled(middle.id))!.status,
         'skipped',
         reason: 'the deleted occurrence is a tombstone, not a resurrection');
   });
 
-  test('posted and manual bills still occupy their slot in a count-limited '
-      'series', () async {
+  test('posted, manual, and skipped bills each consume countLimit slots',
+      () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     final categoryId = await harness.userCategoryId();
@@ -215,13 +213,10 @@ void main() {
         scope: RecurringScope.thisOnly);
     await harness.recurringService.materialize();
 
-    // The posted and manual bills keep two of the three slots; only the
-    // deletion frees one, so exactly one new bill appears at the tail.
     final after = await pending()
       ..sort((a, b) => a.date.compareTo(b.date));
-    expect(after.map((b) => b.date).toList(),
-        [before[1].date, before[2].date.add(const Duration(days: 1))],
-        reason: 'manual bill stays, and one slot is refilled at the tail');
+    expect(after.map((b) => b.date).toList(), [before[1].date],
+        reason: 'only the untouched manual slot remains pending');
     expect((await harness.db.recurringDao.getScheduled(before[0].id))!.status,
         'posted');
     expect((await harness.db.recurringDao.getScheduled(before[2].id))!.status,
@@ -246,20 +241,23 @@ void main() {
     expect(result, isA<Success<void>>());
     final before = await pending()
       ..sort((a, b) => a.date.compareTo(b.date));
-    final fourth = before[3];
-    final edited = await harness.recurringService.updateBill(fourth.id,
+    expect(before, hasLength(3));
+    final second = before[1];
+    final edited = await harness.recurringService.updateBill(second.id,
         scope: RecurringScope.updateRule,
         amountMinor: 200,
-        date: fourth.date,
+        date: second.date,
         categoryId: categoryId,
         accountId: account.id,
         description: 'Changed');
     expect(edited, isA<Success<void>>());
     final after = await pending();
-    expect(after, hasLength(16));
-    expect(after.where((item) => item.amountMinor == 200), hasLength(16));
+    expect(after, hasLength(3));
+    expect(after.where((item) => item.amountMinor == 200), hasLength(3));
+    final series = (await harness.db.recurringDao.getAllSeries()).single;
+    expect(series.countLimit, 16);
     await harness.recurringService.materialize();
-    expect(await pending(), hasLength(16));
+    expect(await pending(), hasLength(3));
   });
 
   test('a date-limited rule creates bills through its inclusive end date',
@@ -267,6 +265,7 @@ void main() {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     final start = fromNow(1);
+    final endDate = start.add(const Duration(days: 4));
     final result = await harness.recurringService.createSeries(
         type: RecurringSeriesKind.expense,
         amountMinor: 100,
@@ -276,9 +275,19 @@ void main() {
         frequency: 'DAILY',
         interval: 1,
         startDate: start,
-        endDate: start.add(const Duration(days: 15)));
+        endDate: endDate);
     expect(result, isA<Success<void>>());
-    expect(await pending(), hasLength(16));
+    var bills = await pending()..sort((a, b) => a.date.compareTo(b.date));
+    expect(bills, hasLength(3));
+
+    final postedDates = <DateTime>[];
+    while (bills.isNotEmpty) {
+      postedDates.add(bills.first.date);
+      await harness.recurringService.postInstance(bills.first.id);
+      bills = await pending()..sort((a, b) => a.date.compareTo(b.date));
+    }
+    expect(postedDates, hasLength(5));
+    expect(postedDates.last, endDate);
   });
 
   test('reminder setting survives materialization and updating a series',
@@ -324,47 +333,38 @@ void main() {
     expect(await createSeries(frequency: 'MONTHLY', startInDays: 20), 3);
   });
 
-  test('a weekly series fills the window and stops at twelve', () async {
-    // ~13 weekly occurrences fit in 90 days; the cap is 12.
-    expect(await createSeries(frequency: 'WEEKLY', startInDays: 3), 12);
+  test('a weekly series fills the window and stops at three', () async {
+    // ~13 weekly occurrences fit in 90 days; the cap is 3.
+    expect(await createSeries(frequency: 'WEEKLY', startInDays: 3), 3);
   });
 
-  test('a daily series is capped at twelve', () async {
-    // 90 daily occurrences would fit; the cap is 12.
-    expect(await createSeries(frequency: 'DAILY', startInDays: 1), 12);
+  test('a daily series is capped at three', () async {
+    // 90 daily occurrences would fit; the cap is 3.
+    expect(await createSeries(frequency: 'DAILY', startInDays: 1), 3);
   });
 
   test('a yearly series reaches past the window to meet the floor', () async {
-    // The sharp one: a yearly rule starting next year has *nothing* inside
-    // the 90-day window, so the window alone would leave the user with zero
-    // upcoming bills. The floor reaches forward.
+    // A yearly rule starting next year has nothing inside the 90-day window,
+    // so the floor materializes its single next occurrence without a 3-year
+    // multi-instance scan.
     final count = await createSeries(frequency: 'YEARLY', startInDays: 300);
 
-    expect(count, 3);
-
-    final instances = await pending();
-    final dates = instances.map((i) => i.date).toList()..sort();
-    // Three consecutive years, not three arbitrary dates.
-    expect(dates[1].year - dates[0].year, 1);
-    expect(dates[2].year - dates[1].year, 1);
+    expect(count, 1);
   });
 
   test('a series starting beyond the window still gets its floor', () async {
-    // Two years out: past the window and past the window's extension anchor.
-    expect(await createSeries(frequency: 'MONTHLY', startInDays: 730), 3);
+    // Two years out: past the window; gets the 1-occurrence floor.
+    expect(await createSeries(frequency: 'MONTHLY', startInDays: 730), 1);
   });
 
   test('materializing twice produces the identical instance set', () async {
-    // The derived id '${seriesId}_${date}' is the ONLY thing making this
-    // idempotent. Change it, or the date normalization, and every run
-    // duplicates every future bill.
     await createSeries(frequency: 'WEEKLY', startInDays: 3);
     final before = (await harness.db.recurringDao.watchAllScheduled().first)
         .map((r) => r.id)
         .toSet();
 
-    await harness.recurringService.materialize();
-    await harness.recurringService.materialize();
+    expect(await harness.recurringService.materialize(), 0);
+    expect(await harness.recurringService.materialize(), 0);
 
     final after = (await harness.db.recurringDao.watchAllScheduled().first)
         .map((r) => r.id)
@@ -372,27 +372,29 @@ void main() {
     expect(after, before);
   });
 
-  test('posting one immediately refills the floor', () async {
-    // The rolling part: a bill the user acted on stops counting, so the next
-    // run reaches one period further out.
-    await createSeries(frequency: 'MONTHLY', startInDays: 5);
+  test('posting a weekly bill immediately refills to three within 90 days',
+      () async {
+    await createSeries(frequency: 'WEEKLY', startInDays: 3);
     expect(await pending(), hasLength(3));
 
-    final first = (await pending()).first;
+    final first = (await pending()
+          ..sort((a, b) => a.date.compareTo(b.date)))
+        .first;
     await harness.recurringService.postInstance(first.id);
-    expect(await pending(), hasLength(3), reason: 'the floor is restored');
+    expect(await pending(), hasLength(3),
+        reason: 'next weekly occurrence inside 90d refills the cap');
   });
 
-  test('posting a daily bill refills without exceeding twelve pending',
+  test('posting a daily bill refills without exceeding three pending',
       () async {
     await createSeries(frequency: 'DAILY', startInDays: 1);
     final before = await pending();
-    expect(before, hasLength(12));
+    expect(before, hasLength(3));
     expect(await harness.recurringService.postInstance(before.first.id),
         isA<Success<void>>());
     final after = await pending();
-    expect(after, hasLength(12));
-    expect(after.map((bill) => bill.id).toSet().length, 12);
+    expect(after, hasLength(3));
+    expect(after.map((bill) => bill.id).toSet().length, 3);
     expect(after.map((bill) => bill.id), isNot(contains(before.first.id)));
   });
 
@@ -484,11 +486,8 @@ void main() {
     expect(instance.recurringTransactionSeries?.description, 'Rent');
   });
 
-  test('a dormant daily series materializes every overdue bill, not twelve',
+  test('a dormant daily series bounds overdue bills to 30 days and max three',
       () async {
-    // A series left dormant longer than the 12-upcoming cap still owes every
-    // instance that has come due. The rolling window must not hide the debt:
-    // every month a bill fell due in must findable in the ledger.
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     final start = fromNow(-40);
@@ -508,14 +507,41 @@ void main() {
       ..sort((a, b) => a.date.compareTo(b.date));
     final overdue = bills.where((i) => !i.date.isAfter(DateTime.now())).toList();
 
-    expect(overdue.length, greaterThan(12),
-        reason: 'every overdue day is materialized, not just the first twelve');
-    expect(overdue.first.date, start, reason: 'the debt starts on day one');
-    for (var i = 1; i < overdue.length; i++) {
-      expect(overdue[i].date.difference(overdue[i - 1].date),
-          const Duration(days: 1),
-          reason: 'no overdue day is skipped');
-    }
+    expect(overdue, hasLength(3),
+        reason: 'at most 3 most recent overdue instances are materialized');
+    expect(overdue.map((b) => b.date).toList(), [
+      fromNow(-2),
+      fromNow(-1),
+      fromNow(0),
+    ]);
+    expect(await harness.recurringService.materialize(), 0);
+  });
+
+  test('materialize returns newlyMaterializedOverdueCount for unmaterialized '
+      'dormant series and stays idempotent', () async {
+    await seedAccountAndCategory(CategoryType.expense);
+    final account = (await harness.db.accountDao.getAllAccounts()).single;
+    final categoryId = await harness.userCategoryId();
+
+    await harness.db.recurringDao.saveSeries(
+      RecurringSeriesCompanion.insert(
+        id: 'dormant-series',
+        type: RecurringSeriesKind.expense,
+        mode: const Value(RecurringSeriesMode.repeating),
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Daily',
+        rrule: 'FREQ=DAILY',
+        frequency: 'DAILY',
+        startDate: fromNow(-40),
+      ),
+    );
+
+    final firstCount = await harness.recurringService.materialize();
+    expect(firstCount, 3);
+    final secondCount = await harness.recurringService.materialize();
+    expect(secondCount, 0);
   });
 
   test('re-materializing in another timezone never duplicates a bill',

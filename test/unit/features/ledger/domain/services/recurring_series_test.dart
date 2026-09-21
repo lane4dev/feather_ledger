@@ -321,7 +321,7 @@ void main() {
     );
     expect(result, isA<Success<void>>());
 
-    expect(await scheduledIds(), hasLength(3));
+    expect(await scheduledIds(), hasLength(1));
   });
 
   test('a category of the wrong kind is refused at creation', () async {
@@ -550,8 +550,9 @@ void main() {
     final pending = (await scheduled())
         .where((s) => s.status == ScheduledTransactionStatus.scheduled)
         .toList();
-    expect(pending.length, greaterThan(3), reason: 'fixture precondition');
-    final cut = pending[2];
+    expect(pending.length, greaterThanOrEqualTo(3),
+        reason: 'fixture precondition');
+    final cut = pending[1];
 
     final result = await harness.recurringService
         .deleteBill(cut.id, scope: RecurringScope.updateRule);
