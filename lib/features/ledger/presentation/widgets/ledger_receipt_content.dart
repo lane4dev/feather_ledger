@@ -68,21 +68,26 @@ class LedgerReceiptContent extends StatelessWidget {
       _ => Theme.of(context).colorScheme.onSurface,
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Stack(alignment: Alignment.topRight, children: [
-        Padding(
-            padding:
-                EdgeInsets.only(top: status == null ? 0 : context.spacing.lg),
-            child: Center(
-                child: FittedBox(
-              fit: BoxFit.scaleDown,
+      Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Stack(alignment: Alignment.topRight, children: [
+            Padding(
+              padding: EdgeInsets.only(
+                top: status == null ? 0 : context.spacing.sm,
+                right: status == null ? 0 : context.spacing.xl,
+              ),
               child: Text(
-                  '${transaction.displaySign} $currencySymbol${transaction.displayAmount}',
-                  style: AppTypography.amountInput(context)
-                      .copyWith(color: amountColor),
-                  textAlign: TextAlign.center),
-            ))),
-        if (status != null) AppBadge(label: status!),
-      ]),
+                '${transaction.displaySign} $currencySymbol${transaction.displayAmount}',
+                style: AppTypography.amountInput(context)
+                    .copyWith(color: amountColor),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            if (status != null) AppBadge(label: status!),
+          ]),
+        ),
+      ),
       if (transaction.series case final series?) ...[
         SizedBox(height: context.spacing.sm),
         Center(child: RecurringModeLabel(mode: series.mode)),
