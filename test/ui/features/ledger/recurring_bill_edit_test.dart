@@ -303,7 +303,7 @@ void main() {
     testWidgets(
         'uses the shared title, field columns, account currency and fixed save bar',
         (tester) async {
-      await pumpForm(tester, currencyCode: 'CNY', bottomInset: 220);
+      await pumpForm(tester, currencyCode: 'CNY');
       expect(find.text('Edit Transaction'), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
       expect(
@@ -322,7 +322,7 @@ void main() {
       final saveButton = find.widgetWithText(AppButton, 'Save');
       expect(tester.getSize(saveButton).height, 52);
       expect(tester.getSize(saveButton).width, 752);
-      expect(tester.getBottomLeft(saveButton).dy, closeTo(600 - 220 - 8, 0.01));
+      expect(tester.getBottomLeft(saveButton).dy, closeTo(600 - 8, 0.01));
       final date = tester.widget<LedgerSelectorField>(
           find.widgetWithText(LedgerSelectorField, 'Date'));
       expect(date.text, contains(':'),
@@ -345,6 +345,13 @@ void main() {
       expect(tester.getCenter(find.text('Pending')).dy,
           closeTo(tester.getCenter(find.text('Edit Transaction')).dy, 0.01));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('hides the fixed save button while the keyboard is open',
+        (tester) async {
+      await pumpForm(tester, bottomInset: 220);
+      expect(find.byType(AppBottomActionBar), findsNothing);
+      expect(find.widgetWithText(AppButton, 'Save'), findsNothing);
     });
 
     testWidgets('offers every field, because the scope is not known yet',

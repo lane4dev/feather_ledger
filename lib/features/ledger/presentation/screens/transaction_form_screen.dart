@@ -253,6 +253,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   LedgerFormRow(
                     icon: LucideIcons.refreshCw,
                     onTap: () => vm.setAutoPost(!state.autoPost),
+                    showChevron: false,
                     child: Row(
                       children: [
                         Expanded(
@@ -382,12 +383,17 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                           return LedgerSelectorField(
                             label: l10n.category,
                             labelWidth: labelWidth,
-                            text: selected?.name ?? l10n.select,
+                            text: selected?.name ??
+                                (field.hasError && state.categoryId == null
+                                    ? l10n.required
+                                    : l10n.select),
                             textStyle: selected == null
-                                ? theme.textTheme.bodyLarge
-                                    ?.copyWith(color: theme.hintColor)
+                                ? theme.textTheme.bodyLarge?.copyWith(
+                                    color: field.hasError &&
+                                            state.categoryId == null
+                                        ? theme.colorScheme.error
+                                        : theme.hintColor)
                                 : null,
-                            errorText: field.hasError ? field.errorText : null,
                           );
                         },
                         loading: () => const LinearProgressIndicator(),
@@ -425,8 +431,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomActionBar(
-          child: AppButton(onPressed: _submit, child: Text(l10n.save))),
+      bottomNavigationBar:
+          state.isEditing && MediaQuery.viewInsetsOf(context).bottom > 0
+              ? null
+              : AppBottomActionBar(
+                  child: AppButton(onPressed: _submit, child: Text(l10n.save))),
     );
   }
 
@@ -735,12 +744,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     // The FormField is an error slot, not a value holder: which account is
     // chosen lives in the view model, so "what is selected" has one answer
-    // instead of two that have to be kept in step. The row still lives inside
-    // the builder so the error draws under the value's column.
+    // instead of two that have to be kept in step.
     return FormField<String>(
       key: fieldKey,
       validator: (_) {
-        if (selectedId == null) return l10n.required;
+        if (selectedId == null ||
+            !options.any((a) => a.account.id == selectedId)) {
+          return l10n.required;
+        }
         return extraValidator?.call(selectedId);
       },
       builder: (field) {
@@ -784,11 +795,19 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           child: LedgerSelectorField(
             label: label,
             labelWidth: labelWidth,
-            text: selected?.account.name ?? l10n.select,
+            text: selected?.account.name ??
+                (field.hasError && selected == null
+                    ? l10n.required
+                    : l10n.select),
             textStyle: selected == null
-                ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
+                ? theme.textTheme.bodyLarge?.copyWith(
+                    color: field.hasError
+                        ? theme.colorScheme.error
+                        : theme.hintColor)
                 : null,
-            errorText: field.hasError ? field.errorText : null,
+            errorText: selected == null || field.errorText == l10n.required
+                ? null
+                : field.errorText,
           ),
         );
       },
