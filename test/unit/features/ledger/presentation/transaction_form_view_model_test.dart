@@ -161,6 +161,46 @@ void main() {
       );
 
   group('seeding', () {
+    test('remembers a chosen account for the next new form', () async {
+      final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+      final first = container(preferences: prefs);
+      await first.read(preferencesRepositoryProvider.future);
+      form(first).selectAccount(card.id);
+      await Future<void>.delayed(Duration.zero);
+
+      final next = container(preferences: prefs);
+      await next.read(preferencesRepositoryProvider.future);
+      await next.read(currencyControllerProvider.future);
+      expect(form(next).state.accountId, card.id);
+      expect(
+          prefs.exportAll().containsKey('last_transaction_account'), isFalse);
+    });
+
+    test('does not restore an archived, missing, or different currency account',
+        () async {
+      final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+      for (final id in [archived.id, yen.id, 'missing']) {
+        await prefs.setLastTransactionAccount(id);
+        final c = container(preferences: prefs);
+        await c.read(preferencesRepositoryProvider.future);
+        await c.read(currencyControllerProvider.future);
+        expect(form(c).state.accountId, isNull);
+      }
+    });
+
+    test('an edit keeps its own account instead of the remembered account',
+        () async {
+      final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+      await prefs.setLastTransactionAccount(card.id);
+      final c = container(preferences: prefs);
+      await c.read(preferencesRepositoryProvider.future);
+      expect(
+          form(c, original: tile(id: 'tx', amount: 100, category: rent))
+              .state
+              .accountId,
+          cash.id);
+    });
+
     test('a new entry starts as an expense, today, empty', () {
       final vm = form(container());
 
@@ -573,13 +613,15 @@ void main() {
           reason: 'the record is legitimate on its own');
     });
 
-    test('the mode owns the frequency: a series mode seeds MONTHLY, leaving resets it',
+    test(
+        'the mode owns the frequency: a series mode seeds MONTHLY, leaving resets it',
         () {
       final vm = form(container());
 
       vm.setMode(TransactionFormMode.repeating);
       expect(vm.state.repeat, 'MONTHLY',
-          reason: 'the row cannot show "does not repeat" — the mode said it does');
+          reason:
+              'the row cannot show "does not repeat" — the mode said it does');
 
       vm.setMode(TransactionFormMode.planned);
       expect(vm.state.repeat, TransactionFormViewState.repeatNever,
@@ -628,7 +670,8 @@ void main() {
           reason: 'the fake records nothing when it fails');
     });
 
-    test('autoPost defaults to false, persists lastRecurringAutoPost, and applies only to repeating',
+    test(
+        'autoPost defaults to false, persists lastRecurringAutoPost, and applies only to repeating',
         () async {
       final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
       final c1 = container(preferences: prefs);

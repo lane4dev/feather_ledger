@@ -23,6 +23,7 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   // auto-post toggle; deliberately absent from [_knownKeys] so backup never
   // overwrites the target device's local preference.
   static const _keyLastRecurringAutoPost = 'last_recurring_auto_post';
+  static const _keyLastTransactionAccount = 'last_transaction_account';
 
   @override
   ThemeMode getThemeMode() {
@@ -90,6 +91,14 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   Future<void> setLastRecurringAutoPost(bool enabled) {
     return _prefs.setBool(_keyLastRecurringAutoPost, enabled);
   }
+
+  @override
+  String? getLastTransactionAccount() =>
+      _prefs.getString(_keyLastTransactionAccount);
+
+  @override
+  Future<void> setLastTransactionAccount(String id) =>
+      _prefs.setString(_keyLastTransactionAccount, id);
 
   /// The four known keys, in a stable order. Values are stored in their raw
   /// SharedPreferences form (String/Bool), so a backup round-trips without

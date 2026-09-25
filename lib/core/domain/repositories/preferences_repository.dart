@@ -32,6 +32,11 @@ abstract class PreferencesRepository {
   /// Persists the user's last choice for the repeating auto-post switch.
   Future<void> setLastRecurringAutoPost(bool enabled);
 
+  /// The last account explicitly chosen on a transaction form, local to this device.
+  String? getLastTransactionAccount();
+
+  Future<void> setLastTransactionAccount(String id);
+
   /// The known preference keys and their stored values, for the backup
   /// archive (spec 004, US4).
   ///

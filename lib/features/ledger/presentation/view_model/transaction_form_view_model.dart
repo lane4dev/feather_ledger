@@ -76,32 +76,60 @@ final class TransactionFormSaveFailed extends TransactionFormOutcome {
 @riverpod
 class TransactionFormViewModel extends _$TransactionFormViewModel {
   bool _autoPostTouched = false;
+  bool _accountTouched = false;
 
   @override
   TransactionFormViewState build(TransactionTileUiModel? original) {
     _autoPostTouched = false;
+    _accountTouched = false;
     if (original != null) {
       return TransactionFormViewState.fromTile(original);
     }
     final prefsAsync = ref.read(preferencesRepositoryProvider);
     final initialAutoPost =
         prefsAsync.value?.getLastRecurringAutoPost() ?? false;
+    final currencyCode = ref.read(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code;
+    final rememberedId = prefsAsync.value?.getLastTransactionAccount();
+    final accounts = ref.read(accountUiListProvider).value;
+    final initialAccount = accounts
+        ?.where((item) =>
+            item.account.id == rememberedId &&
+            !item.account.archived &&
+            item.account.currencyCode == currencyCode)
+        .firstOrNull;
+    ref.listen(accountUiListProvider, (_, __) => _restoreAccount());
     if (prefsAsync.isLoading) {
       ref.listen(preferencesRepositoryProvider, (_, next) {
         final repo = next.value;
         if (repo != null && !_autoPostTouched) {
           state = state.copyWith(autoPost: repo.getLastRecurringAutoPost());
         }
+        if (repo != null) _restoreAccount();
       });
     }
     return TransactionFormViewState.initial(
       // The form locks its currency at open time (spec 006, US21): a
       // one-time read, not a watch, so a later setting change cannot
       // re-currency a half-filled form.
-      currencyCode: ref.read(currencyControllerProvider).value ??
-          AppCurrencies.defaultCurrency.code,
+      currencyCode: currencyCode,
       autoPost: initialAutoPost,
-    );
+    ).copyWith(accountId: initialAccount?.account.id);
+  }
+
+  void _restoreAccount() {
+    if (_accountTouched || state.accountId != null) return;
+    final id = ref
+        .read(preferencesRepositoryProvider)
+        .value
+        ?.getLastTransactionAccount();
+    if (id == null) return;
+    final accounts = ref.read(accountUiListProvider).value;
+    final account = state
+        .activeAccounts(accounts ?? const [])
+        .where((item) => item.account.id == id)
+        .firstOrNull;
+    if (account != null) state = state.copyWith(accountId: id);
   }
 
   void setAutoPost(bool enabled) {
@@ -182,8 +210,14 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// The destination is keyed on the source — its candidates are filtered by
   /// the source's currency — so re-keying drops a choice the filter may no
   /// longer offer.
-  void selectAccount(String id) =>
-      state = state.copyWith(accountId: id, toAccountId: null);
+  void selectAccount(String id) {
+    _accountTouched = true;
+    state = state.copyWith(accountId: id, toAccountId: null);
+    unawaited(ref.read(preferencesRepositoryProvider.future).then(
+          (repo) => repo.setLastTransactionAccount(id),
+          onError: (_, __) {},
+        ));
+  }
 
   void attachFiles(List<XFile> files) => state = state.copyWith(
         pendingAttachments: [...state.pendingAttachments, ...files],
