@@ -1,5 +1,7 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -49,6 +51,13 @@ class _AccountManagementScreenState
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         ),
         title: Text(l10n.accountsTitle),
+        actions: [
+          AppIconButton(
+            icon: const Icon(LucideIcons.filter),
+            tooltip: l10n.filterTitle,
+            onPressed: () => _openCurrencyFilter(filter),
+          ),
+        ],
       ),
       body: accountsAsync.when(
         data: (accounts) {
@@ -69,31 +78,13 @@ class _AccountManagementScreenState
                     context.spacing.md, context.spacing.md, 0),
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: DropdownButton<String>(
-                    value: filter,
-                    underline: const SizedBox(),
-                    icon: const Icon(LucideIcons.chevronDown),
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.primary),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      // Choosing the current currency is "follow it again",
-                      // so a later global change keeps tracking rather than
-                      // pinning the view to a stale code.
-                      setState(
-                          () => _selected = value == current ? null : value);
-                    },
-                    items: [
-                      DropdownMenuItem(
-                        value: _allCurrencies,
-                        child: Text(l10n.accountAllCurrencies),
-                      ),
-                      for (final code in AppCurrencies.supportedCurrencyCodes)
-                        DropdownMenuItem(
-                          value: code,
-                          child: Text(AppCurrencies.getName(code, l10n)),
-                        ),
-                    ],
+                  child: Text(
+                    showCodes
+                        ? l10n.accountAllCurrencies
+                        : AppCurrencies.getName(filter, l10n),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
@@ -151,6 +142,19 @@ class _AccountManagementScreenState
     );
   }
 
+  Future<void> _openCurrencyFilter(String currentFilter) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _CurrencyFilterSheet(initial: currentFilter),
+    );
+    if (!mounted || selected == null) return;
+    final current = ref.read(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code;
+    setState(() => _selected = selected == current ? null : selected);
+  }
+
   Future<void> _showAccountSheet(AccountEntity? account) async {
     final created = await showModalBottomSheet<String>(
       context: context,
@@ -165,5 +169,65 @@ class _AccountManagementScreenState
     // After creating an account in another currency, show that currency so
     // the new account is visible immediately.
     setState(() => _selected = created == current ? null : created);
+  }
+}
+
+class _CurrencyFilterSheet extends StatefulWidget {
+  const _CurrencyFilterSheet({required this.initial});
+  final String initial;
+
+  @override
+  State<_CurrencyFilterSheet> createState() => _CurrencyFilterSheetState();
+}
+
+class _CurrencyFilterSheetState extends State<_CurrencyFilterSheet> {
+  late String _draft = widget.initial;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+            horizontal: context.spacing.lg, vertical: context.spacing.md),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.filterTitle,
+                  style: Theme.of(context).textTheme.titleLarge),
+              SizedBox(height: context.spacing.lg),
+              Text(l10n.accountCurrency,
+                  style: Theme.of(context).textTheme.bodyLarge),
+              SizedBox(height: context.spacing.sm),
+              AppChoiceChips<String>(
+                choices: [
+                  ButtonSegment(
+                      value: _AccountManagementScreenState._allCurrencies,
+                      label: Text(l10n.accountAllCurrencies)),
+                  for (final code in AppCurrencies.supportedCurrencyCodes)
+                    ButtonSegment(
+                        value: code,
+                        label: Text(AppCurrencies.getName(code, l10n))),
+                ],
+                selected: _draft,
+                onSelected: (value) => setState(() => _draft = value),
+              ),
+              SizedBox(height: context.spacing.lg),
+              Row(children: [
+                Expanded(
+                    child: AppButton.outlined(
+                        onPressed: () => Navigator.pop(context,
+                            _AccountManagementScreenState._allCurrencies),
+                        child: Text(l10n.filterClear))),
+                SizedBox(width: context.spacing.md),
+                Expanded(
+                    child: AppButton(
+                        onPressed: () => Navigator.pop(context, _draft),
+                        child: Text(l10n.filterApply))),
+              ]),
+            ]),
+      ),
+    );
   }
 }

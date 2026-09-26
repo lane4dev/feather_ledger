@@ -215,9 +215,13 @@ void main() {
     expect(find.text('Yuan wallet'), findsNothing);
     expect(find.text('Yen wallet'), findsNothing);
 
-    await tester.tap(find.text(r'$ (Dollar)'));
+    await tester.tap(find.byIcon(LucideIcons.filter));
     await tester.pumpAndSettle();
     await tester.tap(find.text('All currencies').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Yuan wallet'), findsNothing,
+        reason: 'the selection is a draft until applied');
+    await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
 
     expect(find.text('Yuan wallet'), findsOneWidget);
@@ -227,6 +231,44 @@ void main() {
 
     // Switching the view is a local concern: the global setting is untouched.
     expect(recording.setCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('currency filter dismisses drafts and clear shows all currencies',
+      (tester) async {
+    await tester.pumpWidget(wrap(const AccountManagementScreen(), accounts: [
+      account(id: 'usd', name: 'Dollar', currencyCode: 'USD'),
+      account(id: 'jpy', name: 'Yen', currencyCode: 'JPY'),
+    ]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.filter));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All currencies').last);
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.text('Apply'))).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Dollar'), findsOneWidget);
+    expect(find.text('Yen'), findsNothing);
+
+    await tester.tap(find.byIcon(LucideIcons.filter));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dollar'), findsOneWidget);
+    expect(find.text('Yen'), findsOneWidget);
+  });
+
+  testWidgets('currency filter fits a narrow screen with enlarged text',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+        wrap(const AccountManagementScreen(), textScale: 1.6));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.filter));
+    await tester.pumpAndSettle();
+    expect(find.text('Apply'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
