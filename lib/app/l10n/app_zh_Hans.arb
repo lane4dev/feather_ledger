@@ -650,7 +650,7 @@
   "transactionModePlanned": "计划",
   "transactionModeSubscription": "订阅",
   "transactionModeRepeating": "重复",
-  "autoPostWhenDue": "到期自动入账",
+  "autoPostWhenDue": "自动入账",
   "overdueBillsAdded": "新补齐了 {count} 笔已到期账单",
   "repeatNever": "不重复",
   "repeatSetupFailed": "已保存。但重复规则创建失败：{error}",

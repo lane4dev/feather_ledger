@@ -1,5 +1,5 @@
-import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import 'package:feather_ledger/app/design_system/app_badge.dart';
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
@@ -210,11 +210,10 @@ class _RecurringBillFormScreenState
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomActionBar(
-          child: AppButton(
-        onPressed: _submit,
-        child: Text(l10n.save),
-      )),
+      bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
+          ? null
+          : AppBottomActionBar(
+              child: AppButton(onPressed: _submit, child: Text(l10n.save))),
     );
   }
 
@@ -277,7 +276,7 @@ class _RecurringBillFormScreenState
           return LedgerSelectorField(
             label: l10n.category,
             labelWidth: labelWidth,
-            text: selected?.name ?? l10n.category,
+            text: selected?.name ?? l10n.select,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
@@ -322,7 +321,7 @@ class _RecurringBillFormScreenState
           return LedgerSelectorField(
             label: l10n.account,
             labelWidth: labelWidth,
-            text: selected?.account.name ?? l10n.account,
+            text: selected?.account.name ?? l10n.select,
             textStyle: selected == null
                 ? theme.textTheme.bodyLarge?.copyWith(color: theme.hintColor)
                 : null,
@@ -444,6 +443,7 @@ class _RecurringBillFormScreenState
       LedgerFormRow(
         icon: LucideIcons.refreshCw,
         onTap: () => setState(() => _autoPost = !_autoPost),
+        showChevron: false,
         child: Row(
           children: [
             SizedBox(
@@ -570,33 +570,32 @@ class _RecurringBillFormScreenState
 
     final isRepeatingUpdate = scope == RecurringScope.updateRule &&
         series?.mode == RecurringSeriesMode.repeating;
-    final result =
-        await ref.read(recurringViewModelProvider.notifier).updateBill(
-              widget.transaction.id,
-              scope: scope,
-              amountMinor: parseMinor(_amount.text),
-              date: _date,
-              categoryId: _categoryId ?? widget.transaction.category!.id,
-              accountId: _accountId ?? widget.transaction.account.id,
-              description: _note.text.trim(),
-              frequency: isRepeatingUpdate ? _frequency : null,
-              interval: isRepeatingUpdate ? _interval : null,
-              weekdays: isRepeatingUpdate ? _weekdays : null,
-              endDate: isRepeatingUpdate ? _endDate : null,
-              countLimit: isRepeatingUpdate ? _countLimit : null,
-              clearEndDate: isRepeatingUpdate &&
-                  _endDate == null &&
-                  series?.endDate != null,
-              clearCountLimit: isRepeatingUpdate &&
-                  _countLimit == null &&
-                  series?.limit != null,
-              autoPost: isRepeatingUpdate ? _autoPost : null,
-              reminderMinutes:
-                  scope == RecurringScope.updateRule ? _reminderMinutes : null,
-              clearReminder: scope == RecurringScope.updateRule &&
-                  _reminderMinutes == null &&
-                  series?.reminderMinutes != null,
-            );
+    final result = await ref
+        .read(recurringViewModelProvider.notifier)
+        .updateBill(
+          widget.transaction.id,
+          scope: scope,
+          amountMinor: parseMinor(_amount.text),
+          date: _date,
+          categoryId: _categoryId ?? widget.transaction.category!.id,
+          accountId: _accountId ?? widget.transaction.account.id,
+          description: _note.text.trim(),
+          frequency: isRepeatingUpdate ? _frequency : null,
+          interval: isRepeatingUpdate ? _interval : null,
+          weekdays: isRepeatingUpdate ? _weekdays : null,
+          endDate: isRepeatingUpdate ? _endDate : null,
+          countLimit: isRepeatingUpdate ? _countLimit : null,
+          clearEndDate:
+              isRepeatingUpdate && _endDate == null && series?.endDate != null,
+          clearCountLimit:
+              isRepeatingUpdate && _countLimit == null && series?.limit != null,
+          autoPost: isRepeatingUpdate ? _autoPost : null,
+          reminderMinutes:
+              scope == RecurringScope.updateRule ? _reminderMinutes : null,
+          clearReminder: scope == RecurringScope.updateRule &&
+              _reminderMinutes == null &&
+              series?.reminderMinutes != null,
+        );
 
     if (!mounted) return;
 

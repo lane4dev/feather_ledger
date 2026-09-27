@@ -650,7 +650,7 @@
   "transactionModePlanned": "計畫",
   "transactionModeSubscription": "訂閱",
   "transactionModeRepeating": "重複",
-  "autoPostWhenDue": "到期自動入帳",
+  "autoPostWhenDue": "自動入帳",
   "overdueBillsAdded": "新補齊了 {count} 筆已到期帳單",
   "repeatNever": "不重複",
   "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}",

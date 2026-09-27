@@ -1448,7 +1448,7 @@ abstract class AppLocalizations {
   /// Toggle in transaction form controlling whether a repeating series auto-posts when bills fall due
   ///
   /// In en, this message translates to:
-  /// **'Auto-post when due'**
+  /// **'Auto-post'**
   String get autoPostWhenDue;
 
   /// Session banner on ledger screen when bounded materialization adds newly discovered overdue bills

@@ -19,6 +19,7 @@ import 'package:feather_ledger/features/ledger/domain/services/recurring_service
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 
 import '../../../support/fakes/recording_services.dart';
@@ -83,7 +84,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          preferencesRepositoryProvider.overrideWith((ref) async => preferences),
+          preferencesRepositoryProvider
+              .overrideWith((ref) async => preferences),
           accountListProvider.overrideWithValue(const AsyncData([cash])),
           accountUiListProvider
               .overrideWithValue(AsyncData([AccountUiModel.of(cash)])),
@@ -137,6 +139,30 @@ void main() {
     await settle(tester);
   }
 
+  testWidgets('required account and category errors appear in the value hint',
+      (tester) async {
+    await pumpForm(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(LedgerAmountInput),
+        matching: find.byType(TextFormField),
+      ),
+      '500.00',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await settle(tester);
+
+    final fields = tester
+        .widgetList<LedgerSelectorField>(find.byType(LedgerSelectorField));
+    for (final label in ['Account', 'Category']) {
+      final field = fields.singleWhere((field) => field.label == label);
+      expect(field.text, 'Required');
+      expect(field.errorText, isNull);
+    }
+    expect(ledger.addedTransactions, isEmpty);
+    await teardownTree(tester);
+  });
+
   testWidgets(
       'three entry modes render and auto-post switch only appears in Repeating',
       (tester) async {
@@ -145,22 +171,23 @@ void main() {
     expect(find.text('Default'), findsOneWidget);
     expect(find.text('Planned'), findsOneWidget);
     expect(find.text('Repeating'), findsOneWidget);
-    expect(find.text('Auto-post when due'), findsNothing);
+    expect(find.text('Auto-post'), findsNothing);
 
     await tester.tap(find.text('Planned'));
     await settle(tester);
-    expect(find.text('Auto-post when due'), findsNothing);
+    expect(find.text('Auto-post'), findsNothing);
 
     await tester.tap(find.text('Repeating'));
     await settle(tester);
-    expect(find.text('Auto-post when due'), findsOneWidget);
+    expect(find.text('Auto-post'), findsOneWidget);
     final sw = tester.widget<Switch>(find.byType(Switch));
     expect(sw.value, isFalse);
 
     await teardownTree(tester);
   });
 
-  testWidgets('toggling auto-post persists across form reopens and saves on repeating',
+  testWidgets(
+      'toggling auto-post persists across form reopens and saves on repeating',
       (tester) async {
     await pumpForm(tester);
     await tester.tap(find.text('Repeating'));
@@ -188,7 +215,7 @@ void main() {
     // Switching to Planned hides the switch and saves autoPost = false.
     await tester.tap(find.text('Planned'));
     await settle(tester);
-    expect(find.text('Auto-post when due'), findsNothing);
+    expect(find.text('Auto-post'), findsNothing);
     await fillExpense(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await settle(tester);

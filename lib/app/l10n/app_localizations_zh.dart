@@ -690,7 +690,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transactionModeRepeating => '重复';
 
   @override
-  String get autoPostWhenDue => '到期自动入账';
+  String get autoPostWhenDue => '自动入账';
 
   @override
   String overdueBillsAdded(int count) {
@@ -1657,7 +1657,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get transactionModeRepeating => '重复';
 
   @override
-  String get autoPostWhenDue => '到期自动入账';
+  String get autoPostWhenDue => '自动入账';
 
   @override
   String overdueBillsAdded(int count) {
@@ -2624,7 +2624,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get transactionModeRepeating => '重複';
 
   @override
-  String get autoPostWhenDue => '到期自動入帳';
+  String get autoPostWhenDue => '自動入帳';
 
   @override
   String overdueBillsAdded(int count) {

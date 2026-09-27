@@ -54,7 +54,7 @@ class LedgerEmpty extends StatelessWidget {
           ),
           if (!hasAccounts) ...[
             SizedBox(height: context.spacing.lg),
-            AppButton(
+            AppButton.outlined(
               onPressed: onCreateAccount,
               icon: const Icon(LucideIcons.plus),
               child: Text(l10n.addAccount),

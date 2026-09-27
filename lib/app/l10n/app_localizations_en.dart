@@ -711,7 +711,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionModeRepeating => 'Repeating';
 
   @override
-  String get autoPostWhenDue => 'Auto-post when due';
+  String get autoPostWhenDue => 'Auto-post';
 
   @override
   String overdueBillsAdded(int count) {
