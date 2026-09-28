@@ -103,9 +103,8 @@ class LedgerReceiptContent extends StatelessWidget {
       const AppReceiptDivider(),
       AppReceiptRow(
           label: l10n.date,
-          value: status == null
-              ? DateFormat.yMMMMEEEEd(locale).format(transaction.date)
-              : '${DateFormat.yMMMMEEEEd(locale).format(transaction.date)} ${DateFormat.Hm(locale).format(transaction.date)}'),
+          value: '${DateFormat.yMMMMd(locale).format(transaction.date)} '
+              '${DateFormat.Hm(locale).format(transaction.date)}'),
       if (transaction.series case final series?) ...[
         if (series.mode != RecurringSeriesMode.planned)
           AppReceiptRow(
