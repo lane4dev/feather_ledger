@@ -450,6 +450,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorScheduledAlreadyPosted => '该周期交易已入账';
 
   @override
+  String get errorScheduledNotSkipped => '仅已跳过的账单可以恢复为待入账';
+
+  @override
+  String get errorRecurringSeriesStopped => '该周期规则已停止';
+
+  @override
   String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
 
   @override
@@ -836,7 +842,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationSkipped => '已跳过这笔账单';
 
   @override
-  String get notificationUnavailable => '这笔账单已不可用。';
+  String get notificationUnavailable => '该账单已不存在。';
 
   @override
   String get notificationDeleted => '这笔账单已删除。';
@@ -942,8 +948,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String autoPostedCountMessage(int count) {
-    return '已自动记入 $count 笔订阅';
+    return '已自动记入 $count 笔自动入账账单';
   }
+
+  @override
+  String get skippedBill => '已跳过';
+
+  @override
+  String get restoreToPending => '恢复为待入账';
+
+  @override
+  String get billRestored => '已恢复为待入账';
 
   @override
   String get failedBill => '自动入账失败';
@@ -956,12 +971,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String currencyBacklogTitle(String currency) {
-    return '$currency 有待处理订阅';
+    return '$currency 有待自动入账账单';
   }
 
   @override
   String currencyBacklogMessage(int count) {
-    return '切换到其他币种期间，有 $count 笔开启自动入账的订阅已到期。';
+    return '切换到其他币种期间，有 $count 笔开启自动入账的账单已到期。';
   }
 
   @override
@@ -1417,6 +1432,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errorScheduledAlreadyPosted => '该周期交易已入账';
 
   @override
+  String get errorScheduledNotSkipped => '仅已跳过的账单可以恢复为待入账';
+
+  @override
+  String get errorRecurringSeriesStopped => '该周期规则已停止';
+
+  @override
   String get errorScheduledDateTaken => '这条规则在那天已经有一笔账单了';
 
   @override
@@ -1803,7 +1824,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get notificationSkipped => '已跳过这笔账单';
 
   @override
-  String get notificationUnavailable => '这笔账单已不可用。';
+  String get notificationUnavailable => '该账单已不存在。';
 
   @override
   String get notificationDeleted => '这笔账单已删除。';
@@ -1909,8 +1930,17 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String autoPostedCountMessage(int count) {
-    return '已自动记入 $count 笔订阅';
+    return '已自动记入 $count 笔自动入账账单';
   }
+
+  @override
+  String get skippedBill => '已跳过';
+
+  @override
+  String get restoreToPending => '恢复为待入账';
+
+  @override
+  String get billRestored => '已恢复为待入账';
 
   @override
   String get failedBill => '自动入账失败';
@@ -1923,12 +1953,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String currencyBacklogTitle(String currency) {
-    return '$currency 有待处理订阅';
+    return '$currency 有待自动入账账单';
   }
 
   @override
   String currencyBacklogMessage(int count) {
-    return '切换到其他币种期间，有 $count 笔开启自动入账的订阅已到期。';
+    return '切换到其他币种期间，有 $count 笔开启自动入账的账单已到期。';
   }
 
   @override
@@ -2384,6 +2414,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get errorScheduledAlreadyPosted => '該週期交易已入帳';
 
   @override
+  String get errorScheduledNotSkipped => '僅已略過的帳單可以恢復為待入帳';
+
+  @override
+  String get errorRecurringSeriesStopped => '該週期規則已停止';
+
+  @override
   String get errorScheduledDateTaken => '這條規則在那天已經有一筆帳單了';
 
   @override
@@ -2770,7 +2806,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get notificationSkipped => '已略過這筆帳單';
 
   @override
-  String get notificationUnavailable => '這筆帳單已無法使用。';
+  String get notificationUnavailable => '該帳單已不存在。';
 
   @override
   String get notificationDeleted => '這筆帳單已刪除。';
@@ -2876,8 +2912,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String autoPostedCountMessage(int count) {
-    return '已自動記入 $count 筆訂閱';
+    return '已自動記入 $count 筆自動入帳帳單';
   }
+
+  @override
+  String get skippedBill => '已略過';
+
+  @override
+  String get restoreToPending => '恢復為待入帳';
+
+  @override
+  String get billRestored => '已恢復為待入帳';
 
   @override
   String get failedBill => '自動入帳失敗';
@@ -2890,12 +2935,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String currencyBacklogTitle(String currency) {
-    return '$currency 有待處理訂閱';
+    return '$currency 有待自動入帳帳單';
   }
 
   @override
   String currencyBacklogMessage(int count) {
-    return '切換到其他幣種期間，有 $count 筆開啟自動入帳的訂閱已到期。';
+    return '切換到其他幣種期間，有 $count 筆開啟自動入帳的帳單已到期。';
   }
 
   @override

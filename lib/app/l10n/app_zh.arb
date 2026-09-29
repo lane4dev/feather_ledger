@@ -518,6 +518,8 @@
     "description": "Localized ledger error code message (spec 004)"
   },
   "errorScheduledAlreadyPosted": "该周期交易已入账",
+  "errorScheduledNotSkipped": "仅已跳过的账单可以恢复为待入账",
+  "errorRecurringSeriesStopped": "该周期规则已停止",
   "errorScheduledDateTaken": "这条规则在那天已经有一笔账单了",
   "errorCountLimitTooSmall": "总次数必须大于已入账和已跳过的次数",
   "editRecurringTitle": "编辑周期账单",
@@ -697,7 +699,7 @@
   "@reminderMinutesValue": {"placeholders": {"count": {"type": "int"}}},
   "notificationSkip": "跳过",
   "notificationSkipped": "已跳过这笔账单",
-  "notificationUnavailable": "这笔账单已不可用。",
+  "notificationUnavailable": "该账单已不存在。",
   "notificationDeleted": "这笔账单已删除。",
   "accountArchiveAction": "归档账户",
   "accountRestoreAction": "恢复账户",
@@ -744,12 +746,15 @@
       }
     }
   },
-  "autoPostedCountMessage": "已自动记入 {count} 笔订阅",
+  "autoPostedCountMessage": "已自动记入 {count} 笔自动入账账单",
+  "skippedBill": "已跳过",
+  "restoreToPending": "恢复为待入账",
+  "billRestored": "已恢复为待入账",
   "failedBill": "自动入账失败",
   "failedBillBanner": "自动入账失败，请检查账户或分类后重试记入或跳过本期。",
   "retryPost": "重试记入",
-  "currencyBacklogTitle": "{currency} 有待处理订阅",
-  "currencyBacklogMessage": "切换到其他币种期间，有 {count} 笔开启自动入账的订阅已到期。",
+  "currencyBacklogTitle": "{currency} 有待自动入账账单",
+  "currencyBacklogMessage": "切换到其他币种期间，有 {count} 笔开启自动入账的账单已到期。",
   "currencyBacklogPostAll": "全部入账",
   "currencyBacklogKeepPending": "保留为待入账"
 }

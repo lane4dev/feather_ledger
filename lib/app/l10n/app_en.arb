@@ -522,6 +522,8 @@
     "description": "Localized ledger error code message (spec 004)"
   },
   "errorScheduledAlreadyPosted": "This scheduled transaction was already posted",
+  "errorScheduledNotSkipped": "Only skipped bills can be restored to pending",
+  "errorRecurringSeriesStopped": "This recurring rule has been stopped",
   "errorScheduledDateTaken": "This series already has a bill on that date",
   "errorCountLimitTooSmall": "Total occurrences must be greater than the bills already recorded or skipped",
   "editRecurringTitle": "Edit recurring bill",
@@ -825,7 +827,7 @@
       }
     }
   },
-  "autoPostedCountMessage": "{count, plural, =1{Auto-posted 1 subscription} other{Auto-posted {count} subscriptions}}",
+  "autoPostedCountMessage": "{count, plural, =1{Auto-posted 1 scheduled bill} other{Auto-posted {count} scheduled bills}}",
   "@autoPostedCountMessage": {
     "placeholders": {
       "count": {
@@ -833,10 +835,13 @@
       }
     }
   },
+  "skippedBill": "Skipped",
+  "restoreToPending": "Restore to pending",
+  "billRestored": "Bill restored to pending",
   "failedBill": "Auto-post failed",
   "failedBillBanner": "Automatic posting failed. Check the account or category, then retry or skip.",
   "retryPost": "Retry post",
-  "currencyBacklogTitle": "Due subscriptions in {currency}",
+  "currencyBacklogTitle": "Due auto-posting bills in {currency}",
   "@currencyBacklogTitle": {
     "placeholders": {
       "currency": {
@@ -844,7 +849,7 @@
       }
     }
   },
-  "currencyBacklogMessage": "{count, plural, =1{1 auto-posting subscription became due while using another currency.} other{{count} auto-posting subscriptions became due while using another currency.}}",
+  "currencyBacklogMessage": "{count, plural, =1{1 auto-posting bill became due while using another currency.} other{{count} auto-posting bills became due while using another currency.}}",
   "@currencyBacklogMessage": {
     "placeholders": {
       "count": {

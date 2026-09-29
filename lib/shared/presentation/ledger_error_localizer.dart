@@ -35,6 +35,9 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
           l10n.errorTransactionAlreadyReversed,
         LedgerErrorCode.scheduledAlreadyPosted =>
           l10n.errorScheduledAlreadyPosted,
+        LedgerErrorCode.scheduledNotSkipped => l10n.errorScheduledNotSkipped,
+        LedgerErrorCode.recurringSeriesStopped =>
+          l10n.errorRecurringSeriesStopped,
         LedgerErrorCode.scheduledDateTaken => l10n.errorScheduledDateTaken,
         LedgerErrorCode.countLimitTooSmall => l10n.errorCountLimitTooSmall,
         LedgerErrorCode.unknownEvent => l10n.errorUnknownEvent,

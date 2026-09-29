@@ -970,6 +970,18 @@ abstract class AppLocalizations {
   /// **'This scheduled transaction was already posted'**
   String get errorScheduledAlreadyPosted;
 
+  /// No description provided for @errorScheduledNotSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Only skipped bills can be restored to pending'**
+  String get errorScheduledNotSkipped;
+
+  /// No description provided for @errorRecurringSeriesStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'This recurring rule has been stopped'**
+  String get errorRecurringSeriesStopped;
+
   /// No description provided for @errorScheduledDateTaken.
   ///
   /// In en, this message translates to:
@@ -1922,8 +1934,26 @@ abstract class AppLocalizations {
   /// No description provided for @autoPostedCountMessage.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Auto-posted 1 subscription} other{Auto-posted {count} subscriptions}}'**
+  /// **'{count, plural, =1{Auto-posted 1 scheduled bill} other{Auto-posted {count} scheduled bills}}'**
   String autoPostedCountMessage(int count);
+
+  /// No description provided for @skippedBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get skippedBill;
+
+  /// No description provided for @restoreToPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore to pending'**
+  String get restoreToPending;
+
+  /// No description provided for @billRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill restored to pending'**
+  String get billRestored;
 
   /// No description provided for @failedBill.
   ///
@@ -1946,13 +1976,13 @@ abstract class AppLocalizations {
   /// No description provided for @currencyBacklogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Due subscriptions in {currency}'**
+  /// **'Due auto-posting bills in {currency}'**
   String currencyBacklogTitle(String currency);
 
   /// No description provided for @currencyBacklogMessage.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 auto-posting subscription became due while using another currency.} other{{count} auto-posting subscriptions became due while using another currency.}}'**
+  /// **'{count, plural, =1{1 auto-posting bill became due while using another currency.} other{{count} auto-posting bills became due while using another currency.}}'**
   String currencyBacklogMessage(int count);
 
   /// No description provided for @currencyBacklogPostAll.

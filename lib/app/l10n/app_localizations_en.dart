@@ -461,6 +461,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'This scheduled transaction was already posted';
 
   @override
+  String get errorScheduledNotSkipped =>
+      'Only skipped bills can be restored to pending';
+
+  @override
+  String get errorRecurringSeriesStopped =>
+      'This recurring rule has been stopped';
+
+  @override
   String get errorScheduledDateTaken =>
       'This series already has a bill on that date';
 
@@ -982,11 +990,20 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Auto-posted $count subscriptions',
-      one: 'Auto-posted 1 subscription',
+      other: 'Auto-posted $count scheduled bills',
+      one: 'Auto-posted 1 scheduled bill',
     );
     return '$_temp0';
   }
+
+  @override
+  String get skippedBill => 'Skipped';
+
+  @override
+  String get restoreToPending => 'Restore to pending';
+
+  @override
+  String get billRestored => 'Bill restored to pending';
 
   @override
   String get failedBill => 'Auto-post failed';
@@ -1000,7 +1017,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String currencyBacklogTitle(String currency) {
-    return 'Due subscriptions in $currency';
+    return 'Due auto-posting bills in $currency';
   }
 
   @override
@@ -1009,9 +1026,8 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count auto-posting subscriptions became due while using another currency.',
-      one:
-          '1 auto-posting subscription became due while using another currency.',
+          '$count auto-posting bills became due while using another currency.',
+      one: '1 auto-posting bill became due while using another currency.',
     );
     return '$_temp0';
   }

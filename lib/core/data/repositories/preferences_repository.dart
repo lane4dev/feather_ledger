@@ -19,10 +19,11 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   static const _keyCurrency = 'currency_code';
   static const _keyShowBalance = 'show_balance';
 
-  // Local-only: remembers the user's last choice on the repeating form's
-  // auto-post toggle; deliberately absent from [_knownKeys] so backup never
-  // overwrites the target device's local preference.
-  static const _keyLastRecurringAutoPost = 'last_recurring_auto_post';
+  // Local-only: remembers the user's last choice on the planned & repeating
+  // forms' auto-post toggles independently; deliberately absent from
+  // [_knownKeys] so backup never overwrites the target device's local preference.
+  static const _keyLastPlannedAutoPost = 'last_planned_auto_post';
+  static const _keyLastRepeatingAutoPost = 'last_repeating_auto_post';
   static const _keyLastTransactionAccount = 'last_transaction_account';
 
   @override
@@ -83,13 +84,23 @@ class PreferencesRepositoryImpl implements PreferencesRepository {
   }
 
   @override
-  bool getLastRecurringAutoPost() {
-    return _prefs.getBool(_keyLastRecurringAutoPost) ?? false;
+  bool getLastPlannedAutoPost() {
+    return _prefs.getBool(_keyLastPlannedAutoPost) ?? false;
   }
 
   @override
-  Future<void> setLastRecurringAutoPost(bool enabled) {
-    return _prefs.setBool(_keyLastRecurringAutoPost, enabled);
+  Future<void> setLastPlannedAutoPost(bool enabled) {
+    return _prefs.setBool(_keyLastPlannedAutoPost, enabled);
+  }
+
+  @override
+  bool getLastRepeatingAutoPost() {
+    return _prefs.getBool(_keyLastRepeatingAutoPost) ?? false;
+  }
+
+  @override
+  Future<void> setLastRepeatingAutoPost(bool enabled) {
+    return _prefs.setBool(_keyLastRepeatingAutoPost, enabled);
   }
 
   @override

@@ -25,12 +25,19 @@ abstract class PreferencesRepository {
   /// Sets whether to show the total balance.
   Future<void> setShowBalance(bool show);
 
+  /// Whether the user's last created one-shot planned bill enabled auto-post.
+  /// Local-only: default false, never carried by the backup.
+  bool getLastPlannedAutoPost();
+
+  /// Persists the user's last choice for the planned auto-post switch.
+  Future<void> setLastPlannedAutoPost(bool enabled);
+
   /// Whether the user's last created repeating rule enabled auto-post.
   /// Local-only: default false, never carried by the backup.
-  bool getLastRecurringAutoPost();
+  bool getLastRepeatingAutoPost();
 
   /// Persists the user's last choice for the repeating auto-post switch.
-  Future<void> setLastRecurringAutoPost(bool enabled);
+  Future<void> setLastRepeatingAutoPost(bool enabled);
 
   /// The last account explicitly chosen on a transaction form, local to this device.
   String? getLastTransactionAccount();
