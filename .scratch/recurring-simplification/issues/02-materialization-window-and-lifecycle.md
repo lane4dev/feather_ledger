@@ -33,9 +33,12 @@ Chart 阶段已锁定：
    - 物化未来窗口收敛为：**以今天为起点向后 90 天内，每条活跃 `repeating` 规则最多保留 `3` 期未来 `scheduled` 实例，且至少保底生成未来 `1` 期**（用于兜住每年规则，去掉 `_floorLookaheadYears = 3` 的 3 年长距离前瞻）。
    - `planned` 规则（仅 1 期 `'single'`）按自身 `scheduledDate` 物化，不受 90 天滚动多期窗口限制。
    - 彻底取消 `extraCount` 末尾顺延补期逻辑。
-2. **历史欠账截断与会话级 UI 提醒**：
-   - 启动/物化时若发现早于今天的未物化过期期次，**仅回溯最近 30 天内，且单条规则最多补生成最近 `3` 期过期实例**；超过 30 天或超过 3 期的更早未物化历史直接忽略不展开；已在表里的旧 `scheduled` 行保留不动。
-   - 物化命令（`ProjectRecurringEventsCommand`）返回 `newlyMaterializedOverdueCount`（本次物化新写入的过期实例数量）。当 `newlyMaterializedOverdueCount > 0` 时，账本页顶部展示一条**纯会话级、可手动关闭的非阻塞 Banner**（提示「本次新补齐了 N 笔已到期账单，请核对处理」，点击关闭或全部处理后消失；不新增表或持久化字段，下次启动不再对同一批已入库实例重复弹窗）。
+2. **历史欠账全量补齐与会话级 UI 提醒**：
+   - 启动/物化时若发现早于今天的未物化过期期次，**从 `series.startDate` 起补齐所有缺失的历史期次实例**（取消「最近 30 天内、单条规则最多补生成最近 3 期」的截断且不设人工硬截断上限）；已在表里的历史行（`scheduled`/`posted`/`skipped`/`failed`）保持幂等不重复生成。
+   - 开启 `autoPost` 的活跃规则补齐的历史实例由自动入账流自动生成已入账交易记录（仅受备份恢复 `manualOnly` 与当前币种约束）；关闭 `autoPost` 的规则则生成 `scheduled` 待入账交易记录。
+   - 物化命令（`ProjectRecurringEventsCommand`）返回新补齐且**不会自动入账、需用户手动核对**的过期实例数量 `newlyMaterializedOverdueCount`（即 `autoPost == false` 或 `manualOnly == true`）。当 `newlyMaterializedOverdueCount > 0` 时，账本页顶部展示一条**纯会话级、可手动关闭的非阻塞 Banner**（提示「本次新补齐了 N 笔已到期账单，请核对处理」，点击关闭或全部处理后消失；不新增表或持久化字段，下次启动不再对同一批已入库实例重复弹窗）。
+
+> **[2026-11-23 规格调整对齐]**：原 Round 1/2 确认的「30 天最多 3 期历史欠账截断」已取消并改为无硬上限全量补齐；`newlyMaterializedOverdueCount` 仅统计非自动入账待核对实例。
 3. **有限规则与 `skipped` 完结语义**：
    - 每次「跳过（`skipped`）」**消耗 `countLimit` 的 1 次计数**，绝不向后顺延新增期次。
    - 当全部期次都进入终态（`posted` / `skipped`）或超过 `endDate` 后，**物理保留 `RecurringSeries` 记录与历史实例行**（维持外键与 `sourceScheduledBillId` 溯源），物化器自然跳过不再生成。

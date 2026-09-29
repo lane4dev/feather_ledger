@@ -1,6 +1,6 @@
 # 06: 稳定 UUID 提醒全量对账、深链直达与死代码清理
 
-**What to build:** 通知调度与深链彻底脱离重定向链与旧批次逻辑：`ReminderSchedule` 与 `RecurringReminders` 按 `effectiveDate - reminderMinutes` 与稳定 UUID 对全部有效 `planned` / `repeating`（含 `autoPost`）待处理账单做全量对账；`ReminderResponseHandler` 直接按实例 UUID 查询分发（`scheduled`/`failed` 打开 `PendingBillSheet` 或快捷记入/跳过；`posted` 仅通过 `getTransactionBySourceBill(bill.id)` 打开交易详情；`skipped`/已删或对应交易已冲正给通用「该账单或交易已不可用」轻提示）；清理全工程残留失效 ARB 本地化键与测试替身，完成最终回归验收。
+**What to build:** 通知调度与深链彻底脱离重定向链与旧批次逻辑：`ReminderSchedule` 与 `RecurringReminders` 按 `effectiveDate - reminderMinutes` 与稳定 UUID 对全部有效 `planned` / `repeating`（含 `autoPost`）待处理账单做全量对账；`ReminderResponseHandler` 直接按实例 UUID 查询分发（`scheduled`/`failed` 打开 `PendingBillSheet` 或快捷记入/跳过；`posted` 仅通过 `getTransactionBySourceBill(bill.id)` 打开交易详情；**`skipped` 直接跳转 `/ledger` 并打开 `PendingBillSheet` 方便用户一键恢复为待入账**；库中查无此 UUID 或交易已冲正给对应轻提示）；清理全工程残留失效 ARB 本地化键与测试替身，完成最终回归验收。
 
 **Blocked by:** 01: Schema v15 洁净重构与废旧状态机清除, 04: 二元编辑作用域、单期跳过与停止周期规则, 05: 自动入账、恢复水线、币种切回补录与 `failed` 失败闭环
 
@@ -8,7 +8,7 @@
 
 ## Pre-agreed TDD Seams
 1. `ReminderSchedule` & `RecurringReminders` 接缝：验证同时调度 `planned` 与 `repeating`（含 `autoPost`）、改期覆盖（`dateOverride`）重算触发时刻、payload 为稳定 UUID 且通知 ID 稳定。
-2. `ReminderResponseHandler` 接缝：验证点击通知按 UUID 直查分发 4 种状态（`scheduled`/`failed`、`posted` 查 `getTransactionBySourceBill`、`skipped`/缺失、交易已冲正提示不可用），无重定向表查询与 `bill.transactionId` 兜底。
+2. `ReminderResponseHandler` 接缝：验证点击通知按 UUID 直查分发 4 种状态（`scheduled`/`failed` 打开待办弹窗、`skipped` 直达该账单弹窗触发恢复、`posted` 查 `getTransactionBySourceBill`、库中查无 UUID 提示「该账单已不存在」、交易已冲正提示已删除），无重定向表查询与 `bill.transactionId` 兜底。
 
 ## File Changes
 - **Modify**:

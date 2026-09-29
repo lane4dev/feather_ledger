@@ -36,8 +36,14 @@ Chart 阶段已锁定：
 ## Answer
 
 1. **一次性计划（`planned`）与周期账单（`repeating`）的操作边界**：
-   - **`planned`（一次性计划）**：编辑时直接更新该计划及唯一实例（不弹作用域框）；溢出菜单只提供「**删除计划**」（二次确认后物理删除该 `RecurringSeries` 与对应实例），不提供「跳过」。
+   - **`planned`（一次性计划）**：新建与编辑页均支持配置 `autoPost` 开关（交互对齐 `repeating`，UI 标签保持「计划」）；编辑时直接更新该计划及唯一实例（不弹作用域框）；溢出菜单只提供「**删除计划**」（二次确认后物理删除该 `RecurringSeries` 与对应实例），不提供「跳过」。
    - **`repeating`（周期账单）**：溢出菜单直接平铺「**跳过本期**」（将实例置为 `skipped`）与「**停止周期规则**」两个独立动作，各自走独立二次确认，**彻底取消删除作用域弹窗**，单期绝不提供“删除”入口或字样。
+   - **UI 显示已跳过与失败账单，并支持恢复 `skipped`**：
+     - 账本页按天时间轴内联展示 `scheduled`、`failed` 与 `skipped` 行；`skipped` 行采用弱化样式 + **删除线** + 「已跳过」Badge（不计入当日小计与月度合计；当天只有 `skipped` 行时日期分组照常显示）。
+     - 月份选择器红点（`pendingBillMonths`）仅统计 `scheduled` 与 `failed`，不因仅有 `skipped` 而标记月份。
+     - 点开 `skipped` 账单详情弹窗仅提供「**恢复为待入账**」主操作（隐藏记入/编辑/跳过）；所属账户已归档或已删除时禁止恢复；若恢复的 `skipped` 实例属于 `autoPost == true` 规则且已到期（`effectiveDate <= now`），恢复时**自动置 `manualOnly = true`**（改期到未来则清除）。
+
+> **[2026-11-23 规格调整对齐]**：补充 `planned` 编辑态 `autoPost` 开关、UI 内联展示 `skipped`（删除线）与 `failed` 账单及 `skipped -> scheduled` 恢复边界。
 2. **「仅修改本期（`thisOnly`）」与二元作用域交互**：
    - 作用域枚举收敛为二元：`thisOnly` | `updateRule`（删除旧 `thisAndFollowing` 与 `all`）。
    - **单期改期允许同日并存**：依托 UUID + `UNIQUE(series_id, occurrence_key)`，同一系列两期实际日期落在同一天时不再报 `scheduledDateTaken` 冲突。
@@ -45,8 +51,8 @@ Chart 阶段已锁定：
    - **规则专属字段限制**：当用户在编辑页改动了规则专属字段（分类、账户、`autoPost` 开关、重复频率）时，保存作用域弹窗禁用「仅修改本期」并提示仅能选择「更新周期规则」。
 3. **「更新规则（`updateRule`）」编辑范围与刷新策略**：
    - 编辑页支持修改全部规则模板字段：金额、基准日期、分类、账户、备注、提醒、**`autoPost` 开关**与**重复频率（每日/每周/每月/每年）**。
-   - **未改变排期日期与频率时**：原地更新 `RecurringSeries`；尚未入账实例中对应覆盖列为 `null` 者自动继承新规则，用户之前单期手工调整过的非 `null` 覆盖列继续保留；已 `posted`/`skipped` 历史行永远不动。
-   - **改变了基准日期或重复频率时**：更新系列新规则（含新 `startDate` / `frequency`），保留已 `posted`/`skipped` 行，**删除该系列下所有尚未入账的 `scheduled`（含 `failed`）实例**，再按新规则从新日期起重新物化未来窗口（若设有 `countLimit`，已生成的 `posted`/`skipped` 行继续计入已消耗次数）。
+   - **未改变基准日期与重复周期时**（即 `date` 与 `frequency`/`interval`/`weekdays` 均未变）：原地更新 `RecurringSeries`；尚未入账实例中对应覆盖列为 `null` 者自动继承新规则，用户之前单期手工调整过的非 `null` 覆盖列继续保留；已 `posted`/`skipped` 历史行不动（`countLimit >= K + 1` 中 `K` 计 `posted + skipped`）。
+   - **改变了基准日期或重复周期时**（`date` 或 `frequency`/`interval`/`weekdays` 任一改变）：更新系列新规则（`series.startDate` 设为本次编辑日期），**不保留 `skipped` 历史、仅保留 `posted` 行**——删除该系列下所有 `scheduled`、`failed` 与 `skipped` 行，再按新规则从新日期起重新物化（`countLimit >= K + 1` 中 `K` 仅计 `posted`；若新排期与 `posted` 撞期则跳过该日不重复物化）。
 4. **「停止周期规则」持久化语义**：
-   - 采用**软停用**：新增 `RecurringSeries.isActive: bool`（默认 `true`），停止时置为 `false`，并**删除该系列下所有尚未入账的 `scheduled`（含 `failed`）实例**。
-   - 物理保留 `RecurringSeries` 与全部历史 `posted`/`skipped` 实例，确保 `sourceScheduledBillId` 溯源与外键永不断链；物化查询仅扫描 `isActive == true` 的规则。
+   - 采用**软停用**：新增 `RecurringSeries.isActive: bool`（默认 `true`），停止时置为 `false`，并**删除该系列下所有 `scheduled`、`failed` 与 `skipped` 实例**。
+   - 物理保留 `RecurringSeries` 与全部历史 `posted` 实例，确保 `sourceScheduledBillId` 溯源与外键永不断链；物化查询仅扫描 `isActive == true` 的规则。

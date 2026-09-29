@@ -45,9 +45,13 @@ Chart 阶段已锁定：
    - 当用户将当前显示币种切换为 `C` 时，查询 `currency == C && status == scheduled && effectiveDate <= now && !manualOnly && series.autoPost == true` 的积压实例：
      - 仅在存在积压项时弹出轻量确认弹窗提供二选一：**「一键全部自动补记」**（立即转正为交易）或**「转为待手动处理」**（标为 `manualOnly = true`，留在账本待入账区逐条处理；切回后新到期的未来期次照常自动入账）。
      - 普通 `autoPost == false` 的手动到期账单与 `manualOnly == true` 的恢复前旧账单不进弹窗，直接呈现在待入账列表。
-3. **当前币种常规启动自动入账、UI 提示与失败处理**：
-   - 当前币种下，满足 `series.isActive && series.autoPost && !manualOnly && status == scheduled && effectiveDate <= now`（且账户未归档）的实例（包含 Ticket 02 在最近 30 天内新补齐的最多 3 期过期 `autoPost` 实例），在首帧后异步分片执行自动入账（每 20 笔 `Future.delayed(Duration.zero)` 让出事件循环），保留冷启动通知「跳过」优先于自动入账的 deferral 机制，并废除 `AutomaticPostingBatches` / `AutomaticPostingBatchMembers`。
-   - 当次启动成功自动入账 `N >= 1` 笔时，弹出轻量 SnackBar 提示「已自动记入 N 笔订阅」。
-   - 单笔入账失败时保留 `ScheduledTransactionStatus.failed` 状态（不阻塞同批其余实例），留在待入账列表置顶警示并允许用户点开 `PendingBillSheet` 重试「记入」或「跳过本期」。
-4. **规则开关由关闭切为开启（`autoPost: false -> true`）**：
-   - 在「更新规则」中开启 `autoPost` 时，仅对保存时刻之后新到期的未来期次生效；当时已经过期的既有 `scheduled` 实例自动标为 `manualOnly = true`，避免点保存瞬间误扣旧待入账。
+3. **当前币种常规启动与保存后即时自动入账、UI 提示与失败处理**：
+   - 当前币种下，满足 `series.isActive && series.autoPost && !manualOnly && status == scheduled && effectiveDate <= now`（且账户未归档）的实例（涵盖 `planned` 与 `repeating`，以及 Ticket 02 补齐的所有缺失历史 `autoPost` 实例），在启动首帧后异步分片执行自动入账（每 20 笔 `Future.delayed(Duration.zero)` 让出事件循环），保留冷启动通知「跳过」优先于自动入账的 deferral 机制，并废除 `AutomaticPostingBatches` / `AutomaticPostingBatchMembers`。
+   - **保存后即时自动入账**：在表单新建或通过 `updateRule` 开启 `autoPost = true` 且存在已到期实例时，保存并完成物化后**当场对当前币种该规则执行 `catchUpAutoPosted`** 并弹出入账汇总 SnackBar（非当前币种保持静默直到切回币种）。
+   - 当次自动入账成功 `N >= 1` 笔时，弹出轻量 SnackBar 提示（兼容 `planned` 与 `repeating` 的泛化文案，如「已自动记入 N 笔计划或订阅账单」）。
+   - 单笔入账失败时保留 `ScheduledTransactionStatus.failed` 状态（不阻塞同批其余实例），留在账本列表展示并置顶警示，允许用户点开 `PendingBillSheet` 重试「记入」或「跳过本期」。
+
+> **[2026-11-23 规格调整对齐]**：`autoPost` 适用范围扩展至 `planned`；取消创建与开启 `autoPost` 时的过去期次 `manualOnly` 拦截，保存后对当前币种当场补齐并自动入账。
+4. **创建或开启 `autoPost` 不设过去期次保护**：
+   - 创建 `autoPost = true` 规则（`planned` 或 `repeating`）或在 `updateRule` 将 `autoPost` 从 `false` 改为 `true` 且起点包含过去/当前日期时，物化出的全部缺失历史期次均保持 `manualOnly = false`，对当前币种当场自动生成已入账交易（跨币种切回时进入积压弹窗）。
+   - 防误扣拦截仅保留于 `.flbackup` 备份恢复水线（`markPreRestoreManualOnly`）与恢复已到期 `skipped` 实例两处场景。

@@ -8,7 +8,7 @@
 
 ## Pre-agreed TDD Seams
 1. `AppDatabase` (`v14 -> v15`) 升级接缝：验证升级后 4 张废表被删除、`RecurringSeries` 与 `ScheduledTransactionsView` 按 v15 重建，且 `ledger_events` 与 4 张事件溯源投影视图表数据完好无损。
-2. `PreferencesRepository` 接缝：验证旧全局开关与时钟边界 API 已清除；新增本机偏好 `lastRecurringAutoPost`（默认 `false` 且不进入 `exportAll`/`importAll`）。
+2. `PreferencesRepository` 接缝：验证旧全局开关与时钟边界 API 已清除；新增本机偏好 `lastPlannedAutoPost` 与 `lastRepeatingAutoPost`（各自独立记忆，默认 `false` 且不进入 `exportAll`/`importAll`）。
 3. `AccountLifecycleCommand` archive 接缝：验证账户归档将已到期账单转为 UUID + `occurrenceKey: 'single'` 的一次性 `planned` 账单。
 
 ## File Changes
@@ -60,5 +60,5 @@
 ## Acceptance Criteria
 - [ ] 4 张废表（`AutomaticPostingBatches`、`AutomaticPostingBatchMembers`、`RestoreConfirmationBatches`、`ScheduledBillRedirects`）及 3 套全局自动入账开关/时间边界彻底删除；
 - [ ] `AppDatabase` 升至 v15，`v14 -> v15` 升级单测验证周期 CRUD 表干净重建且 `ledger_events` 与 4 张事件溯源视图数据零损失；
-- [ ] `PreferencesRepository` 新增 `lastRecurringAutoPost` 本机偏好（默认 `false`，不入备份）；
+- [ ] `PreferencesRepository` 新增 `lastPlannedAutoPost` 与 `lastRepeatingAutoPost` 各自独立本机偏好（默认 `false`，不入备份）；
 - [ ] `dart run build_runner build -d`、`flutter analyze` 零错误、`flutter test` 全量绿灯。

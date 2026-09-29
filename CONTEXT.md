@@ -55,18 +55,19 @@ _Avoid_: correction category, edited account balance
 
 **Recurring series**:
 A rule that produces the same transaction on a schedule. Its kind is income or expense only — a transfer
-has two accounts to move between, and a series has one. A repeating series with automatic posting
-enabled has its due instances confirmed by the app at launch; the UI label for that is 订阅
-(subscription), which stays a label — the domain term is recurring series. A one-shot series is the
-计划 (planned) entry: one pending bill, no recorded transaction. Stopping a recurring series halts
-future generation and removes pending instances while leaving already-posted transactions and history
-intact.
+has two accounts to move between, and a series has one. Both one-shot (`planned`) and repeating
+(`repeating`) series can enable automatic posting; a repeating series with automatic posting enabled
+keeps the UI label 订阅 (subscription) and a one-shot series keeps the UI label 计划 (planned),
+which stay UI labels — the domain term is recurring series. Stopping a recurring series halts future
+generation and removes pending and skipped instances while leaving already-posted transactions and
+history intact.
 _Avoid_: recurring transaction, schedule, subscription
 
 **Automatic posting**:
 Recording a due auto-posting scheduled bill in the ledger without a separate manual confirmation, when
-its currency is the current currency and it is not marked manual-only. It records a money movement and
-does not itself transfer money or pay a bill.
+its currency is the current currency and it is not marked manual-only (at launch, on currency
+switch-back, or immediately after saving an auto-posting rule for the current currency). It records
+a money movement and does not itself transfer money or pay a bill.
 _Avoid_: automatic payment, automatic debit
 
 **Source bill**:
@@ -77,15 +78,16 @@ _Avoid_: transaction mode, payment source
 
 **Manual-only bill**:
 A pending bill that must be handled by the user rather than posted automatically (for example, a bill
-due before a backup restore, kept manual on currency switch-back, or already overdue when automatic
-posting is enabled on a rule). Rescheduling a manual-only bill to a future date clears this mark.
+due before a backup restore, kept manual on currency switch-back, or restored from a skipped state
+while already due under an auto-posting rule). Rescheduling a manual-only bill to a future date
+clears this mark.
 _Avoid_: failed bill, skipped bill
 
 **Entry mode**:
 The intent selected when creating an entry: default (immediate transaction), planned (one-off future
-bill), or repeating (recurring series). Automatic posting is an option on a repeating series rather
-than a separate entry mode. Once posted, the resulting transaction is presented as an ordinary
-transaction.
+bill), or repeating (recurring series). Automatic posting is an option on a planned or repeating
+series rather than a separate entry mode. Once posted, the resulting transaction is presented as an
+ordinary transaction.
 _Avoid_: payment method, recurrence frequency
 
 ### Money

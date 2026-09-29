@@ -12,8 +12,8 @@ and removes the need for a redirect table or deletion-stub table.
 
 Editing a recurring rule (`updateRule`) applies only to pending future bills—never
 splitting a series or shifting already-posted transactions—and when frequency or
-start date changes, pending unposted rows are cleared and re-materialized under the
-new rule. The trade-off is that unposted future bills receive new UUIDs when a rule's
+start date changes, pending unposted and skipped rows are cleared (leaving only posted
+rows) and re-materialized under the new rule. The trade-off is that unposted future bills receive new UUIDs when a rule's
 schedule changes, invalidating their pending notification payloads until reminders
 re-sync; we accept this to keep personal-ledger scheduling free of calendar-style
 series splitting, redirect chains, and multi-batch eligibility state machines.

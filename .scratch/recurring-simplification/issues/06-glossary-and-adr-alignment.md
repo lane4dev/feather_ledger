@@ -27,12 +27,12 @@ Blocked by: 01, 02, 03, 04, 05
 
 1. **`CONTEXT.md` 术语收敛（7 项调整，不新增多余概念）**：
    - 删除 `Bill eligibility`（语义合并进 `Automatic posting` 与 `Manual-only bill`，移除对 `AutomaticPostingPolicy` 与旧水线的引用）。
-   - 重写 `Manual-only bill`：不再是不可解除的永久锁，用户显式单期改期到未来日期时解除。
-   - 重写 `Entry mode`：收敛为 `default`、`planned`、`repeating` 三种，说明 `autoPost` 为 `repeating` 上的属性。
-   - 重写 `Automatic posting`：去除了旧资格状态机术语，表述为「当前币种 + 开启 `autoPost` + 非 `manual-only`」时的自动记账行为。
-   - 微调 `Recurring series`：保留「订阅（subscription）仅作开启自动入账时的 UI 标签」，补充 `planned` 与停用不删历史已入账记录的边界。
+   - 重写 `Manual-only bill`：不再是不可解除的永久锁，用户显式单期改期到未来日期时解除；移除"开启 `autoPost` 时已过期保护"示例，补充「在 `autoPost` 规则下把已到期 `skipped` 实例恢复为待入账」场景。
+   - 重写 `Entry mode`：收敛为 `default`、`planned`、`repeating` 三种，说明 `autoPost` 为 `planned` 与 `repeating` 均可配置的选项。
+   - 重写 `Automatic posting`：去除了旧资格状态机术语，表述为「当前币种 + 开启 `autoPost` + 非 `manual-only`」时的自动记账行为（涵盖启动、切回币种与保存规则后即时执行）。
+   - 微调 `Recurring series`：保留「订阅（subscription）仅作开启自动入账的 `repeating` 规则 UI 标签」与 `planned` 保持「计划」标签，补充 `planned` 支持 `autoPost` 与停用删除待处理及 `skipped` 实例但不删 `posted` 历史。
    - 修正 `Archive`：与 `account_lifecycle_command.dart` 实际行为及 Ticket 02 对齐（归档将已到期未处理账单保留为一次性 `planned` 待办，删除原周期规则与未来待入账实例，恢复账户不再复活）。
    - 微调 `Source bill`：补充「规则被停止或删除」时关联仍保留。
-2. **新增 `docs/adr/0005-scheduled-bill-identity-and-two-scope-editing.md`**：
-   - 记录采用稳定 UUID 主键 + `UNIQUE(series_id, occurrence_key)`、两档编辑作用域（`thisOnly` 覆盖 vs `updateRule` 仅影响未入账未来期次）与放弃 Calendar 拆分模型的决策及取舍。
+2. **更新 `docs/adr/0005-scheduled-bill-identity-and-two-scope-editing.md`**：
+   - 记录采用稳定 UUID 主键 + `UNIQUE(series_id, occurrence_key)`、两档编辑作用域（`thisOnly` 覆盖 vs `updateRule` 仅影响未入账未来期次，改日期或频率时一并清理 `skipped` 仅留 `posted`）与放弃 Calendar 拆分模型的决策及取舍。
 3. **交付收口**：产出 `.scratch/recurring-simplification/spec.md`（包含领域模型、规则明细、v14 → v15 平滑迁移与旧表清理、以及对 `.scratch/multi-currency/spec.md` 的取代矩阵），并完成 `map.md` 收口。

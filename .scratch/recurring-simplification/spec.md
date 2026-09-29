@@ -22,15 +22,15 @@
 
 - **`TransactionFormMode`（UI 创建入口，3 档）**：
   - `defaultMode`：即时记账（不建周期/计划规则）。
-  - `planned`：一次性未来计划（无重复频率，恒定 `autoPost = false`）。
+  - `planned`：一次性未来计划（无重复频率，允许开启/关闭 `autoPost` 开关）。
   - `repeating`：周期账单（含重复频率、`autoPost` 开关）。
 - **`RecurringSeriesMode`（持久化枚举，2 档）**：
-  - `planned (0)`：一次性计划（`autoPost` 恒 `false`）。
+  - `planned (0)`：一次性计划（支持 `autoPost: bool`，决定到期是否自动入账；UI 始终保持「计划」标签，不改称「订阅」）。
   - `repeating (1)`：周期规则（`autoPost: bool` 决定是否到期自动入账；「订阅」仅作开启 `autoPost` 时的 UI 标签，不再作为独立领域枚举）。
-  - **表单记住上次选择**：本地偏好 `lastRecurringAutoPost: bool`（默认 `false`），**不写入 `.flbackup` 备份**，仅作用于新建 `repeating` 时的初始开关状态。
+  - **表单各自独立记住上次选择**：两个纯本地 UI 偏好 `lastPlannedAutoPost: bool` 与 `lastRepeatingAutoPost: bool`（均默认 `false`，**不写入 `.flbackup` 备份**），分别作用于新建 `planned` 与 `repeating` 时的初始开关状态。
 - **`RecurringEditScope`（编辑作用域，2 档）**：
   - `thisOnly`：仅修改这一期（写单期覆盖列）。
-  - `updateRule`：更新规则（仅影响未入账未来期次，不动已入账/已跳过历史）。
+  - `updateRule`：更新规则（仅影响未入账未来期次，不动已入账历史；仅在修改基准日期或重复周期时一并清除历史 `skipped`）。
 - **`ScheduledTransactionStatus`（实例状态，4 档）**：
   - `scheduled` | `posted` | `skipped` | `failed`。
 
@@ -38,7 +38,7 @@
 
 保留既有核心字段（`id`, `rrule`, `startDate`, `endDate`, `countLimit`, `amountMinor`, `description`, `categoryId`, `accountId`, `type`, `autoPost`, `mode`, `reminderMinutes`），新增：
 
-- `isActive: bool`（`DEFAULT true`）：软停用标记；停止周期规则时置为 `false`（并清理其尚未入账实例），物理保留系列记录与历史 `posted`/`skipped` 行以维持 `sourceScheduledBillId` 与外键不断链。
+- `isActive: bool`（`DEFAULT true`）：软停用标记；停止周期规则时置为 `false`（并删除其尚未入账 `scheduled`、`failed` 与已跳过 `skipped` 实例），物理保留系列记录与历史 `posted` 行以维持 `sourceScheduledBillId` 与外键不断链。
 
 ### 2.3 `ScheduledTransactionsView` 表（v15 重构）
 
@@ -82,10 +82,12 @@
    - 以今天为起点向后 **90 天**内，每条活跃规则最多保留 **`3` 期**未来 `scheduled` 实例；
    - **保底 `1` 期**未来实例（仅用于兜住如每年一次等超过 90 天的低频规则，取消 3 年长距离前瞻）。
    - `planned` 规则直接按自身 `scheduledDate` 物化唯一 `'single'` 实例，不受 90 天窗口约束。
-2. **历史欠账截断与会话级 UI 提醒**：
-   - 物化器回溯早于今天的未物化历史期次时，**仅回溯最近 30 天内，且单条规则最多补生成最近 `3` 期过期实例**；更早未物化历史直接忽略不展开。
-   - 已在数据库中的旧 `scheduled` 行保留不动。
-   - 物化命令返回 `newlyMaterializedOverdueCount`；当 `> 0` 时，账本页顶部显示一条**纯会话级、可手动关闭的非阻塞 Banner**（提示「本次新补齐了 N 笔已到期账单，请核对处理」，不展开技术截断细节，不新增表或持久化字段）。
+2. **历史缺失期次全量补齐与会话级 UI 提醒**：
+   - 物化器回溯早于今天的未物化历史期次时，**从 `series.startDate` 起补齐所有缺失的历史期次实例**，取消「仅回溯最近 30 天内、且单条规则最多补生成最近 3 期」的截断限制且不设人工硬截断上限；已在数据库中的历史 `scheduled`/`posted`/`skipped`/`failed` 行保持幂等不重复生成。
+   - **按规则 `autoPost` 分流处理**：
+     - 若规则开启了自动入账（`autoPost == true`，且未被标为 `manualOnly`、当前币种、规则活跃、账户未归档）：先物化缺失实例，再由自动入账流自动生成对应的已入账交易记录（`TransactionRecorded`）；
+     - 若规则关闭了自动入账（`autoPost == false` 或已标 `manualOnly == true`）：仅生成 `scheduled` 待入账交易记录留待用户手动处理。
+   - 物化命令返回 `newlyMaterializedOverdueCount`，**仅统计本次新补齐且不会自动入账、需用户手动核对的过期实例**（即 `autoPost == false` 或 `manualOnly == true`，避免与启动自动入账 SnackBar 自相矛盾）。当 `newlyMaterializedOverdueCount > 0` 时，账本页顶部显示一条**纯会话级、可手动关闭的非阻塞 Banner**（提示「本次新补齐了 N 笔已到期账单，请核对处理」，不新增表或持久化字段）。
 3. **有限次数与跳过**：
    - 取消 `extraCount` 末尾顺延补期逻辑；每次 `skipped` 直接消耗 `countLimit` 的 1 次计数。
    - 全部期次进入终态或超过 `endDate` 后，物理保留规则与历史实例行，物化器自然不再生成。
@@ -95,28 +97,33 @@
 ### 3.2 二元编辑与「跳过 / 停止规则」边界
 
 1. **`planned`（一次性计划）**：
-   - 编辑直接更新规则与 `'single'` 实例，不弹作用域弹窗。
+   - 新建与编辑页均支持配置 `autoPost` 开关（交互逻辑对齐 `repeating`，UI 标签始终保持「计划」）；编辑直接更新规则与 `'single'` 实例，不弹作用域弹窗。
    - 详情页溢出菜单只提供「**删除计划**」（二次确认后物理删除该规则与实例），不提供「跳过」。
-2. **`repeating`（周期账单）**：
-   - 详情页溢出菜单直接平铺「**跳过本期**」（置为 `skipped`）与「**停止周期规则**」（软停用 `isActive = false` 并删除该系列下所有尚未入账的 `scheduled`/`failed` 实例），各自独立二次确认；**彻底取消删除作用域弹窗，单期不提供“删除”入口或字样**。
+2. **`repeating`（周期账单）与已跳过账单展示/恢复**：
+   - 详情页溢出菜单直接平铺「**跳过本期**」（置为 `skipped`）与「**停止周期规则**」（软停用 `isActive = false` 并删除该系列下所有 `scheduled`、`failed` 与 `skipped` 实例，仅保留 `posted` 历史），各自独立二次确认；**彻底取消删除作用域弹窗，单期不提供“删除”入口或字样**。
+   - **UI 显示已跳过与失败账单，并支持恢复 `skipped`**：
+     - 账本页按天时间轴内联展示 `scheduled`、`failed` 与 `skipped` 行；其中 `skipped` 行采用弱化透明度 + **删除线** + 「已跳过」Badge，不计入当日收支小计与月度合计。若某天仅有 `skipped` 行，日期分组头部照常显示。
+     - 月份选择器上的待办提示标记点（`pendingBillMonths`）仅统计 `scheduled` 与 `failed`，**不标记仅含 `skipped` 的月份**。
+     - 点开 `skipped` 账单的详情弹窗（`PendingBillSheet`）时，仅提供主操作「**恢复为待入账**」（隐藏「记入 / 编辑 / 跳过」）；恢复后回到 `scheduled` 态即可执行常规操作。
+     - **恢复边界**：所属账户已归档或已删除时禁止恢复（返回对应 `LedgerErrorCode`）；若恢复的 `skipped` 实例属于 `autoPost == true` 规则且当时已到期（`effectiveDate <= now`），恢复时**自动置 `manualOnly = true`**（停留在待入账列表等用户手动处理，若之后单期改期至未来则清除 `manualOnly`）。
 3. **编辑二元作用域（`thisOnly` vs `updateRule`）**：
    - **仅修改本期（`thisOnly`）**：仅对本次编辑中**确实改变**（相对当前规则模板或继承值）的字段写入 `amountOverrideMinor` / `dateOverride` / `memoOverride`，未改动字段保持 `NULL` 以继续继承后续 `updateRule` 改动（若规则备注非空而用户在单期将其清空，则写入 `''` 表示显式覆盖为空）；不改 `occurrence_key` 与 UUID；**允许单期改期与同系列其他期次落在同一天**（不再因同日抛 `scheduledDateTaken`）；不展示额外角标。若系列开启 `autoPost` 且修改后 `effectiveDate > today`，清除 `manualOnly` 并按覆盖后的金额/备注/日期到期自动入账；若被编辑账单原为 `failed`，保存后重置为 `scheduled`。
    - **规则专属字段保护**：用户在编辑页改动了**分类、账户、`autoPost` 开关或重复规则（`CustomRecurrence`）**中的任意一项时，保存作用域弹窗禁用「仅修改本期」，提示仅可选择「更新周期规则」。
    - **更新规则（`updateRule`）**：复用 `CustomRecurrenceDialog` 支持修改全部模板字段（金额、基准日期、分类、账户、备注、提醒、**`autoPost` 开关**与完整 `CustomRecurrence` 规则：频率 / 间隔 / 星期 / 结束日期或次数上限）。保存后将该系列下覆盖范围内的 `failed` 实例一并复位为 `scheduled`（保持既有 `manualOnly` 值不变）。
-     - **次数上限下限校验**：若规则已存在 `K` 条 `posted + skipped` 历史行，修改 `countLimit` 时要求 `countLimit >= K + 1`，禁止将正在编辑的当前待办一并截断。
-     - **未改变基准日期与重复规则时**：原地更新 `RecurringSeries`；尚未入账实例中覆盖列为 `null` 的字段继承新规则，非 `null` 单期覆盖列继续保留；已 `posted`/`skipped` 历史不动。
-     - **改变了基准日期或重复规则时**：`series.startDate` 更新为本次编辑的日期，保留已 `posted`/`skipped` 行，**删除该系列全部未入账的 `scheduled`/`failed` 实例**（包括早于本次编辑日期的未处理旧实例），再按新规则从新 `startDate` 起重新物化未来窗口；若新算出的某个 `occurrence_key` 恰好与已有 `posted`/`skipped` 历史行撞期，则保留历史行并跳过该日不再重复物化（若含 `countLimit`，历史 `posted`/`skipped` 行继续计入已消耗次数）。
+     - **未改变基准日期与重复周期时**（即 `date` 与 `frequency`/`interval`/`weekdays` 均未变，含仅调金额/模板/开关或 `endDate`/`countLimit`）：原地更新 `RecurringSeries`；尚未入账实例中覆盖列为 `null` 的字段继承新规则，非 `null` 单期覆盖列继续保留；已 `posted`/`skipped` 历史不动。**次数上限下限校验**：统计 `K = posted + skipped`，要求 `countLimit >= K + 1`。
+     - **改变了基准日期或重复周期时**（`date` 或 `frequency`/`interval`/`weekdays` 任一变化）：`series.startDate` 更新为本次编辑的日期，**不保留 `skipped` 历史、仅保留 `posted` 行**——事务内删除该系列全部 `scheduled`、`failed` 与 `skipped` 行，再按新规则从新 `startDate` 起重新物化；若新算出的某个 `occurrence_key` 恰好与已有 `posted` 历史行撞期，则保留历史行并跳过该日不再重复物化。**次数上限下限校验**：因 `skipped` 将被清除，`K` 仅统计 `posted` 行数，要求 `countLimit >= K + 1`。
    - **编辑形态锁定**：在 `RecurringBillFormScreen` 中保持 `planned` 与 `repeating` 各自形态锁定，不提供互转入口。
 
 ### 3.3 极简自动入账、多币种静默切回与恢复水线
 
-1. **当前币种常规启动自动入账**：
-   - 当前币种下，满足 `series.isActive && series.autoPost && !manualOnly && (status == scheduled) && effectiveDate <= now`（且账户未归档）的实例（包含本次物化在近 30 天内新补齐的最多 3 期过期 `autoPost` 实例），在首帧后异步分片自动入账（每 20 笔让出一次事件循环，保留冷启动通知动作优先于自动入账的 deferral 机制）。
-   - 当次启动成功自动入账 `N >= 1` 笔时，弹出轻量 SnackBar 提示「已自动记入 N 笔订阅」。
-   - 单笔入账失败时置为 `ScheduledTransactionStatus.failed`（不阻塞其余实例；不新增 `failure_reason` 存储列），在待入账列表置顶警示，用户点开 `PendingBillSheet` 可重试「记入」或「跳过本期」（`ConvertScheduledToPostedCommand` 与 `skipIfScheduled` 均同时接受 `scheduled` 与 `failed`，重试失败时直接弹出具体 `LedgerErrorCode` 本地化文案）。
-2. **规则创建或开启 `autoPost` 时的过去期次保护**：
-   - 创建 `autoPost = true` 规则并完成首轮物化后，若存在当时已 `effectiveDate <= now` 的 `scheduled` 实例，自动标为 `manualOnly = true`；
-   - `updateRule` 将 `autoPost` 从 `false` 改为 `true` 时，同样将当时已过期的既有 `scheduled` 实例自动标为 `manualOnly = true`；两者均保证自动入账只对未来新到期期次生效。
+1. **当前币种常规启动与保存后即时自动入账**：
+   - 当前币种下，满足 `series.isActive && series.autoPost && !manualOnly && (status == scheduled) && effectiveDate <= now`（且账户未归档）的实例（涵盖 `planned` 与 `repeating`，以及本次物化补齐的所有缺失历史 `autoPost` 实例），在启动首帧后异步分片自动入账（每 20 笔让出一次事件循环，保留冷启动通知动作优先于自动入账的 deferral 机制）。
+   - **保存后即时自动入账**：在表单新建或通过 `updateRule` 开启 `autoPost = true`（涵盖 `planned` 与 `repeating`）且存在已到期实例时，保存并完成物化后**当场对当前币种该规则执行 `catchUpAutoPosted`** 并弹出入账汇总 SnackBar（非当前币种保持静默，待切回币种时弹出补记提示）。
+   - 当次自动入账成功 `N >= 1` 笔时，弹出轻量 SnackBar 提示（兼容计划与订阅的泛化文案，例如「已自动记入 N 笔计划或订阅账单」）。
+   - 单笔入账失败时置为 `ScheduledTransactionStatus.failed`（不阻塞其余实例；不新增 `failure_reason` 存储列），在账本列表保留展示并置顶警示，用户点开 `PendingBillSheet` 可重试「记入」或「跳过本期」（`ConvertScheduledToPostedCommand` 与 `skipIfScheduled` 均同时接受 `scheduled` 与 `failed`，重试失败时直接弹出具体 `LedgerErrorCode` 本地化文案）。
+2. **创建与开启 `autoPost` 不设过去期次拦截保护**：
+   - 取消创建时及 `updateRule` 开启 `autoPost` 时的过去期次 `manualOnly` 拦截：只要创建了 `autoPost = true` 规则（`planned` 或 `repeating`）或通过 `updateRule` 将 `autoPost` 从 `false` 改为 `true` 且起点包含过去/当前日期，物化出的全部缺失期次保持 `manualOnly = false`，对当前币种当场并全部自动生成已入账交易（非当前币种切回时入积压弹窗）。
+   - 防误扣保护仅保留给备份恢复水线（下条 `markPreRestoreManualOnly`）与从 `skipped` 恢复已到期 `autoPost` 实例的场景。
 3. **备份恢复（`.flbackup`）全币种水线保护**：
    - **承重启动顺序**：`applyPendingRestore` → `rebuild (if stale)` → `materialize()` → **`markPreRestoreManualOnly()`（检测到 `readRestoreBarrier` 时执行）** → `catchUpAutoPosted()`。
    - `markPreRestoreManualOnly()` **不区分当前币种、面向全币种**将库内所有 `status == scheduled && effectiveDate <= restoreTime` 的实例一次性标为 `manualOnly = true`（确保即便稍后切换其他币种，恢复前到期的多币种账单也不会自动入账或进入一键补记）。
@@ -139,7 +146,8 @@
    - **`scheduled`**：支持快捷动作「记入 / 跳过」（含冷启动 deferral 保护）；点击主体跳转 `/ledger` 并打开 `PendingBillSheet`。
    - **`failed`**：打开 `PendingBillSheet` 展示错误并支持重试「记入」或「跳过本期」。
    - **`posted`**：直接通过 `getTransactionBySourceBill(bill.id)` 查找当前有效交易（含更正后的最新交易）并打开 `TransactionDetailSheet`；若该交易已冲正删除，轻提示「这笔交易已删除」。
-   - **`skipped` 或库中查无此 UUID**（规则停止被清理、计划已删除、或改频率重建了未来实例）：统一轻提示「该账单已跳过或已不存在」。
+   - **`skipped`**：直接跳转到 `/ledger` 并打开 `PendingBillSheet` 展示「已跳过」状态与「恢复为待入账」主按钮，方便用户一键恢复。
+   - **库中查无此 UUID**（规则停止被清理、计划已删除、或改日期/频率重建了未来实例）：统一轻提示「该账单已不存在」。
 
 ---
 
@@ -158,15 +166,15 @@
 2. **恢复 `.flbackup` 兼容边界**：
    - 沿用单向版本号策略（仅拒绝比当前 `schemaVersion` 更新的备份）。
    - 恢复旧版本（如 v14）备份时，`AppDatabase` 的 `onUpgrade` 清理并重建周期表，紧接着 `main.dart` 启动链上的 `materialize()` → `markPreRestoreManualOnly()` 接管水线（若未来正式发布后需要保留已有周期数据，再在该基线版本之上通过常规 `onUpgrade` 演进）。
-   - 备份恢复不导入本机偏好 `lastRecurringAutoPost`（本地偏好保持本机隔离）。
+   - 备份恢复不导入本机偏好 `lastPlannedAutoPost` 与 `lastRepeatingAutoPost`（本地偏好保持本机隔离）。
 
 ### 4.2 `.scratch/multi-currency/spec.md` 被取代/裁剪条款对照
 
 | 原 `multi-currency/spec.md` 条文范围 | 原复杂要求 | 本瘦身方案处置 |
 | :--- | :--- | :--- |
-| **US28–US31**（4 模式与 3 套默认关闭全局开关） | 4 种录入模式；3 个独立本机全局开关 | **取代**：收敛为 3 模式（`default`/`planned`/`repeating`）+ 系列级 `autoPost` + `lastRecurringAutoPost` 本地记忆 |
+| **US28–US31**（4 模式与 3 套默认关闭全局开关） | 4 种录入模式；3 个独立本机全局开关 | **取代**：收敛为 3 模式（`default`/`planned`/`repeating`）+ 系列级 `autoPost` + `lastPlannedAutoPost` / `lastRepeatingAutoPost` 各自独立本地记忆 |
 | **US32–US36, US39–US41**（毫秒级边界与永久锁） | `enabledSince`/`currencyActiveSince`/`lastSeenWallClock`、`autoPostEligible` 永久锁 | **废弃**：由单列 `manualOnly` + 切币种弹窗 + 改期至未来自动清除 `manualOnly` 取代 |
-| **US44–US55**（无限历史欠账补齐与多批次进度状态机） | 无限历史枚举、`AutomaticPostingBatches`、进度条弹窗、中断恢复批 | **废弃**：替换为「最近 30 天最多 3 期 + 未来 90 天最多 3 期（保底 1 期）」+ 启动分片让出事件循环 + 轻量 SnackBar / Banner |
+| **US44–US55**（无限历史欠账补齐与多批次进度状态机） | 无限历史枚举、`AutomaticPostingBatches`、进度条弹窗、中断恢复批 | **部分恢复并简化**：恢复历史缺失期次全量补齐（取消 30 天最多 3 期截断），开启 `autoPost` 自动转正入账、关闭 `autoPost` 生成待入账；继续废弃 `AutomaticPostingBatches`、进度条弹窗与未来 3 年展开（未来仍限 90 天最多 3 期 / 保底 1 期） |
 | **US56–US67**（多批次恢复确认屏障与竞态重确认） | `RestoreConfirmationBatches`、`backupExportedAt` 窗口重确认弹窗 | **废弃**：替换为 `materialize()` 后的全币种 `markPreRestoreManualOnly()` 一次性水线打标 + 会话级 Banner |
 | **US68–US73**（16 跳通知重定向与精简删除存根） | `ScheduledBillRedirects`、保留删后存根、跨币种保留并打开旧通知 | **简化**：稳定 UUID 直连 + `effectiveDate` 对账；非当前币种静默且切离取消；`skipped`/缺失统一轻提示 |
 | **US75–US83**（`thisAndFollowing`/`all` 拆分与删后补期） | 同频跨周期锚点映射、保留删后末尾 `extraCount` 顺延 | **废弃**：二元作用域 `thisOnly` vs `updateRule`；单期不允许删只允许跳过；跳过消耗 `countLimit` 不补期 |

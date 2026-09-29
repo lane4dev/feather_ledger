@@ -1,15 +1,15 @@
-# 02: 三档录入形态、`autoPost` 开关记忆与创建时间保护
+# 02: 三档录入形态、`autoPost` 独立开关记忆与过去起点即时自动入账
 
-**What to build:** 将交易新建页收敛为「普通 / 计划 / 重复」三档 `TransactionFormMode`；仅在选择「重复」时展示 `autoPost` 开关并记忆用户上次选择（`lastRecurringAutoPost`，默认 `false`，不随 `.flbackup` 导出导入）；创建 `autoPost = true` 规则并完成首轮物化后，若存在当时已 `effectiveDate <= now` 的 `scheduled` 实例，自动标为 `manualOnly = true`（确保自动入账仅对未来新到期期次生效）。
+**What to build:** 将交易新建页收敛为「普通 / 计划 / 重复」三档 `TransactionFormMode`；在选择「计划」或「重复」时均展示 `autoPost` 开关并各自独立记忆上次选择（`lastPlannedAutoPost` 与 `lastRepeatingAutoPost`，默认 `false`，不随 `.flbackup` 导出导入；`planned` 始终保持「计划」标签）；取消创建时过去期次拦截保护——创建 `autoPost = true` 规则（`planned` 或 `repeating`）且起点在过去或当天时，物化出的实例保持 `manualOnly = false` 并在保存后当场对当前币种该规则触发 `catchUpAutoPosted` 自动入账（跨币种静默）。
 
 **Blocked by:** 01: Schema v15 洁净重构与废旧状态机清除
 
 **Status:** ready-for-agent
 
 ## Pre-agreed TDD Seams
-1. `TransactionFormViewModel` 接缝：验证三档模式切换、`lastRecurringAutoPost` 读取与持久化回写、`planned` 强制以 `autoPost = false` 保存、`repeating` 按开关值保存。
-2. `RecurringService.createSeries` 接缝：验证创建 `autoPost = true` 且起始日含过去或当天日期时，首轮物化中 `effectiveDate <= now` 的实例被标为 `manualOnly = true`，未来日期实例保持 `manualOnly = false`。
-3. 交易新建表单 Widget 接缝：验证三档选择器渲染、「自动入账」开关仅在「重复」显示且切换记忆生效。
+1. `TransactionFormViewModel` 接缝：验证三档模式切换、`lastPlannedAutoPost` 与 `lastRepeatingAutoPost` 各自独立读取与持久化回写、`planned` 与 `repeating` 均按 `autoPost` 开关值保存。
+2. `RecurringService.createSeries` 接缝：验证创建 `autoPost = true` 且起始日含过去或当天日期时，首轮物化中 `effectiveDate <= now` 的实例保持 `manualOnly = false`，并对当前币种当场自动生成已入账交易记录（跨币种静默留待切回弹窗）。
+3. 交易新建表单 Widget 接缝：验证三档选择器渲染、「自动入账」开关在「计划」与「重复」均可见、`planned` 保持「计划」标签且各自记忆独立生效。
 
 ## File Changes
 - **Create**:
@@ -27,7 +27,7 @@
   - `test/unit/features/ledger/domain/services/recurring_series_test.dart`
 
 ## Acceptance Criteria
-- [ ] 新建页仅保留「普通 / 计划 / 重复」三档入口，「自动入账」开关仅在「重复」时可见并记忆用户上次选择（默认关闭）；
-- [ ] `planned` 模式落库恒为 `autoPost = false`，`repeating` 按开关值落库；
-- [ ] 创建 `autoPost = true` 规则且含当日或过去日期时，已到期实例自动标 `manualOnly = true`，未来实例保持 `false`；
+- [ ] 新建页仅保留「普通 / 计划 / 重复」三档入口，「自动入账」开关在「计划」与「重复」均可见且各自独立记忆上次选择（默认关闭），`planned` 始终保持「计划」标签；
+- [ ] `planned` 与 `repeating` 均按开关值落库 `autoPost`；
+- [ ] 创建 `autoPost = true` 规则且含当日或过去日期时不再打 `manualOnly` 拦截，保存后当场对当前币种自动入账并反馈结果；
 - [ ] `flutter gen-l10n`、`flutter analyze` 零错误、全量测试绿灯。

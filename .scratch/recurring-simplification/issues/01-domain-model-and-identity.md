@@ -35,9 +35,11 @@ Chart 阶段已锁定方向：
 ## Answer
 
 1. **模式与周期规则模型（`RecurringSeries` + UI `TransactionFormMode`）**：
-   - 表单入口收敛为 3 种模式：`defaultMode`（即时记账）、`planned`（一次性未来计划）、`repeating`（周期账单）；仅 `repeating` 提供「到期自动入账」开关。
-   - `RecurringSeries.mode` 收敛为两值：`planned`（一次性计划，恒定 `autoPost = false`）与 `repeating`（周期规则，由 `autoPost: bool` 决定是否到期自动入账）；取消独立 `subscription` 领域枚举（旧库 `subscription` 迁移为 `repeating` + `autoPost = true`）。
-   - 新建周期账单时，「到期自动入账」开关默认读取纯本地 UI 偏好 `lastRecurringAutoPost: bool`（默认 `false`，不写入 `.flbackup` 备份，不影响已有规则）。
+   - 表单入口收敛为 3 种模式：`defaultMode`（即时记账）、`planned`（一次性未来计划，UI 始终保持「计划」标签）、`repeating`（周期账单）；**`planned` 与 `repeating` 均提供「到期自动入账」开关**。
+   - `RecurringSeries.mode` 收敛为两值：`planned`（一次性计划）与 `repeating`（周期规则），均由 `autoPost: bool` 决定是否到期自动入账；取消独立 `subscription` 领域枚举（旧库 `subscription` 迁移为 `repeating` + `autoPost = true`）。
+   - 新建 `planned` 与 `repeating` 时，「到期自动入账」开关**各自独立**读取纯本地 UI 偏好 `lastPlannedAutoPost: bool` 与 `lastRepeatingAutoPost: bool`（均默认 `false`，不写入 `.flbackup` 备份，不影响已有规则）。
+
+> **[2026-11-23 规格调整对齐]**：`planned` 允许开启 `autoPost`（UI 标签仍保持「计划」），且 `planned` 与 `repeating` 各自独立记忆上次 `autoPost` 开关状态。
 2. **实例身份与幂等键（`ScheduledTransactionsView`）**：
    - 主键 `id` 改为独立稳定 **UUID**，彻底废除 `${seriesId}_${ms}` 日期拼接主键。
    - 增加唯一约束 `UNIQUE(series_id, occurrence_key)`：

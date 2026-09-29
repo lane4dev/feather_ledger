@@ -1,14 +1,14 @@
 # 05: 自动入账、恢复水线、币种切回补录与 `failed` 失败闭环
 
-**What to build:** 打通自动入账、备份恢复水线、多币种静默与切回补录以及 `failed` 失败重试全链路：`ConvertScheduledToPostedCommand` 读取实例有效覆盖值（`effectiveDate` / `effectiveAmountMinor` / `effectiveMemo`）并同时接受 `scheduled` 与 `failed`，事件 `TransactionRecorded.sourceScheduledBillId` 写入实例 UUID；`RecurringService.catchUpAutoPosted` 按极简谓词（`isActive && autoPost && !manualOnly && currency == current && effectiveDate <= now`）每 20 条分批让出事件循环，单笔失败置 `failed` 不阻塞其余项并汇总 SnackBar；恢复备份重启后执行 `markPreRestoreManualOnly` 冻结全币种历史到期项；切换回含合资格积压项的币种时弹出二选一确认（「全部入账」/「保留为待入账」）；`PendingBillSheet` 置顶警示 `failed` 并支持重试记入或跳过。
+**What to build:** 打通自动入账、备份恢复水线、多币种静默与切回补录以及 `failed` 失败重试全链路：`ConvertScheduledToPostedCommand` 读取实例有效覆盖值（`effectiveDate` / `effectiveAmountMinor` / `effectiveMemo`）并同时接受 `scheduled` 与 `failed`，事件 `TransactionRecorded.sourceScheduledBillId` 写入实例 UUID；`RecurringService.catchUpAutoPosted` 按极简谓词（`isActive && autoPost && !manualOnly && currency == current && effectiveDate <= now`，同时覆盖 `planned` 与 `repeating` 及其补齐的历史缺失期次）每 20 条分批让出事件循环，并在启动及表单保存开启 `autoPost` 的规则后立即对当前币种执行并弹出兼容计划与订阅的泛化入账汇总 SnackBar，单笔失败置 `failed` 不阻塞其余项；恢复备份重启后执行 `markPreRestoreManualOnly` 冻结全币种历史到期项；切换回含合资格积压项的币种时弹出二选一确认（「全部入账」/「保留为待入账」）；`PendingBillSheet` 置顶警示 `failed` 并支持重试记入或跳过。
 
-**Blocked by:** 01: Schema v15 洁净重构与废旧状态机清除, 02: 三档录入形态、`autoPost` 开关记忆与创建时间保护, 04: 二元编辑作用域、单期跳过与停止周期规则
+**Blocked by:** 01: Schema v15 洁净重构与废旧状态机清除, 02: 三档录入形态、`autoPost` 独立开关记忆与过去起点即时自动入账, 04: 二元编辑作用域、单期跳过与停止周期规则
 
 **Status:** ready-for-agent
 
 ## Pre-agreed TDD Seams
 1. `ConvertScheduledToPostedCommand` 接缝：验证优先取覆盖金额/日期/备注、同时接受 `scheduled` 与 `failed`、正确写入 `sourceScheduledBillId = bill.id`。
-2. `RecurringService.catchUpAutoPosted`、`markPreRestoreManualOnly`、`getCurrencyBacklog`、`settleCurrencyBacklog` 接缝：验证谓词过滤、>= 20 条分批让出、异常转为 `failed` 不阻断队列、恢复水线将全币种 `<= now` 置 `manualOnly = true`、币种切回仅命中 `autoPost && !manualOnly && <= now`。
+2. `RecurringService.catchUpAutoPosted`、`markPreRestoreManualOnly`、`getCurrencyBacklog`、`settleCurrencyBacklog` 接缝：验证谓词过滤（含 `planned` + `repeating` 及无上限历史补齐实例）、>= 20 条分批让出、异常转为 `failed` 不阻断队列、保存开启 `autoPost` 的规则后即时补账、恢复水线将全币种 `<= now` 置 `manualOnly = true`、币种切回仅命中 `autoPost && !manualOnly && <= now`。
 3. `PendingBillSheet` 失败重试 + `CurrencyBacklogDialog` UI 接缝：验证失败横幅提示与重试弹出具体 `LedgerErrorCode` 本地化文案，以及币种切回二选一交互。
 
 ## File Changes

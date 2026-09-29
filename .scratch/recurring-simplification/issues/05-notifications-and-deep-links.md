@@ -33,13 +33,14 @@ Chart 阶段已锁定：
 
 ## Answer
 
-1. **可选提醒覆盖所有排期规则**：新建与编辑表单继续为 `planned` 与 `repeating`（含 `autoPost == true` 的自动入账订阅）统一保留通知提前量设置入口（默认不设即不提醒；用户设置了则按设定触发）。
+1. **可选提醒覆盖所有排期规则**：新建与编辑表单继续为 `planned` 与 `repeating`（无论是否开启 `autoPost`）统一保留通知提前量设置入口（默认不设即不提醒；用户设置了则按设定触发）。
 2. **基于稳定 UUID 的调度与对账（废除 `ScheduledBillRedirects`）**：
-   - 保留 `watchScheduled()` 响应式全量对账（`_reconcile`）以及核心约束（仅当前币种、账户未归档、iOS 64 条配额内取最近 `limit = 60` 条未来待入账实例）。
+   - 保留 `watchScheduled()` 响应式全量对账（`_reconcile`）以及核心约束（仅当前币种、账户未归档、iOS 64 条配额内取最近 `limit = 60` 条未来待入账实例；`skipped` 状态不调度未来通知）。
    - `upcomingReminders` 与 `_reconcile` 的触发时间及排序统一按 **`effectiveDate - Duration(minutes: reminderMinutes)`** 计算，确保单期改期 `dateOverride` 后通知时间自动同步。
    - 通知 payload 与系统通知哈希 `_stableId(bill.id)` 直接绑定实例稳定 UUID，彻底删除 `ScheduledBillRedirects` 表与 16 跳重定向链。
 3. **点击与快捷动作（Deep Link）降级分支**：
    - **`scheduled`**：支持通知快捷动作「记入 / 跳过」（保留冷启动动作优先于自动入账的 deferral 保护）；点击主体跳 `/ledger` 并打开 `PendingBillSheet`。
    - **`failed`**：点击通知或快捷动作时打开 `PendingBillSheet` 展示错误并支持重试「记入」或「跳过本期」。
    - **`posted`**：经 `getTransactionBySourceBill(bill.id)` 跳转当前有效交易详情（含更正后最新交易）；若该交易已被冲正删除则轻提示「这笔交易已删除」。
-   - **`skipped` 或库中查无此 UUID**（规则已停止被清理、计划已删除、或改频率重新生成了未来实例）：统一轻提示「该账单已跳过或已不存在」，不做重定向或删除存根查询。
+   - **`skipped`**：直接跳转到 `/ledger` 并打开 `PendingBillSheet` 展示「已跳过」状态与「恢复为待入账」主按钮，方便用户一键恢复。
+   - **库中查无此 UUID**（规则已停止被清理、计划已删除、或改日期/频率重新生成了未来实例）：统一轻提示「该账单已不存在」，不做重定向或删除存根查询。
