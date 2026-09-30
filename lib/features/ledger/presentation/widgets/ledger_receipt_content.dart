@@ -21,10 +21,14 @@ class LedgerReceiptToolbar extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.overflowActions,
+    this.showEdit = true,
+    this.showDelete = true,
   });
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final List<LedgerOverflowAction>? overflowActions;
+  final bool showEdit;
+  final bool showDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +39,16 @@ class LedgerReceiptToolbar extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           tooltip: l10n.cancel),
       const Spacer(),
-      AppIconButton(
-          icon: const Icon(LucideIcons.squarePen),
-          onPressed: onEdit,
-          tooltip: l10n.edit),
-      LedgerDeleteMenu(
-        onDelete: () => onDelete?.call(),
-        actions: overflowActions,
-      ),
+      if (showEdit)
+        AppIconButton(
+            icon: const Icon(LucideIcons.squarePen),
+            onPressed: onEdit,
+            tooltip: l10n.edit),
+      if (showDelete)
+        LedgerDeleteMenu(
+          onDelete: () => onDelete?.call(),
+          actions: overflowActions,
+        ),
     ]);
   }
 }

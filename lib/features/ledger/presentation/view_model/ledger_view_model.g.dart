@@ -8,11 +8,12 @@ part of 'ledger_view_model.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The month's upcoming recurring bills, as rows.
+/// The month's upcoming, failed, and skipped recurring bills, as rows.
 ///
-/// Only `scheduled` instances: a posted one is already a real transaction and
-/// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-/// one is a decision the user made and does not want to see again.
+/// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+/// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+/// posted half). `skipped` rows remain visible inline with strikethrough
+/// styling so users can inspect and restore them back to pending.
 ///
 /// Filtered to the month here rather than in the DAO because the ledger's
 /// month view is what needs the slice; the instance table itself stays whole.
@@ -20,11 +21,12 @@ part of 'ledger_view_model.dart';
 @ProviderFor(monthlyPendingTransactions)
 final monthlyPendingTransactionsProvider = MonthlyPendingTransactionsFamily._();
 
-/// The month's upcoming recurring bills, as rows.
+/// The month's upcoming, failed, and skipped recurring bills, as rows.
 ///
-/// Only `scheduled` instances: a posted one is already a real transaction and
-/// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-/// one is a decision the user made and does not want to see again.
+/// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+/// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+/// posted half). `skipped` rows remain visible inline with strikethrough
+/// styling so users can inspect and restore them back to pending.
 ///
 /// Filtered to the month here rather than in the DAO because the ledger's
 /// month view is what needs the slice; the instance table itself stays whole.
@@ -36,11 +38,12 @@ final class MonthlyPendingTransactionsProvider extends $FunctionalProvider<
     with
         $FutureModifier<List<TransactionTileUiModel>>,
         $StreamProvider<List<TransactionTileUiModel>> {
-  /// The month's upcoming recurring bills, as rows.
+  /// The month's upcoming, failed, and skipped recurring bills, as rows.
   ///
-  /// Only `scheduled` instances: a posted one is already a real transaction and
-  /// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-  /// one is a decision the user made and does not want to see again.
+  /// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+  /// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+  /// posted half). `skipped` rows remain visible inline with strikethrough
+  /// styling so users can inspect and restore them back to pending.
   ///
   /// Filtered to the month here rather than in the DAO because the ledger's
   /// month view is what needs the slice; the instance table itself stays whole.
@@ -93,13 +96,14 @@ final class MonthlyPendingTransactionsProvider extends $FunctionalProvider<
 }
 
 String _$monthlyPendingTransactionsHash() =>
-    r'20b047a6c35129c7853911e05b06eb2c08689905';
+    r'd85bb260331ebca2cafe4148c50ac958fac554ac';
 
-/// The month's upcoming recurring bills, as rows.
+/// The month's upcoming, failed, and skipped recurring bills, as rows.
 ///
-/// Only `scheduled` instances: a posted one is already a real transaction and
-/// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-/// one is a decision the user made and does not want to see again.
+/// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+/// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+/// posted half). `skipped` rows remain visible inline with strikethrough
+/// styling so users can inspect and restore them back to pending.
 ///
 /// Filtered to the month here rather than in the DAO because the ledger's
 /// month view is what needs the slice; the instance table itself stays whole.
@@ -117,11 +121,12 @@ final class MonthlyPendingTransactionsFamily extends $Family
           isAutoDispose: true,
         );
 
-  /// The month's upcoming recurring bills, as rows.
+  /// The month's upcoming, failed, and skipped recurring bills, as rows.
   ///
-  /// Only `scheduled` instances: a posted one is already a real transaction and
-  /// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-  /// one is a decision the user made and does not want to see again.
+  /// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+  /// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+  /// posted half). `skipped` rows remain visible inline with strikethrough
+  /// styling so users can inspect and restore them back to pending.
   ///
   /// Filtered to the month here rather than in the DAO because the ledger's
   /// month view is what needs the slice; the instance table itself stays whole.
@@ -136,31 +141,34 @@ final class MonthlyPendingTransactionsFamily extends $Family
 }
 
 /// The set of months (normalized to the first of each month) that hold at
-/// least one pending bill in the current currency.
+/// least one actionable pending bill (`scheduled` or `failed`, excluding
+/// `skipped`) in the current currency.
 ///
-/// The month picker marks these so an overdue bill is findable without paging
-/// through every month (spec 006, US33). Scoped to the setting's currency,
-/// like the rest of the ledger list.
+/// The month picker marks these so an overdue or failed bill is findable
+/// without paging through every month (spec 006, US33). Scoped to the
+/// setting's currency, like the rest of the ledger list.
 
 @ProviderFor(pendingBillMonths)
 final pendingBillMonthsProvider = PendingBillMonthsProvider._();
 
 /// The set of months (normalized to the first of each month) that hold at
-/// least one pending bill in the current currency.
+/// least one actionable pending bill (`scheduled` or `failed`, excluding
+/// `skipped`) in the current currency.
 ///
-/// The month picker marks these so an overdue bill is findable without paging
-/// through every month (spec 006, US33). Scoped to the setting's currency,
-/// like the rest of the ledger list.
+/// The month picker marks these so an overdue or failed bill is findable
+/// without paging through every month (spec 006, US33). Scoped to the
+/// setting's currency, like the rest of the ledger list.
 
 final class PendingBillMonthsProvider extends $FunctionalProvider<
         AsyncValue<Set<DateTime>>, Set<DateTime>, Stream<Set<DateTime>>>
     with $FutureModifier<Set<DateTime>>, $StreamProvider<Set<DateTime>> {
   /// The set of months (normalized to the first of each month) that hold at
-  /// least one pending bill in the current currency.
+  /// least one actionable pending bill (`scheduled` or `failed`, excluding
+  /// `skipped`) in the current currency.
   ///
-  /// The month picker marks these so an overdue bill is findable without paging
-  /// through every month (spec 006, US33). Scoped to the setting's currency,
-  /// like the rest of the ledger list.
+  /// The month picker marks these so an overdue or failed bill is findable
+  /// without paging through every month (spec 006, US33). Scoped to the
+  /// setting's currency, like the rest of the ledger list.
   PendingBillMonthsProvider._()
       : super(
           from: null,
@@ -187,7 +195,7 @@ final class PendingBillMonthsProvider extends $FunctionalProvider<
   }
 }
 
-String _$pendingBillMonthsHash() => r'ead51495d0b7f9ac4da2ee13dcfac3ecc579a578';
+String _$pendingBillMonthsHash() => r'699113da3a8ff6095237cf6017dce135bcb0b84b';
 
 /// The month's posted transactions and pending bills, newest first.
 ///

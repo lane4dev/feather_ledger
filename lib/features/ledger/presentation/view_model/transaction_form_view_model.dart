@@ -34,7 +34,9 @@ sealed class TransactionFormOutcome {
 
 /// Recorded. A series, if one was asked for, exists.
 final class TransactionFormSaved extends TransactionFormOutcome {
-  const TransactionFormSaved();
+  final int autoPostedCount;
+
+  const TransactionFormSaved({this.autoPostedCount = 0});
 }
 
 /// Recorded, but the series could not be started. The money moved and the
@@ -75,19 +77,25 @@ final class TransactionFormSaveFailed extends TransactionFormOutcome {
 /// `ProviderScope` per form.
 @riverpod
 class TransactionFormViewModel extends _$TransactionFormViewModel {
-  bool _autoPostTouched = false;
+  bool _plannedAutoPostTouched = false;
+  bool _repeatingAutoPostTouched = false;
+  bool _plannedAutoPost = false;
+  bool _repeatingAutoPost = false;
   bool _accountTouched = false;
 
   @override
   TransactionFormViewState build(TransactionTileUiModel? original) {
-    _autoPostTouched = false;
+    _plannedAutoPostTouched = false;
+    _repeatingAutoPostTouched = false;
+    _plannedAutoPost = false;
+    _repeatingAutoPost = false;
     _accountTouched = false;
     if (original != null) {
       return TransactionFormViewState.fromTile(original);
     }
     final prefsAsync = ref.read(preferencesRepositoryProvider);
-    final initialAutoPost =
-        prefsAsync.value?.getLastRecurringAutoPost() ?? false;
+    _plannedAutoPost = prefsAsync.value?.getLastPlannedAutoPost() ?? false;
+    _repeatingAutoPost = prefsAsync.value?.getLastRepeatingAutoPost() ?? false;
     final currencyCode = ref.read(currencyControllerProvider).value ??
         AppCurrencies.defaultCurrency.code;
     final rememberedId = prefsAsync.value?.getLastTransactionAccount();
@@ -102,10 +110,21 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     if (prefsAsync.isLoading) {
       ref.listen(preferencesRepositoryProvider, (_, next) {
         final repo = next.value;
-        if (repo != null && !_autoPostTouched) {
-          state = state.copyWith(autoPost: repo.getLastRecurringAutoPost());
+        if (repo != null) {
+          if (!_plannedAutoPostTouched) {
+            _plannedAutoPost = repo.getLastPlannedAutoPost();
+            if (state.mode == TransactionFormMode.planned) {
+              state = state.copyWith(autoPost: _plannedAutoPost);
+            }
+          }
+          if (!_repeatingAutoPostTouched) {
+            _repeatingAutoPost = repo.getLastRepeatingAutoPost();
+            if (state.mode == TransactionFormMode.repeating) {
+              state = state.copyWith(autoPost: _repeatingAutoPost);
+            }
+          }
+          _restoreAccount();
         }
-        if (repo != null) _restoreAccount();
       });
     }
     return TransactionFormViewState.initial(
@@ -113,7 +132,6 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
       // one-time read, not a watch, so a later setting change cannot
       // re-currency a half-filled form.
       currencyCode: currencyCode,
-      autoPost: initialAutoPost,
     ).copyWith(accountId: initialAccount?.account.id);
   }
 
@@ -133,15 +151,26 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   }
 
   void setAutoPost(bool enabled) {
-    _autoPostTouched = true;
+    final isPlanned = state.mode == TransactionFormMode.planned;
+    if (isPlanned) {
+      _plannedAutoPostTouched = true;
+      _plannedAutoPost = enabled;
+    } else if (state.mode == TransactionFormMode.repeating) {
+      _repeatingAutoPostTouched = true;
+      _repeatingAutoPost = enabled;
+    }
     state = state.copyWith(autoPost: enabled);
     final repo = ref.read(preferencesRepositoryProvider).value;
     if (repo != null) {
-      unawaited(repo.setLastRecurringAutoPost(enabled));
+      unawaited(isPlanned
+          ? repo.setLastPlannedAutoPost(enabled)
+          : repo.setLastRepeatingAutoPost(enabled));
     } else {
       unawaited(
         ref.read(preferencesRepositoryProvider.future).then(
-              (r) => r.setLastRecurringAutoPost(enabled),
+              (r) => isPlanned
+                  ? r.setLastPlannedAutoPost(enabled)
+                  : r.setLastRepeatingAutoPost(enabled),
               onError: (_, __) {},
             ),
       );
@@ -174,8 +203,14 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   void setMode(TransactionFormMode mode) {
     if (mode == state.mode) return;
     final wantsFrequency = mode == TransactionFormMode.repeating;
+    final modeAutoPost = switch (mode) {
+      TransactionFormMode.planned => _plannedAutoPost,
+      TransactionFormMode.repeating => _repeatingAutoPost,
+      TransactionFormMode.defaultMode => false,
+    };
     state = state.copyWith(
       mode: mode,
+      autoPost: modeAutoPost,
       customRecurrence: wantsFrequency ? state.customRecurrence : null,
       repeat: wantsFrequency
           ? (state.repeat == TransactionFormViewState.repeatNever
@@ -278,9 +313,12 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     // row that would carry them is never created).
     if (form.mode == TransactionFormMode.planned) {
       final series = await _createPlannedSeries(form, amountMinor);
+      final count = series is Success
+          ? ref.read(recurringServiceProvider).takeLastAutoPostedCount()
+          : 0;
       return switch (series) {
         Failure(:final code) => TransactionFormSaveFailed(code),
-        Success() => const TransactionFormSaved(),
+        Success() => TransactionFormSaved(autoPostedCount: count),
       };
     }
 
@@ -366,9 +404,12 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
       return const TransactionFormSaved();
     }
     final series = await _startSeries(form, amountMinor);
+    final count = series is Success
+        ? ref.read(recurringServiceProvider).takeLastAutoPostedCount()
+        : 0;
     return switch (series) {
       Failure(:final code) => TransactionFormSavedSeriesFailed(code),
-      Success() => const TransactionFormSaved(),
+      Success() => TransactionFormSaved(autoPostedCount: count),
     };
   }
 
@@ -437,7 +478,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           interval: 1,
           startDate: form.date,
           endDate: form.date,
-          autoPost: false,
+          autoPost: form.autoPost,
           reminderMinutes: form.reminderMinutes,
           mode: RecurringSeriesMode.planned,
         );

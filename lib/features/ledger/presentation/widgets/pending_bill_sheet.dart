@@ -10,6 +10,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -40,9 +41,30 @@ class PendingBillSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final currency = currencySymbol ??
         AppCurrencies.getSymbol(transaction.account.currencyCode);
     final isPlanned = transaction.series?.mode == RecurringSeriesMode.planned;
+
+    if (transaction.isSkipped) {
+      return AppReceiptSheet(
+        toolbar: const LedgerReceiptToolbar(
+          showEdit: false,
+          showDelete: false,
+        ),
+        footer: AppBottomActionBar(
+          child: AppButton(
+            onPressed: () => _restore(context, ref, l10n),
+            child: Text(l10n.restoreToPending),
+          ),
+        ),
+        child: LedgerReceiptContent(
+          transaction: transaction,
+          currencySymbol: currency,
+          status: l10n.skippedBill,
+        ),
+      );
+    }
 
     return AppReceiptSheet(
       toolbar: LedgerReceiptToolbar(
@@ -71,17 +93,66 @@ class PendingBillSheet extends ConsumerWidget {
               ],
       ),
       footer: AppBottomActionBar(
-          child: AppButton(
-        onPressed: () => _post(context, ref, l10n),
-        child: Text(l10n.postInstance),
-      )),
-      child: LedgerReceiptContent(
-        transaction: transaction,
-        currencySymbol: currency,
-        status: l10n.pendingBill,
+        child: AppButton(
+          onPressed: () => _post(context, ref, l10n),
+          child: Text(
+              transaction.isFailed ? l10n.retryPost : l10n.postInstance),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (transaction.isFailed) ...[
+            Container(
+              padding: EdgeInsets.all(context.spacing.md),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    LucideIcons.triangleAlert,
+                    size: 18,
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                  SizedBox(width: context.spacing.sm),
+                  Expanded(
+                    child: Text(
+                      l10n.failedBillBanner,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: context.spacing.md),
+          ],
+          LedgerReceiptContent(
+            transaction: transaction,
+            currencySymbol: currency,
+            status: transaction.isFailed ? l10n.failedBill : l10n.pendingBill,
+          ),
+        ],
       ),
     );
   }
+
+  Future<void> _restore(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) =>
+      _run(
+        context,
+        l10n,
+        () => ref
+            .read(recurringViewModelProvider.notifier)
+            .restoreSkippedBill(transaction.id),
+        success: l10n.billRestored,
+      );
 
   /// Recording moves money, so it asks first.
   Future<void> _post(

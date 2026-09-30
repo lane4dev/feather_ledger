@@ -81,6 +81,7 @@ class TransactionUiMapper {
       displayAmount: formatMinor(amount),
       displaySign: kind == TransactionKind.income ? '+' : '-',
       isPending: true,
+      scheduledStatus: e.status,
       seriesId: e.seriesId,
       series: e.recurringTransactionSeries,
     );

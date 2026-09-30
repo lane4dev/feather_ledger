@@ -26,6 +26,10 @@ class TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveCurrencySymbol =
         currencySymbol ?? AppCurrencies.defaultCurrency.symbol;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isSkipped = transaction.isSkipped;
+    final isFailed = transaction.isFailed;
 
     final row = InkWell(
       onTap: onTap,
@@ -45,22 +49,31 @@ class TransactionTile extends StatelessWidget {
                 children: [
                   // Title: Note if exists, else Account (transfer shows its
                   // localized label with both sides in the subtitle).
-                  // A pending bill gets a clock so the row announces itself
-                  // even before the muted opacity registers.
+                  // Pending/failed/skipped bills get an icon so the row
+                  // announces its state even before opacity or badge registers.
                   Row(
                     children: [
                       if (transaction.isPending) ...[
                         Icon(
-                          LucideIcons.clock,
+                          isFailed
+                              ? LucideIcons.triangleAlert
+                              : (isSkipped
+                                  ? LucideIcons.skipForward
+                                  : LucideIcons.clock),
                           size: 16.0,
-                          color: LedgerTheme.transactionMeta(context).color,
+                          color: isFailed
+                              ? theme.colorScheme.error
+                              : LedgerTheme.transactionMeta(context).color,
                         ),
                         const SizedBox(width: 4.0),
                       ],
                       Expanded(
                         child: Text(
                           _title(context),
-                          style: LedgerTheme.transactionTitle(context),
+                          style: LedgerTheme.transactionTitle(context).copyWith(
+                            decoration:
+                                isSkipped ? TextDecoration.lineThrough : null,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -94,7 +107,7 @@ class TransactionTile extends StatelessWidget {
                           if (transaction.isPending) ...[
                             if (transaction.type != TransactionKind.transfer)
                               const SizedBox(width: 6.0),
-                            _pendingBadge(context),
+                            _statusBadge(context, l10n, theme),
                           ],
                         ],
                       ),
@@ -109,13 +122,14 @@ class TransactionTile extends StatelessWidget {
             Text(
               '${transaction.displaySign} $effectiveCurrencySymbol${transaction.displayAmount}',
               style: LedgerTheme.transactionAmount(context).copyWith(
+                decoration: isSkipped ? TextDecoration.lineThrough : null,
                 color: switch (transaction.type) {
                   TransactionKind.expense => context.colors.expense,
                   TransactionKind.income => context.colors.income,
                   TransactionKind.transfer ||
                   TransactionKind.openingBalance ||
                   TransactionKind.balanceAdjustment =>
-                    Theme.of(context).colorScheme.onSurface,
+                    theme.colorScheme.onSurface,
                 },
               ),
             ),
@@ -124,17 +138,30 @@ class TransactionTile extends StatelessWidget {
       ),
     );
 
-    // A pending bill is muted as a whole rather than restyled piece by piece:
-    // one dial to turn, and it reads as "not yet" at a glance without
-    // changing any of the colours the row's meaning depends on. Posted rows
-    // — the common case — skip the extra layer entirely.
-    return transaction.isPending ? Opacity(opacity: 0.55, child: row) : row;
+    // Pending/skipped/failed rows are muted as a whole rather than restyled
+    // piece by piece. Posted rows — the common case — skip the extra layer.
+    if (!transaction.isPending) return row;
+    final opacity = isSkipped ? 0.45 : (isFailed ? 0.85 : 0.55);
+    return Opacity(opacity: opacity, child: row);
   }
 
-  /// The "waiting to be posted" tag. Same pill shape as the category tag so
-  /// the row keeps one visual language.
-  Widget _pendingBadge(BuildContext context) =>
-      AppBadge(label: AppLocalizations.of(context)!.pendingBill);
+  /// The scheduled status tag (`待入账` / `已跳过` / `自动入账失败`).
+  Widget _statusBadge(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    if (transaction.isSkipped) {
+      return AppBadge(label: l10n.skippedBill);
+    }
+    if (transaction.isFailed) {
+      return AppBadge(
+        label: l10n.failedBill,
+        color: theme.colorScheme.error,
+      );
+    }
+    return AppBadge(label: l10n.pendingBill);
+  }
 
   String _title(BuildContext context) {
     final hasNote = transaction.note != null && transaction.note!.isNotEmpty;

@@ -30,6 +30,13 @@ class RecurringViewModel extends _$RecurringViewModel {
   }) =>
       ref.read(recurringServiceProvider).deleteBill(scheduledId, scope: scope);
 
+  /// Restores a skipped bill occurrence back to pending (`scheduled`).
+  Future<Result<void>> restoreSkippedBill(String scheduledId) =>
+      ref.read(recurringServiceProvider).restoreSkippedBill(scheduledId);
+
+  int takeLastAutoPostedCount() =>
+      ref.read(recurringServiceProvider).takeLastAutoPostedCount();
+
   /// Edits a pending bill at one of the two scopes. Moves no money and
   /// writes no event.
   Future<Result<void>> updateBill(

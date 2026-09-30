@@ -17,11 +17,12 @@ import 'ledger_view_state.dart';
 
 part 'ledger_view_model.g.dart';
 
-/// The month's upcoming recurring bills, as rows.
+/// The month's upcoming, failed, and skipped recurring bills, as rows.
 ///
-/// Only `scheduled` instances: a posted one is already a real transaction and
-/// arrives through [ledgerMonthlyTransactions]'s posted half, and a skipped
-/// one is a decision the user made and does not want to see again.
+/// Includes `scheduled`, `failed`, and `skipped` instances (`posted` ones are
+/// already real transactions and arrive through [ledgerMonthlyTransactions]'s
+/// posted half). `skipped` rows remain visible inline with strikethrough
+/// styling so users can inspect and restore them back to pending.
 ///
 /// Filtered to the month here rather than in the DAO because the ledger's
 /// month view is what needs the slice; the instance table itself stays whole.
@@ -43,7 +44,7 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
       .map((instances) {
     final tiles = <TransactionTileUiModel>[];
     for (final instance in instances) {
-      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
+      if (instance.status == ScheduledTransactionStatus.posted) continue;
       if (instance.date.year != month.year ||
           instance.date.month != month.month) {
         continue;
@@ -64,11 +65,12 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
 }
 
 /// The set of months (normalized to the first of each month) that hold at
-/// least one pending bill in the current currency.
+/// least one actionable pending bill (`scheduled` or `failed`, excluding
+/// `skipped`) in the current currency.
 ///
-/// The month picker marks these so an overdue bill is findable without paging
-/// through every month (spec 006, US33). Scoped to the setting's currency,
-/// like the rest of the ledger list.
+/// The month picker marks these so an overdue or failed bill is findable
+/// without paging through every month (spec 006, US33). Scoped to the
+/// setting's currency, like the rest of the ledger list.
 @riverpod
 Stream<Set<DateTime>> pendingBillMonths(Ref ref) {
   final service = ref.watch(ledgerServiceProvider);
@@ -80,7 +82,10 @@ Stream<Set<DateTime>> pendingBillMonths(Ref ref) {
       .map((instances) {
     final months = <DateTime>{};
     for (final instance in instances) {
-      if (instance.status != ScheduledTransactionStatus.scheduled) continue;
+      if (instance.status != ScheduledTransactionStatus.scheduled &&
+          instance.status != ScheduledTransactionStatus.failed) {
+        continue;
+      }
       months.add(DateTime(instance.date.year, instance.date.month));
     }
     return months;

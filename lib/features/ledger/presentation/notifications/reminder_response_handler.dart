@@ -174,7 +174,9 @@ class _ReminderResponseHandlerState
       await _showRecorded(bill, navContext);
       return;
     }
-    if (bill.status != ScheduledTransactionStatus.scheduled ||
+    if ((bill.status != ScheduledTransactionStatus.scheduled &&
+            bill.status != ScheduledTransactionStatus.failed &&
+            bill.status != ScheduledTransactionStatus.skipped) ||
         bill.account == null ||
         bill.category == null) {
       message(l10n.notificationUnavailable);
@@ -194,7 +196,8 @@ class _ReminderResponseHandlerState
     if (bill == null) return null;
     if (bill.status == ScheduledTransactionStatus.scheduled ||
         bill.status == ScheduledTransactionStatus.posted ||
-        bill.status == ScheduledTransactionStatus.failed) {
+        bill.status == ScheduledTransactionStatus.failed ||
+        bill.status == ScheduledTransactionStatus.skipped) {
       return bill;
     }
     return null;

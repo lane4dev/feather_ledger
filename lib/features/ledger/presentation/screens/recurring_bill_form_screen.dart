@@ -180,10 +180,10 @@ class _RecurringBillFormScreenState
                   RecurringSeriesMode.repeating) ...[
                 SizedBox(height: context.spacing.sm),
                 _repeatRow(l10n, labelWidth),
-                SizedBox(height: context.spacing.sm),
-                _autoPostRow(l10n, labelWidth),
               ],
               if (widget.transaction.series != null) ...[
+                SizedBox(height: context.spacing.sm),
+                _autoPostRow(l10n, labelWidth),
                 SizedBox(height: context.spacing.sm),
                 LedgerFormRow(
                   icon: LucideIcons.bell,
@@ -568,34 +568,34 @@ class _RecurringBillFormScreenState
           );
     if (scope == null || !mounted) return;
 
+    final isPlannedUpdate = series?.mode == RecurringSeriesMode.planned;
     final isRepeatingUpdate = scope == RecurringScope.updateRule &&
         series?.mode == RecurringSeriesMode.repeating;
-    final result = await ref
-        .read(recurringViewModelProvider.notifier)
-        .updateBill(
-          widget.transaction.id,
-          scope: scope,
-          amountMinor: parseMinor(_amount.text),
-          date: _date,
-          categoryId: _categoryId ?? widget.transaction.category!.id,
-          accountId: _accountId ?? widget.transaction.account.id,
-          description: _note.text.trim(),
-          frequency: isRepeatingUpdate ? _frequency : null,
-          interval: isRepeatingUpdate ? _interval : null,
-          weekdays: isRepeatingUpdate ? _weekdays : null,
-          endDate: isRepeatingUpdate ? _endDate : null,
-          countLimit: isRepeatingUpdate ? _countLimit : null,
-          clearEndDate:
-              isRepeatingUpdate && _endDate == null && series?.endDate != null,
-          clearCountLimit:
-              isRepeatingUpdate && _countLimit == null && series?.limit != null,
-          autoPost: isRepeatingUpdate ? _autoPost : null,
-          reminderMinutes:
-              scope == RecurringScope.updateRule ? _reminderMinutes : null,
-          clearReminder: scope == RecurringScope.updateRule &&
-              _reminderMinutes == null &&
-              series?.reminderMinutes != null,
-        );
+    final notifier = ref.read(recurringViewModelProvider.notifier);
+    final result = await notifier.updateBill(
+      widget.transaction.id,
+      scope: scope,
+      amountMinor: parseMinor(_amount.text),
+      date: _date,
+      categoryId: _categoryId ?? widget.transaction.category!.id,
+      accountId: _accountId ?? widget.transaction.account.id,
+      description: _note.text.trim(),
+      frequency: isRepeatingUpdate ? _frequency : null,
+      interval: isRepeatingUpdate ? _interval : null,
+      weekdays: isRepeatingUpdate ? _weekdays : null,
+      endDate: isRepeatingUpdate ? _endDate : null,
+      countLimit: isRepeatingUpdate ? _countLimit : null,
+      clearEndDate:
+          isRepeatingUpdate && _endDate == null && series?.endDate != null,
+      clearCountLimit:
+          isRepeatingUpdate && _countLimit == null && series?.limit != null,
+      autoPost: (isRepeatingUpdate || isPlannedUpdate) ? _autoPost : null,
+      reminderMinutes:
+          scope == RecurringScope.updateRule ? _reminderMinutes : null,
+      clearReminder: scope == RecurringScope.updateRule &&
+          _reminderMinutes == null &&
+          series?.reminderMinutes != null,
+    );
 
     if (!mounted) return;
 
@@ -604,8 +604,11 @@ class _RecurringBillFormScreenState
           .showSnackBar(SnackBar(content: Text(code.message(l10n))));
       return;
     }
+    final autoPosted = notifier.takeLastAutoPostedCount();
     context.pop();
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.billUpdated)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(autoPosted > 0
+            ? l10n.autoPostedCountMessage(autoPosted)
+            : l10n.billUpdated)));
   }
 }

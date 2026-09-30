@@ -207,9 +207,9 @@ class TransactionFormViewState {
   bool get showsRepeatRow =>
       canRepeat && mode == TransactionFormMode.repeating;
 
-  /// Whether the auto-post toggle shows: only when creating a repeating rule.
+  /// Whether the auto-post toggle shows: when creating a planned or repeating entry.
   bool get showsAutoPostRow =>
-      canRepeat && mode == TransactionFormMode.repeating;
+      canRepeat && mode != TransactionFormMode.defaultMode;
 
   /// Whether the attachment row shows. A series row cannot carry attachments,
   /// and an invisible picked-files list would be a leak.

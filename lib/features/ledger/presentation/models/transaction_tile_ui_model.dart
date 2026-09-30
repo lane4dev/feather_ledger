@@ -27,10 +27,19 @@ class TransactionTileUiModel {
   /// [id] is the scheduled instance's id in that case, not a transaction's.
   final bool isPending;
 
+  /// Scheduled instance status (`scheduled`, `failed`, or `skipped`) when
+  /// [isPending] is true; null for posted ledger transactions.
+  final ScheduledTransactionStatus? scheduledStatus;
+
   /// The series a pending bill belongs to, so it can be posted, skipped or
   /// switched off from the row. Null for anything already recorded.
   final String? seriesId;
   final RecurringTransactionSeriesEntity? series;
+
+  bool get isSkipped => scheduledStatus == ScheduledTransactionStatus.skipped;
+  bool get isFailed => scheduledStatus == ScheduledTransactionStatus.failed;
+  bool get isScheduledPending =>
+      scheduledStatus == ScheduledTransactionStatus.scheduled;
 
   const TransactionTileUiModel({
     required this.id,
@@ -45,6 +54,7 @@ class TransactionTileUiModel {
     required this.displayAmount,
     required this.displaySign,
     this.isPending = false,
+    this.scheduledStatus,
     this.seriesId,
     this.series,
   });

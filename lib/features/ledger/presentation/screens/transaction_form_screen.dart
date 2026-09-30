@@ -885,7 +885,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         // it survives the pop. The entry itself was recorded.
         _report(l10n.repeatSetupFailed(code.message(l10n)));
         context.pop();
-      case TransactionFormSaved():
+      case TransactionFormSaved(:final autoPostedCount):
+        if (autoPostedCount > 0) {
+          _report(l10n.autoPostedCountMessage(autoPostedCount));
+        }
         context.pop();
     }
   }
