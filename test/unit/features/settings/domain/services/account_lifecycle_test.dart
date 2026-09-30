@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:async';
-import 'package:drift/drift.dart' show Value;
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
@@ -10,40 +10,27 @@ import 'package:feather_ledger/features/ledger/data/projections/ledger_rebuild_s
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 void main() {
   late LedgerServiceHarness h;
-  setUp(() => h = LedgerServiceHarness());
+  setUp(() async {
+    final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
+    await prefs.setCurrency('USD');
+    h = LedgerServiceHarness(preferences: prefs);
+  });
   tearDown(() => h.close());
 
-  Future<String> account({int balance = 0}) async {
+  Future<String> account({int balance = 0, String currencyCode = 'USD'}) async {
     await h.accountService.createAccount(
-        commandId: 'create',
+        commandId: 'create-$currencyCode',
         name: 'Cash',
         type: AccountType.cash,
         initialBalanceMinor: balance,
-        currencyCode: 'USD');
-    return (await h.db.accountDao.getAllAccounts()).single.id;
-  }
-
-  /// Clears [id]'s manual-only latch so a due auto-post bill is eligible
-  /// to post during catch-up (simulating a bill that existed before falling due).
-  Future<void> rearmEligible(String id) async {
-    final row = await h.db.recurringDao.getScheduled(id);
-    await h.db.recurringDao.insertOrUpdateScheduled(
-      ScheduledTransactionsViewCompanion(
-        id: Value(row!.id),
-        seriesId: Value(row.seriesId),
-        occurrenceKey: Value(row.occurrenceKey),
-        scheduledDate: Value(row.scheduledDate),
-        amountOverrideMinor: Value(row.amountOverrideMinor),
-        dateOverride: Value(row.dateOverride),
-        memoOverride: Value(row.memoOverride),
-        status: Value(row.status),
-        transactionId: Value(row.transactionId),
-        manualOnly: const Value(false),
-      ),
-    );
+        currencyCode: currencyCode);
+    return (await h.db.accountDao.getAllAccounts())
+        .firstWhere((a) => a.currencyCode == currencyCode)
+        .id;
   }
 
   test('archive and restore retain totals and survive rebuild', () async {
@@ -333,7 +320,9 @@ void main() {
   test(
       'archiving converts overdue auto-post bills to manual planned items and restoring keeps them pending',
       () async {
-    final id = await account();
+    // Use JPY while active currency is default (USD) so the overdue
+    // auto-post bill stays pending until archive converts it to manual planned.
+    final id = await account(currencyCode: 'JPY');
     await h.categoryService.createCategory(
       commandId: 'cat',
       name: 'Food',
@@ -355,9 +344,6 @@ void main() {
       autoPost: true,
       mode: RecurringSeriesMode.repeating,
     );
-    for (final row in await h.db.recurringDao.watchAllScheduled().first) {
-      await rearmEligible(row.id);
-    }
     expect(
         await h.accountService
             .archiveAccount(commandId: 'archive', accountId: id),

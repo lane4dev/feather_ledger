@@ -146,10 +146,11 @@ void main() {
       expect(manifest.databaseBytes, greaterThan(0));
     });
 
-    test('auto-post watermark is local-only and absent from the manifest',
+    test('auto-post preferences are local-only and absent from the manifest',
         () async {
       await seedExpense();
-      await preferences.setLastRecurringAutoPost(true);
+      await preferences.setLastPlannedAutoPost(true);
+      await preferences.setLastRepeatingAutoPost(true);
 
       final path = builtArchivePath(await service().buildArchive());
       final archive = readArchive(path);
@@ -159,7 +160,9 @@ void main() {
       );
 
       expect(manifest.preferenceKeys,
-          isNot(contains('last_recurring_auto_post')));
+          isNot(contains('last_planned_auto_post')));
+      expect(manifest.preferenceKeys,
+          isNot(contains('last_repeating_auto_post')));
     });
 
     test('the snapshot is a complete SQLite database', () async {

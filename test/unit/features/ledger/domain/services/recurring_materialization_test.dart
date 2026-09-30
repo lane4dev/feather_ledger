@@ -486,7 +486,8 @@ void main() {
     expect(instance.recurringTransactionSeries?.description, 'Rent');
   });
 
-  test('a dormant daily series bounds overdue bills to 30 days and max three',
+  test(
+      'a dormant daily series materializes all missing historical overdue bills without 30d/3-item cap',
       () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
@@ -507,39 +508,54 @@ void main() {
       ..sort((a, b) => a.date.compareTo(b.date));
     final overdue = bills.where((i) => !i.date.isAfter(DateTime.now())).toList();
 
-    expect(overdue, hasLength(3),
-        reason: 'at most 3 most recent overdue instances are materialized');
-    expect(overdue.map((b) => b.date).toList(), [
-      fromNow(-2),
-      fromNow(-1),
-      fromNow(0),
-    ]);
+    expect(overdue, hasLength(41),
+        reason: 'every missing historical occurrence from startDate through today is materialized');
+    expect(overdue.first.date, start);
+    expect(overdue.last.date, fromNow(0));
     expect(await harness.recurringService.materialize(), 0);
   });
 
-  test('materialize returns newlyMaterializedOverdueCount for unmaterialized '
-      'dormant series and stays idempotent', () async {
+  test(
+      'materialize returns newlyMaterializedOverdueCount only for manual/non-auto-post overdue rows and stays idempotent',
+      () async {
     await seedAccountAndCategory(CategoryType.expense);
     final account = (await harness.db.accountDao.getAllAccounts()).single;
     final categoryId = await harness.userCategoryId();
 
     await harness.db.recurringDao.saveSeries(
       RecurringSeriesCompanion.insert(
-        id: 'dormant-series',
+        id: 'dormant-manual-series',
         type: RecurringSeriesKind.expense,
         mode: const Value(RecurringSeriesMode.repeating),
         amountMinor: 100,
         accountId: account.id,
         categoryId: categoryId,
-        description: 'Daily',
+        description: 'Daily manual',
         rrule: 'FREQ=DAILY',
         frequency: 'DAILY',
         startDate: fromNow(-40),
+        autoPost: const Value(false),
+      ),
+    );
+    await harness.db.recurringDao.saveSeries(
+      RecurringSeriesCompanion.insert(
+        id: 'dormant-auto-series',
+        type: RecurringSeriesKind.expense,
+        mode: const Value(RecurringSeriesMode.repeating),
+        amountMinor: 100,
+        accountId: account.id,
+        categoryId: categoryId,
+        description: 'Daily auto',
+        rrule: 'FREQ=DAILY',
+        frequency: 'DAILY',
+        startDate: fromNow(-10),
+        autoPost: const Value(true),
       ),
     );
 
     final firstCount = await harness.recurringService.materialize();
-    expect(firstCount, 3);
+    expect(firstCount, 41,
+        reason: 'only non-auto-post overdue bills count toward manual review banner');
     final secondCount = await harness.recurringService.materialize();
     expect(secondCount, 0);
   });

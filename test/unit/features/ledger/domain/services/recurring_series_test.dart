@@ -1,14 +1,15 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drift/drift.dart' show Value;
-
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
+import '../../../../../support/mocks/mock_shared_preferences.dart';
 
 /// The recurring-bill loop (spec 004, US2 / T036).
 ///
@@ -18,12 +19,15 @@ import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 /// [RecurringService] — the same seam the screens use.
 void main() {
   late LedgerServiceHarness harness;
+  late PreferencesRepositoryImpl preferences;
 
   // The correction path files under the seeded system categories; a
   // harness ledger starts empty, so it asks for them the way bootstrap
   // does.
   setUp(() async {
-    harness = LedgerServiceHarness();
+    preferences = PreferencesRepositoryImpl(MockSharedPreferences());
+    await preferences.setCurrency('USD');
+    harness = LedgerServiceHarness(preferences: preferences);
     await harness.seedSystemCategories();
   });
   tearDown(() => harness.close());
@@ -97,26 +101,6 @@ void main() {
       frequency: 'MONTHLY',
       interval: 1,
       startDate: DateTime.now().add(const Duration(days: 30)),
-    );
-  }
-
-  /// Re-arms [id]'s auto-post eligibility in the CRUD-exempt table by
-  /// clearing `manualOnly`.
-  Future<void> rearmEligible(String id) async {
-    final row = await harness.db.recurringDao.getScheduled(id);
-    await harness.db.recurringDao.insertOrUpdateScheduled(
-      ScheduledTransactionsViewCompanion(
-        id: Value(row!.id),
-        seriesId: Value(row.seriesId),
-        occurrenceKey: Value(row.occurrenceKey),
-        scheduledDate: Value(row.scheduledDate),
-        amountOverrideMinor: Value(row.amountOverrideMinor),
-        dateOverride: Value(row.dateOverride),
-        memoOverride: Value(row.memoOverride),
-        status: Value(row.status),
-        transactionId: Value(row.transactionId),
-        manualOnly: const Value(false),
-      ),
     );
   }
 
@@ -1130,11 +1114,21 @@ void main() {
   test('thisOnly clears manualOnly when moving a past autoPost bill to future',
       () async {
     await seed();
+    // Create with a future bill, skip a due bill after restoring from skipped,
+    // or create while in another currency so a due row has manualOnly = true.
+    await harness.preferences!.setCurrency('EUR');
     await createAutoPostingSeries();
+    await harness.preferences!.setCurrency('USD');
     final due = (await scheduled()).firstWhere(
       (s) => !s.date.isAfter(DateTime.now()),
     );
-    expect(due.manualOnly, isTrue);
+    await harness.recurringService
+        .deleteBill(due.id, scope: RecurringScope.thisOnly);
+    expect(
+        await harness.recurringService.restoreSkippedBill(due.id),
+        isA<Success<void>>());
+    expect((await harness.db.recurringDao.getScheduled(due.id))!.manualOnly,
+        isTrue);
 
     final future = DateTime.now().add(const Duration(days: 30));
     final result = await harness.recurringService.updateBill(
@@ -1154,7 +1148,7 @@ void main() {
 
   test('thisOnly resets a failed bill back to scheduled', () async {
     await seed();
-    await createAutoPostingSeries();
+    await createFutureMonthly();
     final instance = await firstScheduled();
     await harness.db.recurringDao.insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion(
@@ -1189,15 +1183,11 @@ void main() {
   test('catch-up posts the due instances of an auto-posting series, once',
       () async {
     await seed();
+    // Start in EUR so creating the USD series materializes due instances as
+    // pending without posting immediately, then switch back to USD for catch-up.
+    await harness.preferences!.setCurrency('EUR');
     expect(await createAutoPostingSeries(), isA<Success<void>>());
-
-    // A series created already past its first due date latches due rows
-    // manualOnly at creation. Re-arm them to exercise the catch-up path.
-    for (final row in await harness.db.recurringDao.watchAllScheduled().first) {
-      final effective = row.dateOverride ?? row.scheduledDate;
-      if (effective.isAfter(DateTime.now())) continue;
-      await rearmEligible(row.id);
-    }
+    await harness.preferences!.setCurrency('USD');
 
     final eventsBefore = (await harness.eventStore.readAll()).events.length;
     await harness.recurringService.catchUpAutoPosted();
@@ -1269,8 +1259,8 @@ void main() {
   // — 自动入账资格（创建与更新）———————————————————————————————————————————
 
   test(
-      'an auto-post series created already past its first due date latches '
-      'those bills manualOnly', () async {
+      'creating an auto-post series in active currency with past startDate immediately auto-posts all due bills without manualOnly latch',
+      () async {
     await seed();
     await createMonthly(autoPost: true);
 
@@ -1280,12 +1270,12 @@ void main() {
     expect(past, isNotEmpty, reason: 'fixture precondition');
     expect(future, isNotEmpty, reason: 'fixture precondition');
 
-    expect(past.every((i) => i.manualOnly), isTrue,
-        reason:
-            'already due at creation = manualOnly, and it must never retro-post');
-    expect(future.every((i) => !i.manualOnly), isTrue,
-        reason:
-            'a bill that was not yet due at creation keeps auto-post enabled');
+    expect(past.every((i) => i.status == ScheduledTransactionStatus.posted),
+        isTrue,
+        reason: 'past due bills on active currency auto-post immediately');
+    expect(past.every((i) => !i.manualOnly), isTrue);
+    expect(future.every((i) => !i.manualOnly), isTrue);
+    expect(harness.recurringService.takeLastAutoPostedCount(), past.length);
   });
 
   test('editing a still-future bill keeps manualOnly false', () async {
@@ -1302,8 +1292,8 @@ void main() {
   });
 
   test(
-      'an auto-post series starting today latches today\'s bill manualOnly '
-      'while keeping future bills automatic', () async {
+      'an auto-post series starting today auto-posts today immediately while keeping future bills scheduled',
+      () async {
     await seed();
     final now = DateTime.now();
     await harness.recurringService.createSeries(
@@ -1323,15 +1313,19 @@ void main() {
     final dueNow = instances.where((i) => !i.effectiveDate.isAfter(now));
     final future = instances.where((i) => i.effectiveDate.isAfter(now));
     expect(dueNow, hasLength(1));
-    expect(dueNow.single.manualOnly, isTrue);
+    expect(dueNow.single.status, ScheduledTransactionStatus.posted);
+    expect(dueNow.single.manualOnly, isFalse);
     expect(future, isNotEmpty);
+    expect(future.every((i) => i.status == ScheduledTransactionStatus.scheduled),
+        isTrue);
     expect(future.every((i) => !i.manualOnly), isTrue);
   });
 
-  test('creating a planned series ignores autoPost: true and stores false',
+  test('planned series supports autoPost: true for both future and past dates',
       () async {
     await seed();
-    final result = await harness.recurringService.createSeries(
+    final futureDate = DateTime.now().add(const Duration(days: 5));
+    final futureResult = await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 50000,
       accountId: accountId,
@@ -1339,14 +1333,302 @@ void main() {
       description: 'Trip',
       frequency: 'MONTHLY',
       interval: 1,
-      startDate: DateTime.now().add(const Duration(days: 5)),
-      endDate: DateTime.now().add(const Duration(days: 5)),
+      startDate: futureDate,
+      endDate: futureDate,
       autoPost: true,
       mode: RecurringSeriesMode.planned,
     );
 
-    expect(result, isA<Success<void>>());
+    expect(futureResult, isA<Success<void>>());
     expect((await seriesRow()).mode, RecurringSeriesMode.planned);
-    expect((await seriesRow()).autoPost, isFalse);
+    expect((await seriesRow()).autoPost, isTrue);
+    expect((await scheduled()).single.status,
+        ScheduledTransactionStatus.scheduled);
+
+    // A past-dated auto-posting planned bill auto-posts immediately.
+    final pastDate = DateTime.now().subtract(const Duration(days: 2));
+    final pastResult = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 25000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Past trip',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: pastDate,
+      endDate: pastDate,
+      autoPost: true,
+      mode: RecurringSeriesMode.planned,
+    );
+    expect(pastResult, isA<Success<void>>());
+    expect(harness.recurringService.takeLastAutoPostedCount(), 1);
+    final pastRow = (await scheduled())
+        .firstWhere((s) => s.recurringTransactionSeries?.description == 'Past trip');
+    expect(pastRow.status, ScheduledTransactionStatus.posted);
+  });
+
+  test(
+      'updateRule enables autoPost immediately for due bills and reports count',
+      () async {
+    await seed();
+    final start = DateTime.now().subtract(const Duration(days: 5));
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 10000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Manual past',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+      autoPost: false,
+      mode: RecurringSeriesMode.repeating,
+    );
+    final first = (await scheduled()).first;
+
+    final updated = await harness.recurringService.updateBill(
+      first.id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 10000,
+      date: first.date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Manual past',
+      autoPost: true,
+    );
+    expect(updated, isA<Success<void>>());
+    expect(harness.recurringService.takeLastAutoPostedCount(), 6);
+    final after = await scheduled();
+    final due = after.where((i) => !i.date.isAfter(DateTime.now()));
+    expect(due.every((i) => i.status == ScheduledTransactionStatus.posted),
+        isTrue);
+  });
+
+  test(
+      'updateRule preserves skipped when only template/endDate/countLimit change, and discards skipped when base schedule changes',
+      () async {
+    await seed();
+    final start = DateTime.now().add(const Duration(days: 1));
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 10000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+      countLimit: 6,
+    );
+    final items = await scheduled()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    await harness.recurringService.postInstance(items[0].id);
+    await harness.recurringService
+        .deleteBill(items[1].id, scope: RecurringScope.thisOnly);
+
+    // 1. Changing endCondition/template preserves skipped & counts posted + skipped in K.
+    final tooSmallKeepSkipped = await harness.recurringService.updateBill(
+      items[2].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 15000,
+      date: items[2].date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 2,
+    );
+    expect(
+      tooSmallKeepSkipped,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.countLimitTooSmall),
+    );
+
+    final keepSkipped = await harness.recurringService.updateBill(
+      items[2].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 15000,
+      date: items[2].date,
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 3,
+    );
+    expect(keepSkipped, isA<Success<void>>());
+    expect((await harness.db.recurringDao.getScheduled(items[1].id))?.status,
+        'skipped');
+
+    // 2. Changing base schedule discards skipped & counts posted only in K.
+    final refreshedPending = (await scheduled())
+        .firstWhere((i) => i.status == ScheduledTransactionStatus.scheduled);
+    final scheduleChangeValid = await harness.recurringService.updateBill(
+      refreshedPending.id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 15000,
+      date: refreshedPending.date.add(const Duration(days: 1)),
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 2,
+    );
+    expect(scheduleChangeValid, isA<Success<void>>());
+    expect(await harness.db.recurringDao.getScheduled(items[1].id), isNull,
+        reason: 'skipped history discarded when base schedule changes');
+    expect((await harness.db.recurringDao.getScheduled(items[0].id))?.status,
+        'posted',
+        reason: 'posted history always preserved');
+  });
+
+  test('stopping a repeating rule deletes scheduled, failed, and skipped rows',
+      () async {
+    await seed();
+    final start = DateTime.now().add(const Duration(days: 1));
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 10000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Rent',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+    );
+    final items = await scheduled()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    await harness.recurringService.postInstance(items[0].id);
+    await harness.recurringService
+        .deleteBill(items[1].id, scope: RecurringScope.thisOnly);
+
+    final stopResult = await harness.recurringService
+        .deleteBill(items[2].id, scope: RecurringScope.updateRule);
+    expect(stopResult, isA<Success<void>>());
+
+    final remaining = await scheduled();
+    expect(remaining, hasLength(1));
+    expect(remaining.single.id, items[0].id);
+    expect(remaining.single.status, ScheduledTransactionStatus.posted);
+  });
+
+  group('restoreSkippedBill', () {
+    test('restores future skipped bill with manualOnly = false', () async {
+      await seed();
+      await createFutureMonthly();
+      final instance = await firstScheduled();
+      await harness.recurringService
+          .deleteBill(instance.id, scope: RecurringScope.thisOnly);
+
+      final result =
+          await harness.recurringService.restoreSkippedBill(instance.id);
+      expect(result, isA<Success<void>>());
+
+      final restored = await harness.db.recurringDao.getScheduled(instance.id);
+      expect(restored!.status, 'scheduled');
+      expect(restored.manualOnly, isFalse);
+    });
+
+    test(
+        'restoring a due skipped bill on autoPost series sets manualOnly = true so it stays pending',
+        () async {
+      await seed();
+      await harness.preferences!.setCurrency('EUR');
+      await createAutoPostingSeries();
+      await harness.preferences!.setCurrency('USD');
+      final due = (await scheduled())
+          .firstWhere((s) => !s.date.isAfter(DateTime.now()));
+      await harness.recurringService
+          .deleteBill(due.id, scope: RecurringScope.thisOnly);
+
+      final result = await harness.recurringService.restoreSkippedBill(due.id);
+      expect(result, isA<Success<void>>());
+
+      final restored = await harness.db.recurringDao.getScheduled(due.id);
+      expect(restored!.status, 'scheduled');
+      expect(restored.manualOnly, isTrue);
+
+      // Catch-up must NOT auto-post the restored due bill.
+      final posted = await harness.recurringService.catchUpAutoPosted();
+      expect(posted, 0);
+      expect((await harness.db.recurringDao.getScheduled(due.id))!.status,
+          'scheduled');
+    });
+
+    test(
+        'restoring a due skipped bill on manual series keeps manualOnly = false',
+        () async {
+      await seed();
+      await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 10000,
+        accountId: accountId,
+        categoryId: expenseCategoryId,
+        description: 'Manual',
+        frequency: 'MONTHLY',
+        interval: 1,
+        startDate: DateTime.now().subtract(const Duration(days: 2)),
+      );
+      final due = await firstScheduled();
+      await harness.recurringService
+          .deleteBill(due.id, scope: RecurringScope.thisOnly);
+
+      final result = await harness.recurringService.restoreSkippedBill(due.id);
+      expect(result, isA<Success<void>>());
+
+      final restored = await harness.db.recurringDao.getScheduled(due.id);
+      expect(restored!.status, 'scheduled');
+      expect(restored.manualOnly, isFalse);
+    });
+
+    test('refuses non-skipped, stopped series, and archived accounts',
+        () async {
+      await seed();
+      await createFutureMonthly();
+      final instance = await firstScheduled();
+
+      // Already scheduled -> scheduledNotSkipped
+      expect(
+        await harness.recurringService.restoreSkippedBill(instance.id),
+        isA<Failure<void>>()
+            .having((f) => f.code, 'code', LedgerErrorCode.scheduledNotSkipped),
+      );
+
+      // Skip then stop series -> row deleted -> transactionNotFound
+      await harness.recurringService
+          .deleteBill(instance.id, scope: RecurringScope.thisOnly);
+      // Force series inactive directly to test recurringSeriesStopped
+      final series = await seriesRow();
+      await harness.db.recurringDao.saveSeries(
+        series.toCompanion(true).copyWith(isActive: const Value(false)),
+      );
+      expect(
+        await harness.recurringService.restoreSkippedBill(instance.id),
+        isA<Failure<void>>().having(
+            (f) => f.code, 'code', LedgerErrorCode.recurringSeriesStopped),
+      );
+
+      // Re-activate series and archive account directly -> accountArchived
+      await harness.db.recurringDao.saveSeries(
+        series.toCompanion(true).copyWith(isActive: const Value(true)),
+      );
+      await (harness.db.update(harness.db.accountsView)
+            ..where((t) => t.id.equals(accountId)))
+          .write(const AccountsViewCompanion(archived: Value(true)));
+      expect(
+        await harness.recurringService.restoreSkippedBill(instance.id),
+        isA<Failure<void>>()
+            .having((f) => f.code, 'code', LedgerErrorCode.accountArchived),
+      );
+
+      // Missing id -> transactionNotFound
+      expect(
+        await harness.recurringService.restoreSkippedBill('missing-id'),
+        isA<Failure<void>>()
+            .having((f) => f.code, 'code', LedgerErrorCode.transactionNotFound),
+      );
+    });
   });
 }

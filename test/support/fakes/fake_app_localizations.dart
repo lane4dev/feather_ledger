@@ -901,9 +901,26 @@ class FakeAppLocalizations implements AppLocalizations {
   String get accountConfirmOperation => "Confirm";
 
   @override
+  String get errorScheduledNotSkipped =>
+      'Only skipped bills can be restored to pending';
+
+  @override
+  String get errorRecurringSeriesStopped =>
+      'This recurring rule has been stopped';
+
+  @override
   String autoPostedCountMessage(int count) => count == 1
-      ? 'Auto-posted 1 subscription'
-      : 'Auto-posted $count subscriptions';
+      ? 'Auto-posted 1 scheduled bill'
+      : 'Auto-posted $count scheduled bills';
+
+  @override
+  String get skippedBill => 'Skipped';
+
+  @override
+  String get restoreToPending => 'Restore to pending';
+
+  @override
+  String get billRestored => 'Bill restored to pending';
 
   @override
   String get failedBill => 'Auto-post failed';
@@ -917,12 +934,12 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String currencyBacklogTitle(String currency) =>
-      'Due subscriptions in $currency';
+      'Due auto-posting bills in $currency';
 
   @override
   String currencyBacklogMessage(int count) => count == 1
-      ? '1 auto-posting subscription became due while using another currency.'
-      : '$count auto-posting subscriptions became due while using another currency.';
+      ? '1 auto-posting bill became due while using another currency.'
+      : '$count auto-posting bills became due while using another currency.';
 
   @override
   String get currencyBacklogPostAll => 'Post all';

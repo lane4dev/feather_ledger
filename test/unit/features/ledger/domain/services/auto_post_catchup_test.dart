@@ -1,7 +1,5 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -66,7 +64,11 @@ void main() {
   Future<Result<void>> createAutoSeries(
     String accountId, {
     String description = 'Rent',
+    RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+    DateTime? startDate,
   }) {
+    final start =
+        startDate ?? DateTime.now().subtract(const Duration(days: 40));
     return harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 20000,
@@ -75,8 +77,10 @@ void main() {
       description: description,
       frequency: 'MONTHLY',
       interval: 1,
-      startDate: DateTime.now().subtract(const Duration(days: 40)),
+      startDate: start,
+      endDate: mode == RecurringSeriesMode.planned ? start : null,
       autoPost: true,
+      mode: mode,
     );
   }
 
@@ -88,41 +92,14 @@ void main() {
           .where((i) => !i.effectiveDate.isAfter(DateTime.now()))
           .toList();
 
-  /// Re-arms [seriesId]'s due instances, undoing the manual-only latch that
-  /// creation applies to bills already past their first due date.
-  Future<void> rearmDue(String seriesId) async {
-    for (final row
-        in await harness.db.recurringDao.watchAllScheduled().first) {
-      if (row.seriesId != seriesId) continue;
-      final effective = row.dateOverride ?? row.scheduledDate;
-      if (effective.isAfter(DateTime.now())) continue;
-      await harness.db.recurringDao.insertOrUpdateScheduled(
-        ScheduledTransactionsViewCompanion(
-          id: Value(row.id),
-          seriesId: Value(row.seriesId),
-          occurrenceKey: Value(row.occurrenceKey),
-          scheduledDate: Value(row.scheduledDate),
-          amountOverrideMinor: Value(row.amountOverrideMinor),
-          dateOverride: Value(row.dateOverride),
-          memoOverride: Value(row.memoOverride),
-          status: Value(row.status),
-          transactionId: Value(row.transactionId),
-          manualOnly: const Value(false),
-        ),
-      );
-    }
-  }
-
   test('markPreRestoreManualOnly latches due bills in every currency', () async {
     await seedAccounts();
+    // Create both series while another currency is active so due bills remain
+    // pending (manualOnly = false) across both USD and JPY before restore.
+    await preferences.setCurrency('EUR');
     await createAutoSeries(usdAccountId, description: 'USD rent');
     await createAutoSeries(jpyAccountId, description: 'JPY rent');
-
-    // Creation latches the already-due rows; re-arm them so the watermark is
-    // the thing under test, and so future rows are the untouched control.
-    for (final series in await harness.db.recurringDao.getAllSeries()) {
-      await rearmDue(series.id);
-    }
+    await preferences.setCurrency('USD');
 
     final changed = await harness.recurringService.markPreRestoreManualOnly(
         DateTime.now());
@@ -146,11 +123,10 @@ void main() {
 
   test('catchUpAutoPosted only posts the current currency', () async {
     await seedAccounts();
+    await preferences.setCurrency('EUR');
     await createAutoSeries(usdAccountId, description: 'USD rent');
     await createAutoSeries(jpyAccountId, description: 'JPY rent');
-    for (final series in await harness.db.recurringDao.getAllSeries()) {
-      await rearmDue(series.id);
-    }
+    await preferences.setCurrency('USD');
 
     final posted = await harness.recurringService.catchUpAutoPosted();
     expect(posted, greaterThan(0));
@@ -171,6 +147,7 @@ void main() {
   test('getCurrencyBacklog only sees autoPost due bills of that currency',
       () async {
     await seedAccounts();
+    await preferences.setCurrency('EUR');
     await createAutoSeries(usdAccountId, description: 'USD rent');
     await createAutoSeries(jpyAccountId, description: 'JPY rent');
     // A manual repeating series in the same currency must not appear.
@@ -184,9 +161,7 @@ void main() {
       interval: 1,
       startDate: DateTime.now().subtract(const Duration(days: 40)),
     );
-    for (final series in await harness.db.recurringDao.getAllSeries()) {
-      await rearmDue(series.id);
-    }
+    await preferences.setCurrency('USD');
 
     final backlog =
         await harness.recurringService.getCurrencyBacklog('USD');
@@ -202,11 +177,10 @@ void main() {
   test('settleCurrencyBacklog posts all or freezes them, on the choice',
       () async {
     await seedAccounts();
+    await preferences.setCurrency('EUR');
     await createAutoSeries(usdAccountId, description: 'USD rent');
     await createAutoSeries(jpyAccountId, description: 'JPY rent');
-    for (final series in await harness.db.recurringDao.getAllSeries()) {
-      await rearmDue(series.id);
-    }
+    await preferences.setCurrency('USD');
 
     // postAll: true settles the USD backlog immediately.
     final posted = await harness.recurringService
@@ -235,10 +209,9 @@ void main() {
   test('a failing bill is marked failed and does not block the queue',
       () async {
     await seedAccounts();
+    await preferences.setCurrency('EUR');
     await createAutoSeries(usdAccountId, description: 'USD rent');
-    final series = (await harness.db.recurringDao.getAllSeries())
-        .firstWhere((s) => s.description == 'USD rent');
-    await rearmDue(series.id);
+    await preferences.setCurrency('USD');
 
     // Remove the category the series files under: posting now fails inside
     // the context resolver, after the catch-up predicate already admitted it.
@@ -257,5 +230,27 @@ void main() {
             .every((i) => i.status == ScheduledTransactionStatus.failed),
         isTrue,
         reason: 'the failure is captured on the bill, not thrown into launch');
+  });
+
+  test('auto-posting planned bill in another currency enters currency backlog',
+      () async {
+    await seedAccounts();
+    await preferences.setCurrency('EUR');
+    await createAutoSeries(
+      usdAccountId,
+      description: 'Past planned',
+      mode: RecurringSeriesMode.planned,
+      startDate: DateTime.now().subtract(const Duration(days: 2)),
+    );
+    await preferences.setCurrency('USD');
+
+    final backlog = await harness.recurringService.getCurrencyBacklog('USD');
+    expect(backlog, hasLength(1));
+    expect(backlog.single.recurringTransactionSeries?.mode,
+        RecurringSeriesMode.planned);
+
+    final posted = await harness.recurringService
+        .settleCurrencyBacklog('USD', postAll: true);
+    expect(posted, 1);
   });
 }

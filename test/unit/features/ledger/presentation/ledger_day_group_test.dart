@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_group.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 
@@ -254,5 +255,30 @@ void main() {
         reason: 'the excluded row is still a row');
     expect(days.single.displayExpense, r'$500.00',
         reason: 'and it is not in the number beside it');
+  });
+
+  test('a skipped-only day still creates its date group with no subtotals', () {
+    final days = group([
+      TransactionTileUiModel(
+        id: 'sched_skipped',
+        amount: 50000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 8),
+        note: 'Skipped rent',
+        category: rent,
+        account: cash,
+        displayAmount: '500.00',
+        displaySign: '-',
+        isPending: true,
+        scheduledStatus: ScheduledTransactionStatus.skipped,
+        seriesId: 'series_1',
+      ),
+    ]);
+
+    expect(days, hasLength(1));
+    expect(days.single.date, DateTime(2026, 11, 8));
+    expect(days.single.transactions.single.isSkipped, isTrue);
+    expect(days.single.displayIncome, isNull);
+    expect(days.single.displayExpense, isNull);
   });
 }

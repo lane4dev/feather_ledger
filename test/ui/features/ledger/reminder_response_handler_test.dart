@@ -95,7 +95,7 @@ class _Recurring implements RecurringService {
   }
 
   @override
-  Future<int> catchUpAutoPosted({String? accountId}) async {
+  Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async {
     calls.add('catchup');
     if (bill.status == ScheduledTransactionStatus.scheduled) {
       bill = bill.copyWith(
@@ -103,6 +103,16 @@ class _Recurring implements RecurringService {
       return 1;
     }
     return 0;
+  }
+
+  @override
+  int takeLastAutoPostedCount() => 0;
+
+  @override
+  Future<Result<void>> restoreSkippedBill(String scheduledId) async {
+    calls.add('restore');
+    bill = bill.copyWith(status: ScheduledTransactionStatus.scheduled);
+    return unitResult;
   }
 
   @override
@@ -285,5 +295,59 @@ void main() {
   testWidgets('a missing bill reports unavailable', (tester) async {
     await pump(tester, payloadId: 'missing');
     expect(find.text('This bill is no longer available.'), findsOneWidget);
+  });
+
+  testWidgets('notification tap opens a skipped bill sheet for restore',
+      (tester) async {
+    final when = DateTime(2026, 11, 15, 12);
+    final skippedBill = ScheduledTransactionEntity(
+      id: 'bill',
+      seriesId: 'series',
+      occurrenceKey: scheduledOccurrenceKey(when),
+      scheduledDate: when,
+      amountOverrideMinor: 100,
+      account: account,
+      category: category,
+      kind: TransactionKind.expense,
+      status: ScheduledTransactionStatus.skipped,
+    );
+    final recurring = _Recurring(skippedBill);
+    final reminders = _Reminders();
+    reminders.queued.add(const NotificationResponse(
+      notificationResponseType: NotificationResponseType.selectedNotification,
+      payload: '${RecurringReminders.payloadPrefix}bill',
+    ));
+    final router = GoRouter(
+      initialLocation: '/ledger',
+      routes: [
+        GoRoute(
+          path: '/ledger',
+          builder: (_, __) => const Scaffold(body: Text('Ledger')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    addTearDown(reminders.changed.close);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        goRouterProvider.overrideWithValue(router),
+        recurringRemindersProvider.overrideWithValue(reminders),
+        recurringServiceProvider.overrideWithValue(recurring),
+        ledgerServiceProvider.overrideWithValue(_Ledger(when)),
+        displayCurrencySymbolProvider.overrideWithValue('\$'),
+        getTransactionHistoryProvider.overrideWith((ref, id) async => []),
+      ],
+      child: MaterialApp.router(
+        theme: AppTheme.lightTheme,
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => ReminderResponseHandler(child: child!),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PendingBillSheet), findsOneWidget);
+    expect(find.text('Restore to pending'), findsOneWidget);
   });
 }

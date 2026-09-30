@@ -98,21 +98,30 @@ void main() {
     expect(repository.getShowBalance(), isTrue, reason: 'fell back to default');
   });
 
-  test('lastRecurringAutoPost defaults false, persists locally, and is excluded from backup',
+  test('lastPlannedAutoPost & lastRepeatingAutoPost default false, persist independently, and are excluded from backup',
       () async {
-    expect(repository.getLastRecurringAutoPost(), isFalse);
+    expect(repository.getLastPlannedAutoPost(), isFalse);
+    expect(repository.getLastRepeatingAutoPost(), isFalse);
 
-    await repository.setLastRecurringAutoPost(true);
-    expect(repository.getLastRecurringAutoPost(), isTrue);
+    await repository.setLastPlannedAutoPost(true);
+    expect(repository.getLastPlannedAutoPost(), isTrue);
+    expect(repository.getLastRepeatingAutoPost(), isFalse);
+
+    await repository.setLastRepeatingAutoPost(true);
+    expect(repository.getLastRepeatingAutoPost(), isTrue);
 
     final exported = repository.exportAll();
-    expect(exported.keys, isNot(contains('last_recurring_auto_post')));
+    expect(exported.keys, isNot(contains('last_planned_auto_post')));
+    expect(exported.keys, isNot(contains('last_repeating_auto_post')));
 
     final targetStore = MockSharedPreferences();
     final target = PreferencesRepositoryImpl(targetStore);
-    await target.setLastRecurringAutoPost(false);
+    await target.setLastPlannedAutoPost(false);
+    await target.setLastRepeatingAutoPost(false);
     await target.importAll(exported);
-    expect(target.getLastRecurringAutoPost(), isFalse,
-        reason: 'restore must not overwrite local lastRecurringAutoPost');
+    expect(target.getLastPlannedAutoPost(), isFalse,
+        reason: 'restore must not overwrite local lastPlannedAutoPost');
+    expect(target.getLastRepeatingAutoPost(), isFalse,
+        reason: 'restore must not overwrite local lastRepeatingAutoPost');
   });
 }

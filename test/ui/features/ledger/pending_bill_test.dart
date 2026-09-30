@@ -43,6 +43,7 @@ void main() {
   TransactionTileUiModel tile({
     required bool isPending,
     RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+    ScheduledTransactionStatus? scheduledStatus,
   }) =>
       TransactionTileUiModel(
         id: isPending ? 'sched_1' : 'tx_1',
@@ -55,6 +56,9 @@ void main() {
         displayAmount: '5000.00',
         displaySign: '-',
         isPending: isPending,
+        scheduledStatus: isPending
+            ? (scheduledStatus ?? ScheduledTransactionStatus.scheduled)
+            : null,
         seriesId: isPending ? 'series_1' : null,
         series: isPending
             ? RecurringTransactionSeriesEntity(
@@ -113,6 +117,38 @@ void main() {
       expect(find.text('Rent'), findsWidgets);
       expect(find.text('Pending'), findsOneWidget);
     });
+
+    testWidgets('skipped row renders muted with strikethrough and Skipped badge',
+        (tester) async {
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(
+          isPending: true,
+          scheduledStatus: ScheduledTransactionStatus.skipped,
+        ),
+      )));
+
+      final opacity = tester.widget<Opacity>(find.byType(Opacity));
+      expect(opacity.opacity, lessThan(0.55));
+      expect(find.text('Skipped'), findsOneWidget);
+      expect(find.text('Pending'), findsNothing);
+
+      final titleText = tester.widget<Text>(find.text('Rent').first);
+      expect(titleText.style?.decoration, TextDecoration.lineThrough);
+    });
+
+    testWidgets('failed row renders warning icon and Failed badge',
+        (tester) async {
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(
+          isPending: true,
+          scheduledStatus: ScheduledTransactionStatus.failed,
+        ),
+      )));
+
+      expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
+      expect(find.text('Auto-post failed'), findsOneWidget);
+      expect(find.text('Pending'), findsNothing);
+    });
   });
 
   group('the pending bill sheet', () {
@@ -123,12 +159,20 @@ void main() {
     Future<void> pumpSheet(
       WidgetTester tester, {
       RecurringSeriesMode mode = RecurringSeriesMode.repeating,
+      ScheduledTransactionStatus scheduledStatus =
+          ScheduledTransactionStatus.scheduled,
     }) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [recurringViewModelProvider.overrideWith(() => viewModel)],
           child: wrap(
-            PendingBillSheet(transaction: tile(isPending: true, mode: mode)),
+            PendingBillSheet(
+              transaction: tile(
+                isPending: true,
+                mode: mode,
+                scheduledStatus: scheduledStatus,
+              ),
+            ),
           ),
         ),
       );
@@ -260,11 +304,50 @@ void main() {
       expect(find.text('This scheduled transaction was already posted'),
           findsOneWidget);
     });
+
+    testWidgets('skipped sheet shows Restore to pending without edit/overflow',
+        (tester) async {
+      await pumpSheet(
+        tester,
+        scheduledStatus: ScheduledTransactionStatus.skipped,
+      );
+
+      expect(find.text('Skipped'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.pencil), findsNothing);
+      expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
+      expect(find.text('Post'), findsNothing);
+
+      await tester.tap(find.text('Restore to pending'));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.restored, ['sched_1']);
+    });
+
+    testWidgets('failed sheet shows warning banner and Retry post action',
+        (tester) async {
+      await pumpSheet(
+        tester,
+        scheduledStatus: ScheduledTransactionStatus.failed,
+      );
+
+      expect(find.text('Auto-post failed'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
+
+      await tester.tap(find.text('Retry post'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Post')));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.posted, ['sched_1']);
+    });
   });
 }
 
 class _RecordingRecurringViewModel extends RecurringViewModel {
   final List<String> posted = [];
+  final List<String> restored = [];
   final List<(String, RecurringScope)> deleted = [];
   LedgerErrorCode? failure;
 
@@ -275,6 +358,13 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
   Future<Result<void>> postInstance(String scheduledId) async {
     if (failure != null) return Failure(failure!, 'rejected');
     posted.add(scheduledId);
+    return unitResult;
+  }
+
+  @override
+  Future<Result<void>> restoreSkippedBill(String scheduledId) async {
+    if (failure != null) return Failure(failure!, 'rejected');
+    restored.add(scheduledId);
     return unitResult;
   }
 

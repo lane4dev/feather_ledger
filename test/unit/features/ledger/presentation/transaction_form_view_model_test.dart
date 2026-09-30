@@ -671,7 +671,7 @@ void main() {
     });
 
     test(
-        'autoPost defaults to false, persists lastRecurringAutoPost, and applies only to repeating',
+        'autoPost defaults to false, remembers planned and repeating independently, and applies to both',
         () async {
       final prefs = PreferencesRepositoryImpl(MockSharedPreferences());
       final c1 = container(preferences: prefs);
@@ -681,30 +681,48 @@ void main() {
       expect(vm1.state.autoPost, isFalse);
       expect(vm1.state.showsAutoPostRow, isFalse);
 
+      // Toggle Repeating ON -> only lastRepeatingAutoPost becomes true.
       vm1.setMode(TransactionFormMode.repeating);
       expect(vm1.state.showsAutoPostRow, isTrue);
       vm1.setAutoPost(true);
       expect(vm1.state.autoPost, isTrue);
-      expect(prefs.getLastRecurringAutoPost(), isTrue);
+      expect(prefs.getLastRepeatingAutoPost(), isTrue);
+      expect(prefs.getLastPlannedAutoPost(), isFalse);
 
+      // Switching to Planned shows Planned's own remembered value (false).
+      vm1.setMode(TransactionFormMode.planned);
+      expect(vm1.state.showsAutoPostRow, isTrue);
+      expect(vm1.state.autoPost, isFalse);
+
+      // Switch back to Repeating and submit autoPost = true.
+      vm1.setMode(TransactionFormMode.repeating);
+      expect(vm1.state.autoPost, isTrue);
       vm1.setAmountText('250.00');
       vm1.selectAccount('acc_cash');
       vm1.selectCategory('cat_rent');
       await vm1.submit();
       expect(recurring.created.last['autoPost'], isTrue);
 
-      // Reopening remembers true, yet Planned still writes autoPost = false.
+      // Reopening remembers Repeating=true and Planned=false independently,
+      // and Planned can enable & submit autoPost=true too.
       final c2 = container(preferences: prefs);
       await c2.read(preferencesRepositoryProvider.future);
       final vm2 = form(c2);
+      vm2.setMode(TransactionFormMode.repeating);
       expect(vm2.state.autoPost, isTrue);
+
       vm2.setMode(TransactionFormMode.planned);
-      expect(vm2.state.showsAutoPostRow, isFalse);
+      expect(vm2.state.showsAutoPostRow, isTrue);
+      expect(vm2.state.autoPost, isFalse);
+      vm2.setAutoPost(true);
+      expect(prefs.getLastPlannedAutoPost(), isTrue);
+
       vm2.setAmountText('120.00');
       vm2.selectAccount('acc_cash');
       vm2.selectCategory('cat_rent');
       await vm2.submit();
-      expect(recurring.created.last['autoPost'], isFalse);
+      expect(recurring.created.last['mode'], RecurringSeriesMode.planned);
+      expect(recurring.created.last['autoPost'], isTrue);
     });
   });
 

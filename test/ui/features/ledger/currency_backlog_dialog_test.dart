@@ -107,9 +107,9 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Due subscriptions in \$ (Dollar)'), findsOneWidget);
+    expect(find.text('Due auto-posting bills in \$ (Dollar)'), findsOneWidget);
     expect(
-        find.text('3 auto-posting subscriptions became due while using '
+        find.text('3 auto-posting bills became due while using '
             'another currency.'),
         findsOneWidget);
 

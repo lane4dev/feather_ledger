@@ -164,7 +164,7 @@ void main() {
   });
 
   testWidgets(
-      'three entry modes render and auto-post switch only appears in Repeating',
+      'three entry modes render and auto-post switch appears in both Planned and Repeating',
       (tester) async {
     await pumpForm(tester);
 
@@ -175,7 +175,8 @@ void main() {
 
     await tester.tap(find.text('Planned'));
     await settle(tester);
-    expect(find.text('Auto-post'), findsNothing);
+    expect(find.text('Auto-post'), findsOneWidget);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
 
     await tester.tap(find.text('Repeating'));
     await settle(tester);
@@ -187,40 +188,56 @@ void main() {
   });
 
   testWidgets(
-      'toggling auto-post persists across form reopens and saves on repeating',
+      'planned and repeating remember auto-post independently and persist their values',
       (tester) async {
     await pumpForm(tester);
-    await tester.tap(find.text('Repeating'));
-    await settle(tester);
 
+    // Enable auto-post on Planned only.
+    await tester.tap(find.text('Planned'));
+    await settle(tester);
     await tester.tap(find.byType(Switch));
     await settle(tester);
-    expect(preferences.getLastRecurringAutoPost(), isTrue);
+    expect(preferences.getLastPlannedAutoPost(), isTrue);
+    expect(preferences.getLastRepeatingAutoPost(), isFalse);
+
+    // Switching to Repeating shows its own independent remembered value (false).
+    await tester.tap(find.text('Repeating'));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+
+    // Switching back to Planned keeps true and saves planned autoPost = true.
+    await tester.tap(find.text('Planned'));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
 
     await fillExpense(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await settle(tester);
     expect(recurring.created.single['autoPost'], isTrue);
-    expect(recurring.created.single['mode'], RecurringSeriesMode.repeating);
+    expect(recurring.created.single['mode'], RecurringSeriesMode.planned);
 
     await teardownTree(tester);
 
-    // Reopening the form remembers the toggle when Repeating is chosen.
+    // Reopening the form remembers Planned=true and Repeating=false independently.
     await pumpForm(tester);
-    await tester.tap(find.text('Repeating'));
-    await settle(tester);
-    final reopenedSwitch = tester.widget<Switch>(find.byType(Switch));
-    expect(reopenedSwitch.value, isTrue);
-
-    // Switching to Planned hides the switch and saves autoPost = false.
     await tester.tap(find.text('Planned'));
     await settle(tester);
-    expect(find.text('Auto-post'), findsNothing);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+
+    await tester.tap(find.text('Repeating'));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+
+    // Toggle Repeating on and save.
+    await tester.tap(find.byType(Switch));
+    await settle(tester);
+    expect(preferences.getLastRepeatingAutoPost(), isTrue);
+
     await fillExpense(tester);
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await settle(tester);
-    expect(recurring.created.last['autoPost'], isFalse);
-    expect(recurring.created.last['mode'], RecurringSeriesMode.planned);
+    expect(recurring.created.last['autoPost'], isTrue);
+    expect(recurring.created.last['mode'], RecurringSeriesMode.repeating);
 
     await teardownTree(tester);
   });

@@ -277,9 +277,13 @@ void main() {
     testWidgets('planned bill saves directly without a scope dialog',
         (tester) async {
       await pumpForm(tester, mode: RecurringSeriesMode.planned);
+      expect(find.text('Auto-post'), findsOneWidget);
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
       await save(tester);
       expect(find.byType(AlertDialog), findsNothing);
       expect(viewModel.updated, [('sched_1', RecurringScope.updateRule, 500000)]);
+      expect(viewModel.lastAutoPost, isTrue);
     });
 
     testWidgets('repeating asks for the scope before saving', (tester) async {
@@ -541,10 +545,14 @@ void main() {
 
 class _RecordingRecurringViewModel extends RecurringViewModel {
   final List<(String, RecurringScope, int)> updated = [];
+  bool? lastAutoPost;
   LedgerErrorCode? failure;
 
   @override
   void build() {}
+
+  @override
+  int takeLastAutoPostedCount() => 0;
 
   @override
   Future<Result<void>> updateBill(
@@ -567,6 +575,7 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
     int? reminderMinutes,
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
+    lastAutoPost = autoPost;
     updated.add((scheduledId, scope, amountMinor));
     return unitResult;
   }
