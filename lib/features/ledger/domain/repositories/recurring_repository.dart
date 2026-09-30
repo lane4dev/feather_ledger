@@ -36,6 +36,10 @@ abstract class RecurringRepository {
 
   Future<void> deletePendingForSeries(String seriesId);
 
+  Future<void> deletePendingAndSkippedForSeries(String seriesId);
+
+  Future<void> restoreSkippedBill(String id, {required DateTime now});
+
   Future<void> deleteScheduledById(String id);
 
   Future<void> deleteAllScheduledForSeries(String seriesId);

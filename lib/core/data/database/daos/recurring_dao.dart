@@ -146,6 +146,62 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
         .go();
   }
 
+  Future<int> deletePendingAndSkippedScheduledForSeries(String seriesId) {
+    return (delete(scheduledTransactionsView)
+          ..where((t) =>
+              t.seriesId.equals(seriesId) &
+              (t.status.equals('scheduled') |
+                  t.status.equals('failed') |
+                  t.status.equals('skipped'))))
+        .go();
+  }
+
+  Future<void> restoreSkippedIfValid(String id, {required DateTime now}) async {
+    await db.transaction(() async {
+      final row = await getScheduled(id);
+      if (row == null) {
+        throw const CommandRejected(
+            LedgerErrorCode.transactionNotFound, 'Scheduled bill not found');
+      }
+      if (row.status == 'posted') {
+        throw const CommandRejected(
+            LedgerErrorCode.scheduledAlreadyPosted,
+            'Posted bills cannot be restored');
+      }
+      if (row.status != 'skipped') {
+        throw const CommandRejected(
+            LedgerErrorCode.scheduledNotSkipped,
+            'Only skipped bills can be restored');
+      }
+      final series = await getSeries(row.seriesId);
+      if (series == null || !series.isActive) {
+        throw const CommandRejected(
+            LedgerErrorCode.recurringSeriesStopped,
+            'Recurring series has been stopped');
+      }
+      final account = await db.accountDao.getAccountById(series.accountId);
+      if (account == null || account.deleted) {
+        throw const CommandRejected(
+            LedgerErrorCode.accountNotFound, 'Account not found');
+      }
+      if (account.archived) {
+        throw const CommandRejected(
+            LedgerErrorCode.accountArchived, 'Account is archived');
+      }
+      final effectiveDate = row.dateOverride ?? row.scheduledDate;
+      final lockManualOnly = series.autoPost && !effectiveDate.isAfter(now);
+      await (update(scheduledTransactionsView)..where((t) => t.id.equals(id)))
+          .write(
+        ScheduledTransactionsViewCompanion(
+          status: const Value('scheduled'),
+          manualOnly: lockManualOnly
+              ? const Value(true)
+              : Value(row.manualOnly),
+        ),
+      );
+    });
+  }
+
   Future<int> deleteScheduledById(String id) {
     return (delete(scheduledTransactionsView)..where((t) => t.id.equals(id)))
         .go();

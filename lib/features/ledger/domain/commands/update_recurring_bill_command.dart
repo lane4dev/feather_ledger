@@ -28,9 +28,9 @@ class UpdateRecurringBillCommand {
     DomainClock? clock,
   }) : _clock = clock ?? const SystemClock();
 
-  /// Returns `series.id` when `updateRule` changed the schedule/startDate of an
-  /// active `autoPost` repeating rule so the caller can latch `<= now`
-  /// materialized occurrences as `manualOnly = true`.
+  /// Returns `series.id` when `updateRule` leaves `autoPost` enabled so the
+  /// caller can trigger an immediate catch-up pass for this series in the
+  /// active currency.
   Future<String?> execute({
     required String scheduledId,
     required RecurringScope scope,
@@ -148,9 +148,7 @@ class UpdateRecurringBillCommand {
       return null;
     }
 
-    final effectiveAutoPost = series.mode == RecurringSeriesMode.planned
-        ? false
-        : (autoPost ?? series.autoPost);
+    final effectiveAutoPost = autoPost ?? series.autoPost;
     final nextFrequency = normalizedFrequency ?? series.frequency;
     final nextInterval = interval ?? series.interval ?? 1;
     final nextWeekdays = nextFrequency == 'WEEKLY'
@@ -176,16 +174,16 @@ class UpdateRecurringBillCommand {
     }
 
     final currentDate = scheduled.dateOverride ?? scheduled.scheduledDate;
-    final scheduleChanged = !date.isAtSameMomentAs(currentDate) ||
+    final baseScheduleChanged = !date.isAtSameMomentAs(currentDate) ||
         nextFrequency != series.frequency ||
         nextInterval != (series.interval ?? 1) ||
-        !_sameMoment(nextEndDate, series.endDate) ||
-        nextCountLimit != series.countLimit ||
         !_sameWeekdays(nextWeekdays, existingWeekdays);
+    final endConditionChanged = !_sameMoment(nextEndDate, series.endDate) ||
+        nextCountLimit != series.countLimit;
 
     final nextStartDate = series.mode == RecurringSeriesMode.planned
         ? date
-        : (scheduleChanged ? date : series.startDate);
+        : (baseScheduleChanged ? date : series.startDate);
 
     if (nextEndDate != null && nextEndDate.isBefore(nextStartDate)) {
       throw const CommandRejected(
@@ -200,7 +198,8 @@ class UpdateRecurringBillCommand {
       final k = rows
           .where((row) =>
               row.status == ScheduledTransactionStatus.posted.toStorage() ||
-              row.status == ScheduledTransactionStatus.skipped.toStorage())
+              (!baseScheduleChanged &&
+                  row.status == ScheduledTransactionStatus.skipped.toStorage()))
           .length;
       if (nextCountLimit < k + 1) {
         throw CommandRejected(
@@ -241,6 +240,8 @@ class UpdateRecurringBillCommand {
     );
 
     if (series.mode == RecurringSeriesMode.planned) {
+      final clearToAuto =
+          effectiveAutoPost && (!series.autoPost || date.isAfter(_clock.now()));
       await _recurringRepository.insertOrUpdateScheduled(
         ScheduledTransactionsViewCompanion(
           id: Value(scheduled.id),
@@ -251,24 +252,21 @@ class UpdateRecurringBillCommand {
           dateOverride: const Value(null),
           memoOverride: const Value(null),
           status: Value(ScheduledTransactionStatus.scheduled.toStorage()),
-          manualOnly: Value(scheduled.manualOnly),
+          manualOnly: Value(clearToAuto ? false : scheduled.manualOnly),
           transactionId: Value(scheduled.transactionId),
         ),
       );
-      return null;
-    }
-
-    if (scheduleChanged) {
-      await _recurringRepository.deletePendingForSeries(series.id);
       return effectiveAutoPost ? series.id : null;
     }
 
-    await _recurringRepository.resetFailedToScheduledForSeries(series.id);
-    if (!series.autoPost && effectiveAutoPost) {
-      await _recurringRepository.markSeriesManualOnlyBefore(
-          series.id, _clock.now());
+    if (baseScheduleChanged) {
+      await _recurringRepository.deletePendingAndSkippedForSeries(series.id);
+    } else if (endConditionChanged) {
+      await _recurringRepository.deletePendingForSeries(series.id);
+    } else {
+      await _recurringRepository.resetFailedToScheduledForSeries(series.id);
     }
-    return null;
+    return effectiveAutoPost ? series.id : null;
   }
 
   static bool _sameMoment(DateTime? a, DateTime? b) {

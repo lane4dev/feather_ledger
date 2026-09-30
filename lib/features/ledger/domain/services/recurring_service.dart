@@ -17,6 +17,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/restore_skipped_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_scheduled_transaction_query.dart';
@@ -33,8 +34,10 @@ class RecurringService {
   final WatchScheduledTransactionsQuery _watchScheduled;
   final GetScheduledTransactionQuery _getScheduled;
   final RecurringRepository _recurringRepository;
+  final RestoreSkippedBillCommand _restoreSkipped;
   final prefs_api.PreferencesRepository? _preferences;
   final DomainClock _clock;
+  int _lastSaveAutoPostedCount = 0;
 
   RecurringService(
     this._createSeries,
@@ -45,10 +48,19 @@ class RecurringService {
     this._watchScheduled,
     this._getScheduled,
     this._recurringRepository, {
+    RestoreSkippedBillCommand? restoreSkipped,
     prefs_api.PreferencesRepository? preferences,
     DomainClock? clock,
-  })  : _preferences = preferences,
+  })  : _restoreSkipped =
+            restoreSkipped ?? RestoreSkippedBillCommand(_recurringRepository),
+        _preferences = preferences,
         _clock = clock ?? const SystemClock();
+
+  int takeLastAutoPostedCount() {
+    final count = _lastSaveAutoPostedCount;
+    _lastSaveAutoPostedCount = 0;
+    return count;
+  }
 
   Future<Result<String>> createSeries({
     required RecurringSeriesKind type,
@@ -87,8 +99,10 @@ class RecurringService {
         );
         await _materialize.execute();
         if (autoPost) {
-          final now = _clock.now();
-          await _recurringRepository.markSeriesManualOnlyBefore(seriesId, now);
+          _lastSaveAutoPostedCount =
+              await catchUpAutoPosted(seriesId: seriesId);
+        } else {
+          _lastSaveAutoPostedCount = 0;
         }
         return seriesId;
       });
@@ -98,6 +112,9 @@ class RecurringService {
     required RecurringScope scope,
   }) =>
       guard(() => _deleteBill.execute(scheduledId: scheduledId, scope: scope));
+
+  Future<Result<void>> restoreSkippedBill(String scheduledId) =>
+      guard(() => _restoreSkipped.execute(scheduledId));
 
   Future<Result<void>> updateBill(
     String scheduledId, {
@@ -119,7 +136,7 @@ class RecurringService {
     bool clearReminder = false,
   }) =>
       guard(() async {
-        final seriesIdToLatch = await _updateBill.execute(
+        final seriesIdToCatchUp = await _updateBill.execute(
           scheduledId: scheduledId,
           scope: scope,
           amountMinor: amountMinor,
@@ -139,9 +156,11 @@ class RecurringService {
           clearReminder: clearReminder,
         );
         await _materialize.execute();
-        if (seriesIdToLatch != null) {
-          await _recurringRepository.markSeriesManualOnlyBefore(
-              seriesIdToLatch, _clock.now());
+        if (seriesIdToCatchUp != null) {
+          _lastSaveAutoPostedCount =
+              await catchUpAutoPosted(seriesId: seriesIdToCatchUp);
+        } else {
+          _lastSaveAutoPostedCount = 0;
         }
       });
 
@@ -163,7 +182,7 @@ class RecurringService {
 
   Future<int> materialize() => _materialize.execute();
 
-  Future<int> catchUpAutoPosted({String? accountId}) async {
+  Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async {
     final now = _clock.now();
     final currentCurrency = _preferences?.getCurrency();
     final scheduled = await _watchScheduled.execute().first;
@@ -174,6 +193,7 @@ class RecurringService {
       if (instance.status != ScheduledTransactionStatus.scheduled) return false;
       if (instance.account?.archived == true) return false;
       if (accountId != null && series.accountId != accountId) return false;
+      if (seriesId != null && instance.seriesId != seriesId) return false;
       if (currentCurrency != null &&
           instance.account?.currencyCode != currentCurrency) {
         return false;
@@ -290,6 +310,7 @@ RecurringService recurringService(Ref ref) {
     ref.watch(watchScheduledTransactionsQueryProvider),
     ref.watch(getScheduledTransactionQueryProvider),
     ref.watch(recurringRepositoryProvider),
+    restoreSkipped: ref.watch(restoreSkippedBillCommandProvider),
     preferences: ref.watch(preferencesRepositoryProvider).value,
   );
 }

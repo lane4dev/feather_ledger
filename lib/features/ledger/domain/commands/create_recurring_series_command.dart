@@ -77,8 +77,6 @@ class CreateRecurringSeriesCommand {
       kind: type.toTransactionKind,
     );
 
-    final effectiveAutoPost =
-        mode == RecurringSeriesMode.planned ? false : autoPost;
     final normalizedFrequency = frequency.toUpperCase();
     await _recurringRepository.saveSeries(
       RecurringSeriesCompanion.insert(
@@ -100,7 +98,7 @@ class CreateRecurringSeriesCommand {
         categoryId: categoryId,
         accountId: accountId,
         type: type,
-        autoPost: Value(effectiveAutoPost),
+        autoPost: Value(autoPost),
         mode: Value(mode),
         reminderMinutes: Value(reminderMinutes),
       ),

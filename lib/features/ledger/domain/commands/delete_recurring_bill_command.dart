@@ -13,8 +13,8 @@ part 'delete_recurring_bill_command.g.dart';
 ///   re-creates it.
 /// - `updateRule`: for `planned`, physically deletes the one-shot series and
 ///   its instance; for `repeating`, sets `isActive = false` and deletes all
-///   pending (`scheduled`/`failed`) instances while keeping posted/skipped
-///   history.
+///   non-posted (`scheduled`/`failed`/`skipped`) instances while keeping
+///   posted history.
 class DeleteRecurringBillCommand {
   final RecurringRepository _recurringRepository;
 
@@ -50,7 +50,7 @@ class DeleteRecurringBillCommand {
         await _recurringRepository.saveSeries(
           series.toCompanion(true).copyWith(isActive: const Value(false)),
         );
-        await _recurringRepository.deletePendingForSeries(series.id);
+        await _recurringRepository.deletePendingAndSkippedForSeries(series.id);
     }
   }
 }

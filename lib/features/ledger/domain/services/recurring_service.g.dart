@@ -49,4 +49,4 @@ final class RecurringServiceProvider extends $FunctionalProvider<
   }
 }
 
-String _$recurringServiceHash() => r'c6926e8bea1701bf378aa75285e7e7f9be1ddbfa';
+String _$recurringServiceHash() => r'66a74ef2ecf6c0bcdc0559cf5be2afa1671bedc9';

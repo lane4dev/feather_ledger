@@ -64,6 +64,16 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<void> deletePendingAndSkippedForSeries(String seriesId) {
+    return _recurringDao.deletePendingAndSkippedScheduledForSeries(seriesId);
+  }
+
+  @override
+  Future<void> restoreSkippedBill(String id, {required DateTime now}) {
+    return _recurringDao.restoreSkippedIfValid(id, now: now);
+  }
+
+  @override
   Future<void> deleteScheduledById(String id) {
     return _recurringDao.deleteScheduledById(id);
   }

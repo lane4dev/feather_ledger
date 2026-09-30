@@ -17,9 +17,10 @@ part 'project_recurring_events_command.g.dart';
 /// - `planned` series materialize their single `'single'` occurrence at
 ///   `startDate`.
 /// - `repeating` series materialize:
-///   1. Up to [maxOverduePerSeries] (3) most recent unmaterialized occurrences
-///      within [overdueLookback] (30 days) up to `now` — returning the count of
-///      newly inserted overdue rows (`newlyMaterializedOverdueCount`).
+///   1. All unmaterialized historical occurrences from `startDate` up to `now`
+///      (without lookback/count caps) — returning the count of newly inserted
+///      overdue rows that will NOT auto-post (`!series.autoPost`), so the
+///      session banner reflects only bills needing manual review.
 ///   2. Up to [maxKeep] (3) upcoming occurrences within [horizon] (90 days),
 ///      with a floor of [minKeep] (1) upcoming occurrence for sparser rules
 ///      such as yearly series.
@@ -46,8 +47,6 @@ class ProjectRecurringEventsCommand {
   static DateTime _defaultLocalize(DateTime utc) => utc.toLocal();
 
   static const Duration horizon = Duration(days: 90);
-  static const Duration overdueLookback = Duration(days: 30);
-  static const int maxOverduePerSeries = 3;
 
   /// Never leave an active repeating series with fewer upcoming bills than
   /// this (when the rule still has future occurrences).
@@ -95,7 +94,7 @@ class ProjectRecurringEventsCommand {
             manualOnly: const Value(false),
           ),
         );
-        return !series.startDate.isAfter(now) ? 1 : 0;
+        return (!series.autoPost && !series.startDate.isAfter(now)) ? 1 : 0;
       }
       return 0;
     }
@@ -103,14 +102,13 @@ class ProjectRecurringEventsCommand {
     final rule = ruleForSeries(series);
     var newlyMaterializedOverdue = 0;
 
-    // Phase 0 — bounded overdue lookback (30 days, max 3 most recent).
+    // Phase 0 — unbounded historical backfill from startDate up to now.
     final hadOverdue = !startUtc.isAfter(nowUtc);
     if (hadOverdue) {
       newlyMaterializedOverdue = await _fillOverdue(
         series: series,
         rule: rule,
         startUtc: startUtc,
-        now: now,
         nowUtc: nowUtc,
         existing: existing,
       );
@@ -211,30 +209,17 @@ class ProjectRecurringEventsCommand {
     required RecurringSeriesRow series,
     required RecurrenceRule rule,
     required DateTime startUtc,
-    required DateTime now,
     required DateTime nowUtc,
     required Map<String, ScheduledTransactionStatus> existing,
   }) async {
-    final overdueCutoffUtc = now.subtract(overdueLookback).toUtc();
-    final afterOverdue =
-        overdueCutoffUtc.isAfter(startUtc) ? overdueCutoffUtc : null;
-    final allOverdue = rule
-        .getInstances(
-          start: startUtc,
-          after: afterOverdue,
-          includeAfter: true,
-          before: nowUtc,
-          includeBefore: true,
-        )
-        .where((d) => !d.isBefore(overdueCutoffUtc))
-        .toList();
-
-    final pool = allOverdue.length > maxOverduePerSeries
-        ? allOverdue.sublist(allOverdue.length - maxOverduePerSeries)
-        : allOverdue;
+    final allOverdue = rule.getInstances(
+      start: startUtc,
+      before: nowUtc,
+      includeBefore: true,
+    );
 
     var inserted = 0;
-    for (final date in pool) {
+    for (final date in allOverdue) {
       final localDate = _localize(date);
       final key = scheduledOccurrenceKey(date.toUtc());
       if (existing.containsKey(key)) continue;
@@ -252,7 +237,7 @@ class ProjectRecurringEventsCommand {
       existing[key] = ScheduledTransactionStatus.scheduled;
       inserted++;
     }
-    return inserted;
+    return series.autoPost ? 0 : inserted;
   }
 
   static RecurrenceRule ruleForSeries(RecurringSeriesRow series) =>
