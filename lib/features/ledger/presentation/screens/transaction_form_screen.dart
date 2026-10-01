@@ -431,11 +431,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           ),
         ),
       ),
-      bottomNavigationBar:
-          state.isEditing && MediaQuery.viewInsetsOf(context).bottom > 0
-              ? null
-              : AppBottomActionBar(
-                  child: AppButton(onPressed: _submit, child: Text(l10n.save))),
+      bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
+          ? null
+          : AppBottomActionBar(
+              child: AppButton(onPressed: _submit, child: Text(l10n.save))),
     );
   }
 

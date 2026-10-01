@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
@@ -356,6 +357,36 @@ void main() {
 
     await teardownTree(tester);
   });
+
+  for (final editing in [false, true]) {
+    testWidgets('save bar follows the keyboard when editing is $editing',
+        (tester) async {
+      final tile = editing
+          ? TransactionTileUiModel(
+              id: 'tx_1',
+              amount: 50000,
+              type: TransactionKind.expense,
+              date: DateTime(2026, 11, 1),
+              note: 'Rent',
+              category: rent,
+              account: cash,
+              displayAmount: '500.00',
+              displaySign: '-',
+            )
+          : null;
+      await pumpForm(tester, transaction: tile);
+      expect(find.byType(AppBottomActionBar), findsOneWidget);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      await settle(tester);
+      expect(find.byType(AppBottomActionBar), findsNothing);
+
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await settle(tester);
+      expect(find.byType(AppBottomActionBar), findsOneWidget);
+      await teardownTree(tester);
+    });
+  }
 
   testWidgets('saving with a rule records the entry, then starts the series',
       (tester) async {
