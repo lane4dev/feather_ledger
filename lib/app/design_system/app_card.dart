@@ -16,10 +16,11 @@ class AppCard extends StatelessWidget {
   final bool _outlined;
   final bool _group;
 
-  const AppCard({super.key, required this.child, this.padding})
+  const AppCard(
+      {super.key, required this.child, this.padding, VoidCallback? onTap})
       : _accountType = null,
         _archived = false,
-        _onTap = null,
+        _onTap = onTap,
         _outlined = false,
         _group = false;
 
@@ -68,13 +69,19 @@ class AppCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.outlineVariant),
               )
             : null,
-        child: _group
-            ? ListTileTheme(
-                data: ListTileTheme.of(context)
-                    .copyWith(contentPadding: context.metrics.fieldPadding),
+        child: _onTap != null
+            ? InkWell(
+                onTap: _onTap,
+                borderRadius: context.metrics.cardBorderRadius,
                 child: content,
               )
-            : content,
+            : _group
+                ? ListTileTheme(
+                    data: ListTileTheme.of(context)
+                        .copyWith(contentPadding: context.metrics.fieldPadding),
+                    child: content,
+                  )
+                : content,
       );
     }
 

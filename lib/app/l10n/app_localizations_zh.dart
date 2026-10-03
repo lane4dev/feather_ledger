@@ -175,6 +175,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reports => '报表';
 
   @override
+  String get budget => '预算';
+
+  @override
+  String get viewReports => '查看报表';
+
+  @override
   String get activityHeatmap => '活动热力图';
 
   @override
@@ -1157,6 +1163,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get reports => '报表';
 
   @override
+  String get budget => '预算';
+
+  @override
+  String get viewReports => '查看报表';
+
+  @override
   String get activityHeatmap => '活动热力图';
 
   @override
@@ -2137,6 +2149,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get reports => '報表';
+
+  @override
+  String get budget => '預算';
+
+  @override
+  String get viewReports => '查看報表';
 
   @override
   String get activityHeatmap => '活動熱力圖';

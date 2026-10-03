@@ -214,6 +214,8 @@
     "description": "Loading indicator text"
   },
   "reports": "Reports",
+  "budget": "Budget",
+  "viewReports": "View reports",
   "@reports": {
     "description": "Reports screen title"
   },

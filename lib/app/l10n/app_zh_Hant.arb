@@ -214,6 +214,8 @@
     "description": "載入指示器文字"
   },
   "reports": "報表",
+  "budget": "預算",
+  "viewReports": "查看報表",
   "@reports": {
     "description": "報表頁面標題"
   },

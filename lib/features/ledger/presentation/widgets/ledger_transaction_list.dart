@@ -5,6 +5,7 @@ import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/router/card_page_transition.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
@@ -23,6 +24,7 @@ class LedgerTransactionList extends ConsumerWidget {
   final AppLocalizations l10n;
   final ScrollController controller;
   final double headerHeight;
+  final GlobalKey? summaryCardKey;
 
   const LedgerTransactionList({
     super.key,
@@ -31,6 +33,7 @@ class LedgerTransactionList extends ConsumerWidget {
     required this.l10n,
     required this.controller,
     required this.headerHeight,
+    this.summaryCardKey,
   });
 
   @override
@@ -45,8 +48,7 @@ class LedgerTransactionList extends ConsumerWidget {
     final currencyCode = ref.watch(currencyControllerProvider).value ??
         AppCurrencies.defaultCurrency.code;
     final accounts = ref.watch(accountListProvider).value ?? const [];
-    final hasAccounts =
-        accounts.any((a) => a.currencyCode == currencyCode);
+    final hasAccounts = accounts.any((a) => a.currencyCode == currencyCode);
 
     // Wrap in a container with background color to prevent transparency issues during slide
     return Container(
@@ -60,6 +62,9 @@ class LedgerTransactionList extends ConsumerWidget {
             child: SizedBox(
               height: headerHeight,
               child: LedgerHeader(
+                  cardKey: summaryCardKey,
+                  onTap: () => context.push('/ledger/reports',
+                      extra: CardPageOrigin(month, summaryCardKey)),
                   summaryAsync: ref.watch(ledgerMonthlySummaryProvider(month))),
             ),
           ),

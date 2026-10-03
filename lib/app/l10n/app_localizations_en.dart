@@ -176,6 +176,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reports => 'Reports';
 
   @override
+  String get budget => 'Budget';
+
+  @override
+  String get viewReports => 'View reports';
+
+  @override
   String get activityHeatmap => 'Activity Heatmap';
 
   @override

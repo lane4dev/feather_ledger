@@ -136,8 +136,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   void _onMonthTap(DateTime current) {
     // The picker marks months that still owe a bill (spec 006, US33). Watched
     // in build so the stream has emitted before the picker opens.
-    final markedMonths = ref.read(pendingBillMonthsProvider).value ??
-        const <DateTime>{};
+    final markedMonths =
+        ref.read(pendingBillMonthsProvider).value ?? const <DateTime>{};
     FeatherMonthPicker.show(
       context,
       initialDate: current,
@@ -307,6 +307,7 @@ class _LedgerMonthPage extends ConsumerStatefulWidget {
 
 class _LedgerMonthPageState extends ConsumerState<_LedgerMonthPage>
     with AutomaticKeepAliveClientMixin {
+  final _summaryCardKey = GlobalKey();
   @override
   bool get wantKeepAlive => _keepAlive;
   bool _keepAlive = false;
@@ -348,6 +349,7 @@ class _LedgerMonthPageState extends ConsumerState<_LedgerMonthPage>
       l10n: widget.l10n,
       controller: _controller,
       headerHeight: widget.headerHeight,
+      summaryCardKey: _summaryCardKey,
     );
   }
 }

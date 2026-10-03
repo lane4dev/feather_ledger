@@ -424,6 +424,18 @@ abstract class AppLocalizations {
   /// **'Reports'**
   String get reports;
 
+  /// No description provided for @budget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get budget;
+
+  /// No description provided for @viewReports.
+  ///
+  /// In en, this message translates to:
+  /// **'View reports'**
+  String get viewReports;
+
   /// Activity heatmap section title
   ///
   /// In en, this message translates to:

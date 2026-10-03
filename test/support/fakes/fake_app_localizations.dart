@@ -4,6 +4,10 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 // Used for testing purposes where a real BuildContext is not available.
 class FakeAppLocalizations implements AppLocalizations {
   @override
+  String get budget => 'Budget';
+  @override
+  String get viewReports => 'View reports';
+  @override
   String get supportCenter => 'Support center';
   @override
   String get supportCenterHint => 'Get help and find answers';

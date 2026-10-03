@@ -6,18 +6,113 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
+import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_group.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_transaction_list.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_header.dart';
+import 'package:feather_ledger/features/reports/presentation/providers/reports_providers.dart';
+import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
+import 'package:feather_ledger/features/budget/presentation/screens/budget_screen.dart';
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../support/event_sourcing/ledger_service_harness.dart';
 
+class _Visibility extends BalanceVisibilityController {
+  @override
+  Future<bool> build() async => true;
+
+  @override
+  Future<void> toggle() async => state = AsyncData(!(state.value ?? true));
+}
+
 void main() {
+  testWidgets('ledger card opens reports for its month and budget is a tab',
+      (tester) async {
+    final harness = LedgerServiceHarness();
+    addTearDown(harness.close);
+    final container = ProviderContainer(overrides: [
+      appDatabaseProvider.overrideWithValue(harness.db),
+      balanceVisibilityControllerProvider.overrideWith(_Visibility.new),
+      accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+      categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+      ledgerMonthlyTransactionsProvider
+          .overrideWith((ref, month) => Stream.value([])),
+      ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+          const MonthlySummaryUiModel(
+              displayBalance: r'$0',
+              displayIncome: r'$0',
+              displayExpense: r'$0'))),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.lightTheme,
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.chevronLeft).first);
+    await tester.pumpAndSettle();
+    final ledgerMonth = container.read(ledgerViewModelProvider).selectedDate;
+
+    await tester.tap(find.byIcon(LucideIcons.eye));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(LucideIcons.eyeOff), findsOneWidget);
+    expect(find.byType(ReportsScreen), findsNothing);
+
+    final card = find.byKey(
+        tester.widget<LedgerHeader>(find.byType(LedgerHeader)).cardKey!);
+    final cardRect = tester.getRect(card);
+    await tester.tap(find.text('Total Balance'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final surface = find.byKey(const ValueKey('report-transition-surface'));
+    expect(surface, findsOneWidget);
+    final openingRect = tester.getRect(surface);
+    expect(openingRect.width, greaterThan(cardRect.width));
+    expect(openingRect.height, greaterThan(cardRect.height));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReportsScreen), findsOneWidget);
+    expect(
+        find.text(DateFormat.yMMMM('en').format(ledgerMonth)), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    final otherMonth = DateTime(ledgerMonth.year, ledgerMonth.month - 1);
+    container.read(selectedDateProvider.notifier).setMonth(otherMonth);
+    await tester.pumpAndSettle();
+    expect(
+        find.text(DateFormat.yMMMM('en').format(otherMonth)), findsOneWidget);
+    router.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(surface, findsOneWidget);
+    expect(tester.getRect(surface).height,
+        lessThan(tester.getSize(find.byType(MaterialApp)).height));
+    await tester.pumpAndSettle();
+    expect(container.read(ledgerViewModelProvider).selectedDate, ledgerMonth);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await tester.tap(find.text('Total Balance'));
+    await tester.pumpAndSettle();
+    expect(find.text(DateFormat.yMMMM('en').format(ledgerMonth)), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Budget'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetScreen), findsOneWidget);
+    expect(find.byType(ReportsScreen), findsNothing);
+  });
+
   testWidgets('an empty month cannot scroll or hide navigation',
       (tester) async {
     final harness = LedgerServiceHarness();

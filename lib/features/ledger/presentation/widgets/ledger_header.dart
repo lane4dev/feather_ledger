@@ -30,8 +30,11 @@ class LedgerHeader extends StatelessWidget {
   /// widget would be formatting money, which is the currency's business and
   /// not the header's.
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+  final VoidCallback? onTap;
+  final GlobalKey? cardKey;
 
-  const LedgerHeader({super.key, required this.summaryAsync});
+  const LedgerHeader(
+      {super.key, required this.summaryAsync, this.onTap, this.cardKey});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +46,8 @@ class LedgerHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Balance Summary - Full Width
-          _BalanceSummary(summaryAsync: summaryAsync),
+          _BalanceSummary(
+              summaryAsync: summaryAsync, onTap: onTap, cardKey: cardKey),
         ],
       ),
     );
@@ -184,8 +188,10 @@ class LedgerMonthSwitcher extends StatelessWidget {
 }
 
 class _BalanceSummary extends ConsumerWidget {
-  const _BalanceSummary({required this.summaryAsync});
+  const _BalanceSummary({required this.summaryAsync, this.onTap, this.cardKey});
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+  final VoidCallback? onTap;
+  final GlobalKey? cardKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -200,6 +206,10 @@ class _BalanceSummary extends ConsumerWidget {
               Expanded(
                   child: Text(l10n.totalBalance,
                       style: AppTypography.meta(context), maxLines: 2)),
+              if (onTap != null)
+                Icon(LucideIcons.chevronRight,
+                    size: context.metrics.iconSize,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               AppIconButton(
                 icon: Icon(showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
                 tooltip: l10n.totalBalance,
@@ -241,12 +251,18 @@ class _BalanceSummary extends ConsumerWidget {
             ]),
           ],
         );
-    return AppCard(
-      child: summaryAsync.when(
-        data: summaryContent,
-        loading: () => summaryContent(null),
-        error: (error, _) => Text(l10n.errorPrefix('$error')),
-      ),
+    return Semantics(
+      label: onTap == null ? null : l10n.viewReports,
+      button: onTap != null,
+      explicitChildNodes: true,
+      child: AppCard(
+          key: cardKey,
+          onTap: onTap,
+          child: summaryAsync.when(
+            data: summaryContent,
+            loading: () => summaryContent(null),
+            error: (error, _) => Text(l10n.errorPrefix('$error')),
+          )),
     );
   }
 }

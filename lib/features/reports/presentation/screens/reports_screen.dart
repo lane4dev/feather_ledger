@@ -13,6 +13,38 @@ import '../providers/reports_providers.dart';
 import '../widgets/report_breakdown_tabs.dart';
 import '../widgets/report_heatmap_view.dart';
 
+/// Seeds the independent report month before any report queries are watched.
+class ReportsEntryScreen extends ConsumerStatefulWidget {
+  const ReportsEntryScreen({super.key, this.initialMonth});
+
+  final DateTime? initialMonth;
+
+  @override
+  ConsumerState<ReportsEntryScreen> createState() => _ReportsEntryScreenState();
+}
+
+class _ReportsEntryScreenState extends ConsumerState<ReportsEntryScreen> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(selectedDateProvider.notifier).setMonth(
+            widget.initialMonth ?? DateTime.now(),
+          );
+      setState(() => _ready = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(selectedDateProvider);
+    return _ready ? const ReportsScreen() : const Scaffold();
+  }
+}
+
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
 
@@ -30,6 +62,11 @@ class ReportsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: AppIconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(l10n.reports),
         actions: [
           AppIconButton(

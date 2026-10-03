@@ -214,6 +214,8 @@
     "description": "加载指示器文本"
   },
   "reports": "报表",
+  "budget": "预算",
+  "viewReports": "查看报表",
   "@reports": {
     "description": "报表页面标题"
   },

@@ -10,12 +10,15 @@ import 'package:feather_ledger/features/ledger/presentation/screens/search_scree
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/reports/presentation/screens/reports_screen.dart';
+import 'package:feather_ledger/features/budget/presentation/screens/budget_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/more_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/settings_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/about_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/account_management_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/category_management_screen.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import 'card_page_transition.dart';
 
 part 'app_router.g.dart';
 
@@ -49,6 +52,28 @@ GoRouter goRouter(Ref ref) {
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const SearchScreen(),
                   ),
+                  GoRoute(
+                    path: 'reports',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    pageBuilder: (context, state) {
+                      final origin = state.extra is CardPageOrigin
+                          ? state.extra as CardPageOrigin
+                          : null;
+                      return CustomTransitionPage<void>(
+                        key: state.pageKey,
+                        transitionDuration: const Duration(milliseconds: 350),
+                        reverseTransitionDuration:
+                            const Duration(milliseconds: 350),
+                        transitionsBuilder: (context, animation, _, child) =>
+                            CardPageTransition(
+                          animation: animation,
+                          sourceKey: origin?.sourceKey,
+                          child: child,
+                        ),
+                        child: ReportsEntryScreen(initialMonth: origin?.month),
+                      );
+                    },
+                  ),
                   // One "edit this thing" route: the form reads the extra's
                   // kind itself, so callers push '/ledger/edit' without
                   // knowing what they are editing.
@@ -76,8 +101,8 @@ GoRouter goRouter(Ref ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                builder: (context, state) => const ReportsScreen(),
+                path: '/budget',
+                builder: (context, state) => const BudgetScreen(),
               ),
             ],
           ),
@@ -232,8 +257,8 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
               label: l10n.ledgerTitle,
             ),
             NavigationDestination(
-              icon: const Icon(LucideIcons.pieChart),
-              label: l10n.reports,
+              icon: const Icon(LucideIcons.wallet),
+              label: l10n.budget,
             ),
             NavigationDestination(
               icon: const Icon(LucideIcons.ellipsis),
