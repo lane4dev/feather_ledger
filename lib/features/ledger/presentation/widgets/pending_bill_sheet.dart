@@ -81,7 +81,7 @@ class PendingBillSheet extends ConsumerWidget {
             : [
                 LedgerOverflowAction(
                   label: l10n.skipThisBill,
-                  icon: LucideIcons.skipForward,
+                  icon: LucideIcons.circlePause,
                   onSelected: () => _skipBill(context, ref, l10n),
                 ),
                 LedgerOverflowAction(
@@ -95,8 +95,8 @@ class PendingBillSheet extends ConsumerWidget {
       footer: AppBottomActionBar(
         child: AppButton(
           onPressed: () => _post(context, ref, l10n),
-          child: Text(
-              transaction.isFailed ? l10n.retryPost : l10n.postInstance),
+          child:
+              Text(transaction.isFailed ? l10n.retryPost : l10n.postInstance),
         ),
       ),
       child: Column(

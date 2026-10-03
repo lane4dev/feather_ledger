@@ -58,7 +58,7 @@ class TransactionTile extends StatelessWidget {
                           isFailed
                               ? LucideIcons.triangleAlert
                               : (isSkipped
-                                  ? LucideIcons.skipForward
+                                  ? LucideIcons.circlePause
                                   : LucideIcons.clock),
                           size: 16.0,
                           color: isFailed
