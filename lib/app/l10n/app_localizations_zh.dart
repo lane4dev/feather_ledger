@@ -1007,7 +1007,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetReviewPreviewToggle => '复盘预览';
 
   @override
-  String get budgetBackToTrack => '返回跟踪';
+  String get budgetTracking => '预算跟踪';
 
   @override
   String get budgetTotal => '本月总预算';
@@ -2224,7 +2224,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetReviewPreviewToggle => '复盘预览';
 
   @override
-  String get budgetBackToTrack => '返回跟踪';
+  String get budgetTracking => '预算跟踪';
 
   @override
   String get budgetTotal => '本月总预算';
@@ -3441,7 +3441,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetReviewPreviewToggle => '複盤預覽';
 
   @override
-  String get budgetBackToTrack => '返回追蹤';
+  String get budgetTracking => '預算追蹤';
 
   @override
   String get budgetTotal => '本月總預算';

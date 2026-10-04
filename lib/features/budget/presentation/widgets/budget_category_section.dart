@@ -246,11 +246,13 @@ class _BudgetedCategoryRow extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: spacing.sm),
-                Column(
+                Flexible(
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '${row.actualDisplay} / ${row.budgetDisplay}',
+                      textAlign: TextAlign.end,
                       style: AppTypography.amount(context).copyWith(
                         fontSize:
                             Theme.of(context).textTheme.bodyMedium?.fontSize,
@@ -269,7 +271,7 @@ class _BudgetedCategoryRow extends StatelessWidget {
                         ),
                       ),
                   ],
-                ),
+                )),
               ],
             ),
             SizedBox(height: spacing.sm),
@@ -291,8 +293,8 @@ class _BudgetedCategoryRow extends StatelessWidget {
                         if (row.pendingProgress > 0)
                           Container(
                             width: w * row.pendingProgress,
-                            color:
-                                context.colors.frequency.withValues(alpha: 0.65),
+                            color: context.colors.frequency
+                                .withValues(alpha: 0.65),
                           ),
                       ],
                     );

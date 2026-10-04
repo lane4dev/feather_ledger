@@ -2039,11 +2039,11 @@ abstract class AppLocalizations {
   /// **'Review preview'**
   String get budgetReviewPreviewToggle;
 
-  /// No description provided for @budgetBackToTrack.
+  /// No description provided for @budgetTracking.
   ///
   /// In en, this message translates to:
-  /// **'Back to track'**
-  String get budgetBackToTrack;
+  /// **'Budget tracking'**
+  String get budgetTracking;
 
   /// No description provided for @budgetTotal.
   ///

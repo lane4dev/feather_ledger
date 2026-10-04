@@ -866,7 +866,7 @@
   "budgetModeTrack": "Track",
   "budgetModeReview": "Review",
   "budgetReviewPreviewToggle": "Review preview",
-  "budgetBackToTrack": "Back to track",
+  "budgetTracking": "Budget tracking",
   "budgetTotal": "Total budget",
   "budgetActualSpent": "Spent",
   "budgetPendingShort": "Pending",

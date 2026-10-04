@@ -764,7 +764,7 @@
   "budgetModeTrack": "追蹤",
   "budgetModeReview": "複盤",
   "budgetReviewPreviewToggle": "複盤預覽",
-  "budgetBackToTrack": "返回追蹤",
+  "budgetTracking": "預算追蹤",
   "budgetTotal": "本月總預算",
   "budgetActualSpent": "已消費",
   "budgetPendingShort": "待入帳",

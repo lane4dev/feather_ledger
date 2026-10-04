@@ -10,14 +10,31 @@ class AppChoiceChips<T> extends StatelessWidget {
       required this.choices,
       required this.selected,
       required this.onSelected,
-      this.scrollable = false});
+      this.scrollable = false})
+      : _floating = false;
+
+  const AppChoiceChips.floating({
+    super.key,
+    required this.choices,
+    required this.selected,
+    required this.onSelected,
+  })  : scrollable = false,
+        _floating = true;
   final List<ButtonSegment<T>> choices;
   final T selected;
   final ValueChanged<T>? onSelected;
   final bool scrollable;
+  final bool _floating;
 
   @override
   Widget build(BuildContext context) {
+    if (_floating) {
+      return _FloatingSingleChoice<T>(
+        choices: choices,
+        selected: selected,
+        onSelected: onSelected,
+      );
+    }
     final chips = [
       for (final choice in choices)
         ChoiceChip(
@@ -39,6 +56,102 @@ class AppChoiceChips<T> extends StatelessWidget {
       );
     }
     return _AdaptiveScrollableChips(chips: chips);
+  }
+}
+
+/// One shared surface and a moving selection, with equal-sized touch targets.
+class _FloatingSingleChoice<T> extends StatelessWidget {
+  const _FloatingSingleChoice({
+    required this.choices,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<ButtonSegment<T>> choices;
+  final T selected;
+  final ValueChanged<T>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (choices.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final index = choices.indexWhere((choice) => choice.value == selected);
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180);
+    return IntrinsicHeight(
+      child: Stack(children: [
+        if (index >= 0)
+          Positioned.fill(
+            child: AnimatedAlign(
+              duration: duration,
+              curve: Curves.easeInOut,
+              alignment: AlignmentDirectional(
+                  choices.length == 1
+                      ? 0
+                      : -1 + 2 * index / (choices.length - 1),
+                  0),
+              child: FractionallySizedBox(
+                widthFactor: 1 / choices.length,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  key: const ValueKey('floating-choice-indicator'),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceBright,
+                    borderRadius:
+                        BorderRadius.circular(context.metrics.sheetRadius),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Row(
+          children: [
+            for (final choice in choices)
+              Expanded(
+                child: Semantics(
+                  selected: choice.value == selected,
+                  inMutuallyExclusiveGroup: true,
+                  button: true,
+                  child: InkWell(
+                    onTap: onSelected == null || !choice.enabled
+                        ? null
+                        : () => onSelected!(choice.value),
+                    borderRadius:
+                        BorderRadius.circular(context.metrics.sheetRadius),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                          minWidth: context.metrics.controlHeight,
+                          minHeight: context.metrics.controlHeight),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: context.spacing.xs,
+                            vertical: context.spacing.xs),
+                        child: Center(
+                          child: AnimatedDefaultTextStyle(
+                            duration: duration,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.labelMedium!.copyWith(
+                              color: choice.value == selected
+                                  ? scheme.onSurface
+                                  : scheme.onSurfaceVariant,
+                              fontWeight: choice.value == selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            child: choice.label!,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ]),
+    );
   }
 }
 

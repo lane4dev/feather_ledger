@@ -764,7 +764,7 @@
   "budgetModeTrack": "跟踪",
   "budgetModeReview": "复盘",
   "budgetReviewPreviewToggle": "复盘预览",
-  "budgetBackToTrack": "返回跟踪",
+  "budgetTracking": "预算跟踪",
   "budgetTotal": "本月总预算",
   "budgetActualSpent": "已消费",
   "budgetPendingShort": "待入账",

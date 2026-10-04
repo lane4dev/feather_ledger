@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -6,6 +7,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
+import 'package:feather_ledger/app/design_system/app_floating_toolbar.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_sheet_handle.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -30,14 +33,41 @@ import '../widgets/budget_edit_sheet.dart';
 import '../widgets/budget_overview_card.dart';
 import '../widgets/budget_trend_chart.dart';
 
-class BudgetScreen extends ConsumerWidget {
+class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BudgetScreen> createState() => _BudgetScreenState();
+}
+
+class _BudgetScreenState extends ConsumerState<BudgetScreen> {
+  bool _toolbarVisible = true;
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0 ||
+        notification.metrics.axis != Axis.vertical ||
+        notification is! UserScrollNotification) return false;
+    final visible = switch (notification.direction) {
+      ScrollDirection.forward => true,
+      ScrollDirection.reverse => false,
+      ScrollDirection.idle =>
+        notification.metrics.pixels <= notification.metrics.minScrollExtent ||
+            _toolbarVisible,
+    };
+    if (visible != _toolbarVisible) setState(() => _toolbarVisible = visible);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final uiState = ref.watch(budgetViewModelProvider);
+    ref.listen(budgetViewModelProvider, (previous, next) {
+      if (previous?.selectedMonth != next.selectedMonth && !_toolbarVisible) {
+        setState(() => _toolbarVisible = true);
+      }
+    });
     final selectedDate = uiState.selectedMonth.toDateTime();
     final nowYm = YearMonth.fromDate(ref.read(budgetClockProvider).now());
     final currencyCode = ref.watch(ledgerCurrencyProvider);
@@ -46,8 +76,55 @@ class BudgetScreen extends ConsumerWidget {
         ref.watch(budgetMonthSummaryProvider(uiState.selectedMonth));
 
     final notifier = ref.read(budgetViewModelProvider.notifier);
+    final summary = summaryAsync.asData?.value;
+    final showToolbar = summary != null &&
+        summary.hasAnyActiveAccount &&
+        summary.mode == BudgetMode.track;
+    final visible =
+        _toolbarVisible || MediaQuery.accessibleNavigationOf(context);
+    final animationDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 220);
 
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: showToolbar
+          ? ExcludeSemantics(
+              excluding: !visible,
+              child: IgnorePointer(
+                ignoring: !visible,
+                child: AnimatedSlide(
+                  offset: visible ? Offset.zero : const Offset(0, 1.5),
+                  duration: animationDuration,
+                  curve: Curves.easeInOut,
+                  child: AnimatedOpacity(
+                    opacity: visible ? 1 : 0,
+                    duration: animationDuration,
+                    child: AppFloatingToolbar(
+                      child: AppChoiceChips<bool>.floating(
+                        choices: [
+                          ButtonSegment(
+                            value: false,
+                            label: Text(l10n.budgetTracking),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text(l10n.budgetReviewPreviewToggle),
+                          ),
+                        ],
+                        selected: uiState.isReviewPreview,
+                        onSelected: (selection) {
+                          if (selection != uiState.isReviewPreview) {
+                            notifier.toggleReviewPreview();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
       appBar: AppBar(
         title: LedgerMonthSwitcher(
           selectedDate: selectedDate,
@@ -140,98 +217,102 @@ class BudgetScreen extends ConsumerWidget {
           final showAttribution = overview.mode == BudgetMode.review ||
               (overview.mode == BudgetMode.track && uiState.isReviewPreview);
 
-          return ListView(
-            padding: context.pagePadding.add(
-              EdgeInsets.symmetric(vertical: context.spacing.md),
-            ),
-            children: [
-              BudgetOverviewCard(
-                overview: overview,
-                isReviewPreview: uiState.isReviewPreview,
-                onToggleReviewPreview: overview.mode == BudgetMode.track
-                    ? notifier.toggleReviewPreview
-                    : null,
-              ),
-              if (!overview.hasAnyBudget) ...[
-                SizedBox(height: context.spacing.md),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.budgetEmptyNoBudgetsTitle,
-                        style: AppTypography.sectionTitle(context),
-                      ),
-                      SizedBox(height: context.spacing.xs),
-                      Text(
-                        l10n.budgetEmptyNoBudgetsBody,
-                        style: AppTypography.meta(context),
-                      ),
-                    ],
-                  ),
+          return NotificationListener<ScrollNotification>(
+              onNotification: _onScroll,
+              child: ListView(
+                padding: context.pagePadding.add(
+                  EdgeInsets.symmetric(vertical: context.spacing.md),
                 ),
-              ],
-              if (showAttribution) ...[
-                SizedBox(height: context.spacing.md),
-                BudgetAttributionCard(
-                  overBudgetTop3: model.overBudgetTop3,
-                  underBudgetTop3: model.underBudgetTop3,
-                  unbudgetedAlertsTop3: model.unbudgetedAlertsTop3,
-                  monthReviewNote: model.monthReviewNote,
-                  onCategoryTap: (categoryId) => showBudgetDrilldownSheet(
-                    context,
-                    month: uiState.selectedMonth,
-                    categoryId: categoryId,
+                children: [
+                  BudgetOverviewCard(
+                    overview: overview,
                   ),
-                  onSaveMonthNote: (note) async {
-                    final result = await notifier.saveReviewNote(
-                      currencyCode: currencyCode,
+                  if (!overview.hasAnyBudget) ...[
+                    SizedBox(height: context.spacing.md),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.budgetEmptyNoBudgetsTitle,
+                            style: AppTypography.sectionTitle(context),
+                          ),
+                          SizedBox(height: context.spacing.xs),
+                          Text(
+                            l10n.budgetEmptyNoBudgetsBody,
+                            style: AppTypography.meta(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (showAttribution) ...[
+                    SizedBox(height: context.spacing.md),
+                    BudgetAttributionCard(
+                      overBudgetTop3: model.overBudgetTop3,
+                      underBudgetTop3: model.underBudgetTop3,
+                      unbudgetedAlertsTop3: model.unbudgetedAlertsTop3,
+                      monthReviewNote: model.monthReviewNote,
+                      onCategoryTap: (categoryId) => showBudgetDrilldownSheet(
+                        context,
+                        month: uiState.selectedMonth,
+                        categoryId: categoryId,
+                      ),
+                      onSaveMonthNote: (note) async {
+                        final result = await notifier.saveReviewNote(
+                          currencyCode: currencyCode,
+                          month: uiState.selectedMonth,
+                          note: note,
+                        );
+                        if (!context.mounted) return;
+                        switch (result) {
+                          case Success():
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.budgetNoteSaved)),
+                            );
+                          case Failure(:final code):
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(code.message(l10n))),
+                            );
+                        }
+                      },
+                    ),
+                  ],
+                  if (overview.hasAnyBudget ||
+                      summary.allExpenseActualMinor > 0) ...[
+                    SizedBox(height: context.spacing.md),
+                    BudgetTrendChart(points: model.monthTrend6Months),
+                  ],
+                  SizedBox(height: context.spacing.lg),
+                  BudgetCategorySection(
+                    budgetedRows: model.budgetedRows,
+                    unbudgetedActiveRows: model.unbudgetedActiveRows,
+                    remainingActiveRows: model.remainingActiveRows,
+                    showRemaining: uiState.showRemainingCategories,
+                    onToggleRemaining: notifier.toggleRemainingCategories,
+                    onRowTap: (row) => showBudgetDrilldownSheet(
+                      context,
                       month: uiState.selectedMonth,
-                      note: note,
-                    );
-                    if (!context.mounted) return;
-                    switch (result) {
-                      case Success():
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.budgetNoteSaved)),
-                        );
-                      case Failure(:final code):
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(code.message(l10n))),
-                        );
-                    }
-                  },
-                ),
-              ],
-              if (overview.hasAnyBudget ||
-                  summary.allExpenseActualMinor > 0) ...[
-                SizedBox(height: context.spacing.md),
-                BudgetTrendChart(points: model.monthTrend6Months),
-              ],
-              SizedBox(height: context.spacing.lg),
-              BudgetCategorySection(
-                budgetedRows: model.budgetedRows,
-                unbudgetedActiveRows: model.unbudgetedActiveRows,
-                remainingActiveRows: model.remainingActiveRows,
-                showRemaining: uiState.showRemainingCategories,
-                onToggleRemaining: notifier.toggleRemainingCategories,
-                onRowTap: (row) => showBudgetDrilldownSheet(
-                  context,
-                  month: uiState.selectedMonth,
-                  categoryId: row.categoryId,
-                ),
-                onSetBudgetTap: (row) => showBudgetEditSheet(
-                  context,
-                  row: row,
-                  currencyCode: currencyCode,
-                  currencySymbol: currencySymbol,
-                  month: uiState.selectedMonth,
-                  isHistoricalMonth: uiState.selectedMonth < nowYm,
-                ),
-              ),
-              SizedBox(height: context.spacing.xl),
-            ],
-          );
+                      categoryId: row.categoryId,
+                    ),
+                    onSetBudgetTap: (row) => showBudgetEditSheet(
+                      context,
+                      row: row,
+                      currencyCode: currencyCode,
+                      currencySymbol: currencySymbol,
+                      month: uiState.selectedMonth,
+                      isHistoricalMonth: uiState.selectedMonth < nowYm,
+                    ),
+                  ),
+                  SizedBox(height: context.spacing.xl),
+                  if (showToolbar)
+                    SizedBox(
+                      height: context.metrics.controlHeight +
+                          context.spacing.lg * 2 +
+                          MediaQuery.textScalerOf(context).scale(20) * 2,
+                    ),
+                ],
+              ));
         },
       ),
     );
@@ -261,7 +342,8 @@ class BudgetScreen extends ConsumerWidget {
           children: [
             const AppSheetHandle(),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: sheetContext.spacing.lg),
+              padding:
+                  EdgeInsets.symmetric(horizontal: sheetContext.spacing.lg),
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(

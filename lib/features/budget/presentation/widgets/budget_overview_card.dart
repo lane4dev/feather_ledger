@@ -12,14 +12,10 @@ import '../models/budget_ui_models.dart';
 
 class BudgetOverviewCard extends StatelessWidget {
   final BudgetOverviewUiModel overview;
-  final bool isReviewPreview;
-  final VoidCallback? onToggleReviewPreview;
 
   const BudgetOverviewCard({
     super.key,
     required this.overview,
-    required this.isReviewPreview,
-    this.onToggleReviewPreview,
   });
 
   @override
@@ -46,35 +42,15 @@ class BudgetOverviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: spacing.sm,
+            runSpacing: spacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               AppBadge(label: modeLabel, color: scheme.primary),
-              SizedBox(width: spacing.sm),
               AppBadge(
                 label: '${l10n.budgetCompliance} ${overview.complianceDisplay}',
               ),
-              const Spacer(),
-              if (overview.mode == BudgetMode.track &&
-                  onToggleReviewPreview != null)
-                TextButton.icon(
-                  onPressed: onToggleReviewPreview,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-                  ),
-                  icon: Icon(
-                    isReviewPreview
-                        ? LucideIcons.activity
-                        : LucideIcons.sparkles,
-                    size: 16,
-                  ),
-                  label: Text(
-                    isReviewPreview
-                        ? l10n.budgetBackToTrack
-                        : l10n.budgetReviewPreviewToggle,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ),
             ],
           ),
           SizedBox(height: spacing.md),
@@ -250,7 +226,7 @@ class _InlineChipStat extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 4),
-        Text(label, style: AppTypography.meta(context)),
+        Flexible(child: Text(label, style: AppTypography.meta(context))),
       ],
     );
   }
