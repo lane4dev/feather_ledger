@@ -114,7 +114,11 @@ void main() {
     expect(streams.containsKey(next), isTrue,
         reason: 'the next month is prefetched');
 
-    await tester.tap(find.byIcon(LucideIcons.chevronRight));
+    // The balance card carries its own chevron into reports, so "next
+    // month" has to name the switcher's arrow rather than the icon.
+    await tester.tap(find.descendant(
+        of: find.byType(LedgerMonthSwitcher),
+        matching: find.byIcon(LucideIcons.chevronRight)));
     await tester.pumpAndSettle();
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.text(r'$100'), findsNothing);
@@ -155,7 +159,11 @@ void main() {
     await tester.pump();
     expect(subscriptions,
         containsAll([current, next, DateTime(today.year, today.month - 1)]));
-    await tester.tap(find.byIcon(LucideIcons.chevronRight));
+    // The balance card carries its own chevron into reports, so "next
+    // month" has to name the switcher's arrow rather than the icon.
+    await tester.tap(find.descendant(
+        of: find.byType(LedgerMonthSwitcher),
+        matching: find.byIcon(LucideIcons.chevronRight)));
     await tester.pumpAndSettle();
     expect(find.text(r'$200'), findsWidgets);
     expect(find.text('—'), findsNothing);

@@ -46,14 +46,14 @@
 
 ## Phase 3：Budget Tab 主屏、下钻与编辑交互
 
-- [ ] **T3.1 Presentation Mappers 与 ViewModels**
+- [x] **T3.1 Presentation Mappers 与 ViewModels**
   - 实现 `BudgetUiMapper`（所有 `formatMinor` / `formatMinorWithSymbol` / 百分比格式化集中在此）。
   - 实现 `BudgetViewModel`（按 `YearMonth` 管理切换、复盘预览切换、趋势折叠态与编排写操作）。
-- [ ] **T3.2 主屏与核心组件（严格对齐 `AppTheme` 与 `prototype-budget-ui.html`）**
+- [x] **T3.2 主屏与核心组件（严格对齐 `AppTheme` 与 `prototype-budget-ui.html`）**
   - 替换 `lib/features/budget/presentation/screens/budget_screen.dart` 占位实现：顶部 `< YYYY年MM月 ▾ >`（`FeatherMonthPicker`）+ 复盘预览切换 + `+` 入口。
   - 实现 `BudgetOverviewCard`（主执行率/双段进度条/达标率严格对齐已设预算分母，底部单行旁注全部支出含未设预算支出、遗留及未完全物化排期轻提示）、`BudgetAttributionCard`（超支/结余 TOP 3 + 未设提醒 + 月度 Review Note）、`BudgetTrendChart`（`fl_chart` 近 6 月柱线图 + Note 节点点标）。
   - 实现三段分类列表组件（含底部默认折叠的「其余分类（点击设预算 · N）」）及空币种/无账户空态。
-- [ ] **T3.3 分类下钻 BottomSheet 与编辑预算 BottomSheet**
+- [x] **T3.3 分类下钻 BottomSheet 与编辑预算 BottomSheet**
   - `BudgetDrilldownSheet`（~88% 高屏占比 Modal BottomSheet，`sheetRadius = 28px`）：6 月对比柱线图、固定/弹性/待入账拆解、TOP 3 流水（已入账行可点进 `/ledger/edit`）、分类 Review Note 编辑器（归档只读）。
   - `BudgetEditSheet`：参考基线一键填入芯片（上月实际 / 近 3 月均值 / 固定底线）、`LedgerAmountInput` 金额输入（空/`0` 时禁用保存并提示）、作用域选择（`effectiveBudget == null && !hasFutureRulesAfter(M)` 时才静默 `thisAndFollowing`）与清除操作。
 
@@ -61,7 +61,7 @@
 
 ## Phase 4：`TransactionFormScreen` 记账即时预算提示
 
-- [ ] **T4.1 轻量只读预算提示条**
+- [x] **T4.1 轻量只读预算提示条**
   - 新增 `transactionBudgetHintProvider`（监听表单锁定币种 `formState.currencyCode`、所选分类与日期月份的 `watchCategoryBudgetHint`）。
   - 在 `lib/features/ledger/presentation/screens/transaction_form_screen.dart` 仅当 `type == expense` 且选中分类时嵌入 `TransactionBudgetHintBanner`：正确处理 `includeInTotals == false` 提示、`planned` 模式与历史月提示、编辑态仅当 `original` 原先贡献给同一 `(targetYm, categoryId)` 时才扣减原金额，以及 4 态预览，绝不阻塞提交。
 
@@ -69,11 +69,12 @@
 
 ## Phase 5：Widget 测试、备份回归与整体验证
 
-- [ ] **T5.1 UI 组件行为测试（`test/ui/features/budget/`）**
+- [x] **T5.1 UI 组件行为测试（`test/ui/features/budget/`）**
   - `budget_screen_test.dart`：覆盖 Plan / Track(+复盘预览) / Review 三态切换、已设预算主卡 vs 未设预算旁注、底部折叠展开、归档分类只读历史。
   - `budget_sheets_test.dart`：覆盖高屏占比下钻 Sheet、点击 TOP 3 交易跳转 `/ledger/edit`、Review Note 保存与 500 字报错、编辑预算基线芯片/输入 `0` 禁用态/未来断点存在时不静默跳过弹窗。
   - `transaction_form_budget_hint_test.dart`：覆盖记账表单锁定币种、`includeInTotals == false`、`planned` 模式、编辑改月改类及超支仍可正常保存。
-- [ ] **T5.2 备份恢复回归测试**
+- [x] **T5.2 备份恢复回归测试**
   - 验证包含 `budget_rules` 与 `budget_review_notes` 的 `.flbackup` 导出导入完整性，以及旧 v15 `.flbackup` 恢复后自愈升级。
-- [ ] **T5.3 全量静态分析与测试**
+- [x] **T5.3 全量静态分析与测试**
   - 运行 `dart run build_runner build -d`、`flutter gen-l10n`、`flutter analyze` 与 `flutter test`，确保全部通过且零新增警告。
+  - 附带修复：`backup_service_test.dart` 的 `v1Database()` fixture 需同时剥掉 v16 新增的 `categories_view.archived_at` 与两张预算表（否则 `onUpgrade` 的 `addColumn` 撞上已存在的列）；三个账本表单 widget 测试需覆盖 `transactionBudgetHintProvider` 为空流，否则提示条会在没有预算 fixture 的测试里打开真实数据库并留下 Drift 流的 pending timer；`ledger_month_switch_test.dart` 的 `chevronRight` 查找需限定在 `LedgerMonthSwitcher` 内（余额卡也画了一枚指向报表的同一图标）。

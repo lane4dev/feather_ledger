@@ -95,7 +95,9 @@ void main() {
   /// Built by going backwards rather than by keeping a checked-in fixture, so
   /// it cannot drift out of step with the real schema — if a future migration
   /// changes `accounts_view` again, this keeps describing v1 correctly or
-  /// stops compiling.
+  /// stops compiling. Every column and table a later migration adds has to be
+  /// peeled back here, or the migration under test would run against a schema
+  /// that already has it (`addColumn` on an existing column throws).
   Future<File> v1Database() async {
     final file = File(p.join(supportDir.path, 'v1.sqlite'));
     final db = AppDatabase.internal(NativeDatabase(file));
@@ -107,6 +109,11 @@ void main() {
         'ALTER TABLE transactions_view DROP COLUMN attachments_json');
     await db.customStatement(
         'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
+    // v16: the budget tables and the archive timestamp.
+    await db.customStatement(
+        'ALTER TABLE categories_view DROP COLUMN archived_at');
+    await db.customStatement('DROP TABLE IF EXISTS budget_rules');
+    await db.customStatement('DROP TABLE IF EXISTS budget_review_notes');
     await db.customStatement('PRAGMA user_version = 1');
     await db.close();
     return file;

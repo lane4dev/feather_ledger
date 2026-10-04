@@ -20,6 +20,8 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/budget/domain/entities/budget_entities.dart';
+import 'package:feather_ledger/features/budget/presentation/view_model/transaction_budget_hint_provider.dart';
 import '../../../support/fakes/recording_services.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
@@ -96,6 +98,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // The budget hint banner would open a real database from a form
+          // test that has no budget fixture; an empty stream keeps it idle.
+          transactionBudgetHintProvider.overrideWith(
+            (ref, arg) => const Stream<CategoryBudgetHint>.empty(),
+          ),
           accountUiListProvider
               .overrideWithValue(AsyncData([AccountUiModel.of(cash)])),
           categoryListProvider.overrideWith(
