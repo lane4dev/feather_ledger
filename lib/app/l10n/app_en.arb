@@ -860,5 +860,6 @@
     }
   },
   "currencyBacklogPostAll": "Post all",
-  "currencyBacklogKeepPending": "Keep as pending"
+  "currencyBacklogKeepPending": "Keep as pending",
+  "errorBudgetNoteTooLong": "Review note cannot exceed 500 characters"
 }

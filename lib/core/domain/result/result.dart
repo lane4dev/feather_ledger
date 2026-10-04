@@ -31,6 +31,7 @@ enum LedgerErrorCode {
   scheduledDateTaken,
   countLimitTooSmall,
   systemCategoryProtected,
+  budgetNoteTooLong,
   unknownEvent,
 }
 

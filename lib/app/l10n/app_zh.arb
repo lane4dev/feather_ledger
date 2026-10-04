@@ -758,5 +758,6 @@
   "currencyBacklogTitle": "{currency} 有待自动入账账单",
   "currencyBacklogMessage": "切换到其他币种期间，有 {count} 笔开启自动入账的账单已到期。",
   "currencyBacklogPostAll": "全部入账",
-  "currencyBacklogKeepPending": "保留为待入账"
+  "currencyBacklogKeepPending": "保留为待入账",
+  "errorBudgetNoteTooLong": "复盘备忘不能超过 500 字"
 }

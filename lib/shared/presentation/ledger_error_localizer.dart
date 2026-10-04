@@ -40,6 +40,7 @@ extension LedgerErrorLocalizer on LedgerErrorCode {
           l10n.errorRecurringSeriesStopped,
         LedgerErrorCode.scheduledDateTaken => l10n.errorScheduledDateTaken,
         LedgerErrorCode.countLimitTooSmall => l10n.errorCountLimitTooSmall,
+        LedgerErrorCode.budgetNoteTooLong => l10n.errorBudgetNoteTooLong,
         LedgerErrorCode.unknownEvent => l10n.errorUnknownEvent,
       };
 }

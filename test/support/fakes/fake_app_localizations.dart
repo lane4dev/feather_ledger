@@ -950,4 +950,8 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get currencyBacklogKeepPending => 'Keep as pending';
+
+  @override
+  String get errorBudgetNoteTooLong =>
+      'Review note cannot exceed 500 characters';
 }

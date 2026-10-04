@@ -28,20 +28,19 @@
 
 ## Phase 2：领域引擎、仓储、Service 与本地化
 
-- [ ] **T2.1 领域模型与纯计算内核（`lib/features/budget/domain/`）**
+- [x] **T2.1 领域模型与纯计算内核（`lib/features/budget/domain/`）**
   - 定义 `YearMonth`、`BudgetEditScope`、`BudgetMode`、`BudgetRule`、`BudgetReviewNote`、`CategoryBudgetSummary`、`MonthBudgetSummary`、`BudgetAttribution`、`CategoryBudgetHint` 等类型。
   - 实现纯函数领域计算器：时间线生效解析、`.toLocal()` 归档次月截断、固定 vs 弹性拆解、冷启动近 3 月均值、已设预算主执行口径与全盘旁注拆分、达标率与 `At Risk` 判定、异常波动双门槛、TOP 3 归因与未设预算提醒。
-- [ ] **T2.2 仓储与 CQRS 命令 / 查询 / Service**
+- [x] **T2.2 仓储与 CQRS 命令 / 查询 / Service**
   - 实现 `BudgetRepository` 接口与 `BudgetRepositoryImpl`（通过 `CategoriesDao` / `BudgetDao` 校验分类存在、归档状态与 `expense` 类型）。
-  - 实现 `SetCategoryBudgetCommand`、`ClearCategoryBudgetCommand`、`SaveReviewNoteCommand` 及三个 Query 类，全部经由 `BudgetService` + `guard(...)` 返回 `Result<T>`。
+  - 实现 `SetCategoryBudgetCommand`、`ClearCategoryBudgetCommand`、`SaveReviewNoteCommand`、`WatchMonthBudgetQuery`、`WatchTransactionBudgetHintQuery`，全部经由 `BudgetService` + `guard(...)` 返回 `Result<T>`。
   - 将 `TransactionFormScreen` 所需轻量提示接缝注入 Riverpod provider。
-- [ ] **T2.3 错误码与四语言 ARB**
+- [x] **T2.3 错误码与四语言 ARB**
   - 在 `lib/core/domain/result/result.dart` 新增 `LedgerErrorCode.budgetNoteTooLong`，并在 `lib/shared/presentation/ledger_error_localizer.dart` 补齐映射。
   - 同步补充 `app_en.arb`、`app_zh.arb`、`app_zh_Hans.arb`、`app_zh_Hant.arb` 全部预算/复盘词条，运行 `flutter gen-l10n`。
-- [ ] **T2.4 Phase 2 测试**
-  - `test/unit/features/budget/domain/budget_timeline_test.dart`（阶跃继承、`thisMonthOnly`、`thisAndFollowing`、首次直接向后、归档次月截断）。
-  - `test/unit/features/budget/domain/budget_review_engine_test.dart`（固定/弹性、冷启动 3 月均值、分母为 0 达标率、异常波动、归因排序）。
-  - `test/unit/features/budget/domain/budget_service_test.dart`（校验拒绝、`Result.failure` 映射、500 字上限、归档拦截）。
+- [x] **T2.4 Phase 2 测试**
+  - `test/unit/features/budget/domain/budget_calculator_test.dart`（时间轴三模式、阶跃继承、归档次月截断、冷启动 3 月均值、分母为 0 达标率、固定/弹性、`At Risk`、异常波动、归因排序）。
+  - `test/unit/features/budget/domain/services/budget_service_test.dart`（校验拒绝、`Result.failure` 映射、双作用域、`500` 字上限、归档拦截、轻量提示流）。
 
 ---
 

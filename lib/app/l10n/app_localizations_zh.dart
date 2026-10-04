@@ -990,6 +990,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currencyBacklogKeepPending => '保留为待入账';
+
+  @override
+  String get errorBudgetNoteTooLong => '复盘备忘不能超过 500 字';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1978,6 +1981,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get currencyBacklogKeepPending => '保留为待入账';
+
+  @override
+  String get errorBudgetNoteTooLong => '复盘备忘不能超过 500 字';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2966,4 +2972,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get currencyBacklogKeepPending => '保留為待入帳';
+
+  @override
+  String get errorBudgetNoteTooLong => '複盤備忘不能超過 500 字';
 }

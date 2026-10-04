@@ -758,5 +758,6 @@
   "currencyBacklogTitle": "{currency} 有待自動入帳帳單",
   "currencyBacklogMessage": "切換到其他幣種期間，有 {count} 筆開啟自動入帳的帳單已到期。",
   "currencyBacklogPostAll": "全部入帳",
-  "currencyBacklogKeepPending": "保留為待入帳"
+  "currencyBacklogKeepPending": "保留為待入帳",
+  "errorBudgetNoteTooLong": "複盤備忘不能超過 500 字"
 }

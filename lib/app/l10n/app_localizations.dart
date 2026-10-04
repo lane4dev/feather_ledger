@@ -2008,6 +2008,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep as pending'**
   String get currencyBacklogKeepPending;
+
+  /// No description provided for @errorBudgetNoteTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Review note cannot exceed 500 characters'**
+  String get errorBudgetNoteTooLong;
 }
 
 class _AppLocalizationsDelegate
