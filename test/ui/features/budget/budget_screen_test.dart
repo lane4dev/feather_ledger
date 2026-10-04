@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/design_system/app_floating_toolbar.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -94,9 +95,8 @@ CategoryBudgetSummary _cat({
     discretionaryActualMinor: actualMinor,
     actualMinor: actualMinor,
     pendingMinor: pendingMinor,
-    projectedRemainingMinor: budgetMinor != null
-        ? budgetMinor - actualMinor - pendingMinor
-        : null,
+    projectedRemainingMinor:
+        budgetMinor != null ? budgetMinor - actualMinor - pendingMinor : null,
     lastMonthActualMinor: 50000,
     threeMonthAvgMinor: 60000,
     committedBaselineMinor: pendingMinor,
@@ -215,8 +215,11 @@ void main() {
     WidgetTester tester, {
     required _FakeBudgetService service,
     required DateTime now,
+    Size size = const Size(1200, 2400),
+    bool accessibleNavigation = false,
+    double textScale = 1,
   }) async {
-    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -230,6 +233,13 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              accessibleNavigation: accessibleNavigation,
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: child!,
+          ),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -242,6 +252,16 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  bool isSelected(WidgetTester tester, String label) {
+    final selection = find.ancestor(
+      of: find.text(label),
+      matching: find.byWidgetPredicate((widget) =>
+          widget is Semantics &&
+          widget.properties.inMutuallyExclusiveGroup == true),
+    );
+    return tester.widget<Semantics>(selection.first).properties.selected!;
   }
 
   testWidgets(
@@ -257,7 +277,8 @@ void main() {
       jun: _summary(month: jun, mode: BudgetMode.plan),
     });
 
-    await pumpBudgetScreen(tester, service: service, now: DateTime(2026, 5, 10));
+    await pumpBudgetScreen(tester,
+        service: service, now: DateTime(2026, 5, 10));
 
     // Track mode hero + budgeted-only compliance + unbudgeted side-note
     expect(find.text('Track'), findsOneWidget);
@@ -272,9 +293,16 @@ void main() {
 
     // Toggle Review preview inside Track month
     expect(find.text('Month Review & Attribution'), findsNothing);
+    expect(isSelected(tester, 'Budget tracking'), isTrue);
+    expect(isSelected(tester, 'Review preview'), isFalse);
+    await tester.tap(find.text('Budget tracking'));
+    await tester.pumpAndSettle();
+    expect(find.text('Month Review & Attribution'), findsNothing);
     await tester.tap(find.text('Review preview'));
     await tester.pumpAndSettle();
     expect(find.text('Month Review & Attribution'), findsOneWidget);
+    expect(isSelected(tester, 'Budget tracking'), isFalse);
+    expect(isSelected(tester, 'Review preview'), isTrue);
 
     // Navigate backward to April -> Review mode + archived badge + leftover pending hint
     await tester.tap(find.byIcon(LucideIcons.chevronLeft));
@@ -290,5 +318,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Plan'), findsOneWidget);
     expect(find.textContaining('materialized pending bills'), findsOneWidget);
+    expect(find.byType(AppFloatingToolbar), findsNothing);
+  });
+
+  testWidgets('toolbar hides on downward scroll and returns on upward scroll',
+      (tester) async {
+    const may = YearMonth(2026, 5);
+    await pumpBudgetScreen(tester,
+        service: _FakeBudgetService(
+            {may: _summary(month: may, mode: BudgetMode.track)}),
+        now: DateTime(2026, 5, 10),
+        size: const Size(400, 700));
+
+    expect(find.text('Review preview').hitTestable(), findsOneWidget);
+    await tester.dragFrom(const Offset(100, 300), const Offset(0, -250));
+    await tester.pumpAndSettle();
+    expect(find.text('Review preview').hitTestable(), findsNothing);
+
+    await tester.dragFrom(const Offset(100, 300), const Offset(0, 180));
+    await tester.pumpAndSettle();
+    expect(find.text('Review preview').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Review preview'));
+    await tester.pumpAndSettle();
+    expect(find.text('Budget tracking').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Budget tracking'));
+    await tester.pumpAndSettle();
+    expect(find.text('Review preview').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('toolbar remains accessible while scrolling', (tester) async {
+    const may = YearMonth(2026, 5);
+    await pumpBudgetScreen(tester,
+        service: _FakeBudgetService(
+            {may: _summary(month: may, mode: BudgetMode.track)}),
+        now: DateTime(2026, 5, 10),
+        size: const Size(400, 700),
+        accessibleNavigation: true,
+        textScale: 1.4);
+    await tester.dragFrom(const Offset(100, 300), const Offset(0, -250));
+    await tester.pumpAndSettle();
+    expect(find.text('Review preview').hitTestable(), findsOneWidget);
   });
 }

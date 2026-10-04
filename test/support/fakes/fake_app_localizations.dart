@@ -968,7 +968,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetReviewPreviewToggle => 'Review preview';
 
   @override
-  String get budgetBackToTrack => 'Back to track';
+  String get budgetTracking => 'Budget tracking';
 
   @override
   String get budgetTotal => 'Total budget';
