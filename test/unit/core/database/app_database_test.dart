@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(15));
+      expect(database.schemaVersion, equals(16));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {
@@ -36,6 +36,10 @@ void main() {
           .customStatement('ALTER TABLE accounts_view DROP COLUMN deleted');
       await old.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
+      await old.customStatement(
+          'ALTER TABLE categories_view DROP COLUMN archived_at');
+      await old.customStatement('DROP TABLE IF EXISTS budget_rules');
+      await old.customStatement('DROP TABLE IF EXISTS budget_review_notes');
       await old.customStatement(
           "INSERT INTO accounts_view (id, name, type, currency_code, balance_minor, archived, last_updated_event_id) VALUES ('archived', 'Cash', 0, 'USD', 0, 1, 1)");
       await old.customStatement('PRAGMA user_version = 6');
@@ -60,6 +64,10 @@ void main() {
           'ALTER TABLE transactions_view DROP COLUMN attachments_json');
       await v1.customStatement(
           'ALTER TABLE transactions_view DROP COLUMN source_scheduled_bill_id');
+      await v1.customStatement(
+          'ALTER TABLE categories_view DROP COLUMN archived_at');
+      await v1.customStatement('DROP TABLE IF EXISTS budget_rules');
+      await v1.customStatement('DROP TABLE IF EXISTS budget_review_notes');
       await v1.customStatement(
           'INSERT INTO accounts_view (id, name, type, currency_code, '
           'balance_minor, archived, last_updated_event_id, projection_version) '
@@ -134,13 +142,17 @@ void main() {
       await v14.customStatement(
           'INSERT INTO transaction_postings_view (id, transaction_id, account_id, direction, amount_minor, currency_code, category_id) '
           "VALUES ('tx-1:0', 'tx-1', 'acc-1', 1, 1200, 'USD', 'cat-1')");
+      await v14.customStatement(
+          'ALTER TABLE categories_view DROP COLUMN archived_at');
+      await v14.customStatement('DROP TABLE IF EXISTS budget_rules');
+      await v14.customStatement('DROP TABLE IF EXISTS budget_review_notes');
       await v14.customStatement('PRAGMA user_version = 14');
       await v14.close();
 
       final upgraded = AppDatabase.internal(NativeDatabase(file));
       addTearDown(upgraded.close);
 
-      expect(upgraded.schemaVersion, 15);
+      expect(upgraded.schemaVersion, 16);
       final tables = await upgraded
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
           .get();

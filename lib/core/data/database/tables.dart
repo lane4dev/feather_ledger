@@ -119,6 +119,7 @@ class CategoriesView extends Table {
   IntColumn get colorInt => integer()();
   IntColumn get type => intEnum<CategoryType>()();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get archivedAt => dateTime().nullable()();
   TextColumn get systemCode => text().nullable()();
   IntColumn get lastUpdatedEventId => integer()(); // Source GSN cursor
   IntColumn get projectionVersion => integer().withDefault(const Constant(1))();
@@ -231,4 +232,34 @@ class MonthlyAccountBalanceSnapshots extends Table {
   List<Set<Column>> get uniqueKeys => [
         {accountId, currencyCode, year, month},
       ];
+}
+
+/// Budget rules — CRUD-exempt (ADR-0006): stepped effective-month timeline
+/// per `(currencyCode, categoryId)`. `amountMinor == null` is an explicit
+/// `unset` breakpoint halting carry-forward from [effectiveYm] onward.
+@DataClassName('BudgetRuleRow')
+class BudgetRules extends Table {
+  TextColumn get currencyCode => text()();
+  TextColumn get categoryId => text()();
+  IntColumn get effectiveYm => integer()(); // year * 100 + month
+  IntColumn get amountMinor => integer().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {currencyCode, categoryId, effectiveYm};
+}
+
+/// Review notes — CRUD-exempt (ADR-0006): plain-text retrospective notes per
+/// `(currencyCode, ym, categoryKey)`, where `categoryKey == ''` denotes the
+/// month-level review note (avoiding SQLite NULL non-uniqueness in PKs).
+@DataClassName('BudgetReviewNoteRow')
+class BudgetReviewNotes extends Table {
+  TextColumn get currencyCode => text()();
+  IntColumn get ym => integer()(); // year * 100 + month
+  TextColumn get categoryKey => text()(); // '' for month-level, else categoryId
+  TextColumn get note => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {currencyCode, ym, categoryKey};
 }

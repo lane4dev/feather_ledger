@@ -41,7 +41,9 @@ import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 /// 7: `transactions_view.source_scheduled_bill_id` is projected from
 /// `TransactionRecorded` v4 (ticket 47), so pre-model rows (no source bill)
 /// stay null and posted-bill rows re-derive their event-backed link.
-const int ledgerProjectionVersion = 7;
+/// 8: `categories_view.archived_at` is projected from `CategoryArchived`
+/// envelope `recordedAt` so budget carry-forward halts after archive month.
+const int ledgerProjectionVersion = 8;
 
 /// A projection's applied-event cursor. Rows record the GSN of the last
 /// event applied to them so replay is idempotent: events at or below the

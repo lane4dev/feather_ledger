@@ -2224,6 +2224,12 @@ class $CategoriesViewTable extends CategoriesView
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("archived" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _archivedAtMeta =
+      const VerificationMeta('archivedAt');
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+      'archived_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _systemCodeMeta =
       const VerificationMeta('systemCode');
   @override
@@ -2252,6 +2258,7 @@ class $CategoriesViewTable extends CategoriesView
         colorInt,
         type,
         archived,
+        archivedAt,
         systemCode,
         lastUpdatedEventId,
         projectionVersion
@@ -2292,6 +2299,12 @@ class $CategoriesViewTable extends CategoriesView
     if (data.containsKey('archived')) {
       context.handle(_archivedMeta,
           archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta));
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+          _archivedAtMeta,
+          archivedAt.isAcceptableOrUnknown(
+              data['archived_at']!, _archivedAtMeta));
     }
     if (data.containsKey('system_code')) {
       context.handle(
@@ -2335,6 +2348,8 @@ class $CategoriesViewTable extends CategoriesView
           .read(DriftSqlType.int, data['${effectivePrefix}type'])!),
       archived: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}archived'])!,
+      archivedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}archived_at']),
       systemCode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}system_code']),
       lastUpdatedEventId: attachedDatabase.typeMapping.read(
@@ -2360,6 +2375,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
   final int colorInt;
   final CategoryType type;
   final bool archived;
+  final DateTime? archivedAt;
   final String? systemCode;
   final int lastUpdatedEventId;
   final int projectionVersion;
@@ -2370,6 +2386,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
       required this.colorInt,
       required this.type,
       required this.archived,
+      this.archivedAt,
       this.systemCode,
       required this.lastUpdatedEventId,
       required this.projectionVersion});
@@ -2385,6 +2402,9 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
           Variable<int>($CategoriesViewTable.$convertertype.toSql(type));
     }
     map['archived'] = Variable<bool>(archived);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<DateTime>(archivedAt);
+    }
     if (!nullToAbsent || systemCode != null) {
       map['system_code'] = Variable<String>(systemCode);
     }
@@ -2401,6 +2421,9 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
       colorInt: Value(colorInt),
       type: Value(type),
       archived: Value(archived),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
       systemCode: systemCode == null && nullToAbsent
           ? const Value.absent()
           : Value(systemCode),
@@ -2420,6 +2443,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
       type: $CategoriesViewTable.$convertertype
           .fromJson(serializer.fromJson<int>(json['type'])),
       archived: serializer.fromJson<bool>(json['archived']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
       systemCode: serializer.fromJson<String?>(json['systemCode']),
       lastUpdatedEventId: serializer.fromJson<int>(json['lastUpdatedEventId']),
       projectionVersion: serializer.fromJson<int>(json['projectionVersion']),
@@ -2436,6 +2460,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
       'type': serializer
           .toJson<int>($CategoriesViewTable.$convertertype.toJson(type)),
       'archived': serializer.toJson<bool>(archived),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'systemCode': serializer.toJson<String?>(systemCode),
       'lastUpdatedEventId': serializer.toJson<int>(lastUpdatedEventId),
       'projectionVersion': serializer.toJson<int>(projectionVersion),
@@ -2449,6 +2474,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
           int? colorInt,
           CategoryType? type,
           bool? archived,
+          Value<DateTime?> archivedAt = const Value.absent(),
           Value<String?> systemCode = const Value.absent(),
           int? lastUpdatedEventId,
           int? projectionVersion}) =>
@@ -2459,6 +2485,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
         colorInt: colorInt ?? this.colorInt,
         type: type ?? this.type,
         archived: archived ?? this.archived,
+        archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
         systemCode: systemCode.present ? systemCode.value : this.systemCode,
         lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
         projectionVersion: projectionVersion ?? this.projectionVersion,
@@ -2471,6 +2498,8 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
       colorInt: data.colorInt.present ? data.colorInt.value : this.colorInt,
       type: data.type.present ? data.type.value : this.type,
       archived: data.archived.present ? data.archived.value : this.archived,
+      archivedAt:
+          data.archivedAt.present ? data.archivedAt.value : this.archivedAt,
       systemCode:
           data.systemCode.present ? data.systemCode.value : this.systemCode,
       lastUpdatedEventId: data.lastUpdatedEventId.present
@@ -2491,6 +2520,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
           ..write('colorInt: $colorInt, ')
           ..write('type: $type, ')
           ..write('archived: $archived, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('systemCode: $systemCode, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion')
@@ -2500,7 +2530,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
 
   @override
   int get hashCode => Object.hash(id, name, iconKey, colorInt, type, archived,
-      systemCode, lastUpdatedEventId, projectionVersion);
+      archivedAt, systemCode, lastUpdatedEventId, projectionVersion);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2511,6 +2541,7 @@ class CategoryViewRow extends DataClass implements Insertable<CategoryViewRow> {
           other.colorInt == this.colorInt &&
           other.type == this.type &&
           other.archived == this.archived &&
+          other.archivedAt == this.archivedAt &&
           other.systemCode == this.systemCode &&
           other.lastUpdatedEventId == this.lastUpdatedEventId &&
           other.projectionVersion == this.projectionVersion);
@@ -2523,6 +2554,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
   final Value<int> colorInt;
   final Value<CategoryType> type;
   final Value<bool> archived;
+  final Value<DateTime?> archivedAt;
   final Value<String?> systemCode;
   final Value<int> lastUpdatedEventId;
   final Value<int> projectionVersion;
@@ -2534,6 +2566,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
     this.colorInt = const Value.absent(),
     this.type = const Value.absent(),
     this.archived = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.systemCode = const Value.absent(),
     this.lastUpdatedEventId = const Value.absent(),
     this.projectionVersion = const Value.absent(),
@@ -2546,6 +2579,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
     required int colorInt,
     required CategoryType type,
     this.archived = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.systemCode = const Value.absent(),
     required int lastUpdatedEventId,
     this.projectionVersion = const Value.absent(),
@@ -2563,6 +2597,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
     Expression<int>? colorInt,
     Expression<int>? type,
     Expression<bool>? archived,
+    Expression<DateTime>? archivedAt,
     Expression<String>? systemCode,
     Expression<int>? lastUpdatedEventId,
     Expression<int>? projectionVersion,
@@ -2575,6 +2610,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
       if (colorInt != null) 'color_int': colorInt,
       if (type != null) 'type': type,
       if (archived != null) 'archived': archived,
+      if (archivedAt != null) 'archived_at': archivedAt,
       if (systemCode != null) 'system_code': systemCode,
       if (lastUpdatedEventId != null)
         'last_updated_event_id': lastUpdatedEventId,
@@ -2590,6 +2626,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
       Value<int>? colorInt,
       Value<CategoryType>? type,
       Value<bool>? archived,
+      Value<DateTime?>? archivedAt,
       Value<String?>? systemCode,
       Value<int>? lastUpdatedEventId,
       Value<int>? projectionVersion,
@@ -2601,6 +2638,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
       colorInt: colorInt ?? this.colorInt,
       type: type ?? this.type,
       archived: archived ?? this.archived,
+      archivedAt: archivedAt ?? this.archivedAt,
       systemCode: systemCode ?? this.systemCode,
       lastUpdatedEventId: lastUpdatedEventId ?? this.lastUpdatedEventId,
       projectionVersion: projectionVersion ?? this.projectionVersion,
@@ -2630,6 +2668,9 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
+    }
     if (systemCode.present) {
       map['system_code'] = Variable<String>(systemCode.value);
     }
@@ -2654,6 +2695,7 @@ class CategoriesViewCompanion extends UpdateCompanion<CategoryViewRow> {
           ..write('colorInt: $colorInt, ')
           ..write('type: $type, ')
           ..write('archived: $archived, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('systemCode: $systemCode, ')
           ..write('lastUpdatedEventId: $lastUpdatedEventId, ')
           ..write('projectionVersion: $projectionVersion, ')
@@ -4976,6 +5018,651 @@ class MonthlyAccountBalanceSnapshotsCompanion
   }
 }
 
+class $BudgetRulesTable extends BudgetRules
+    with TableInfo<$BudgetRulesTable, BudgetRuleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _currencyCodeMeta =
+      const VerificationMeta('currencyCode');
+  @override
+  late final GeneratedColumn<String> currencyCode = GeneratedColumn<String>(
+      'currency_code', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _categoryIdMeta =
+      const VerificationMeta('categoryId');
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+      'category_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _effectiveYmMeta =
+      const VerificationMeta('effectiveYm');
+  @override
+  late final GeneratedColumn<int> effectiveYm = GeneratedColumn<int>(
+      'effective_ym', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _amountMinorMeta =
+      const VerificationMeta('amountMinor');
+  @override
+  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
+      'amount_minor', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [currencyCode, categoryId, effectiveYm, amountMinor, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_rules';
+  @override
+  VerificationContext validateIntegrity(Insertable<BudgetRuleRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('currency_code')) {
+      context.handle(
+          _currencyCodeMeta,
+          currencyCode.isAcceptableOrUnknown(
+              data['currency_code']!, _currencyCodeMeta));
+    } else if (isInserting) {
+      context.missing(_currencyCodeMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+          _categoryIdMeta,
+          categoryId.isAcceptableOrUnknown(
+              data['category_id']!, _categoryIdMeta));
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('effective_ym')) {
+      context.handle(
+          _effectiveYmMeta,
+          effectiveYm.isAcceptableOrUnknown(
+              data['effective_ym']!, _effectiveYmMeta));
+    } else if (isInserting) {
+      context.missing(_effectiveYmMeta);
+    }
+    if (data.containsKey('amount_minor')) {
+      context.handle(
+          _amountMinorMeta,
+          amountMinor.isAcceptableOrUnknown(
+              data['amount_minor']!, _amountMinorMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey =>
+      {currencyCode, categoryId, effectiveYm};
+  @override
+  BudgetRuleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetRuleRow(
+      currencyCode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}currency_code'])!,
+      categoryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
+      effectiveYm: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}effective_ym'])!,
+      amountMinor: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}amount_minor']),
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $BudgetRulesTable createAlias(String alias) {
+    return $BudgetRulesTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetRuleRow extends DataClass implements Insertable<BudgetRuleRow> {
+  final String currencyCode;
+  final String categoryId;
+  final int effectiveYm;
+  final int? amountMinor;
+  final DateTime updatedAt;
+  const BudgetRuleRow(
+      {required this.currencyCode,
+      required this.categoryId,
+      required this.effectiveYm,
+      this.amountMinor,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['currency_code'] = Variable<String>(currencyCode);
+    map['category_id'] = Variable<String>(categoryId);
+    map['effective_ym'] = Variable<int>(effectiveYm);
+    if (!nullToAbsent || amountMinor != null) {
+      map['amount_minor'] = Variable<int>(amountMinor);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BudgetRulesCompanion toCompanion(bool nullToAbsent) {
+    return BudgetRulesCompanion(
+      currencyCode: Value(currencyCode),
+      categoryId: Value(categoryId),
+      effectiveYm: Value(effectiveYm),
+      amountMinor: amountMinor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountMinor),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory BudgetRuleRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetRuleRow(
+      currencyCode: serializer.fromJson<String>(json['currencyCode']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      effectiveYm: serializer.fromJson<int>(json['effectiveYm']),
+      amountMinor: serializer.fromJson<int?>(json['amountMinor']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'currencyCode': serializer.toJson<String>(currencyCode),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'effectiveYm': serializer.toJson<int>(effectiveYm),
+      'amountMinor': serializer.toJson<int?>(amountMinor),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  BudgetRuleRow copyWith(
+          {String? currencyCode,
+          String? categoryId,
+          int? effectiveYm,
+          Value<int?> amountMinor = const Value.absent(),
+          DateTime? updatedAt}) =>
+      BudgetRuleRow(
+        currencyCode: currencyCode ?? this.currencyCode,
+        categoryId: categoryId ?? this.categoryId,
+        effectiveYm: effectiveYm ?? this.effectiveYm,
+        amountMinor: amountMinor.present ? amountMinor.value : this.amountMinor,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  BudgetRuleRow copyWithCompanion(BudgetRulesCompanion data) {
+    return BudgetRuleRow(
+      currencyCode: data.currencyCode.present
+          ? data.currencyCode.value
+          : this.currencyCode,
+      categoryId:
+          data.categoryId.present ? data.categoryId.value : this.categoryId,
+      effectiveYm:
+          data.effectiveYm.present ? data.effectiveYm.value : this.effectiveYm,
+      amountMinor:
+          data.amountMinor.present ? data.amountMinor.value : this.amountMinor,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetRuleRow(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('effectiveYm: $effectiveYm, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      currencyCode, categoryId, effectiveYm, amountMinor, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetRuleRow &&
+          other.currencyCode == this.currencyCode &&
+          other.categoryId == this.categoryId &&
+          other.effectiveYm == this.effectiveYm &&
+          other.amountMinor == this.amountMinor &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BudgetRulesCompanion extends UpdateCompanion<BudgetRuleRow> {
+  final Value<String> currencyCode;
+  final Value<String> categoryId;
+  final Value<int> effectiveYm;
+  final Value<int?> amountMinor;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const BudgetRulesCompanion({
+    this.currencyCode = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.effectiveYm = const Value.absent(),
+    this.amountMinor = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetRulesCompanion.insert({
+    required String currencyCode,
+    required String categoryId,
+    required int effectiveYm,
+    this.amountMinor = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : currencyCode = Value(currencyCode),
+        categoryId = Value(categoryId),
+        effectiveYm = Value(effectiveYm),
+        updatedAt = Value(updatedAt);
+  static Insertable<BudgetRuleRow> custom({
+    Expression<String>? currencyCode,
+    Expression<String>? categoryId,
+    Expression<int>? effectiveYm,
+    Expression<int>? amountMinor,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (currencyCode != null) 'currency_code': currencyCode,
+      if (categoryId != null) 'category_id': categoryId,
+      if (effectiveYm != null) 'effective_ym': effectiveYm,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetRulesCompanion copyWith(
+      {Value<String>? currencyCode,
+      Value<String>? categoryId,
+      Value<int>? effectiveYm,
+      Value<int?>? amountMinor,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return BudgetRulesCompanion(
+      currencyCode: currencyCode ?? this.currencyCode,
+      categoryId: categoryId ?? this.categoryId,
+      effectiveYm: effectiveYm ?? this.effectiveYm,
+      amountMinor: amountMinor ?? this.amountMinor,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (currencyCode.present) {
+      map['currency_code'] = Variable<String>(currencyCode.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (effectiveYm.present) {
+      map['effective_ym'] = Variable<int>(effectiveYm.value);
+    }
+    if (amountMinor.present) {
+      map['amount_minor'] = Variable<int>(amountMinor.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetRulesCompanion(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('effectiveYm: $effectiveYm, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BudgetReviewNotesTable extends BudgetReviewNotes
+    with TableInfo<$BudgetReviewNotesTable, BudgetReviewNoteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetReviewNotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _currencyCodeMeta =
+      const VerificationMeta('currencyCode');
+  @override
+  late final GeneratedColumn<String> currencyCode = GeneratedColumn<String>(
+      'currency_code', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _ymMeta = const VerificationMeta('ym');
+  @override
+  late final GeneratedColumn<int> ym = GeneratedColumn<int>(
+      'ym', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _categoryKeyMeta =
+      const VerificationMeta('categoryKey');
+  @override
+  late final GeneratedColumn<String> categoryKey = GeneratedColumn<String>(
+      'category_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [currencyCode, ym, categoryKey, note, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_review_notes';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<BudgetReviewNoteRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('currency_code')) {
+      context.handle(
+          _currencyCodeMeta,
+          currencyCode.isAcceptableOrUnknown(
+              data['currency_code']!, _currencyCodeMeta));
+    } else if (isInserting) {
+      context.missing(_currencyCodeMeta);
+    }
+    if (data.containsKey('ym')) {
+      context.handle(_ymMeta, ym.isAcceptableOrUnknown(data['ym']!, _ymMeta));
+    } else if (isInserting) {
+      context.missing(_ymMeta);
+    }
+    if (data.containsKey('category_key')) {
+      context.handle(
+          _categoryKeyMeta,
+          categoryKey.isAcceptableOrUnknown(
+              data['category_key']!, _categoryKeyMeta));
+    } else if (isInserting) {
+      context.missing(_categoryKeyMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    } else if (isInserting) {
+      context.missing(_noteMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {currencyCode, ym, categoryKey};
+  @override
+  BudgetReviewNoteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetReviewNoteRow(
+      currencyCode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}currency_code'])!,
+      ym: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}ym'])!,
+      categoryKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_key'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $BudgetReviewNotesTable createAlias(String alias) {
+    return $BudgetReviewNotesTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetReviewNoteRow extends DataClass
+    implements Insertable<BudgetReviewNoteRow> {
+  final String currencyCode;
+  final int ym;
+  final String categoryKey;
+  final String note;
+  final DateTime updatedAt;
+  const BudgetReviewNoteRow(
+      {required this.currencyCode,
+      required this.ym,
+      required this.categoryKey,
+      required this.note,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['currency_code'] = Variable<String>(currencyCode);
+    map['ym'] = Variable<int>(ym);
+    map['category_key'] = Variable<String>(categoryKey);
+    map['note'] = Variable<String>(note);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BudgetReviewNotesCompanion toCompanion(bool nullToAbsent) {
+    return BudgetReviewNotesCompanion(
+      currencyCode: Value(currencyCode),
+      ym: Value(ym),
+      categoryKey: Value(categoryKey),
+      note: Value(note),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory BudgetReviewNoteRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetReviewNoteRow(
+      currencyCode: serializer.fromJson<String>(json['currencyCode']),
+      ym: serializer.fromJson<int>(json['ym']),
+      categoryKey: serializer.fromJson<String>(json['categoryKey']),
+      note: serializer.fromJson<String>(json['note']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'currencyCode': serializer.toJson<String>(currencyCode),
+      'ym': serializer.toJson<int>(ym),
+      'categoryKey': serializer.toJson<String>(categoryKey),
+      'note': serializer.toJson<String>(note),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  BudgetReviewNoteRow copyWith(
+          {String? currencyCode,
+          int? ym,
+          String? categoryKey,
+          String? note,
+          DateTime? updatedAt}) =>
+      BudgetReviewNoteRow(
+        currencyCode: currencyCode ?? this.currencyCode,
+        ym: ym ?? this.ym,
+        categoryKey: categoryKey ?? this.categoryKey,
+        note: note ?? this.note,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  BudgetReviewNoteRow copyWithCompanion(BudgetReviewNotesCompanion data) {
+    return BudgetReviewNoteRow(
+      currencyCode: data.currencyCode.present
+          ? data.currencyCode.value
+          : this.currencyCode,
+      ym: data.ym.present ? data.ym.value : this.ym,
+      categoryKey:
+          data.categoryKey.present ? data.categoryKey.value : this.categoryKey,
+      note: data.note.present ? data.note.value : this.note,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetReviewNoteRow(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('ym: $ym, ')
+          ..write('categoryKey: $categoryKey, ')
+          ..write('note: $note, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(currencyCode, ym, categoryKey, note, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetReviewNoteRow &&
+          other.currencyCode == this.currencyCode &&
+          other.ym == this.ym &&
+          other.categoryKey == this.categoryKey &&
+          other.note == this.note &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BudgetReviewNotesCompanion extends UpdateCompanion<BudgetReviewNoteRow> {
+  final Value<String> currencyCode;
+  final Value<int> ym;
+  final Value<String> categoryKey;
+  final Value<String> note;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const BudgetReviewNotesCompanion({
+    this.currencyCode = const Value.absent(),
+    this.ym = const Value.absent(),
+    this.categoryKey = const Value.absent(),
+    this.note = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetReviewNotesCompanion.insert({
+    required String currencyCode,
+    required int ym,
+    required String categoryKey,
+    required String note,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : currencyCode = Value(currencyCode),
+        ym = Value(ym),
+        categoryKey = Value(categoryKey),
+        note = Value(note),
+        updatedAt = Value(updatedAt);
+  static Insertable<BudgetReviewNoteRow> custom({
+    Expression<String>? currencyCode,
+    Expression<int>? ym,
+    Expression<String>? categoryKey,
+    Expression<String>? note,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (currencyCode != null) 'currency_code': currencyCode,
+      if (ym != null) 'ym': ym,
+      if (categoryKey != null) 'category_key': categoryKey,
+      if (note != null) 'note': note,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetReviewNotesCompanion copyWith(
+      {Value<String>? currencyCode,
+      Value<int>? ym,
+      Value<String>? categoryKey,
+      Value<String>? note,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return BudgetReviewNotesCompanion(
+      currencyCode: currencyCode ?? this.currencyCode,
+      ym: ym ?? this.ym,
+      categoryKey: categoryKey ?? this.categoryKey,
+      note: note ?? this.note,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (currencyCode.present) {
+      map['currency_code'] = Variable<String>(currencyCode.value);
+    }
+    if (ym.present) {
+      map['ym'] = Variable<int>(ym.value);
+    }
+    if (categoryKey.present) {
+      map['category_key'] = Variable<String>(categoryKey.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetReviewNotesCompanion(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('ym: $ym, ')
+          ..write('categoryKey: $categoryKey, ')
+          ..write('note: $note, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4993,6 +5680,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MonthlyAccountBalanceSnapshotsTable
       monthlyAccountBalanceSnapshots =
       $MonthlyAccountBalanceSnapshotsTable(this);
+  late final $BudgetRulesTable budgetRules = $BudgetRulesTable(this);
+  late final $BudgetReviewNotesTable budgetReviewNotes =
+      $BudgetReviewNotesTable(this);
   late final Index idxLedgerEventsCommandId = Index(
       'idx_ledger_events_command_id',
       'CREATE INDEX idx_ledger_events_command_id ON ledger_events (command_id)');
@@ -5011,6 +5701,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final MonthlySnapshotDao monthlySnapshotDao =
       MonthlySnapshotDao(this as AppDatabase);
   late final ReportsDao reportsDao = ReportsDao(this as AppDatabase);
+  late final BudgetDao budgetDao = BudgetDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5024,6 +5715,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         recurringSeries,
         scheduledTransactionsView,
         monthlyAccountBalanceSnapshots,
+        budgetRules,
+        budgetReviewNotes,
         idxLedgerEventsCommandId,
         idxTransactionsViewOccurredAt,
         idxTransactionPostingsTx
@@ -6084,6 +6777,7 @@ typedef $$CategoriesViewTableCreateCompanionBuilder = CategoriesViewCompanion
   required int colorInt,
   required CategoryType type,
   Value<bool> archived,
+  Value<DateTime?> archivedAt,
   Value<String?> systemCode,
   required int lastUpdatedEventId,
   Value<int> projectionVersion,
@@ -6097,6 +6791,7 @@ typedef $$CategoriesViewTableUpdateCompanionBuilder = CategoriesViewCompanion
   Value<int> colorInt,
   Value<CategoryType> type,
   Value<bool> archived,
+  Value<DateTime?> archivedAt,
   Value<String?> systemCode,
   Value<int> lastUpdatedEventId,
   Value<int> projectionVersion,
@@ -6131,6 +6826,9 @@ class $$CategoriesViewTableFilterComposer
 
   ColumnFilters<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get archivedAt => $composableBuilder(
+      column: $table.archivedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get systemCode => $composableBuilder(
       column: $table.systemCode, builder: (column) => ColumnFilters(column));
@@ -6171,6 +6869,9 @@ class $$CategoriesViewTableOrderingComposer
   ColumnOrderings<bool> get archived => $composableBuilder(
       column: $table.archived, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get archivedAt => $composableBuilder(
+      column: $table.archivedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get systemCode => $composableBuilder(
       column: $table.systemCode, builder: (column) => ColumnOrderings(column));
 
@@ -6209,6 +6910,9 @@ class $$CategoriesViewTableAnnotationComposer
 
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
+      column: $table.archivedAt, builder: (column) => column);
 
   GeneratedColumn<String> get systemCode => $composableBuilder(
       column: $table.systemCode, builder: (column) => column);
@@ -6253,6 +6957,7 @@ class $$CategoriesViewTableTableManager extends RootTableManager<
             Value<int> colorInt = const Value.absent(),
             Value<CategoryType> type = const Value.absent(),
             Value<bool> archived = const Value.absent(),
+            Value<DateTime?> archivedAt = const Value.absent(),
             Value<String?> systemCode = const Value.absent(),
             Value<int> lastUpdatedEventId = const Value.absent(),
             Value<int> projectionVersion = const Value.absent(),
@@ -6265,6 +6970,7 @@ class $$CategoriesViewTableTableManager extends RootTableManager<
             colorInt: colorInt,
             type: type,
             archived: archived,
+            archivedAt: archivedAt,
             systemCode: systemCode,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
@@ -6277,6 +6983,7 @@ class $$CategoriesViewTableTableManager extends RootTableManager<
             required int colorInt,
             required CategoryType type,
             Value<bool> archived = const Value.absent(),
+            Value<DateTime?> archivedAt = const Value.absent(),
             Value<String?> systemCode = const Value.absent(),
             required int lastUpdatedEventId,
             Value<int> projectionVersion = const Value.absent(),
@@ -6289,6 +6996,7 @@ class $$CategoriesViewTableTableManager extends RootTableManager<
             colorInt: colorInt,
             type: type,
             archived: archived,
+            archivedAt: archivedAt,
             systemCode: systemCode,
             lastUpdatedEventId: lastUpdatedEventId,
             projectionVersion: projectionVersion,
@@ -7561,6 +8269,367 @@ typedef $$MonthlyAccountBalanceSnapshotsTableProcessedTableManager
         ),
         MonthlyAccountBalanceSnapshot,
         PrefetchHooks Function()>;
+typedef $$BudgetRulesTableCreateCompanionBuilder = BudgetRulesCompanion
+    Function({
+  required String currencyCode,
+  required String categoryId,
+  required int effectiveYm,
+  Value<int?> amountMinor,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$BudgetRulesTableUpdateCompanionBuilder = BudgetRulesCompanion
+    Function({
+  Value<String> currencyCode,
+  Value<String> categoryId,
+  Value<int> effectiveYm,
+  Value<int?> amountMinor,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$BudgetRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetRulesTable> {
+  $$BudgetRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get effectiveYm => $composableBuilder(
+      column: $table.effectiveYm, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountMinor => $composableBuilder(
+      column: $table.amountMinor, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$BudgetRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetRulesTable> {
+  $$BudgetRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get effectiveYm => $composableBuilder(
+      column: $table.effectiveYm, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountMinor => $composableBuilder(
+      column: $table.amountMinor, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$BudgetRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetRulesTable> {
+  $$BudgetRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => column);
+
+  GeneratedColumn<int> get effectiveYm => $composableBuilder(
+      column: $table.effectiveYm, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMinor => $composableBuilder(
+      column: $table.amountMinor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BudgetRulesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BudgetRulesTable,
+    BudgetRuleRow,
+    $$BudgetRulesTableFilterComposer,
+    $$BudgetRulesTableOrderingComposer,
+    $$BudgetRulesTableAnnotationComposer,
+    $$BudgetRulesTableCreateCompanionBuilder,
+    $$BudgetRulesTableUpdateCompanionBuilder,
+    (
+      BudgetRuleRow,
+      BaseReferences<_$AppDatabase, $BudgetRulesTable, BudgetRuleRow>
+    ),
+    BudgetRuleRow,
+    PrefetchHooks Function()> {
+  $$BudgetRulesTableTableManager(_$AppDatabase db, $BudgetRulesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> currencyCode = const Value.absent(),
+            Value<String> categoryId = const Value.absent(),
+            Value<int> effectiveYm = const Value.absent(),
+            Value<int?> amountMinor = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BudgetRulesCompanion(
+            currencyCode: currencyCode,
+            categoryId: categoryId,
+            effectiveYm: effectiveYm,
+            amountMinor: amountMinor,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String currencyCode,
+            required String categoryId,
+            required int effectiveYm,
+            Value<int?> amountMinor = const Value.absent(),
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BudgetRulesCompanion.insert(
+            currencyCode: currencyCode,
+            categoryId: categoryId,
+            effectiveYm: effectiveYm,
+            amountMinor: amountMinor,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$BudgetRulesTable, BudgetRuleRow>(table),
+                    BaseReferences<_$AppDatabase, $BudgetRulesTable,
+                        BudgetRuleRow>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$BudgetRulesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BudgetRulesTable,
+    BudgetRuleRow,
+    $$BudgetRulesTableFilterComposer,
+    $$BudgetRulesTableOrderingComposer,
+    $$BudgetRulesTableAnnotationComposer,
+    $$BudgetRulesTableCreateCompanionBuilder,
+    $$BudgetRulesTableUpdateCompanionBuilder,
+    (
+      BudgetRuleRow,
+      BaseReferences<_$AppDatabase, $BudgetRulesTable, BudgetRuleRow>
+    ),
+    BudgetRuleRow,
+    PrefetchHooks Function()>;
+typedef $$BudgetReviewNotesTableCreateCompanionBuilder
+    = BudgetReviewNotesCompanion Function({
+  required String currencyCode,
+  required int ym,
+  required String categoryKey,
+  required String note,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$BudgetReviewNotesTableUpdateCompanionBuilder
+    = BudgetReviewNotesCompanion Function({
+  Value<String> currencyCode,
+  Value<int> ym,
+  Value<String> categoryKey,
+  Value<String> note,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$BudgetReviewNotesTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetReviewNotesTable> {
+  $$BudgetReviewNotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get ym => $composableBuilder(
+      column: $table.ym, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get categoryKey => $composableBuilder(
+      column: $table.categoryKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$BudgetReviewNotesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetReviewNotesTable> {
+  $$BudgetReviewNotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get ym => $composableBuilder(
+      column: $table.ym, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get categoryKey => $composableBuilder(
+      column: $table.categoryKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$BudgetReviewNotesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetReviewNotesTable> {
+  $$BudgetReviewNotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get currencyCode => $composableBuilder(
+      column: $table.currencyCode, builder: (column) => column);
+
+  GeneratedColumn<int> get ym =>
+      $composableBuilder(column: $table.ym, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryKey => $composableBuilder(
+      column: $table.categoryKey, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BudgetReviewNotesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BudgetReviewNotesTable,
+    BudgetReviewNoteRow,
+    $$BudgetReviewNotesTableFilterComposer,
+    $$BudgetReviewNotesTableOrderingComposer,
+    $$BudgetReviewNotesTableAnnotationComposer,
+    $$BudgetReviewNotesTableCreateCompanionBuilder,
+    $$BudgetReviewNotesTableUpdateCompanionBuilder,
+    (
+      BudgetReviewNoteRow,
+      BaseReferences<_$AppDatabase, $BudgetReviewNotesTable,
+          BudgetReviewNoteRow>
+    ),
+    BudgetReviewNoteRow,
+    PrefetchHooks Function()> {
+  $$BudgetReviewNotesTableTableManager(
+      _$AppDatabase db, $BudgetReviewNotesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetReviewNotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetReviewNotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetReviewNotesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> currencyCode = const Value.absent(),
+            Value<int> ym = const Value.absent(),
+            Value<String> categoryKey = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BudgetReviewNotesCompanion(
+            currencyCode: currencyCode,
+            ym: ym,
+            categoryKey: categoryKey,
+            note: note,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String currencyCode,
+            required int ym,
+            required String categoryKey,
+            required String note,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BudgetReviewNotesCompanion.insert(
+            currencyCode: currencyCode,
+            ym: ym,
+            categoryKey: categoryKey,
+            note: note,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$BudgetReviewNotesTable, BudgetReviewNoteRow>(
+                        table),
+                    BaseReferences<_$AppDatabase, $BudgetReviewNotesTable,
+                        BudgetReviewNoteRow>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$BudgetReviewNotesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BudgetReviewNotesTable,
+    BudgetReviewNoteRow,
+    $$BudgetReviewNotesTableFilterComposer,
+    $$BudgetReviewNotesTableOrderingComposer,
+    $$BudgetReviewNotesTableAnnotationComposer,
+    $$BudgetReviewNotesTableCreateCompanionBuilder,
+    $$BudgetReviewNotesTableUpdateCompanionBuilder,
+    (
+      BudgetReviewNoteRow,
+      BaseReferences<_$AppDatabase, $BudgetReviewNotesTable,
+          BudgetReviewNoteRow>
+    ),
+    BudgetReviewNoteRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7585,6 +8654,10 @@ class $AppDatabaseManager {
       get monthlyAccountBalanceSnapshots =>
           $$MonthlyAccountBalanceSnapshotsTableTableManager(
               _db, _db.monthlyAccountBalanceSnapshots);
+  $$BudgetRulesTableTableManager get budgetRules =>
+      $$BudgetRulesTableTableManager(_db, _db.budgetRules);
+  $$BudgetReviewNotesTableTableManager get budgetReviewNotes =>
+      $$BudgetReviewNotesTableTableManager(_db, _db.budgetReviewNotes);
 }
 
 // **************************************************************************

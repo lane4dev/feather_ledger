@@ -19,6 +19,7 @@ import 'daos/events_dao.dart';
 import 'daos/recurring_dao.dart';
 import 'daos/monthly_snapshot_dao.dart';
 import 'daos/reports_dao.dart';
+import 'daos/budget_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -31,6 +32,8 @@ part 'app_database.g.dart';
   RecurringSeries,
   ScheduledTransactionsView,
   MonthlyAccountBalanceSnapshots,
+  BudgetRules,
+  BudgetReviewNotes,
 ], daos: [
   EventsDao,
   TransactionsDao,
@@ -38,7 +41,8 @@ part 'app_database.g.dart';
   CategoriesDao,
   RecurringDao,
   MonthlySnapshotDao,
-  ReportsDao
+  ReportsDao,
+  BudgetDao
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -48,10 +52,9 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  // v15 drops obsolete recurring state-machine tables and cleanly rebuilds
-  // the CRUD-exempt RecurringSeries & ScheduledTransactionsView tables with
-  // UUID PKs, occurrence_key, override columns, manual_only, and is_active.
-  int get schemaVersion => 15;
+  // v16 adds CRUD-exempt budget tables (`budget_rules`, `budget_review_notes`)
+  // and `categories_view.archived_at` for archive-month carry-forward cutoffs.
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +91,11 @@ class AppDatabase extends _$AppDatabase {
                 'DROP TABLE IF EXISTS recurring_series');
             await m.createTable(recurringSeries);
             await m.createTable(scheduledTransactionsView);
+          }
+          if (from < 16) {
+            await m.addColumn(categoriesView, categoriesView.archivedAt);
+            await m.createTable(budgetRules);
+            await m.createTable(budgetReviewNotes);
           }
         },
       );

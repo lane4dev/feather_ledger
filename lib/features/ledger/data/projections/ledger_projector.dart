@@ -284,6 +284,7 @@ class LedgerProjectorImpl implements LedgerProjector {
     await _db.categoriesDao.updateRow(CategoriesViewCompanion(
       id: Value(p.categoryId),
       archived: const Value(true),
+      archivedAt: Value(e.recordedAt),
       lastUpdatedEventId: Value(gsn),
     ));
   }

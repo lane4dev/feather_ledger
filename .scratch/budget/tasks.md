@@ -7,20 +7,20 @@
 
 ## Phase 1：Schema、投影自愈与 BudgetDao 数据层
 
-- [ ] **T1.1 Drift 表定义与数据库迁移（`schemaVersion: 15 -> 16`）**
+- [x] **T1.1 Drift 表定义与数据库迁移（`schemaVersion: 15 -> 16`）**
   - 在 `lib/core/data/database/tables.dart` 新增 `BudgetRules`（PK `(currencyCode, categoryId, effectiveYm)`，可空 `amountMinor`）与 `BudgetReviewNotes`（PK `(currencyCode, ym, categoryKey)`），并在 `CategoriesView` 新增可空 `archivedAt` 列。
   - 在 `lib/core/data/database/app_database.dart` 将 `schemaVersion` 升至 `16`，`onUpgrade` 使用 `addColumn` + `createTable`（禁止 `deleteTable/createTable`），并注册新表与 `BudgetDao`。
   - 运行 `dart run build_runner build -d`。
-- [ ] **T1.2 分类归档投影时间戳与自愈重建**
+- [x] **T1.2 分类归档投影时间戳与自愈重建**
   - 将 `ledgerProjectionVersion` 从 `7` 升至 `8`（`lib/features/ledger/domain/projections/ledger_projection.dart`）。
   - 修改 `lib/features/ledger/data/projections/ledger_projector.dart` 的 `_applyCategoryArchived`，从 `EventEnvelope.recordedAt` 写入 `CategoriesView.archivedAt`（计算 `archiveYm` 时统一 `.toLocal()`）。
-- [ ] **T1.3 实现 `BudgetDao` 三流与事务写操作**
+- [x] **T1.3 实现 `BudgetDao` 三流与事务写操作**
   - 在 `lib/core/data/database/daos/budget_dao.dart` 实现：
     - `watchMonthBudgetSummary`（规则 + 6 个月本地 `DateTime` 半开区间支出汇总 + `systemCode == null` & `includeInTotals == true & deleted == false` 过滤 + 归档信息 + Review Notes + `earliestTxYm`）；
     - `watchMonthPendingExpenses`（`scheduled`/`failed` 且 `includeInTotals == true & deleted == false`，解析 `coalesce(amountOverrideMinor, amountMinor)` 与 `coalesce(dateOverride, scheduledDate)`）；
     - `watchCategoryBudgetHint`（单分类轻量流，接收表单锁定的 `currencyCode`）；
     - `upsertBudgetRule`（单事务 `M+1` 保护性锚定 / 清未来断点 / 沿 `M -> M_next` 升序冗余裁剪）与 `upsertReviewNote`、`hasFutureRulesAfter`。
-- [ ] **T1.4 Phase 1 测试**
+- [x] **T1.4 Phase 1 测试**
   - `test/unit/core/database/app_database_v16_migration_test.dart`：验证 v15 → v16 迁移保留历史行且 `archivedAt` 由 `LedgerRebuildService` 自愈回填。
   - `test/unit/core/database/daos/budget_dao_test.dart`：验证三流、本地时间边界、`includeInTotals`/`deleted`/`systemCode` 过滤、`amountOverrideMinor`、复合主键及升序连续冗余裁剪。
 
