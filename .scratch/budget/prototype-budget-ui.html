@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Feather Ledger — Budget & Review UI Prototype (Aligned)</title>
+<style>
+  :root {
+    /* AppTheme.lightTheme exact tokens */
+    --surface: #FFFFFF;
+    --surface-low: #F6F6F6;
+    --surface-container: #F2F2F2;
+    --surface-high: #EEEEEE;
+    --surface-highest: #E8E8E8;
+    --primary: #171717;
+    --on-primary: #FFFFFF;
+    --on-surface: #171717;
+    --on-surface-variant: #686868;
+    --outline: #888888;
+    --outline-variant: #E3E3E3;
+    --income: #0F766E;
+    --expense: #C2410C;
+    --frequency: #665BD8;
+    --warn: #B45309;
+    --warn-tint: rgba(194, 65, 12, 0.10);
+    --err-tint: rgba(194, 65, 12, 0.14);
+    --ok-tint: rgba(15, 118, 110, 0.11);
+    --freq-tint: rgba(102, 91, 216, 0.12);
+
+    /* AppMetrics exact geometry */
+    --r-card: 20px;
+    --r-control: 14px;
+    --r-select: 10px;
+    --r-chip: 8px;
+    --r-sheet: 28px;
+    --r-icon: 12px;
+  }
+  body.dark {
+    /* AppTheme.darkTheme exact tokens */
+    --surface: #121212;
+    --surface-low: #1C1C1C;
+    --surface-container: #222222;
+    --surface-high: #282828;
+    --surface-highest: #303030;
+    --primary: #F2F2F2;
+    --on-primary: #171717;
+    --on-surface: #F2F2F2;
+    --on-surface-variant: #B0B0B0;
+    --outline: #777777;
+    --outline-variant: #383838;
+    --income: #81C995;
+    --expense: #FFB4AB;
+    --frequency: #B6AEFF;
+    --warn: #FBBF24;
+    --warn-tint: rgba(255, 180, 171, 0.14);
+    --err-tint: rgba(255, 180, 171, 0.18);
+    --ok-tint: rgba(129, 201, 149, 0.15);
+    --freq-tint: rgba(182, 174, 255, 0.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Noto Sans SC", "Roboto", sans-serif;
+    background: #E5E7EB;
+    color: var(--on-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 14px 40px;
+    gap: 16px;
+    transition: background 0.15s;
+  }
+  body.dark { background: #09090B; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Top control strip outside phone */
+  .toolbar {
+    width: 100%;
+    max-width: 960px;
+    background: var(--surface);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-card);
+    padding: 12px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .toolbar-title { font-size: 14px; font-weight: 600; }
+  .toolbar-sub { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .pill {
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-low);
+    color: var(--on-surface-variant);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .pill.active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+  }
+
+  .stage {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 390px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 840px) {
+    .stage { grid-template-columns: 1fr; justify-items: center; }
+  }
+
+  /* Phone container */
+  .phone {
+    width: 390px;
+    height: 812px;
+    background: var(--surface);
+    border: 8px solid #1F1F1F;
+    border-radius: 40px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 22px 48px rgba(0,0,0,0.22);
+  }
+  .status-bar {
+    height: 26px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 22px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    flex-shrink: 0;
+  }
+  .app-bar {
+    height: 52px;
+    background: var(--surface);
+    padding: 0 12px 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .month-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .month-btn {
+    border: none;
+    background: transparent;
+    color: var(--on-surface-variant);
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .month-btn:hover { background: var(--surface-low); color: var(--on-surface); }
+  .month-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--on-surface);
+    padding: 6px 8px;
+    border-radius: var(--r-chip);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .month-title:hover { background: var(--surface-low); }
+
+  .icon-btn {
+    border: none;
+    background: transparent;
+    color: var(--on-surface-variant);
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--surface-low); color: var(--on-surface); }
+
+  .phone-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Material 3 NavigationBar matching Feather Ledger */
+  .bottom-nav {
+    height: 68px;
+    background: var(--surface);
+    border-top: 1px solid var(--outline-variant);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+  }
+  .nav-pill {
+    width: 56px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-item.active { color: var(--on-surface); font-weight: 600; }
+  .nav-item.active .nav-pill { background: var(--surface-highest); color: var(--on-surface); }
+
+  /* AppCard & Typography */
+  .app-card {
+    background: var(--surface-low);
+    border-radius: var(--r-card);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .app-card.outlined {
+    background: var(--surface);
+    border: 1px solid var(--outline-variant);
+  }
+  .app-card.group {
+    background: var(--surface-low);
+    border-radius: var(--r-card);
+    padding: 4px 0;
+    gap: 0;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .row-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .kpi-lg { font-size: 32px; font-weight: 500; letter-spacing: -0.5px; line-height: 1.15; }
+  .kpi-md { font-size: 20px; font-weight: 600; }
+  .title-md { font-size: 16px; font-weight: 600; }
+  .title-sm { font-size: 14px; font-weight: 600; }
+  .body-sm { font-size: 12px; color: var(--on-surface-variant); line-height: 1.4; }
+  .label-sm { font-size: 11px; font-weight: 500; color: var(--on-surface-variant); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--on-surface-variant);
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--r-chip);
+    white-space: nowrap;
+  }
+  .badge-ok { background: var(--ok-tint); color: var(--income); }
+  .badge-over { background: var(--err-tint); color: var(--expense); }
+  .badge-freq { background: var(--freq-tint); color: var(--frequency); }
+  .badge-neutral { background: var(--surface-high); color: var(--on-surface-variant); }
+
+  /* Dual-segment progress bar (Actual + Pending) */
+  .progress-track {
+    height: 7px;
+    border-radius: 999px;
+    background: var(--surface-highest);
+    overflow: hidden;
+    display: flex;
+  }
+  .progress-actual {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.2s;
+  }
+  .progress-actual.ok { background: var(--income); }
+  .progress-actual.over { background: var(--expense); }
+  .progress-pending {
+    height: 100%;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--frequency),
+      var(--frequency) 3px,
+      transparent 3px,
+      transparent 6px
+    );
+    opacity: 0.55;
+  }
+
+  /* Category ListTile inside AppCard.group */
+  .cat-tile {
+    padding: 13px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .cat-tile:hover { background: var(--surface-container); }
+  .cat-tile + .cat-tile { border-top: 1px solid var(--outline-variant); }
+  .cat-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .collapse-trigger {
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+  }
+  .collapse-trigger:hover { background: var(--surface-container); }
+
+  /* Buttons matching AppButton */
+  .btn-filled {
+    border: none;
+    background: var(--primary);
+    color: var(--on-primary);
+    height: 46px;
+    padding: 0 20px;
+    border-radius: var(--r-control);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-outlined {
+    border: 1px solid var(--outline-variant);
+    background: transparent;
+    color: var(--on-surface);
+    height: 36px;
+    padding: 0 12px;
+    border-radius: var(--r-chip);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-text {
+    border: none;
+    background: transparent;
+    color: var(--expense);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-radius: var(--r-chip);
+    cursor: pointer;
+  }
+
+  /* 6-month chart */
+  .chart-6m {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    align-items: end;
+    height: 108px;
+    padding-top: 14px;
+  }
+  .chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .chart-bar-wrap {
+    width: 100%;
+    height: 76px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+  }
+  .chart-bar {
+    width: 16px;
+    border-radius: 5px 5px 2px 2px;
+    background: var(--primary);
+    opacity: 0.78;
+  }
+  .chart-bar.over { background: var(--expense); opacity: 0.92; }
+  .chart-budget-line {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    border-top: 1.5px dashed var(--on-surface-variant);
+    pointer-events: none;
+  }
+  .note-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--frequency);
+    position: absolute;
+    top: -9px;
+  }
+
+  /* High-screen BottomSheet matching AppMetrics.sheetRadius=28 */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    z-index: 20;
+    animation: fadeIn 0.14s ease-out;
+  }
+  .sheet {
+    background: var(--surface);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 90%;
+    overflow: hidden;
+    animation: slideUp 0.18s ease-out;
+  }
+  .sheet.tall { height: 88%; }
+  .sheet-handle-row {
+    padding: 10px 0 4px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--outline-variant);
+  }
+  .sheet-header {
+    padding: 4px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--outline-variant);
+    flex-shrink: 0;
+  }
+  .sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  @keyframes slideUp { from { transform: translateY(28px); opacity: 0.7; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Inputs matching AppTheme.inputDecorationTheme */
+  .field-input, .field-textarea {
+    width: 100%;
+    background: var(--surface-low);
+    border: 1px solid transparent;
+    border-radius: var(--r-control);
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--on-surface);
+    outline: none;
+  }
+  .field-input:focus, .field-textarea:focus { border-color: var(--primary); }
+
+  /* Segmented choice chips */
+  .chip {
+    border: 1px solid var(--outline-variant);
+    background: var(--surface);
+    color: var(--on-surface);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 11px;
+    border-radius: var(--r-chip);
+    cursor: pointer;
+  }
+  .chip.active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* Right panel: TransactionFormScreen Budget Hint preview */
+  .inspector { display: flex; flex-direction: column; gap: 14px; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--r-card);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tx-form-row {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--outline-variant);
+    font-size: 14px;
+  }
+  .tx-hint-banner {
+    background: var(--surface-low);
+    border-radius: var(--r-control);
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-left: 3px solid var(--income);
+  }
+  .tx-hint-banner.warn { border-left-color: var(--warn); background: var(--warn-tint); }
+  .tx-hint-banner.over { border-left-color: var(--expense); background: var(--err-tint); }
+  .tx-hint-banner.unset { border-left-color: var(--outline); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div>
+    <div class="toolbar-title">Feather Ledger · 预算与复盘收敛原型（方案 A + 高屏占比 BottomSheet + 折叠未设分类）</div>
+    <div class="toolbar-sub">严格对齐 AppTheme（Light/Dark 极简黑白灰底色 + 语义色仅用于收支/周期状态 + tabular-nums + Lucide 线性图标）</div>
+  </div>
+  <div class="pill-row">
+    <button class="pill" data-month="2026-10" onclick="setMonth('2026-10')">2026-10 历史复盘</button>
+    <button class="pill active" data-month="2026-11" onclick="setMonth('2026-11')">2026-11 当月跟踪</button>
+    <button class="pill" data-month="2026-12" onclick="setMonth('2026-12')">2026-12 未来规划</button>
+    <button class="pill" id="themeBtn" onclick="toggleTheme()">🌙 深色预览</button>
+  </div>
+</div>
+
+<div class="stage">
+  <!-- Mobile Screen -->
+  <div class="phone">
+    <div class="status-bar">
+      <span class="num">9:41</span>
+      <span>CNY · ¥</span>
+    </div>
+
+    <!-- AppBar matching LedgerScreen -->
+    <div class="app-bar">
+      <div class="month-switcher">
+        <button class="month-btn" title="上一月" onclick="stepMonth(-1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="month-title" onclick="cycleMonth()" title="点击切换月份 (FeatherMonthPicker)">
+          <span id="monthLabel">2026年11月</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <button class="month-btn" title="下一月" onclick="stepMonth(1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="row-start" style="gap:2px;">
+        <button class="icon-btn" id="reviewToggleBtn" title="切换复盘预览" onclick="toggleTrackReview()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        </button>
+        <button class="icon-btn" title="新增预算" onclick="openEditSheet('food')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="phone-body" id="phoneBody"></div>
+
+    <!-- NavigationBar matching app_router.dart (3 tabs: Ledger / Budget / More) -->
+    <div class="bottom-nav">
+      <div class="nav-item">
+        <div class="nav-pill">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <span>账本</span>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-pill">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </div>
+        <span>预算</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-pill">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </div>
+        <span>更多</span>
+      </div>
+    </div>
+
+    <div id="overlayHost"></div>
+  </div>
+
+  <!-- Right Column: Decisions Recap + TransactionFormScreen Hint -->
+  <div class="inspector">
+    <div class="panel">
+      <div class="row">
+        <span class="title-md">已收敛设计结构（方案 A + 你的 4 项反馈）</span>
+        <span class="badge badge-ok">可交互验证</span>
+      </div>
+      <div class="body-sm">
+        1. <b>单页叙事流（方案 A）</b>：顶部月选择器切月，当月聚焦「预计剩余可用」，右上图表按钮可一键展开当月复盘预览；切到历史月自动呈现「复盘归因 + 月度 Review Note + 近 6 月趋势」。<br>
+        2. <b>高屏占比 BottomSheet 下钻</b>：点击任意分类行即弹出 88% 高度 BottomSheet（近 6 月预算线 vs 实际柱图 + 固定/弹性/待入账拆解 + Top 3 贡献交易 + 分类 Review Note + 右上角「调预算」）。<br>
+        3. <b>底部默认折叠「其余分类（点击设预算）」</b>：主列表始终干净优先展示「已设预算」与「有支出未设预算」，需要为新分类设预算时在底部展开即点。<br>
+        4. <b>风格严格对齐</b>：`#FFFFFF` 画布 + `#F6F6F6` 无边框 `AppCard` + `#171717` 主按钮 + `#0F766E` / `#C2410C` / `#665BD8` 语义色 + `tabular-nums`。
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <span class="title-md">TransactionFormScreen 记账即时提示条</span>
+        <span class="badge badge-neutral">只读轻量流</span>
+      </div>
+      <div class="pill-row" id="hintStateGroup">
+        <button class="pill active" data-hint="ok">余量充足</button>
+        <button class="pill" data-hint="pending_warn">含待入账预警</button>
+        <button class="pill" data-hint="over">已超支</button>
+        <button class="pill" data-hint="unset">未设预算</button>
+      </div>
+      <div class="app-card outlined" style="padding:14px 16px;gap:0;">
+        <div class="tx-form-row">
+          <span class="body-sm">账户</span>
+          <span>招商银行储蓄卡</span>
+        </div>
+        <div class="tx-form-row">
+          <span class="body-sm">分类</span>
+          <span>餐饮美食</span>
+        </div>
+        <div class="tx-form-row" style="border-bottom:none;">
+          <span class="body-sm">金额</span>
+          <span class="num" style="font-weight:600;">¥128.00</span>
+        </div>
+        <div id="txHintPreview" style="margin: 8px 0 12px;"></div>
+        <button class="btn-filled" style="width:100%;">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  utensils: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>`,
+  home: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  gamepad: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/></svg>`,
+  plane: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`,
+  heart: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  bag: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`,
+  book: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
+  car: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`
+};
+
+const DATA_BY_MONTH = {
+  '2026-10': {
+    label: '2026年10月',
+    mode: 'review',
+    note: '国庆出行机酒拉高娱乐交通；11月起将娱乐预算从 ¥800 调回 ¥600。',
+    complianceRate: '67%',
+    overdueCount: 1,
+    overdueAmt: 120,
+    cats: [
+      { id: 'food', icon: 'utensils', tint: '#EA580C', name: '餐饮美食', budget: 1500, committed: 0, discretionary: 1840, pending: 0, avg3m: 1420, lastActual: 1380, trend: [1300,1450,1380,1420,1840,null], budgets6m: [1500,1500,1500,1500,1500,1500], note: '假期聚餐较多', anomaly: '+30% 较近3月', txs: [
+        { title: '朋友聚餐', amt: 420, kind: '弹性', date: '10-04' },
+        { title: '生鲜采购', amt: 286, kind: '弹性', date: '10-12' },
+        { title: '咖啡周卡', amt: 168, kind: '弹性', date: '10-19' }
+      ]},
+      { id: 'rent', icon: 'home', tint: '#0F766E', name: '房租物业', budget: 3200, committed: 3200, discretionary: 0, pending: 0, avg3m: 3200, lastActual: 3200, trend: [3200,3200,3200,3200,3200,null], budgets6m: [3200,3200,3200,3200,3200,3200], note: '', anomaly: null, txs: [
+        { title: '10月房租', amt: 3000, kind: '固定', date: '10-01' },
+        { title: '物业水电费', amt: 200, kind: '固定', date: '10-05' }
+      ]},
+      { id: 'fun', icon: 'gamepad', tint: '#665BD8', name: '休闲娱乐', budget: 800, committed: 120, discretionary: 460, pending: 120, avg3m: 740, lastActual: 790, trend: [680,750,790,710,580,null], budgets6m: [800,800,800,800,800,800], note: '', anomaly: null, txs: [
+        { title: '季卡订阅', amt: 120, kind: '固定', date: '10-02' },
+        { title: '展览门票', amt: 260, kind: '弹性', date: '10-18' }
+      ]},
+      { id: 'travel', icon: 'plane', tint: '#2563EB', name: '差旅交通', budget: null, committed: 0, discretionary: 920, pending: 0, avg3m: 240, lastActual: 210, trend: [180,260,210,240,920,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: '未设预算 · 占总支出 14%', txs: [
+        { title: '高铁往返', amt: 680, kind: '弹性', date: '10-01' },
+        { title: '市内打车', amt: 240, kind: '弹性', date: '10-07' }
+      ]},
+      { id: 'pet', icon: 'heart', tint: '#686868', name: '宠物护理', budget: 300, committed: 0, discretionary: 210, pending: 0, avg3m: 260, lastActual: 280, trend: [250,260,280,240,210,null], budgets6m: [300,300,300,300,300,null], note: '10月底寄养结束并归档', anomaly: null, archived: true, txs: [
+        { title: '主粮与猫砂', amt: 210, kind: '弹性', date: '10-11' }
+      ]},
+      { id: 'shop', icon: 'bag', tint: '#7C3AED', name: '日用服饰', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 220, lastActual: 0, trend: [300,150,210,0,0,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] },
+      { id: 'edu', icon: 'book', tint: '#0284C7', name: '学习阅读', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 90, lastActual: 0, trend: [80,100,90,0,0,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] }
+    ]
+  },
+  '2026-11': {
+    label: '2026年11月',
+    mode: 'track',
+    note: '',
+    complianceRate: '67%',
+    overdueCount: 0,
+    overdueAmt: 0,
+    cats: [
+      { id: 'fun', icon: 'gamepad', tint: '#665BD8', name: '休闲娱乐', budget: 600, committed: 120, discretionary: 430, pending: 120, avg3m: 693, lastActual: 580, trend: [750,790,710,580,550,null], budgets6m: [800,800,800,800,600,600], note: '', anomaly: '含待入账预计超 ¥70', txs: [
+        { title: '桌游聚会', amt: 430, kind: '弹性', date: '11-16' },
+        { title: '季卡订阅', amt: 120, kind: '固定', date: '11-02' }
+      ]},
+      { id: 'rent', icon: 'home', tint: '#0F766E', name: '房租物业', budget: 3200, committed: 3000, discretionary: 0, pending: 200, avg3m: 3200, lastActual: 3200, trend: [3200,3200,3200,3200,3000,null], budgets6m: [3200,3200,3200,3200,3200,3200], note: '', anomaly: null, txs: [
+        { title: '11月房租', amt: 3000, kind: '固定', date: '11-01' }
+      ]},
+      { id: 'food', icon: 'utensils', tint: '#EA580C', name: '餐饮美食', budget: 1500, committed: 0, discretionary: 1120, pending: 260, avg3m: 1546, lastActual: 1840, trend: [1450,1380,1420,1840,1120,null], budgets6m: [1500,1500,1500,1500,1500,1500], note: '', anomaly: null, txs: [
+        { title: '超市采购', amt: 430, kind: '弹性', date: '11-09' },
+        { title: '工作日午餐', amt: 690, kind: '弹性', date: '11-20' }
+      ]},
+      { id: 'med', icon: 'heart', tint: '#DC2626', name: '医疗健康', budget: null, committed: 0, discretionary: 360, pending: 0, avg3m: 80, lastActual: 0, trend: [0,120,0,0,360,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: '未设预算 · 占总支出 7%', txs: [
+        { title: '牙科洁牙', amt: 360, kind: '弹性', date: '11-14' }
+      ]},
+      { id: 'shop', icon: 'bag', tint: '#7C3AED', name: '日用服饰', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 220, lastActual: 0, trend: [300,150,210,0,0,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] },
+      { id: 'edu', icon: 'book', tint: '#0284C7', name: '学习阅读', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 90, lastActual: 0, trend: [80,100,90,0,0,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] },
+      { id: 'commute', icon: 'car', tint: '#0D9488', name: '通勤打车', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 160, lastActual: 140, trend: [180,150,140,160,0,null], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] }
+    ]
+  },
+  '2026-12': {
+    label: '2026年12月',
+    mode: 'plan',
+    note: '',
+    complianceRate: '规划中',
+    overdueCount: 0,
+    overdueAmt: 0,
+    cats: [
+      { id: 'rent', icon: 'home', tint: '#0F766E', name: '房租物业', budget: 3200, committed: 0, discretionary: 0, pending: 3200, avg3m: 3200, lastActual: 3200, trend: [3200,3200,3200,3200,3000,0], budgets6m: [3200,3200,3200,3200,3200,3200], note: '', anomaly: null, txs: [] },
+      { id: 'food', icon: 'utensils', tint: '#EA580C', name: '餐饮美食', budget: 1500, committed: 0, discretionary: 0, pending: 0, avg3m: 1546, lastActual: 1120, trend: [1380,1420,1840,1120,0,0], budgets6m: [1500,1500,1500,1500,1500,1500], note: '', anomaly: null, txs: [] },
+      { id: 'fun', icon: 'gamepad', tint: '#665BD8', name: '休闲娱乐', budget: 600, committed: 0, discretionary: 0, pending: 120, avg3m: 693, lastActual: 550, trend: [790,710,580,550,0,0], budgets6m: [800,800,800,800,600,600], note: '', anomaly: null, txs: [] },
+      { id: 'shop', icon: 'bag', tint: '#7C3AED', name: '日用服饰', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 220, lastActual: 0, trend: [300,150,210,0,0,0], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] },
+      { id: 'edu', icon: 'book', tint: '#0284C7', name: '学习阅读', budget: null, committed: 0, discretionary: 0, pending: 0, avg3m: 90, lastActual: 0, trend: [80,100,90,0,0,0], budgets6m: [null,null,null,null,null,null], note: '', anomaly: null, txs: [] }
+    ]
+  }
+};
+
+const state = {
+  month: '2026-11',
+  dark: false,
+  trackReviewPreview: false,
+  trendOpen: false,
+  inactiveCollapsed: true,
+  drillCatId: null,
+  editCatId: null,
+  editScope: 'thisAndFollowing',
+  editAmount: '',
+  noteModalOpen: false,
+  hintState: 'ok'
+};
+
+function fmt(n) { return '¥' + Math.abs(n).toLocaleString('zh-CN'); }
+function fmtSigned(n) { return (n < 0 ? '- ' : '') + fmt(n); }
+
+function getSummary(mData) {
+  const budgeted = mData.cats.filter(c => c.budget != null);
+  const totalBudget = budgeted.reduce((s,c) => s + c.budget, 0);
+  const totalActual = mData.cats.reduce((s,c) => s + c.committed + c.discretionary, 0);
+  const budgetedActual = budgeted.reduce((s,c) => s + c.committed + c.discretionary, 0);
+  const totalPending = mData.mode === 'review' ? 0 : mData.cats.reduce((s,c) => s + c.pending, 0);
+  const unbudgetedActual = totalActual - budgetedActual;
+  const projectedRemaining = totalBudget - totalActual - totalPending;
+  return { totalBudget, totalActual, totalPending, unbudgetedActual, projectedRemaining };
+}
+
+function catIconEl(c) {
+  return `<div class="cat-avatar" style="background:${c.tint}1A;color:${c.tint}">${ICONS[c.icon] || ICONS.bag}</div>`;
+}
+
+function renderCatTile(c, mMode, isInactive) {
+  const actual = c.committed + c.discretionary;
+  const pending = mMode === 'review' ? 0 : c.pending;
+  const pctActual = c.budget ? Math.min(100, Math.round(actual / c.budget * 100)) : 0;
+  const pctPending = c.budget ? Math.min(100 - pctActual, Math.round(pending / c.budget * 100)) : 0;
+  const isOver = c.budget && actual > c.budget;
+  const isAtRisk = c.budget && !isOver && (actual + pending > c.budget);
+  const rem = c.budget != null ? (c.budget - actual - pending) : null;
+
+  if (isInactive) {
+    return `
+      <div class="cat-tile" onclick="openEditSheet('${c.id}')">
+        <div class="row">
+          <div class="row-start">
+            ${catIconEl(c)}
+            <div>
+              <div class="title-sm">${c.name}</div>
+              <div class="label-sm num">近3月均值 ${fmt(c.avg3m)}</div>
+            </div>
+          </div>
+          <span class="btn-outlined">设预算</span>
+        </div>
+      </div>
+    `;
+  }
+
+  let badges = '';
+  if (c.archived) badges += `<span class="badge badge-neutral">已归档</span>`;
+  else if (isOver) badges += `<span class="badge badge-over">已超 ${fmt(actual - c.budget)}</span>`;
+  else if (isAtRisk) badges += `<span class="badge badge-over">含待入账预计超 ${fmt(actual + pending - c.budget)}</span>`;
+  if (c.anomaly && !c.archived && !isAtRisk) badges += `<span class="badge badge-freq">${c.anomaly}</span>`;
+
+  return `
+    <div class="cat-tile" onclick="openDrill('${c.id}')">
+      <div class="row">
+        <div class="row-start">
+          ${catIconEl(c)}
+          <div style="min-width:0;">
+            <div class="row-start" style="gap:6px;">
+              <span class="title-sm">${c.name}</span>
+              ${badges}
+            </div>
+            <div class="label-sm num">固定 ${fmt(c.committed)} · 弹性 ${fmt(c.discretionary)}${pending ? ` · 待入账 ${fmt(pending)}` : ''}</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div class="title-sm num">${fmt(actual)}${c.budget ? ` <span class="label-sm">/ ${fmt(c.budget)}</span>` : ''}</div>
+          <div class="label-sm num" style="color:${rem != null && rem < 0 ? 'var(--expense)' : 'var(--on-surface-variant)'}">
+            ${rem != null ? (rem >= 0 ? `余 ${fmt(rem)}` : `超 ${fmt(-rem)}`) : '点选设预算'}
+          </div>
+        </div>
+      </div>
+      ${c.budget ? `
+        <div class="progress-track">
+          <div class="progress-actual ${isOver || isAtRisk ? 'over' : 'ok'}" style="width:${pctActual}%"></div>
+          ${pctPending > 0 ? `<div class="progress-pending" style="width:${pctPending}%"></div>` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function render6mChart(cats) {
+  const labels = ['6月','7月','8月','9月','10月','11月'];
+  const totals = [0,1,2,3,4,5].map(i => cats.reduce((s,c) => s + (c.trend[i] || 0), 0));
+  const budgets = [0,1,2,3,4,5].map(i => cats.reduce((s,c) => s + (c.budgets6m[i] || 0), 0));
+  const maxV = Math.max(...totals, ...budgets, 1);
+  return `
+    <div class="chart-6m">
+      ${labels.map((lb, i) => {
+        const t = totals[i];
+        const b = budgets[i];
+        const h = Math.round((t / maxV) * 68);
+        const bh = Math.round((b / maxV) * 68);
+        const over = b > 0 && t > b;
+        return `
+          <div class="chart-col">
+            <div class="chart-bar-wrap">
+              ${i === 4 ? '<div class="note-dot" title="有 Review Note"></div>' : ''}
+              ${b > 0 ? `<div class="chart-budget-line" style="bottom:${bh}px;"></div>` : ''}
+              <div class="chart-bar ${over ? 'over' : ''}" style="height:${Math.max(4, h)}px"></div>
+            </div>
+            <span class="label-sm">${lb}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderReviewAttribution(mData) {
+  const overs = mData.cats.filter(c => c.budget && (c.committed + c.discretionary) > c.budget);
+  const unders = mData.cats.filter(c => c.budget && (c.committed + c.discretionary) <= c.budget);
+  return `
+    <div class="app-card">
+      <div class="row">
+        <span class="title-sm">月度复盘归因</span>
+        <span class="badge badge-ok num">达标率 ${mData.complianceRate}</span>
+      </div>
+      <div class="two-col">
+        <div class="app-card outlined" style="padding:11px 12px;gap:5px;">
+          <span class="label-sm" style="color:var(--expense);">超支 TOP</span>
+          ${overs.length ? overs.slice(0,3).map(c => `<div class="row" style="font-size:12px;"><span>${c.name}</span><b class="num">+${fmt((c.committed+c.discretionary)-c.budget)}</b></div>`).join('') : '<div class="body-sm">本月无超支</div>'}
+        </div>
+        <div class="app-card outlined" style="padding:11px 12px;gap:5px;">
+          <span class="label-sm" style="color:var(--income);">结余 TOP</span>
+          ${unders.slice(0,3).map(c => `<div class="row" style="font-size:12px;"><span>${c.name}</span><b class="num">余 ${fmt(c.budget-(c.committed+c.discretionary))}</b></div>`).join('')}
+        </div>
+      </div>
+      <div class="app-card outlined" style="padding:11px 12px;gap:5px;">
+        <div class="row">
+          <span class="label-sm">月度 Review Note</span>
+          <button class="btn-outlined" style="height:28px;padding:0 9px;" onclick="openNoteModal()">${mData.note ? '编辑' : '添加'}</button>
+        </div>
+        <div class="body-sm" style="color:var(--on-surface);">${mData.note || '暂无复盘备注，记录偏离原因与下月微调想法。'}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPhone() {
+  const mData = DATA_BY_MONTH[state.month];
+  const sum = getSummary(mData);
+  const isReview = mData.mode === 'review' || (mData.mode === 'track' && state.trackReviewPreview);
+  const isPlan = mData.mode === 'plan';
+
+  document.getElementById('monthLabel').textContent = mData.label;
+  document.getElementById('reviewToggleBtn').style.display = mData.mode === 'track' ? 'inline-flex' : 'none';
+  document.getElementById('reviewToggleBtn').style.color = state.trackReviewPreview ? 'var(--primary)' : '';
+
+  const actualPct = sum.totalBudget ? Math.min(100, Math.round(sum.totalActual / sum.totalBudget * 100)) : 0;
+  const pendingPct = sum.totalBudget ? Math.min(100 - actualPct, Math.round(sum.totalPending / sum.totalBudget * 100)) : 0;
+
+  let html = `
+    <!-- Summary AppCard -->
+    <div class="app-card">
+      <div class="row">
+        <span class="label-sm">${isReview ? '月度实耗 / 总预算' : isPlan ? '本月总预算' : '预计剩余可用'}</span>
+        <span class="badge ${sum.projectedRemaining < 0 ? 'badge-over' : 'badge-ok'} num">
+          ${isReview ? `达标率 ${mData.complianceRate}` : isPlan ? '规划中' : state.trackReviewPreview ? '当月复盘预览' : '跟踪中'}
+        </span>
+      </div>
+      <div class="kpi-lg num" style="color:${sum.projectedRemaining < 0 && !isReview ? 'var(--expense)' : 'var(--on-surface)'}">
+        ${isReview ? `${fmt(sum.totalActual)} <span style="font-size:16px;color:var(--on-surface-variant);">/ ${fmt(sum.totalBudget)}</span>` : isPlan ? fmt(sum.totalBudget) : fmtSigned(sum.projectedRemaining)}
+      </div>
+      <div class="progress-track">
+        <div class="progress-actual ${sum.totalActual > sum.totalBudget ? 'over' : 'ok'}" style="width:${actualPct}%"></div>
+        ${pendingPct > 0 ? `<div class="progress-pending" style="width:${pendingPct}%"></div>` : ''}
+      </div>
+      <div class="row body-sm num">
+        <span>已支出 ${fmt(sum.totalActual)}${sum.totalPending ? ` + 待入账 ${fmt(sum.totalPending)}` : ''}</span>
+        <span>预算 ${fmt(sum.totalBudget)}</span>
+      </div>
+      ${sum.unbudgetedActual > 0 ? `<div class="label-sm num">含未设预算支出 ${fmt(sum.unbudgetedActual)}（已计入总支出）</div>` : ''}
+      ${mData.mode === 'review' && mData.overdueCount ? `<div class="badge badge-over num">仍有 ${mData.overdueCount} 笔历史逾期未入账（${fmt(mData.overdueAmt)}），不计入实耗</div>` : ''}
+    </div>
+  `;
+
+  if (isReview) html += renderReviewAttribution(mData);
+
+  const showTrend = isReview || state.trendOpen;
+  html += `
+    <div class="app-card">
+      <div class="row" style="cursor:pointer;" onclick="state.trendOpen=!state.trendOpen;renderAll()">
+        <span class="title-sm">近 6 个月趋势</span>
+        <span class="label-sm">${showTrend ? '收起 ▲' : '展开 ▼'}</span>
+      </div>
+      ${showTrend ? render6mChart(mData.cats) : '<div class="body-sm">预算线 vs 实际支出（带 Review Note 节点标）</div>'}
+    </div>
+  `;
+
+  // Group 1: Budgeted categories
+  const budgeted = mData.cats.filter(c => c.budget != null);
+  html += `<div class="section-header"><span>已设预算 (${budgeted.length})</span><span class="label-sm">${isReview ? '按超支降序' : '按风险降序'}</span></div>`;
+  html += `<div class="app-card group">${budgeted.map(c => renderCatTile(c, mData.mode, false)).join('')}</div>`;
+
+  // Group 2: Unbudgeted WITH activity (actual or pending)
+  const unbudgetedActive = mData.cats.filter(c => c.budget == null && (c.committed + c.discretionary + c.pending) > 0);
+  if (unbudgetedActive.length) {
+    html += `<div class="section-header"><span>未设预算但有发生 (${unbudgetedActive.length})</span><span class="label-sm">点击补设</span></div>`;
+    html += `<div class="app-card group">${unbudgetedActive.map(c => renderCatTile(c, mData.mode, false)).join('')}</div>`;
+  }
+
+  // Group 3: Unbudgeted & NO activity in month — COLLAPSED by default at the bottom!
+  const remainingActive = mData.cats.filter(c => c.budget == null && (c.committed + c.discretionary + c.pending) === 0 && !c.archived);
+  if (remainingActive.length) {
+    html += `
+      <div class="app-card group" style="margin-top:4px;">
+        <div class="collapse-trigger" onclick="state.inactiveCollapsed=!state.inactiveCollapsed;renderAll()">
+          <span>其余分类（点击设预算 · ${remainingActive.length}）</span>
+          <span>${state.inactiveCollapsed ? '展开 ▾' : '收起 ▴'}</span>
+        </div>
+        ${state.inactiveCollapsed ? '' : remainingActive.map(c => renderCatTile(c, mData.mode, true)).join('')}
+      </div>
+    `;
+  }
+
+  document.getElementById('phoneBody').innerHTML = html;
+  renderOverlays();
+}
+
+function renderOverlays() {
+  const mData = DATA_BY_MONTH[state.month];
+  const host = document.getElementById('overlayHost');
+  let html = '';
+
+  // Tall Modal BottomSheet for Category Drill-down
+  if (state.drillCatId) {
+    const c = mData.cats.find(x => x.id === state.drillCatId);
+    if (c) {
+      const actual = c.committed + c.discretionary;
+      const pending = mData.mode === 'review' ? 0 : c.pending;
+      html += `
+        <div class="sheet-backdrop" onclick="if(event.target===this){state.drillCatId=null;renderAll();}">
+          <div class="sheet tall">
+            <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+            <div class="sheet-header">
+              <div class="row-start">
+                ${catIconEl(c)}
+                <div>
+                  <div class="title-md">${c.name}</div>
+                  <div class="label-sm">${mData.label} · ${c.archived ? '已归档只读快照' : c.budget ? `预算 ${fmt(c.budget)}` : '未设预算'}</div>
+                </div>
+              </div>
+              <div class="row-start" style="gap:6px;">
+                ${!c.archived ? `<button class="btn-outlined" onclick="openEditSheet('${c.id}')">调预算</button>` : ''}
+                <button class="icon-btn" onclick="state.drillCatId=null;renderAll()">✕</button>
+              </div>
+            </div>
+            <div class="sheet-body">
+              <div class="app-card">
+                <div class="row">
+                  <span class="title-sm">近 6 个月趋势</span>
+                  <span class="label-sm num">近3月均值 ${fmt(c.avg3m)}</span>
+                </div>
+                <div class="chart-6m">
+                  ${['6月','7月','8月','9月','10月','11月'].map((lb,i) => {
+                    const v = c.trend[i];
+                    const b = c.budgets6m[i];
+                    const maxV = Math.max(...c.trend.filter(Boolean), ...c.budgets6m.filter(Boolean), 1);
+                    const h = v ? Math.round(v/maxV*64) : 0;
+                    const bh = b ? Math.round(b/maxV*64) : 0;
+                    return `
+                      <div class="chart-col">
+                        <div class="chart-bar-wrap">
+                          ${b ? `<div class="chart-budget-line" style="bottom:${bh}px"></div>` : ''}
+                          ${v != null ? `<div class="chart-bar ${b && v>b?'over':''}" style="height:${Math.max(4,h)}px"></div>` : '<span class="label-sm">—</span>'}
+                        </div>
+                        <span class="label-sm">${lb}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+
+              <div class="app-card">
+                <div class="row"><span class="title-sm">本月支出结构</span><b class="num">${fmt(actual)}</b></div>
+                <div class="row body-sm"><span>固定周期（Committed）</span><b class="num">${fmt(c.committed)}</b></div>
+                <div class="row body-sm"><span>弹性消费（Discretionary）</span><b class="num">${fmt(c.discretionary)}</b></div>
+                ${mData.mode !== 'review' ? `<div class="row body-sm"><span>待入账账单（Pending）</span><b class="num">${fmt(pending)}</b></div>` : ''}
+              </div>
+
+              <div class="app-card">
+                <div class="row"><span class="title-sm">TOP 贡献交易</span><span class="label-sm">最多 3 笔</span></div>
+                ${c.txs.length ? c.txs.map(t => `
+                  <div class="row" style="font-size:13px;">
+                    <div class="row-start" style="gap:6px;">
+                      <span>${t.title}</span>
+                      <span class="badge ${t.kind==='固定'?'badge-freq':'badge-neutral'}">${t.kind}</span>
+                    </div>
+                    <b class="num">${fmt(t.amt)}</b>
+                  </div>
+                `).join('') : '<div class="body-sm">本月暂无支出记录</div>'}
+              </div>
+
+              <div class="app-card">
+                <div class="row"><span class="title-sm">分类 Review Note</span><span class="label-sm">${c.archived ? '归档只读' : '自动保存 · <= 500 字'}</span></div>
+                <textarea class="field-textarea" rows="2" ${c.archived?'readonly':''} placeholder="记录本分类偏离原因或下月调整建议..." oninput="updateCatNote('${c.id}', this.value)">${c.note}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Edit Budget BottomSheet
+  if (state.editCatId) {
+    const c = mData.cats.find(x => x.id === state.editCatId);
+    html += `
+      <div class="sheet-backdrop" onclick="if(event.target===this){state.editCatId=null;renderAll();}">
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+          <div class="sheet-header">
+            <span class="title-md">设置「${c.name}」预算（${mData.label}）</span>
+            <button class="icon-btn" onclick="state.editCatId=null;renderAll()">✕</button>
+          </div>
+          <div class="sheet-body">
+            <div class="label-sm">历史基线参考（点击填入）</div>
+            <div class="pill-row">
+              <button class="chip num" onclick="setEditAmt(${c.lastActual || 1200})">上月实际 ${fmt(c.lastActual || 1200)}</button>
+              <button class="chip num" onclick="setEditAmt(${c.avg3m})">近3月均值 ${fmt(c.avg3m)}</button>
+              <button class="chip num" onclick="setEditAmt(${Math.max(c.committed + c.pending, 100)})">固定底线 ${fmt(c.committed + c.pending)}</button>
+            </div>
+            <input class="field-input num" type="number" value="${state.editAmount}" placeholder="输入预算金额（> 0）" oninput="state.editAmount=this.value" />
+            <div class="label-sm">生效范围</div>
+            <div class="pill-row">
+              <button class="chip ${state.editScope==='thisOnly'?'active':''}" onclick="state.editScope='thisOnly';renderOverlays()">仅本月</button>
+              <button class="chip ${state.editScope==='thisAndFollowing'?'active':''}" onclick="state.editScope='thisAndFollowing';renderOverlays()">本月及以后月份</button>
+            </div>
+            <div class="row" style="margin-top:6px;">
+              ${c.budget != null ? `<button class="btn-text" onclick="saveEditBudget(true)">取消预算</button>` : '<span></span>'}
+              <button class="btn-filled" onclick="saveEditBudget(false)">保存预算</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Monthly Review Note BottomSheet
+  if (state.noteModalOpen) {
+    html += `
+      <div class="sheet-backdrop" onclick="if(event.target===this){state.noteModalOpen=false;renderAll();}">
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+          <div class="sheet-header">
+            <span class="title-md">${mData.label} · 月度 Review Note</span>
+            <button class="icon-btn" onclick="state.noteModalOpen=false;renderAll()">✕</button>
+          </div>
+          <div class="sheet-body">
+            <textarea class="field-textarea" rows="4" maxlength="500" id="monthNoteBox" placeholder="本月为什么超支或结余？下个月预算要怎么调？">${mData.note}</textarea>
+            <div class="row">
+              <span class="label-sm">清空并保存即删除备忘</span>
+              <button class="btn-filled" onclick="saveMonthNote()">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  host.innerHTML = html;
+}
+
+function renderHintPreview() {
+  const hints = {
+    ok: { cls: '', title: '餐饮美食 · 本月预算剩余 ¥380', sub: '预算 ¥1,500（已用 ¥1,120）· 记账后预计剩 ¥252' },
+    pending_warn: { cls: 'warn', title: '餐饮美食 · 含待入账预计将超支 ¥8', sub: '实际 ¥1,120 + 待入账 ¥260 + 本笔 ¥128 > ¥1,500' },
+    over: { cls: 'over', title: '休闲娱乐 · 本月预算已超支 ¥70', sub: '已支出及待入账 ¥670 / 预算 ¥600（不阻塞记账）' },
+    unset: { cls: 'unset', title: '医疗健康 · 暂未设置月度预算', sub: '本月已支出 ¥360 · 可在预算 Tab 随时设定' }
+  };
+  const h = hints[state.hintState];
+  document.getElementById('txHintPreview').innerHTML = `
+    <div class="tx-hint-banner ${h.cls}">
+      <div>
+        <div class="title-sm num">${h.title}</div>
+        <div class="label-sm num">${h.sub}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAll() {
+  renderPhone();
+  renderHintPreview();
+}
+
+function setMonth(m) {
+  state.month = m;
+  state.trackReviewPreview = false;
+  document.querySelectorAll('.toolbar .pill[data-month]').forEach(b => b.classList.toggle('active', b.dataset.month === m));
+  renderAll();
+}
+function stepMonth(dir) {
+  const ms = ['2026-10','2026-11','2026-12'];
+  const idx = (ms.indexOf(state.month) + dir + ms.length) % ms.length;
+  setMonth(ms[idx]);
+}
+function cycleMonth() { stepMonth(1); }
+function toggleTrackReview() { state.trackReviewPreview = !state.trackReviewPreview; renderAll(); }
+function toggleTheme() {
+  state.dark = !state.dark;
+  document.body.classList.toggle('dark', state.dark);
+  document.getElementById('themeBtn').textContent = state.dark ? '☀️ 浅色预览' : '🌙 深色预览';
+}
+function openDrill(id) { state.drillCatId = id; renderAll(); }
+function openEditSheet(id) {
+  const c = DATA_BY_MONTH[state.month].cats.find(x => x.id === id);
+  state.editCatId = id;
+  state.editAmount = c && c.budget ? String(c.budget) : '';
+  state.editScope = (state.month === '2026-10') ? 'thisOnly' : 'thisAndFollowing';
+  renderAll();
+}
+function setEditAmt(v) { state.editAmount = String(v); renderOverlays(); }
+function saveEditBudget(unset) {
+  const c = DATA_BY_MONTH[state.month].cats.find(x => x.id === state.editCatId);
+  if (c) {
+    if (unset) c.budget = null;
+    else {
+      const n = Number(state.editAmount);
+      if (n > 0) c.budget = Math.round(n);
+    }
+  }
+  state.editCatId = null;
+  renderAll();
+}
+function updateCatNote(id, val) {
+  const c = DATA_BY_MONTH[state.month].cats.find(x => x.id === id);
+  if (c) c.note = val;
+}
+function openNoteModal() { state.noteModalOpen = true; renderOverlays(); }
+function saveMonthNote() {
+  const val = document.getElementById('monthNoteBox').value.trim();
+  DATA_BY_MONTH[state.month].note = val;
+  state.noteModalOpen = false;
+  renderAll();
+}
+
+document.getElementById('hintStateGroup').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-hint]');
+  if (!btn) return;
+  state.hintState = btn.dataset.hint;
+  document.querySelectorAll('#hintStateGroup .pill').forEach(b => b.classList.toggle('active', b === btn));
+  renderHintPreview();
+});
+
+renderAll();
+</script>
+</body>
+</html>

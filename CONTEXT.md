@@ -166,3 +166,48 @@ _Avoid_: dependencies, preconditions, lookup
 Rebuilding a transaction from what was already recorded, for replay. Distinct from recording a new one:
 rehydration re-checks a stored shape, it does not express intent.
 _Avoid_: deserialize, restore, fromJson, load
+
+### Budget & Review
+
+**Category budget**:
+A strictly positive monthly spending cap set for one expense category under the current currency.
+Clearing a category budget removes the cap rather than storing zero; budgets do not roll unused
+amounts into later months or cross currencies.
+_Avoid_: planned amount, category cap, monthly target
+
+**Budget timeline**:
+The stepped effective-month sequence of a category's budget rules. Unless explicitly changed or
+cleared, a rule carries forward indefinitely into subsequent months; a single-month edit anchors the
+following month to preserve prior expectations, while a forward edit replaces all later breakpoints.
+Archiving a category keeps its active budget for the archive month and halts carry-forward from the
+next month onward.
+_Avoid_: budget copy, monthly clone, budget schedule
+
+**Committed spend**:
+Expenses committed through scheduled or one-off planned bills — combining posted transactions that
+carry a source bill in the month with not-yet-posted pending bills in tracking or planning mode. Its
+monthly sum also serves as that category's committed baseline.
+_Avoid_: fixed cost, recurring expense, subscription spend
+
+**Discretionary spend**:
+Ordinary expense transactions without a source bill, representing flexible spending that can be
+curtailed within the month.
+_Avoid_: variable spend, unscheduled spend
+
+**Pending bill exposure**:
+Scheduled or failed expense bills falling due in a current or future month. Included in projected
+remaining budget and overrun risk alerts during tracking and planning, and excluded from actuals in
+historical review.
+_Avoid_: projected actual, unpaid expense
+
+**Budget variance**:
+The signed difference `budget - actual` for a category or month (positive when under budget, negative
+when overspent). Tracked alongside pending exposure for overrun risk, while month-over-month anomaly
+alerts compare discretionary and total category spend against the prior three-month average.
+_Avoid_: diff, balance remaining, overrun
+
+**Review note**:
+A plain-text retrospective reflection attached to a currency and month (and optionally a category),
+explaining variance and recording next-month adjustments. Preserved as read-only history once a
+category is archived.
+_Avoid_: comment, memo, journal
