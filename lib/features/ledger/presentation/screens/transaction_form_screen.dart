@@ -1,3 +1,5 @@
+import 'package:feather_ledger/features/budget/domain/value_objects/budget_value_objects.dart';
+import 'package:feather_ledger/features/budget/presentation/widgets/transaction_budget_hint_banner.dart';
 import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
 import '../widgets/custom_reminder_dialog.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
@@ -401,6 +403,29 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       ),
                     ),
                   ),
+                  if (state.type == TransactionKind.expense &&
+                      state.categoryId != null) ...[
+                    const SizedBox(height: 8),
+                    _inset(
+                      TransactionBudgetHintBanner(
+                        currencyCode: currencyKey,
+                        currencySymbol: currencySymbol,
+                        month: YearMonth.fromDate(state.date),
+                        categoryId: state.categoryId!,
+                        mode: state.mode,
+                        inputAmountMinor: state.amountMinor ?? 0,
+                        selectedAccountIncludeInTotals: (state
+                                    .selectedAccount(
+                                      accountsAsync.value ??
+                                          const <AccountUiModel>[],
+                                    )
+                                    ?.account
+                                    .includeInTotals) ??
+                            true,
+                        original: state.original,
+                      ),
+                    ),
+                  ],
                 ],
 
                 SizedBox(height: context.spacing.sm),
