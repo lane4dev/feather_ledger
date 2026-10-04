@@ -954,4 +954,220 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get errorBudgetNoteTooLong =>
       'Review note cannot exceed 500 characters';
+
+  @override
+  String get budgetModePlan => 'Plan';
+
+  @override
+  String get budgetModeTrack => 'Track';
+
+  @override
+  String get budgetModeReview => 'Review';
+
+  @override
+  String get budgetReviewPreviewToggle => 'Review preview';
+
+  @override
+  String get budgetBackToTrack => 'Back to track';
+
+  @override
+  String get budgetTotal => 'Total budget';
+
+  @override
+  String get budgetActualSpent => 'Spent';
+
+  @override
+  String get budgetPendingShort => 'Pending';
+
+  @override
+  String get budgetProjectedRemaining => 'Projected left';
+
+  @override
+  String get budgetProjectedOver => 'Projected over';
+
+  @override
+  String get budgetCompliance => 'On budget';
+
+  @override
+  String get budgetCommitted => 'Committed';
+
+  @override
+  String get budgetDiscretionary => 'Discretionary';
+
+  @override
+  String get budgetCommittedBaseline => 'Committed baseline';
+
+  @override
+  String budgetAllExpensesLine(String total, String unbudgeted) =>
+      'All expenses $total (unbudgeted $unbudgeted)';
+
+  @override
+  String budgetAllExpensesOnly(String total) => 'All expenses $total';
+
+  @override
+  String get budgetLeftoverPendingHint =>
+      'Past month has unposted scheduled bills excluded from review totals.';
+
+  @override
+  String get budgetMaterializedOnlyHint =>
+      'Includes materialized pending bills only.';
+
+  @override
+  String get budgetTrendTitle => '6-Month Budget vs Actual';
+
+  @override
+  String get budgetAttributionTitle => 'Month Review & Attribution';
+
+  @override
+  String get budgetOverTopTitle => 'Top Over Budget';
+
+  @override
+  String get budgetUnderTopTitle => 'Top Under Budget';
+
+  @override
+  String get budgetUnbudgetedAlertsTitle => 'Unbudgeted Spend Alerts';
+
+  @override
+  String get budgetMonthNoteLabel => 'Month review note';
+
+  @override
+  String get budgetCategoryNoteLabel => 'Category review note';
+
+  @override
+  String get budgetNotePlaceholder =>
+      'Add a brief note on why this month varied (max 500 chars)...';
+
+  @override
+  String get budgetNoteSaved => 'Review note saved';
+
+  @override
+  String get budgetSaveNote => 'Save note';
+
+  @override
+  String budgetNoteCharCount(int count) => '$count/500';
+
+  @override
+  String get budgetSectionBudgeted => 'Budgeted categories';
+
+  @override
+  String get budgetSectionUnbudgetedActive => 'Unbudgeted with activity';
+
+  @override
+  String get budgetSectionRemaining => 'Other categories (tap to set budget)';
+
+  @override
+  String get budgetSetButton => 'Set budget';
+
+  @override
+  String get budgetEditTitle => 'Set Category Budget';
+
+  @override
+  String get budgetAmountLabel => 'Monthly limit';
+
+  @override
+  String budgetLastMonthRef(String amount) => 'Last mo $amount';
+
+  @override
+  String budgetThreeMoAvgRef(String amount) => '3-mo avg $amount';
+
+  @override
+  String budgetCommittedRef(String amount) => 'Committed $amount';
+
+  @override
+  String get budgetScopeLabel => 'Apply changes to';
+
+  @override
+  String get budgetScopeThisMonth => 'This month only';
+
+  @override
+  String get budgetScopeThisAndFollowing => 'This & following months';
+
+  @override
+  String get budgetScopeFutureOverrideWarning =>
+      'Later months already have custom rules and will be replaced.';
+
+  @override
+  String get budgetHistoryEditHint =>
+      'Past month has ended. Consider adjusting current or future months instead.';
+
+  @override
+  String get budgetZeroAmountHint =>
+      'Budget must be greater than 0. Tap Remove budget to unset.';
+
+  @override
+  String get budgetClearAction => 'Remove budget';
+
+  @override
+  String get budgetClearConfirmTitle => 'Remove budget?';
+
+  @override
+  String get budgetSaved => 'Budget updated';
+
+  @override
+  String get budgetCleared => 'Budget removed';
+
+  @override
+  String get budgetStatusInBudget => 'In budget';
+
+  @override
+  String get budgetStatusAtRisk => 'At risk';
+
+  @override
+  String get budgetStatusOver => 'Over';
+
+  @override
+  String budgetAnomalyBadge(int percent) => '+$percent% vs 3m avg';
+
+  @override
+  String get budgetArchivedReadOnly => 'Archived';
+
+  @override
+  String get budgetArchivedNoteHint =>
+      'Archived category — historical budgets and notes are read-only.';
+
+  @override
+  String get budgetTopTransactionsTitle => 'Top contributing expenses';
+
+  @override
+  String get budgetNoTransactionsInMonth =>
+      'No expenses recorded in this month.';
+
+  @override
+  String get budgetEmptyNoAccountsTitle => 'Create an account to start budgeting';
+
+  @override
+  String budgetEmptyNoAccountsBody(String currency) =>
+      'No active accounts exist for $currency yet.';
+
+  @override
+  String get budgetEmptyNoBudgetsTitle => 'Plan your monthly spending';
+
+  @override
+  String get budgetEmptyNoBudgetsBody =>
+      'Tap any category below or + above to set your first category limit.';
+
+  @override
+  String get budgetPickCategoryTitle => 'Choose category';
+
+  @override
+  String budgetHintRemaining(String remaining, String after) =>
+      'Remaining $remaining · After this: $after';
+
+  @override
+  String budgetHintAtRisk(String after) =>
+      'After this + pending: $after over';
+
+  @override
+  String budgetHintOver(String over) => 'Budget exceeded by $over after this';
+
+  @override
+  String budgetHintUnset(String spent) =>
+      'No budget set · Month spent $spent';
+
+  @override
+  String get budgetHintExcludedAccount => 'Excluded from budget totals';
+
+  @override
+  String get budgetHintPastPlanned =>
+      'Past-month planned bills are excluded from closed reviews';
 }

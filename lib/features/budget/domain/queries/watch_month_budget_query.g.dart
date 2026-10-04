@@ -51,4 +51,4 @@ final class WatchMonthBudgetQueryProvider extends $FunctionalProvider<
 }
 
 String _$watchMonthBudgetQueryHash() =>
-    r'9d4a7a5356e939a5f8fa1b00fb543a35eb968bf6';
+    r'86cde721faa4f1c3ae5a09a5926d1f722860b0f6';

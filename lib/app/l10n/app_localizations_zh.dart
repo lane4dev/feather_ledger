@@ -993,6 +993,232 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorBudgetNoteTooLong => '复盘备忘不能超过 500 字';
+
+  @override
+  String get budgetModePlan => '规划';
+
+  @override
+  String get budgetModeTrack => '跟踪';
+
+  @override
+  String get budgetModeReview => '复盘';
+
+  @override
+  String get budgetReviewPreviewToggle => '复盘预览';
+
+  @override
+  String get budgetBackToTrack => '返回跟踪';
+
+  @override
+  String get budgetTotal => '本月总预算';
+
+  @override
+  String get budgetActualSpent => '已消费';
+
+  @override
+  String get budgetPendingShort => '待入账';
+
+  @override
+  String get budgetProjectedRemaining => '预计剩余';
+
+  @override
+  String get budgetProjectedOver => '预计超支';
+
+  @override
+  String get budgetCompliance => '达标率';
+
+  @override
+  String get budgetCommitted => '固定';
+
+  @override
+  String get budgetDiscretionary => '弹性';
+
+  @override
+  String get budgetCommittedBaseline => '固定基线';
+
+  @override
+  String budgetAllExpensesLine(String total, String unbudgeted) {
+    return '本月全部实耗 $total（含未设预算 $unbudgeted）';
+  }
+
+  @override
+  String budgetAllExpensesOnly(String total) {
+    return '本月全部实耗 $total';
+  }
+
+  @override
+  String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
+
+  @override
+  String get budgetMaterializedOnlyHint => '待入账仅含已物化排期账单。';
+
+  @override
+  String get budgetTrendTitle => '近 6 个月预算 vs 实际';
+
+  @override
+  String get budgetAttributionTitle => '月度复盘与归因';
+
+  @override
+  String get budgetOverTopTitle => '超支 TOP';
+
+  @override
+  String get budgetUnderTopTitle => '结余 TOP';
+
+  @override
+  String get budgetUnbudgetedAlertsTitle => '未设预算大额预警';
+
+  @override
+  String get budgetMonthNoteLabel => '月度复盘备忘';
+
+  @override
+  String get budgetCategoryNoteLabel => '分类复盘备忘';
+
+  @override
+  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路（最多 500 字）...';
+
+  @override
+  String get budgetNoteSaved => '复盘备忘已保存';
+
+  @override
+  String get budgetSaveNote => '保存备忘';
+
+  @override
+  String budgetNoteCharCount(int count) {
+    return '$count/500';
+  }
+
+  @override
+  String get budgetSectionBudgeted => '已设预算分类';
+
+  @override
+  String get budgetSectionUnbudgetedActive => '未设预算但有发生额';
+
+  @override
+  String get budgetSectionRemaining => '其余分类（点击设预算）';
+
+  @override
+  String get budgetSetButton => '设预算';
+
+  @override
+  String get budgetEditTitle => '设置分类预算';
+
+  @override
+  String get budgetAmountLabel => '月度预算额度';
+
+  @override
+  String budgetLastMonthRef(String amount) {
+    return '上月实际 $amount';
+  }
+
+  @override
+  String budgetThreeMoAvgRef(String amount) {
+    return '近3月均 $amount';
+  }
+
+  @override
+  String budgetCommittedRef(String amount) {
+    return '固定底线 $amount';
+  }
+
+  @override
+  String get budgetScopeLabel => '应用范围';
+
+  @override
+  String get budgetScopeThisMonth => '仅本月';
+
+  @override
+  String get budgetScopeThisAndFollowing => '本月及以后';
+
+  @override
+  String get budgetScopeFutureOverrideWarning =>
+      '后续月份已存在独立预算规则，选择“本月及以后”将覆盖它们。';
+
+  @override
+  String get budgetHistoryEditHint => '历史月已结束，建议调整当前或未来月份以指导后续执行。';
+
+  @override
+  String get budgetZeroAmountHint => '预算需大于 0；如需取消请点击「取消预算」。';
+
+  @override
+  String get budgetClearAction => '取消预算';
+
+  @override
+  String get budgetClearConfirmTitle => '取消该分类预算？';
+
+  @override
+  String get budgetSaved => '预算已更新';
+
+  @override
+  String get budgetCleared => '预算已取消';
+
+  @override
+  String get budgetStatusInBudget => '达标';
+
+  @override
+  String get budgetStatusAtRisk => '预警';
+
+  @override
+  String get budgetStatusOver => '超支';
+
+  @override
+  String budgetAnomalyBadge(int percent) {
+    return '较均值 +$percent%';
+  }
+
+  @override
+  String get budgetArchivedReadOnly => '已归档';
+
+  @override
+  String get budgetArchivedNoteHint => '该分类已归档，历史预算与复盘备忘仅供只读查看。';
+
+  @override
+  String get budgetTopTransactionsTitle => '主要贡献支出';
+
+  @override
+  String get budgetNoTransactionsInMonth => '本月暂无支出记录。';
+
+  @override
+  String get budgetEmptyNoAccountsTitle => '新建账户后即可规划预算';
+
+  @override
+  String budgetEmptyNoAccountsBody(String currency) {
+    return '当前币种（$currency）下暂无活跃账户。';
+  }
+
+  @override
+  String get budgetEmptyNoBudgetsTitle => '规划你的月度支出';
+
+  @override
+  String get budgetEmptyNoBudgetsBody => '点击下方任意分类或右上角 + 即可设置首个分类预算。';
+
+  @override
+  String get budgetPickCategoryTitle => '选择支出分类';
+
+  @override
+  String budgetHintRemaining(String remaining, String after) {
+    return '本月余 $remaining · 记后余 $after';
+  }
+
+  @override
+  String budgetHintAtRisk(String after) {
+    return '含待入账预计超 $after';
+  }
+
+  @override
+  String budgetHintOver(String over) {
+    return '记后将超支 $over';
+  }
+
+  @override
+  String budgetHintUnset(String spent) {
+    return '未设预算 · 本月已耗 $spent';
+  }
+
+  @override
+  String get budgetHintExcludedAccount => '该账户不计入预算统计';
+
+  @override
+  String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1984,6 +2210,232 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get errorBudgetNoteTooLong => '复盘备忘不能超过 500 字';
+
+  @override
+  String get budgetModePlan => '规划';
+
+  @override
+  String get budgetModeTrack => '跟踪';
+
+  @override
+  String get budgetModeReview => '复盘';
+
+  @override
+  String get budgetReviewPreviewToggle => '复盘预览';
+
+  @override
+  String get budgetBackToTrack => '返回跟踪';
+
+  @override
+  String get budgetTotal => '本月总预算';
+
+  @override
+  String get budgetActualSpent => '已消费';
+
+  @override
+  String get budgetPendingShort => '待入账';
+
+  @override
+  String get budgetProjectedRemaining => '预计剩余';
+
+  @override
+  String get budgetProjectedOver => '预计超支';
+
+  @override
+  String get budgetCompliance => '达标率';
+
+  @override
+  String get budgetCommitted => '固定';
+
+  @override
+  String get budgetDiscretionary => '弹性';
+
+  @override
+  String get budgetCommittedBaseline => '固定基线';
+
+  @override
+  String budgetAllExpensesLine(String total, String unbudgeted) {
+    return '本月全部实耗 $total（含未设预算 $unbudgeted）';
+  }
+
+  @override
+  String budgetAllExpensesOnly(String total) {
+    return '本月全部实耗 $total';
+  }
+
+  @override
+  String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
+
+  @override
+  String get budgetMaterializedOnlyHint => '待入账仅含已物化排期账单。';
+
+  @override
+  String get budgetTrendTitle => '近 6 个月预算 vs 实际';
+
+  @override
+  String get budgetAttributionTitle => '月度复盘与归因';
+
+  @override
+  String get budgetOverTopTitle => '超支 TOP';
+
+  @override
+  String get budgetUnderTopTitle => '结余 TOP';
+
+  @override
+  String get budgetUnbudgetedAlertsTitle => '未设预算大额预警';
+
+  @override
+  String get budgetMonthNoteLabel => '月度复盘备忘';
+
+  @override
+  String get budgetCategoryNoteLabel => '分类复盘备忘';
+
+  @override
+  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路（最多 500 字）...';
+
+  @override
+  String get budgetNoteSaved => '复盘备忘已保存';
+
+  @override
+  String get budgetSaveNote => '保存备忘';
+
+  @override
+  String budgetNoteCharCount(int count) {
+    return '$count/500';
+  }
+
+  @override
+  String get budgetSectionBudgeted => '已设预算分类';
+
+  @override
+  String get budgetSectionUnbudgetedActive => '未设预算但有发生额';
+
+  @override
+  String get budgetSectionRemaining => '其余分类（点击设预算）';
+
+  @override
+  String get budgetSetButton => '设预算';
+
+  @override
+  String get budgetEditTitle => '设置分类预算';
+
+  @override
+  String get budgetAmountLabel => '月度预算额度';
+
+  @override
+  String budgetLastMonthRef(String amount) {
+    return '上月实际 $amount';
+  }
+
+  @override
+  String budgetThreeMoAvgRef(String amount) {
+    return '近3月均 $amount';
+  }
+
+  @override
+  String budgetCommittedRef(String amount) {
+    return '固定底线 $amount';
+  }
+
+  @override
+  String get budgetScopeLabel => '应用范围';
+
+  @override
+  String get budgetScopeThisMonth => '仅本月';
+
+  @override
+  String get budgetScopeThisAndFollowing => '本月及以后';
+
+  @override
+  String get budgetScopeFutureOverrideWarning =>
+      '后续月份已存在独立预算规则，选择“本月及以后”将覆盖它们。';
+
+  @override
+  String get budgetHistoryEditHint => '历史月已结束，建议调整当前或未来月份以指导后续执行。';
+
+  @override
+  String get budgetZeroAmountHint => '预算需大于 0；如需取消请点击「取消预算」。';
+
+  @override
+  String get budgetClearAction => '取消预算';
+
+  @override
+  String get budgetClearConfirmTitle => '取消该分类预算？';
+
+  @override
+  String get budgetSaved => '预算已更新';
+
+  @override
+  String get budgetCleared => '预算已取消';
+
+  @override
+  String get budgetStatusInBudget => '达标';
+
+  @override
+  String get budgetStatusAtRisk => '预警';
+
+  @override
+  String get budgetStatusOver => '超支';
+
+  @override
+  String budgetAnomalyBadge(int percent) {
+    return '较均值 +$percent%';
+  }
+
+  @override
+  String get budgetArchivedReadOnly => '已归档';
+
+  @override
+  String get budgetArchivedNoteHint => '该分类已归档，历史预算与复盘备忘仅供只读查看。';
+
+  @override
+  String get budgetTopTransactionsTitle => '主要贡献支出';
+
+  @override
+  String get budgetNoTransactionsInMonth => '本月暂无支出记录。';
+
+  @override
+  String get budgetEmptyNoAccountsTitle => '新建账户后即可规划预算';
+
+  @override
+  String budgetEmptyNoAccountsBody(String currency) {
+    return '当前币种（$currency）下暂无活跃账户。';
+  }
+
+  @override
+  String get budgetEmptyNoBudgetsTitle => '规划你的月度支出';
+
+  @override
+  String get budgetEmptyNoBudgetsBody => '点击下方任意分类或右上角 + 即可设置首个分类预算。';
+
+  @override
+  String get budgetPickCategoryTitle => '选择支出分类';
+
+  @override
+  String budgetHintRemaining(String remaining, String after) {
+    return '本月余 $remaining · 记后余 $after';
+  }
+
+  @override
+  String budgetHintAtRisk(String after) {
+    return '含待入账预计超 $after';
+  }
+
+  @override
+  String budgetHintOver(String over) {
+    return '记后将超支 $over';
+  }
+
+  @override
+  String budgetHintUnset(String spent) {
+    return '未设预算 · 本月已耗 $spent';
+  }
+
+  @override
+  String get budgetHintExcludedAccount => '该账户不计入预算统计';
+
+  @override
+  String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2975,4 +3427,230 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get errorBudgetNoteTooLong => '複盤備忘不能超過 500 字';
+
+  @override
+  String get budgetModePlan => '規劃';
+
+  @override
+  String get budgetModeTrack => '追蹤';
+
+  @override
+  String get budgetModeReview => '複盤';
+
+  @override
+  String get budgetReviewPreviewToggle => '複盤預覽';
+
+  @override
+  String get budgetBackToTrack => '返回追蹤';
+
+  @override
+  String get budgetTotal => '本月總預算';
+
+  @override
+  String get budgetActualSpent => '已消費';
+
+  @override
+  String get budgetPendingShort => '待入帳';
+
+  @override
+  String get budgetProjectedRemaining => '預計剩餘';
+
+  @override
+  String get budgetProjectedOver => '預計超支';
+
+  @override
+  String get budgetCompliance => '達標率';
+
+  @override
+  String get budgetCommitted => '固定';
+
+  @override
+  String get budgetDiscretionary => '彈性';
+
+  @override
+  String get budgetCommittedBaseline => '固定基準線';
+
+  @override
+  String budgetAllExpensesLine(String total, String unbudgeted) {
+    return '本月全部實耗 $total（含未設預算 $unbudgeted）';
+  }
+
+  @override
+  String budgetAllExpensesOnly(String total) {
+    return '本月全部實耗 $total';
+  }
+
+  @override
+  String get budgetLeftoverPendingHint => '該歷史月仍有未入帳週期帳單，複盤統計已忽略。';
+
+  @override
+  String get budgetMaterializedOnlyHint => '待入帳僅含已物化排期帳單。';
+
+  @override
+  String get budgetTrendTitle => '近 6 個月預算 vs 實際';
+
+  @override
+  String get budgetAttributionTitle => '月度複盤與歸因';
+
+  @override
+  String get budgetOverTopTitle => '超支 TOP';
+
+  @override
+  String get budgetUnderTopTitle => '結餘 TOP';
+
+  @override
+  String get budgetUnbudgetedAlertsTitle => '未設預算大額預警';
+
+  @override
+  String get budgetMonthNoteLabel => '月度複盤備忘';
+
+  @override
+  String get budgetCategoryNoteLabel => '分類複盤備忘';
+
+  @override
+  String get budgetNotePlaceholder => '記錄本月偏差原因或下月調整思路（最多 500 字）...';
+
+  @override
+  String get budgetNoteSaved => '複盤備忘已儲存';
+
+  @override
+  String get budgetSaveNote => '儲存備忘';
+
+  @override
+  String budgetNoteCharCount(int count) {
+    return '$count/500';
+  }
+
+  @override
+  String get budgetSectionBudgeted => '已設預算分類';
+
+  @override
+  String get budgetSectionUnbudgetedActive => '未設預算但有發生額';
+
+  @override
+  String get budgetSectionRemaining => '其餘分類（點擊設預算）';
+
+  @override
+  String get budgetSetButton => '設預算';
+
+  @override
+  String get budgetEditTitle => '設定分類預算';
+
+  @override
+  String get budgetAmountLabel => '月度預算額度';
+
+  @override
+  String budgetLastMonthRef(String amount) {
+    return '上月實際 $amount';
+  }
+
+  @override
+  String budgetThreeMoAvgRef(String amount) {
+    return '近3月均 $amount';
+  }
+
+  @override
+  String budgetCommittedRef(String amount) {
+    return '固定基準線 $amount';
+  }
+
+  @override
+  String get budgetScopeLabel => '套用範圍';
+
+  @override
+  String get budgetScopeThisMonth => '僅本月';
+
+  @override
+  String get budgetScopeThisAndFollowing => '本月及以後';
+
+  @override
+  String get budgetScopeFutureOverrideWarning =>
+      '後續月份已存在獨立預算規則，選擇「本月及以後」將覆蓋它們。';
+
+  @override
+  String get budgetHistoryEditHint => '歷史月已結束，建議調整目前或未來月份以指導後續執行。';
+
+  @override
+  String get budgetZeroAmountHint => '預算須大於 0；如需取消請點擊「取消預算」。';
+
+  @override
+  String get budgetClearAction => '取消預算';
+
+  @override
+  String get budgetClearConfirmTitle => '取消該分類預算？';
+
+  @override
+  String get budgetSaved => '預算已更新';
+
+  @override
+  String get budgetCleared => '預算已取消';
+
+  @override
+  String get budgetStatusInBudget => '達標';
+
+  @override
+  String get budgetStatusAtRisk => '預警';
+
+  @override
+  String get budgetStatusOver => '超支';
+
+  @override
+  String budgetAnomalyBadge(int percent) {
+    return '較均值 +$percent%';
+  }
+
+  @override
+  String get budgetArchivedReadOnly => '已封存';
+
+  @override
+  String get budgetArchivedNoteHint => '該分類已封存，歷史預算與複盤備忘僅供唯讀檢視。';
+
+  @override
+  String get budgetTopTransactionsTitle => '主要貢獻支出';
+
+  @override
+  String get budgetNoTransactionsInMonth => '本月尚無支出記錄。';
+
+  @override
+  String get budgetEmptyNoAccountsTitle => '新增帳戶後即可規劃預算';
+
+  @override
+  String budgetEmptyNoAccountsBody(String currency) {
+    return '目前幣別（$currency）下尚無活躍帳戶。';
+  }
+
+  @override
+  String get budgetEmptyNoBudgetsTitle => '規劃你的月度支出';
+
+  @override
+  String get budgetEmptyNoBudgetsBody => '點擊下方任意分類或右上角 + 即可設定首個分類預算。';
+
+  @override
+  String get budgetPickCategoryTitle => '選擇支出分類';
+
+  @override
+  String budgetHintRemaining(String remaining, String after) {
+    return '本月餘 $remaining · 記後餘 $after';
+  }
+
+  @override
+  String budgetHintAtRisk(String after) {
+    return '含待入帳預計超 $after';
+  }
+
+  @override
+  String budgetHintOver(String over) {
+    return '記後將超支 $over';
+  }
+
+  @override
+  String budgetHintUnset(String spent) {
+    return '未設預算 · 本月已耗 $spent';
+  }
+
+  @override
+  String get budgetHintExcludedAccount => '該帳戶不計入預算統計';
+
+  @override
+  String get budgetHintPastPlanned => '歷史月計劃帳單不計入已完結複盤';
 }

@@ -8,6 +8,7 @@ import 'package:feather_ledger/core/domain/clock/clock.dart';
 import '../../data/repositories/budget_repository_impl.dart';
 import '../entities/budget_entities.dart';
 import '../services/budget_calculator.dart';
+import '../services/budget_service.dart';
 import '../value_objects/budget_value_objects.dart';
 
 part 'watch_month_budget_query.g.dart';
@@ -93,5 +94,8 @@ Stream<R> _combineLatest2<A, B, R>(
 
 @riverpod
 WatchMonthBudgetQuery watchMonthBudgetQuery(Ref ref) {
-  return WatchMonthBudgetQuery(ref.watch(budgetRepositoryProvider));
+  return WatchMonthBudgetQuery(
+    ref.watch(budgetRepositoryProvider),
+    clock: ref.watch(budgetClockProvider),
+  );
 }

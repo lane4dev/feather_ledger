@@ -861,5 +861,118 @@
   },
   "currencyBacklogPostAll": "Post all",
   "currencyBacklogKeepPending": "Keep as pending",
-  "errorBudgetNoteTooLong": "Review note cannot exceed 500 characters"
+  "errorBudgetNoteTooLong": "Review note cannot exceed 500 characters",
+  "budgetModePlan": "Plan",
+  "budgetModeTrack": "Track",
+  "budgetModeReview": "Review",
+  "budgetReviewPreviewToggle": "Review preview",
+  "budgetBackToTrack": "Back to track",
+  "budgetTotal": "Total budget",
+  "budgetActualSpent": "Spent",
+  "budgetPendingShort": "Pending",
+  "budgetProjectedRemaining": "Projected left",
+  "budgetProjectedOver": "Projected over",
+  "budgetCompliance": "On budget",
+  "budgetCommitted": "Committed",
+  "budgetDiscretionary": "Discretionary",
+  "budgetCommittedBaseline": "Committed baseline",
+  "budgetAllExpensesLine": "All expenses {total} (unbudgeted {unbudgeted})",
+  "@budgetAllExpensesLine": {
+    "placeholders": {
+      "total": { "type": "String" },
+      "unbudgeted": { "type": "String" }
+    }
+  },
+  "budgetAllExpensesOnly": "All expenses {total}",
+  "@budgetAllExpensesOnly": {
+    "placeholders": {
+      "total": { "type": "String" }
+    }
+  },
+  "budgetLeftoverPendingHint": "Past month has unposted scheduled bills excluded from review totals.",
+  "budgetMaterializedOnlyHint": "Includes materialized pending bills only.",
+  "budgetTrendTitle": "6-Month Budget vs Actual",
+  "budgetAttributionTitle": "Month Review & Attribution",
+  "budgetOverTopTitle": "Top Over Budget",
+  "budgetUnderTopTitle": "Top Under Budget",
+  "budgetUnbudgetedAlertsTitle": "Unbudgeted Spend Alerts",
+  "budgetMonthNoteLabel": "Month review note",
+  "budgetCategoryNoteLabel": "Category review note",
+  "budgetNotePlaceholder": "Add a brief note on why this month varied (max 500 chars)...",
+  "budgetNoteSaved": "Review note saved",
+  "budgetSaveNote": "Save note",
+  "budgetNoteCharCount": "{count}/500",
+  "@budgetNoteCharCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "budgetSectionBudgeted": "Budgeted categories",
+  "budgetSectionUnbudgetedActive": "Unbudgeted with activity",
+  "budgetSectionRemaining": "Other categories (tap to set budget)",
+  "budgetSetButton": "Set budget",
+  "budgetEditTitle": "Set Category Budget",
+  "budgetAmountLabel": "Monthly limit",
+  "budgetLastMonthRef": "Last mo {amount}",
+  "@budgetLastMonthRef": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetThreeMoAvgRef": "3-mo avg {amount}",
+  "@budgetThreeMoAvgRef": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetCommittedRef": "Committed {amount}",
+  "@budgetCommittedRef": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetScopeLabel": "Apply changes to",
+  "budgetScopeThisMonth": "This month only",
+  "budgetScopeThisAndFollowing": "This & following months",
+  "budgetScopeFutureOverrideWarning": "Later months already have custom rules and will be replaced.",
+  "budgetHistoryEditHint": "Past month has ended. Consider adjusting current or future months instead.",
+  "budgetZeroAmountHint": "Budget must be greater than 0. Tap Remove budget to unset.",
+  "budgetClearAction": "Remove budget",
+  "budgetClearConfirmTitle": "Remove budget?",
+  "budgetSaved": "Budget updated",
+  "budgetCleared": "Budget removed",
+  "budgetStatusInBudget": "In budget",
+  "budgetStatusAtRisk": "At risk",
+  "budgetStatusOver": "Over",
+  "budgetAnomalyBadge": "+{percent}% vs 3m avg",
+  "@budgetAnomalyBadge": {
+    "placeholders": { "percent": { "type": "int" } }
+  },
+  "budgetArchivedReadOnly": "Archived",
+  "budgetArchivedNoteHint": "Archived category — historical budgets and notes are read-only.",
+  "budgetTopTransactionsTitle": "Top contributing expenses",
+  "budgetNoTransactionsInMonth": "No expenses recorded in this month.",
+  "budgetEmptyNoAccountsTitle": "Create an account to start budgeting",
+  "budgetEmptyNoAccountsBody": "No active accounts exist for {currency} yet.",
+  "@budgetEmptyNoAccountsBody": {
+    "placeholders": { "currency": { "type": "String" } }
+  },
+  "budgetEmptyNoBudgetsTitle": "Plan your monthly spending",
+  "budgetEmptyNoBudgetsBody": "Tap any category below or + above to set your first category limit.",
+  "budgetPickCategoryTitle": "Choose category",
+  "budgetHintRemaining": "Remaining {remaining} · After this: {after}",
+  "@budgetHintRemaining": {
+    "placeholders": {
+      "remaining": { "type": "String" },
+      "after": { "type": "String" }
+    }
+  },
+  "budgetHintAtRisk": "After this + pending: {after} over",
+  "@budgetHintAtRisk": {
+    "placeholders": { "after": { "type": "String" } }
+  },
+  "budgetHintOver": "Budget exceeded by {over} after this",
+  "@budgetHintOver": {
+    "placeholders": { "over": { "type": "String" } }
+  },
+  "budgetHintUnset": "No budget set · Month spent {spent}",
+  "@budgetHintUnset": {
+    "placeholders": { "spent": { "type": "String" } }
+  },
+  "budgetHintExcludedAccount": "Excluded from budget totals",
+  "budgetHintPastPlanned": "Past-month planned bills are excluded from closed reviews"
 }

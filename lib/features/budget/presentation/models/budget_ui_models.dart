@@ -1,0 +1,228 @@
+import 'package:flutter/foundation.dart';
+
+import '../../domain/value_objects/budget_value_objects.dart';
+
+@immutable
+class BudgetTrendPointUiModel {
+  final YearMonth ym;
+  final String shortLabel;
+  final int? budgetMinor;
+  final int actualMinor;
+  final double budgetChartValue;
+  final double actualChartValue;
+  final bool hasReviewNote;
+
+  const BudgetTrendPointUiModel({
+    required this.ym,
+    required this.shortLabel,
+    required this.budgetMinor,
+    required this.actualMinor,
+    required this.budgetChartValue,
+    required this.actualChartValue,
+    required this.hasReviewNote,
+  });
+}
+
+@immutable
+class BudgetContributionTxUiModel {
+  final String id;
+  final bool isPending;
+  final String title;
+  final String dateDisplay;
+  final String amountDisplay;
+  final bool isCommitted;
+
+  const BudgetContributionTxUiModel({
+    required this.id,
+    required this.isPending,
+    required this.title,
+    required this.dateDisplay,
+    required this.amountDisplay,
+    required this.isCommitted,
+  });
+}
+
+@immutable
+class BudgetCategoryRowUiModel {
+  final String categoryId;
+  final String name;
+  final String iconKey;
+  final int colorInt;
+  final bool archived;
+  final bool isBudgetEditable;
+  final int? budgetMinor;
+  final String? budgetDisplay;
+  final String actualDisplay;
+  final String? pendingDisplay;
+  final String? varianceDisplay;
+  final bool isOverBudget;
+  final String committedActualDisplay;
+  final String discretionaryActualDisplay;
+  final String committedBaselineDisplay;
+  final String? lastMonthActualDisplay;
+  final String? threeMonthAvgDisplay;
+  final int? lastMonthActualMinor;
+  final int? threeMonthAvgMinor;
+  final int committedBaselineMinor;
+  final double actualProgress;
+  final double pendingProgress;
+  final BudgetRiskLevel riskLevel;
+  final bool isAnomaly;
+  final int? anomalyPercent;
+  final String? reviewNote;
+  final List<BudgetTrendPointUiModel> trend6Months;
+  final List<BudgetContributionTxUiModel> topContributions;
+
+  const BudgetCategoryRowUiModel({
+    required this.categoryId,
+    required this.name,
+    required this.iconKey,
+    required this.colorInt,
+    required this.archived,
+    required this.isBudgetEditable,
+    required this.budgetMinor,
+    required this.budgetDisplay,
+    required this.actualDisplay,
+    required this.pendingDisplay,
+    required this.varianceDisplay,
+    required this.isOverBudget,
+    required this.committedActualDisplay,
+    required this.discretionaryActualDisplay,
+    required this.committedBaselineDisplay,
+    required this.lastMonthActualDisplay,
+    required this.threeMonthAvgDisplay,
+    required this.lastMonthActualMinor,
+    required this.threeMonthAvgMinor,
+    required this.committedBaselineMinor,
+    required this.actualProgress,
+    required this.pendingProgress,
+    required this.riskLevel,
+    required this.isAnomaly,
+    required this.anomalyPercent,
+    required this.reviewNote,
+    required this.trend6Months,
+    required this.topContributions,
+  });
+}
+
+@immutable
+class BudgetAttributionItemUiModel {
+  final String categoryId;
+  final String name;
+  final String iconKey;
+  final int colorInt;
+  final String deltaDisplay;
+  final bool isOver;
+
+  const BudgetAttributionItemUiModel({
+    required this.categoryId,
+    required this.name,
+    required this.iconKey,
+    required this.colorInt,
+    required this.deltaDisplay,
+    required this.isOver,
+  });
+}
+
+@immutable
+class BudgetUnbudgetedAlertUiModel {
+  final String categoryId;
+  final String name;
+  final String iconKey;
+  final int colorInt;
+  final String actualDisplay;
+  final String shareDisplay;
+
+  const BudgetUnbudgetedAlertUiModel({
+    required this.categoryId,
+    required this.name,
+    required this.iconKey,
+    required this.colorInt,
+    required this.actualDisplay,
+    required this.shareDisplay,
+  });
+}
+
+@immutable
+class BudgetOverviewUiModel {
+  final YearMonth targetYm;
+  final BudgetMode mode;
+  final String currencyCode;
+  final String currencySymbol;
+  final bool hasAnyAccount;
+  final bool hasAnyBudget;
+  final String totalBudgetDisplay;
+  final String budgetedActualDisplay;
+  final String budgetedPendingDisplay;
+  final bool hasBudgetedPending;
+  final String projectedRemainingDisplay;
+  final bool isProjectedOverBudget;
+  final double actualRatio;
+  final double pendingRatio;
+  final String complianceDisplay;
+  final String allExpenseActualDisplay;
+  final String unbudgetedActualDisplay;
+  final bool hasUnbudgetedSpend;
+  final String committedBaselineDisplay;
+  final String committedActualDisplay;
+  final String discretionaryActualDisplay;
+  final bool hasLeftoverPendingInReview;
+  final bool hasHighFrequencyMaterializationHint;
+
+  const BudgetOverviewUiModel({
+    required this.targetYm,
+    required this.mode,
+    required this.currencyCode,
+    required this.currencySymbol,
+    required this.hasAnyAccount,
+    required this.hasAnyBudget,
+    required this.totalBudgetDisplay,
+    required this.budgetedActualDisplay,
+    required this.budgetedPendingDisplay,
+    required this.hasBudgetedPending,
+    required this.projectedRemainingDisplay,
+    required this.isProjectedOverBudget,
+    required this.actualRatio,
+    required this.pendingRatio,
+    required this.complianceDisplay,
+    required this.allExpenseActualDisplay,
+    required this.unbudgetedActualDisplay,
+    required this.hasUnbudgetedSpend,
+    required this.committedBaselineDisplay,
+    required this.committedActualDisplay,
+    required this.discretionaryActualDisplay,
+    required this.hasLeftoverPendingInReview,
+    required this.hasHighFrequencyMaterializationHint,
+  });
+}
+
+@immutable
+class BudgetScreenUiModel {
+  final BudgetOverviewUiModel overview;
+  final List<BudgetCategoryRowUiModel> budgetedRows;
+  final List<BudgetCategoryRowUiModel> unbudgetedActiveRows;
+  final List<BudgetCategoryRowUiModel> remainingActiveRows;
+  final List<BudgetAttributionItemUiModel> overBudgetTop3;
+  final List<BudgetAttributionItemUiModel> underBudgetTop3;
+  final List<BudgetUnbudgetedAlertUiModel> unbudgetedAlertsTop3;
+  final List<BudgetTrendPointUiModel> monthTrend6Months;
+  final String? monthReviewNote;
+
+  const BudgetScreenUiModel({
+    required this.overview,
+    required this.budgetedRows,
+    required this.unbudgetedActiveRows,
+    required this.remainingActiveRows,
+    required this.overBudgetTop3,
+    required this.underBudgetTop3,
+    required this.unbudgetedAlertsTop3,
+    required this.monthTrend6Months,
+    required this.monthReviewNote,
+  });
+
+  List<BudgetCategoryRowUiModel> get allEditableCategories => [
+        ...budgetedRows.where((r) => r.isBudgetEditable),
+        ...unbudgetedActiveRows.where((r) => r.isBudgetEditable),
+        ...remainingActiveRows.where((r) => r.isBudgetEditable),
+      ];
+}

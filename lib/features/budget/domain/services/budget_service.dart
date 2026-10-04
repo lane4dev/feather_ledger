@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../data/repositories/budget_repository_impl.dart';
@@ -105,6 +106,9 @@ class BudgetService {
         ));
   }
 }
+
+@riverpod
+DomainClock budgetClock(Ref ref) => const SystemClock();
 
 @riverpod
 BudgetService budgetService(Ref ref) {

@@ -2014,6 +2014,408 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Review note cannot exceed 500 characters'**
   String get errorBudgetNoteTooLong;
+
+  /// No description provided for @budgetModePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get budgetModePlan;
+
+  /// No description provided for @budgetModeTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Track'**
+  String get budgetModeTrack;
+
+  /// No description provided for @budgetModeReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get budgetModeReview;
+
+  /// No description provided for @budgetReviewPreviewToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review preview'**
+  String get budgetReviewPreviewToggle;
+
+  /// No description provided for @budgetBackToTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to track'**
+  String get budgetBackToTrack;
+
+  /// No description provided for @budgetTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total budget'**
+  String get budgetTotal;
+
+  /// No description provided for @budgetActualSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get budgetActualSpent;
+
+  /// No description provided for @budgetPendingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get budgetPendingShort;
+
+  /// No description provided for @budgetProjectedRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected left'**
+  String get budgetProjectedRemaining;
+
+  /// No description provided for @budgetProjectedOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected over'**
+  String get budgetProjectedOver;
+
+  /// No description provided for @budgetCompliance.
+  ///
+  /// In en, this message translates to:
+  /// **'On budget'**
+  String get budgetCompliance;
+
+  /// No description provided for @budgetCommitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed'**
+  String get budgetCommitted;
+
+  /// No description provided for @budgetDiscretionary.
+  ///
+  /// In en, this message translates to:
+  /// **'Discretionary'**
+  String get budgetDiscretionary;
+
+  /// No description provided for @budgetCommittedBaseline.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed baseline'**
+  String get budgetCommittedBaseline;
+
+  /// No description provided for @budgetAllExpensesLine.
+  ///
+  /// In en, this message translates to:
+  /// **'All expenses {total} (unbudgeted {unbudgeted})'**
+  String budgetAllExpensesLine(String total, String unbudgeted);
+
+  /// No description provided for @budgetAllExpensesOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'All expenses {total}'**
+  String budgetAllExpensesOnly(String total);
+
+  /// No description provided for @budgetLeftoverPendingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Past month has unposted scheduled bills excluded from review totals.'**
+  String get budgetLeftoverPendingHint;
+
+  /// No description provided for @budgetMaterializedOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes materialized pending bills only.'**
+  String get budgetMaterializedOnlyHint;
+
+  /// No description provided for @budgetTrendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'6-Month Budget vs Actual'**
+  String get budgetTrendTitle;
+
+  /// No description provided for @budgetAttributionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Month Review & Attribution'**
+  String get budgetAttributionTitle;
+
+  /// No description provided for @budgetOverTopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Over Budget'**
+  String get budgetOverTopTitle;
+
+  /// No description provided for @budgetUnderTopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Under Budget'**
+  String get budgetUnderTopTitle;
+
+  /// No description provided for @budgetUnbudgetedAlertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unbudgeted Spend Alerts'**
+  String get budgetUnbudgetedAlertsTitle;
+
+  /// No description provided for @budgetMonthNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Month review note'**
+  String get budgetMonthNoteLabel;
+
+  /// No description provided for @budgetCategoryNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category review note'**
+  String get budgetCategoryNoteLabel;
+
+  /// No description provided for @budgetNotePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a brief note on why this month varied (max 500 chars)...'**
+  String get budgetNotePlaceholder;
+
+  /// No description provided for @budgetNoteSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Review note saved'**
+  String get budgetNoteSaved;
+
+  /// No description provided for @budgetSaveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Save note'**
+  String get budgetSaveNote;
+
+  /// No description provided for @budgetNoteCharCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/500'**
+  String budgetNoteCharCount(int count);
+
+  /// No description provided for @budgetSectionBudgeted.
+  ///
+  /// In en, this message translates to:
+  /// **'Budgeted categories'**
+  String get budgetSectionBudgeted;
+
+  /// No description provided for @budgetSectionUnbudgetedActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unbudgeted with activity'**
+  String get budgetSectionUnbudgetedActive;
+
+  /// No description provided for @budgetSectionRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Other categories (tap to set budget)'**
+  String get budgetSectionRemaining;
+
+  /// No description provided for @budgetSetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Set budget'**
+  String get budgetSetButton;
+
+  /// No description provided for @budgetEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Category Budget'**
+  String get budgetEditTitle;
+
+  /// No description provided for @budgetAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly limit'**
+  String get budgetAmountLabel;
+
+  /// No description provided for @budgetLastMonthRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Last mo {amount}'**
+  String budgetLastMonthRef(String amount);
+
+  /// No description provided for @budgetThreeMoAvgRef.
+  ///
+  /// In en, this message translates to:
+  /// **'3-mo avg {amount}'**
+  String budgetThreeMoAvgRef(String amount);
+
+  /// No description provided for @budgetCommittedRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed {amount}'**
+  String budgetCommittedRef(String amount);
+
+  /// No description provided for @budgetScopeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply changes to'**
+  String get budgetScopeLabel;
+
+  /// No description provided for @budgetScopeThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month only'**
+  String get budgetScopeThisMonth;
+
+  /// No description provided for @budgetScopeThisAndFollowing.
+  ///
+  /// In en, this message translates to:
+  /// **'This & following months'**
+  String get budgetScopeThisAndFollowing;
+
+  /// No description provided for @budgetScopeFutureOverrideWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Later months already have custom rules and will be replaced.'**
+  String get budgetScopeFutureOverrideWarning;
+
+  /// No description provided for @budgetHistoryEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Past month has ended. Consider adjusting current or future months instead.'**
+  String get budgetHistoryEditHint;
+
+  /// No description provided for @budgetZeroAmountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget must be greater than 0. Tap Remove budget to unset.'**
+  String get budgetZeroAmountHint;
+
+  /// No description provided for @budgetClearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove budget'**
+  String get budgetClearAction;
+
+  /// No description provided for @budgetClearConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove budget?'**
+  String get budgetClearConfirmTitle;
+
+  /// No description provided for @budgetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget updated'**
+  String get budgetSaved;
+
+  /// No description provided for @budgetCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget removed'**
+  String get budgetCleared;
+
+  /// No description provided for @budgetStatusInBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'In budget'**
+  String get budgetStatusInBudget;
+
+  /// No description provided for @budgetStatusAtRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'At risk'**
+  String get budgetStatusAtRisk;
+
+  /// No description provided for @budgetStatusOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Over'**
+  String get budgetStatusOver;
+
+  /// No description provided for @budgetAnomalyBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'+{percent}% vs 3m avg'**
+  String budgetAnomalyBadge(int percent);
+
+  /// No description provided for @budgetArchivedReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get budgetArchivedReadOnly;
+
+  /// No description provided for @budgetArchivedNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived category — historical budgets and notes are read-only.'**
+  String get budgetArchivedNoteHint;
+
+  /// No description provided for @budgetTopTransactionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top contributing expenses'**
+  String get budgetTopTransactionsTitle;
+
+  /// No description provided for @budgetNoTransactionsInMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses recorded in this month.'**
+  String get budgetNoTransactionsInMonth;
+
+  /// No description provided for @budgetEmptyNoAccountsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to start budgeting'**
+  String get budgetEmptyNoAccountsTitle;
+
+  /// No description provided for @budgetEmptyNoAccountsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No active accounts exist for {currency} yet.'**
+  String budgetEmptyNoAccountsBody(String currency);
+
+  /// No description provided for @budgetEmptyNoBudgetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your monthly spending'**
+  String get budgetEmptyNoBudgetsTitle;
+
+  /// No description provided for @budgetEmptyNoBudgetsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap any category below or + above to set your first category limit.'**
+  String get budgetEmptyNoBudgetsBody;
+
+  /// No description provided for @budgetPickCategoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose category'**
+  String get budgetPickCategoryTitle;
+
+  /// No description provided for @budgetHintRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining {remaining} · After this: {after}'**
+  String budgetHintRemaining(String remaining, String after);
+
+  /// No description provided for @budgetHintAtRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'After this + pending: {after} over'**
+  String budgetHintAtRisk(String after);
+
+  /// No description provided for @budgetHintOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget exceeded by {over} after this'**
+  String budgetHintOver(String over);
+
+  /// No description provided for @budgetHintUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'No budget set · Month spent {spent}'**
+  String budgetHintUnset(String spent);
+
+  /// No description provided for @budgetHintExcludedAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded from budget totals'**
+  String get budgetHintExcludedAccount;
+
+  /// No description provided for @budgetHintPastPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Past-month planned bills are excluded from closed reviews'**
+  String get budgetHintPastPlanned;
 }
 
 class _AppLocalizationsDelegate
