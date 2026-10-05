@@ -289,21 +289,8 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                     SizedBox(height: spacing.md),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                      child: Row(children: [
-                        Expanded(
-                            child: Text(l10n.budgetTopTransactionsTitle,
-                                style: AppTypography.sectionTitle(context))),
-                        if (row.allContributions.length > 3)
-                          AppButton.text(
-                            onPressed: () => Navigator.of(context,
-                                    rootNavigator: true)
-                                .push(MaterialPageRoute<void>(
-                                    builder: (_) => _BudgetContributionsPage(
-                                        month: widget.month,
-                                        categoryId: widget.categoryId))),
-                            child: Text(l10n.budgetViewAll),
-                          ),
-                      ]),
+                      child: Text(l10n.budgetTopTransactionsTitle,
+                          style: AppTypography.sectionTitle(context)),
                     ),
                     SizedBox(height: spacing.sm),
                     if (row.topContributions.isEmpty)
@@ -324,7 +311,28 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                               categoryName: row.name),
                         ],
                       ]),
-                    SizedBox(height: spacing.md),
+                    if (row.allContributions.length > 3)
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: AppButton.text(
+                          onPressed: () => Navigator.of(context,
+                                  rootNavigator: true)
+                              .push(MaterialPageRoute<void>(
+                                  builder: (_) => _BudgetContributionsPage(
+                                      month: widget.month,
+                                      categoryId: widget.categoryId))),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(l10n.budgetViewAll),
+                              SizedBox(width: spacing.xs),
+                              Icon(LucideIcons.chevronRight,
+                                  size: context.metrics.iconSize),
+                            ],
+                          ),
+                        ),
+                      ),
+                    SizedBox(height: context.metrics.sectionGap),
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

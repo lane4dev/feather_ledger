@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
@@ -285,6 +287,16 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Unsaved thought');
     expect(find.text('Expense 4'), findsNothing);
     await tester.ensureVisible(find.text('View all'));
+    final viewAll = find.widgetWithText(AppButton, 'View all');
+    expect(tester.getTopLeft(viewAll).dy,
+        greaterThan(tester.getBottomLeft(find.text('Expense 3')).dy));
+    final arrow = find.descendant(
+        of: viewAll, matching: find.byIcon(LucideIcons.chevronRight));
+    expect(arrow, findsOneWidget);
+    expect(tester.getCenter(arrow).dx,
+        greaterThan(tester.getCenter(find.text('View all')).dx));
+    expect(tester.getTopLeft(find.text('Category review note')).dy,
+        greaterThan(tester.getBottomLeft(viewAll).dy));
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
     expect(find.text('Expense 4'), findsOneWidget);
