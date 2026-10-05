@@ -146,56 +146,6 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
     }
   }
 
-  Future<void> _clear() async {
-    final l10n = AppLocalizations.of(context)!;
-    final effectiveScope =
-        _needsScopePicker ? _scope : BudgetEditScope.thisAndFollowing;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.budgetClearConfirmTitle),
-        content: Text(
-          effectiveScope == BudgetEditScope.thisMonthOnly
-              ? l10n.budgetScopeThisMonth
-              : l10n.budgetScopeThisAndFollowing,
-        ),
-        actions: [
-          AppButton.text(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          AppButton.destructive(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.budgetClearAction),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _submitting = true);
-    final result =
-        await ref.read(budgetViewModelProvider.notifier).clearCategoryBudget(
-              currencyCode: widget.currencyCode,
-              categoryId: widget.row.categoryId,
-              month: widget.month,
-              scope: effectiveScope,
-            );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-
-    switch (result) {
-      case Success():
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.budgetCleared)));
-      case Failure(:final code):
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(code.message(l10n))));
-    }
-  }
-
   void _fillBaseline(int minor) {
     final formatted = formatMinor(minor);
     _controller.value = TextEditingValue(
@@ -267,7 +217,8 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
           Center(
             child: Column(
               children: [
-                Text(l10n.budgetAmountLabel, style: AppTypography.meta(context)),
+                Text(l10n.budgetAmountLabel,
+                    style: AppTypography.meta(context)),
                 SizedBox(height: spacing.xs),
                 LedgerAmountInput(
                   controller: _controller,
@@ -308,8 +259,8 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
                 if (widget.row.threeMonthAvgDisplay != null &&
                     (widget.row.threeMonthAvgMinor ?? 0) > 0)
                   ActionChip(
-                    label: Text(l10n.budgetThreeMoAvgRef(
-                        widget.row.threeMonthAvgDisplay!)),
+                    label: Text(l10n
+                        .budgetThreeMoAvgRef(widget.row.threeMonthAvgDisplay!)),
                     onPressed: () =>
                         _fillBaseline(widget.row.threeMonthAvgMinor!),
                   ),
@@ -352,22 +303,9 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
               ),
           ],
           SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              if (widget.row.budgetMinor != null) ...[
-                AppButton.destructive(
-                  onPressed: _submitting ? null : _clear,
-                  child: Text(l10n.budgetClearAction),
-                ),
-                SizedBox(width: spacing.sm),
-              ],
-              Expanded(
-                child: AppButton(
-                  onPressed: canSave ? _save : null,
-                  child: Text(l10n.save),
-                ),
-              ),
-            ],
+          AppButton(
+            onPressed: canSave ? _save : null,
+            child: Text(l10n.save),
           ),
         ],
       ),

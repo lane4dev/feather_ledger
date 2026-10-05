@@ -80,6 +80,14 @@ class BudgetViewModel extends _$BudgetViewModel {
         );
   }
 
+  Future<Result<bool>> checkFutureRules({
+    required String currencyCode,
+    required String categoryId,
+    required YearMonth month,
+  }) =>
+      checkFutureBudgetRules(ref.read(budgetServiceProvider),
+          currencyCode: currencyCode, categoryId: categoryId, month: month);
+
   Future<Result<void>> setCategoryBudget({
     required String currencyCode,
     required String categoryId,
@@ -137,10 +145,10 @@ class BudgetViewModel extends _$BudgetViewModel {
     final repo = ref.read(ledgerRepositoryProvider);
     final scheduled = await repo.getScheduledTransaction(scheduledBillId);
     if (scheduled == null) return null;
-    final categoryId =
-        scheduled.category?.id ?? scheduled.recurringTransactionSeries?.categoryId;
-    final accountId =
-        scheduled.account?.id ?? scheduled.recurringTransactionSeries?.accountId;
+    final categoryId = scheduled.category?.id ??
+        scheduled.recurringTransactionSeries?.categoryId;
+    final accountId = scheduled.account?.id ??
+        scheduled.recurringTransactionSeries?.accountId;
     if (categoryId == null || accountId == null) return null;
     final category = scheduled.category ??
         await ref.read(categoryRepositoryProvider).getCategory(categoryId);

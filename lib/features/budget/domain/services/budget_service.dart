@@ -14,6 +14,15 @@ import '../value_objects/budget_value_objects.dart';
 
 part 'budget_service.g.dart';
 
+Future<Result<bool>> checkFutureBudgetRules(
+  BudgetService service, {
+  required String currencyCode,
+  required String categoryId,
+  required YearMonth month,
+}) =>
+    guard(() => service.hasFutureRulesAfter(
+        currencyCode: currencyCode, categoryId: categoryId, month: month));
+
 class BudgetService {
   final SetCategoryBudgetCommand _setBudget;
   final ClearCategoryBudgetCommand _clearBudget;

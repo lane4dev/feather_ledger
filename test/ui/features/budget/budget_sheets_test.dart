@@ -290,20 +290,27 @@ void main() {
         of: find.byType(BudgetCategoryDetailScreen),
         matching: find.byType(SlideTransition));
     expect(slide, findsWidgets);
-    expect(tester.widget<SlideTransition>(slide.first).position.value.dx,
+    expect(tester.widget<SlideTransition>(slide.first).position.value.dy,
         greaterThan(0));
+    expect(tester.widget<SlideTransition>(slide.first).position.value.dx, 0);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Unsaved thought');
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove budget'), findsOneWidget);
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('Remove budget'), findsNothing);
     await tester.tap(find.descendant(
         of: find.byType(BudgetEditSheet),
         matching: find.byIcon(LucideIcons.x)));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsNothing);
     expect(find.text('Unsaved thought'), findsOneWidget);
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -318,6 +325,38 @@ void main() {
     updates.add(buildSummary(includeMore: true));
     await tester.pumpAndSettle();
     expect(find.text('Unsaved thought'), findsOneWidget);
+    service.lastScope = null;
+    service.hasFuture = true;
+    tester.view.physicalSize = const Size(320, 740);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('will be replaced'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(service.lastScope, isNull);
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('This month only'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('will be replaced'), findsNothing);
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    expect(service.lastScope, BudgetEditScope.thisMonthOnly);
+    service.lastScope = null;
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    expect(service.lastScope, BudgetEditScope.thisAndFollowing);
+    tester.view.physicalSize = const Size(1200, 2400);
+    await tester.pumpAndSettle();
     expect(find.text('Expense 4'), findsNothing);
     await tester.ensureVisible(find.text('View all'));
     final viewAll = find.widgetWithText(AppButton, 'View all');

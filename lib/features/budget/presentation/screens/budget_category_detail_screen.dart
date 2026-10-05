@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +8,7 @@ import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -48,14 +47,11 @@ Future<void> showBudgetCategoryDetail(
       transitionsBuilder: (context, animation, _, child) {
         final curved =
             CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        final direction =
-            Directionality.of(context) == ui.TextDirection.rtl ? -1.0 : 1.0;
         return FadeTransition(
           opacity: curved,
           child: SlideTransition(
-            position:
-                Tween(begin: Offset(0.06 * direction, 0), end: Offset.zero)
-                    .animate(curved),
+            position: Tween(begin: const Offset(0, 1), end: Offset.zero)
+                .animate(curved),
             child: child,
           ),
         );
@@ -84,6 +80,91 @@ class _BudgetCategoryDetailScreenState
   final TextEditingController _noteController = TextEditingController();
   bool _noteInitialized = false;
   bool _savingNote = false;
+  bool _clearingBudget = false;
+
+  Future<void> _clearBudget(String currencyCode) async {
+    if (_clearingBudget) return;
+    setState(() => _clearingBudget = true);
+    final futureRules =
+        await ref.read(budgetViewModelProvider.notifier).checkFutureRules(
+              currencyCode: currencyCode,
+              categoryId: widget.categoryId,
+              month: widget.month,
+            );
+    if (!mounted) return;
+    if (futureRules case Failure(:final code)) {
+      setState(() => _clearingBudget = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(code.message(AppLocalizations.of(context)!))));
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    var scope = BudgetEditScope.thisAndFollowing;
+    final selectedScope = await showDialog<BudgetEditScope>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.budgetClearConfirmTitle),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              AppSegmentedControl<BudgetEditScope>(
+                segments: [
+                  ButtonSegment(
+                      value: BudgetEditScope.thisMonthOnly,
+                      label: Text(l10n.budgetScopeThisMonth)),
+                  ButtonSegment(
+                      value: BudgetEditScope.thisAndFollowing,
+                      label: Text(l10n.budgetScopeThisAndFollowing)),
+                ],
+                selected: scope,
+                onSelected: (value) => setDialogState(() => scope = value),
+              ),
+              if (futureRules.value &&
+                  scope == BudgetEditScope.thisAndFollowing) ...[
+                SizedBox(height: context.spacing.sm),
+                Text(l10n.budgetScopeFutureOverrideWarning,
+                    style: AppTypography.compactLabel(context)
+                        .copyWith(color: context.colors.expense)),
+              ],
+            ]),
+          ),
+          actions: [
+            AppButton.text(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.cancel),
+            ),
+            AppButton.destructive(
+              onPressed: () => Navigator.of(dialogContext).pop(scope),
+              child: Text(l10n.budgetClearAction),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (selectedScope == null) {
+      setState(() => _clearingBudget = false);
+      return;
+    }
+    final result =
+        await ref.read(budgetViewModelProvider.notifier).clearCategoryBudget(
+              currencyCode: currencyCode,
+              categoryId: widget.categoryId,
+              month: widget.month,
+              scope: selectedScope,
+            );
+    if (!mounted) return;
+    setState(() => _clearingBudget = false);
+    switch (result) {
+      case Success():
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.budgetCleared)));
+      case Failure(:final code):
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(code.message(l10n))));
+    }
+  }
 
   @override
   void dispose() {
@@ -193,20 +274,38 @@ class _BudgetCategoryDetailScreenState
                       ),
                     ),
                     if (row.isBudgetEditable)
-                      AppButton.secondary(
-                        onPressed: () => showBudgetEditSheet(
-                          context,
-                          row: row,
-                          currencyCode: currencyCode,
-                          currencySymbol: currencySymbol,
-                          month: widget.month,
-                          isHistoricalMonth: widget.month < nowYm,
-                        ),
-                        child: Text(
-                          row.budgetMinor != null
-                              ? l10n.edit
-                              : l10n.budgetSetButton,
-                        ),
+                      PopupMenuButton<_BudgetAction>(
+                        enabled: !_clearingBudget,
+                        icon: const Icon(LucideIcons.ellipsisVertical),
+                        onSelected: (action) {
+                          switch (action) {
+                            case _BudgetAction.edit:
+                              showBudgetEditSheet(context,
+                                  row: row,
+                                  currencyCode: currencyCode,
+                                  currencySymbol: currencySymbol,
+                                  month: widget.month,
+                                  isHistoricalMonth: widget.month < nowYm);
+                            case _BudgetAction.clear:
+                              _clearBudget(currencyCode);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                              value: _BudgetAction.edit,
+                              child: Text(l10n.edit)),
+                          PopupMenuItem(
+                              value: _BudgetAction.clear,
+                              enabled: row.budgetMinor != null,
+                              child: Text(l10n.budgetClearAction,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                          color: row.budgetMinor == null
+                                              ? scheme.onSurfaceVariant
+                                              : scheme.error))),
+                        ],
                       ),
                   ],
                 ),
@@ -434,6 +533,8 @@ class _BudgetCategoryDetailScreenState
         ],
       );
 }
+
+enum _BudgetAction { edit, clear }
 
 class _ContributionCard extends ConsumerWidget {
   const _ContributionCard(
