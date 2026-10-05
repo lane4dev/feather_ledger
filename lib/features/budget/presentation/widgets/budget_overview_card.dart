@@ -42,14 +42,22 @@ class BudgetOverviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: spacing.sm,
-            runSpacing: spacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
             children: [
-              AppBadge(label: modeLabel, color: scheme.primary),
-              AppBadge(
-                label: '${l10n.budgetCompliance} ${overview.complianceDisplay}',
+              Expanded(
+                  child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child:
+                          AppBadge(label: modeLabel, color: scheme.primary))),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: AppBadge(
+                    label:
+                        '${l10n.budgetCompliance} ${overview.complianceDisplay}',
+                  ),
+                ),
               ),
             ],
           ),
@@ -64,6 +72,16 @@ class BudgetOverviewCard extends StatelessWidget {
               style: AppTypography.balance(context),
             ),
           ),
+          if (overview.hasUnbudgetedSpend) ...[
+            SizedBox(height: spacing.xs),
+            _InlineChipStat(
+              icon: LucideIcons.info,
+              label: l10n.budgetAllExpensesLine(
+                overview.allExpenseActualDisplay,
+                overview.unbudgetedActualDisplay,
+              ),
+            ),
+          ],
           SizedBox(height: spacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
@@ -132,12 +150,12 @@ class BudgetOverviewCard extends StatelessWidget {
               _InlineChipStat(
                 icon: LucideIcons.calendarClock,
                 label:
-                    '${l10n.budgetCommitted}: ${overview.committedActualDisplay}',
+                    '${l10n.budgetCommittedSpending}: ${overview.committedActualDisplay}',
               ),
               _InlineChipStat(
                 icon: LucideIcons.shoppingBag,
                 label:
-                    '${l10n.budgetDiscretionary}: ${overview.discretionaryActualDisplay}',
+                    '${l10n.budgetDiscretionarySpending}: ${overview.discretionaryActualDisplay}',
               ),
               if (overview.mode != BudgetMode.review)
                 _InlineChipStat(
@@ -147,31 +165,14 @@ class BudgetOverviewCard extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: spacing.md),
-          const FeatherDivider(),
-          SizedBox(height: spacing.sm),
-          Text(
-            overview.hasUnbudgetedSpend
-                ? l10n.budgetAllExpensesLine(
-                    overview.allExpenseActualDisplay,
-                    overview.unbudgetedActualDisplay,
-                  )
-                : l10n.budgetAllExpensesOnly(overview.allExpenseActualDisplay),
-            style: AppTypography.meta(context),
-          ),
           if (overview.hasLeftoverPendingInReview) ...[
-            SizedBox(height: spacing.xs),
+            SizedBox(height: spacing.md),
+            const FeatherDivider(),
+            SizedBox(height: spacing.sm),
             Text(
               l10n.budgetLeftoverPendingHint,
               style: AppTypography.meta(context)
                   .copyWith(color: context.colors.frequency),
-            ),
-          ],
-          if (overview.hasHighFrequencyMaterializationHint) ...[
-            SizedBox(height: spacing.xs),
-            Text(
-              l10n.budgetMaterializedOnlyHint,
-              style: AppTypography.meta(context),
             ),
           ],
         ],

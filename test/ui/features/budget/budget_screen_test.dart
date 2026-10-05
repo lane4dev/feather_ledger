@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/design_system/app_floating_toolbar.dart';
+import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -120,6 +121,7 @@ CategoryBudgetSummary _cat({
 MonthBudgetSummary _summary({
   required YearMonth month,
   required BudgetMode mode,
+  int unbudgetedMinor = 25000,
 }) {
   final dining = _cat(
     id: 'dining',
@@ -132,7 +134,7 @@ MonthBudgetSummary _summary({
     id: 'travel',
     name: 'Travel',
     budgetMinor: null,
-    actualMinor: 25000,
+    actualMinor: unbudgetedMinor,
     isArchived: mode == BudgetMode.review,
   );
   final utils = _cat(
@@ -152,9 +154,9 @@ MonthBudgetSummary _summary({
     budgetedPendingMinor: mode == BudgetMode.review ? 0 : 10000,
     projectedRemainingMinor: mode == BudgetMode.review ? 60000 : 50000,
     budgetedRemainingActualMinor: 60000,
-    allExpenseActualMinor: 65000,
+    allExpenseActualMinor: 40000 + unbudgetedMinor,
     allExpensePendingMinor: mode == BudgetMode.review ? 0 : 10000,
-    unbudgetedActualMinor: 25000,
+    unbudgetedActualMinor: unbudgetedMinor,
     unbudgetedPendingMinor: 0,
     inBudgetCount: 1,
     budgetedCategoryCount: 1,
@@ -284,6 +286,15 @@ void main() {
     expect(find.text('Track'), findsOneWidget);
     expect(find.textContaining('1/1'), findsOneWidget);
     expect(find.textContaining('All expenses'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.info), findsOneWidget);
+    expect(tester.getTopLeft(find.textContaining('All expenses')).dy,
+        greaterThan(tester.getTopLeft(find.text('Total budget').first).dy));
+    expect(tester.getCenter(find.textContaining('1/1')).dx,
+        greaterThan(tester.getCenter(find.text('Track')).dx));
+    final badge = find.ancestor(
+        of: find.textContaining('1/1'), matching: find.byType(AppBadge));
+    final headerRow = find.ancestor(of: badge, matching: find.byType(Row)).first;
+    expect(tester.getRect(badge).right, tester.getRect(headerRow).right);
 
     // Remaining categories collapsed initially
     expect(find.text('Utilities'), findsNothing);
@@ -317,8 +328,20 @@ void main() {
     await tester.tap(find.byIcon(LucideIcons.chevronRight));
     await tester.pumpAndSettle();
     expect(find.text('Plan'), findsOneWidget);
-    expect(find.textContaining('materialized pending bills'), findsOneWidget);
+    expect(find.textContaining('materialized pending bills'), findsNothing);
     expect(find.byType(AppFloatingToolbar), findsNothing);
+  });
+
+  testWidgets('omits the expense note when there is no unbudgeted spend',
+      (tester) async {
+    const may = YearMonth(2026, 5);
+    await pumpBudgetScreen(tester,
+        service: _FakeBudgetService({
+          may: _summary(month: may, mode: BudgetMode.track, unbudgetedMinor: 0),
+        }),
+        now: DateTime(2026, 5, 10));
+    expect(find.textContaining('All expenses'), findsNothing);
+    expect(find.byIcon(LucideIcons.info), findsNothing);
   });
 
   testWidgets('toolbar hides on downward scroll and returns on upward scroll',

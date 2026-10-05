@@ -1031,6 +1031,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetCommitted => '固定';
 
   @override
+  String get budgetCommittedSpending => '固定消费';
+
+  @override
+  String get budgetDiscretionarySpending => '弹性消费';
+
+  @override
   String get budgetDiscretionary => '弹性';
 
   @override
@@ -2248,6 +2254,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetCommitted => '固定';
 
   @override
+  String get budgetCommittedSpending => '固定消费';
+
+  @override
+  String get budgetDiscretionarySpending => '弹性消费';
+
+  @override
   String get budgetDiscretionary => '弹性';
 
   @override
@@ -3463,6 +3475,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetCommitted => '固定';
+
+  @override
+  String get budgetCommittedSpending => '固定消費';
+
+  @override
+  String get budgetDiscretionarySpending => '彈性消費';
 
   @override
   String get budgetDiscretionary => '彈性';

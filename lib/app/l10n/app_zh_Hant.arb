@@ -772,6 +772,8 @@
   "budgetProjectedOver": "預計超支",
   "budgetCompliance": "達標率",
   "budgetCommitted": "固定",
+  "budgetCommittedSpending": "固定消費",
+  "budgetDiscretionarySpending": "彈性消費",
   "budgetDiscretionary": "彈性",
   "budgetCommittedBaseline": "固定基準線",
   "budgetAllExpensesLine": "本月全部實耗 {total}（含未設預算 {unbudgeted}）",

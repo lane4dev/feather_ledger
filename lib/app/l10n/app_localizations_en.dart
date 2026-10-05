@@ -1085,6 +1085,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetCommitted => 'Committed';
 
   @override
+  String get budgetCommittedSpending => 'Committed spending';
+
+  @override
+  String get budgetDiscretionarySpending => 'Discretionary spending';
+
+  @override
   String get budgetDiscretionary => 'Discretionary';
 
   @override

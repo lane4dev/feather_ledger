@@ -2087,6 +2087,18 @@ abstract class AppLocalizations {
   /// **'Committed'**
   String get budgetCommitted;
 
+  /// No description provided for @budgetCommittedSpending.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed spending'**
+  String get budgetCommittedSpending;
+
+  /// No description provided for @budgetDiscretionarySpending.
+  ///
+  /// In en, this message translates to:
+  /// **'Discretionary spending'**
+  String get budgetDiscretionarySpending;
+
   /// No description provided for @budgetDiscretionary.
   ///
   /// In en, this message translates to:

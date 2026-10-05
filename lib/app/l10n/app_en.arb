@@ -874,6 +874,8 @@
   "budgetProjectedOver": "Projected over",
   "budgetCompliance": "On budget",
   "budgetCommitted": "Committed",
+  "budgetCommittedSpending": "Committed spending",
+  "budgetDiscretionarySpending": "Discretionary spending",
   "budgetDiscretionary": "Discretionary",
   "budgetCommittedBaseline": "Committed baseline",
   "budgetAllExpensesLine": "All expenses {total} (unbudgeted {unbudgeted})",
