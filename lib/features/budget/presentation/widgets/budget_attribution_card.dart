@@ -218,7 +218,7 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
                   child: Text(l10n.cancel),
                 ),
                 SizedBox(width: spacing.xs),
-                AppButton(
+                AppButton.outlined(
                   onPressed: _saving ? null : _submitNote,
                   child: Text(l10n.budgetSaveNote),
                 ),

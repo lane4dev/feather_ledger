@@ -315,12 +315,12 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
                         child: AppButton.text(
-                          onPressed: () => Navigator.of(context,
-                                  rootNavigator: true)
-                              .push(MaterialPageRoute<void>(
-                                  builder: (_) => _BudgetContributionsPage(
-                                      month: widget.month,
-                                      categoryId: widget.categoryId))),
+                          onPressed: () =>
+                              Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute<void>(
+                                      builder: (_) => _BudgetContributionsPage(
+                                          month: widget.month,
+                                          categoryId: widget.categoryId))),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -378,7 +378,7 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                                   ),
                                 ),
                                 const Spacer(),
-                                AppButton(
+                                AppButton.outlined(
                                   onPressed: _savingNote
                                       ? null
                                       : () => _saveNote(currencyCode),
