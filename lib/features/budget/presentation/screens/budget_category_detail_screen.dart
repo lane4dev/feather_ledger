@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +10,6 @@ import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
-import 'package:feather_ledger/app/design_system/app_sheet_handle.dart';
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -24,42 +25,62 @@ import '../../domain/value_objects/budget_value_objects.dart';
 import '../mappers/budget_ui_mapper.dart';
 import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
-import 'budget_edit_sheet.dart';
-import 'budget_trend_chart.dart';
+import '../widgets/budget_edit_sheet.dart';
+import '../widgets/budget_trend_chart.dart';
 
-Future<void> showBudgetDrilldownSheet(
+Future<void> showBudgetCategoryDetail(
   BuildContext context, {
   required YearMonth month,
   required String categoryId,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    useSafeArea: true,
-    builder: (_) => BudgetDrilldownSheet(
-      month: month,
-      categoryId: categoryId,
+  final reducedMotion = MediaQuery.disableAnimationsOf(context);
+  return Navigator.of(context, rootNavigator: true).push<void>(
+    PageRouteBuilder<void>(
+      settings: const RouteSettings(name: '/budget/category'),
+      transitionDuration:
+          reducedMotion ? Duration.zero : const Duration(milliseconds: 320),
+      reverseTransitionDuration:
+          reducedMotion ? Duration.zero : const Duration(milliseconds: 260),
+      pageBuilder: (_, __, ___) => BudgetCategoryDetailScreen(
+        month: month,
+        categoryId: categoryId,
+      ),
+      transitionsBuilder: (context, animation, _, child) {
+        final curved =
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        final direction =
+            Directionality.of(context) == ui.TextDirection.rtl ? -1.0 : 1.0;
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position:
+                Tween(begin: Offset(0.06 * direction, 0), end: Offset.zero)
+                    .animate(curved),
+            child: child,
+          ),
+        );
+      },
     ),
   );
 }
 
-class BudgetDrilldownSheet extends ConsumerStatefulWidget {
+class BudgetCategoryDetailScreen extends ConsumerStatefulWidget {
   final YearMonth month;
   final String categoryId;
 
-  const BudgetDrilldownSheet({
+  const BudgetCategoryDetailScreen({
     super.key,
     required this.month,
     required this.categoryId,
   });
 
   @override
-  ConsumerState<BudgetDrilldownSheet> createState() =>
-      _BudgetDrilldownSheetState();
+  ConsumerState<BudgetCategoryDetailScreen> createState() =>
+      _BudgetCategoryDetailScreenState();
 }
 
-class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
+class _BudgetCategoryDetailScreenState
+    extends ConsumerState<BudgetCategoryDetailScreen> {
   final TextEditingController _noteController = TextEditingController();
   bool _noteInitialized = false;
   bool _savingNote = false;
@@ -104,11 +125,11 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
     final spacing = context.spacing;
     final scheme = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.88,
-      child: summaryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text(err.toString())),
+    return Scaffold(
+      body: SafeArea(
+          child: summaryAsync.when(
+        loading: () => _statusPage(const CircularProgressIndicator()),
+        error: (err, _) => _statusPage(Text(l10n.errorPrefix(err.toString()))),
         data: (summary) {
           final screenModel = const BudgetUiMapper().mapScreen(
             summary,
@@ -124,7 +145,7 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
               .where((r) => r.categoryId == widget.categoryId)
               .firstOrNull;
           if (row == null) {
-            return const SizedBox.shrink();
+            return _statusPage(const SizedBox.shrink());
           }
 
           if (!_noteInitialized) {
@@ -134,13 +155,14 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
 
           return Column(
             children: [
-              const AppSheetHandle(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: spacing.md),
                 child: Row(
                   children: [
                     AppIconButton(
-                      icon: const Icon(LucideIcons.x),
+                      icon: const Icon(LucideIcons.arrowLeft),
+                      tooltip:
+                          MaterialLocalizations.of(context).backButtonTooltip,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     SizedBox(width: spacing.xs),
@@ -196,7 +218,7 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                     spacing.md,
                     spacing.xs,
                     spacing.md,
-                    spacing.xl + MediaQuery.of(context).viewInsets.bottom,
+                    spacing.xl,
                   ),
                   children: [
                     AppCard(
@@ -396,9 +418,21 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
             ],
           );
         },
-      ),
+      )),
     );
   }
+
+  Widget _statusPage(Widget content) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppIconButton(
+            icon: const Icon(LucideIcons.arrowLeft),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          Expanded(child: Center(child: content)),
+        ],
+      );
 }
 
 class _ContributionCard extends ConsumerWidget {

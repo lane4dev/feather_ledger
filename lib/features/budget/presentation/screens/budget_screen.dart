@@ -28,7 +28,7 @@ import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
 import '../widgets/budget_attribution_card.dart';
 import '../widgets/budget_category_section.dart';
-import '../widgets/budget_drilldown_sheet.dart';
+import 'budget_category_detail_screen.dart';
 import '../widgets/budget_edit_sheet.dart';
 import '../widgets/budget_overview_card.dart';
 import '../widgets/budget_trend_chart.dart';
@@ -253,7 +253,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                       underBudgetTop3: model.underBudgetTop3,
                       unbudgetedAlertsTop3: model.unbudgetedAlertsTop3,
                       monthReviewNote: model.monthReviewNote,
-                      onCategoryTap: (categoryId) => showBudgetDrilldownSheet(
+                      onCategoryTap: (categoryId) => showBudgetCategoryDetail(
                         context,
                         month: uiState.selectedMonth,
                         categoryId: categoryId,
@@ -290,7 +290,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     remainingActiveRows: model.remainingActiveRows,
                     showRemaining: uiState.showRemainingCategories,
                     onToggleRemaining: notifier.toggleRemainingCategories,
-                    onRowTap: (row) => showBudgetDrilldownSheet(
+                    onRowTap: (row) => showBudgetCategoryDetail(
                       context,
                       month: uiState.selectedMonth,
                       categoryId: row.categoryId,

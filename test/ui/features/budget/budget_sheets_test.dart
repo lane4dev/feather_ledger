@@ -20,7 +20,7 @@ import 'package:feather_ledger/features/budget/domain/entities/budget_entities.d
 import 'package:feather_ledger/features/budget/domain/services/budget_service.dart';
 import 'package:feather_ledger/features/budget/domain/value_objects/budget_value_objects.dart';
 import 'package:feather_ledger/features/budget/presentation/models/budget_ui_models.dart';
-import 'package:feather_ledger/features/budget/presentation/widgets/budget_drilldown_sheet.dart';
+import 'package:feather_ledger/features/budget/presentation/screens/budget_category_detail_screen.dart';
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_edit_sheet.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
@@ -248,13 +248,15 @@ void main() {
     addTearDown(tester.view.reset);
     final updates = StreamController<MonthBudgetSummary>.broadcast();
     addTearDown(updates.close);
+    final service = _StubBudgetService(buildSummary(includeMore: true),
+        updates: updates.stream);
     final router = GoRouter(initialLocation: '/', routes: [
       GoRoute(
           path: '/',
           builder: (_, __) => Scaffold(
               body: Builder(
                   builder: (context) => TextButton(
-                        onPressed: () => showBudgetDrilldownSheet(context,
+                        onPressed: () => showBudgetCategoryDetail(context,
                             month: const YearMonth(2026, 5),
                             categoryId: 'dining'),
                         child: const Text('Open'),
@@ -269,8 +271,7 @@ void main() {
       overrides: [
         budgetClockProvider
             .overrideWithValue(FixedClock(DateTime(2026, 5, 15))),
-        budgetServiceProvider.overrideWithValue(_StubBudgetService(
-            buildSummary(includeMore: true), updates: updates.stream)),
+        budgetServiceProvider.overrideWithValue(service),
         ledgerRepositoryProvider.overrideWithValue(_StubLedgerRepository()),
         ledgerCurrencyProvider.overrideWithValue('USD'),
         displayCurrencySymbolProvider.overrideWithValue('\$'),
@@ -283,8 +284,40 @@ void main() {
       ),
     ));
     await tester.tap(find.text('Open'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final slide = find.ancestor(
+        of: find.byType(BudgetCategoryDetailScreen),
+        matching: find.byType(SlideTransition));
+    expect(slide, findsWidgets);
+    expect(tester.widget<SlideTransition>(slide.first).position.value.dx,
+        greaterThan(0));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Unsaved thought');
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetEditSheet), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tap(find.descendant(
+        of: find.byType(BudgetEditSheet),
+        matching: find.byIcon(LucideIcons.x)));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetEditSheet), findsNothing);
+    expect(find.text('Unsaved thought'), findsOneWidget);
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.descendant(
+            of: find.byType(BudgetEditSheet),
+            matching: find.byType(TextFormField)),
+        '1200');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(service.lastAmountMinor, 120000);
+    expect(find.byType(BudgetEditSheet), findsNothing);
+    updates.add(buildSummary(includeMore: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Unsaved thought'), findsOneWidget);
     expect(find.text('Expense 4'), findsNothing);
     await tester.ensureVisible(find.text('View all'));
     final viewAll = find.widgetWithText(AppButton, 'View all');
@@ -315,10 +348,13 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Unsaved thought'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Open'), findsOneWidget);
   });
 
   testWidgets(
-      'BudgetDrilldownSheet navigates to /ledger/edit and validates Review Note length',
+      'budget detail navigates to /ledger/edit and validates Review Note length',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -335,7 +371,7 @@ void main() {
           builder: (_, __) => Scaffold(
             body: Builder(
               builder: (ctx) => ElevatedButton(
-                onPressed: () => showBudgetDrilldownSheet(
+                onPressed: () => showBudgetCategoryDetail(
                   ctx,
                   month: const YearMonth(2026, 5),
                   categoryId: 'dining',
@@ -384,16 +420,8 @@ void main() {
     await tester.tap(find.text('Open drilldown'));
     await tester.pumpAndSettle();
 
-    // 88% height check
-    final sized = tester.widget<SizedBox>(
-      find
-          .ancestor(
-            of: find.text('Dining'),
-            matching: find.byType(SizedBox),
-          )
-          .first,
-    );
-    expect(sized.height, closeTo(2400 * 0.88, 1.0));
+    expect(find.byType(BudgetCategoryDetailScreen), findsOneWidget);
+    expect(find.byIcon(LucideIcons.arrowLeft), findsOneWidget);
 
     // Too long note triggers error SnackBar
     final noteField = find.byType(TextField);
