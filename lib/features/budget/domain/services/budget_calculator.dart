@@ -145,10 +145,9 @@ abstract final class BudgetCalculator {
       final pendingMinor = mode == BudgetMode.review ? 0 : rawCatPending;
       allExpensePendingMinor += pendingMinor;
 
-      final lastMonthActualMinor =
-          (earliestYm != null && prevYm >= earliestYm)
-              ? (actualByCatYm[(cat.id, prevYm.ym)] ?? 0)
-              : null;
+      final lastMonthActualMinor = (earliestYm != null && prevYm >= earliestYm)
+          ? (actualByCatYm[(cat.id, prevYm.ym)] ?? 0)
+          : null;
 
       int? threeMonthAvgMinor;
       if (earliestYm != null && targetYm > earliestYm) {
@@ -234,6 +233,7 @@ abstract final class BudgetCalculator {
             occurredAt: tx.occurredAt,
             amountMinor: tx.amountMinor,
             isPending: false,
+            accountName: tx.accountName,
           ),
         if (mode != BudgetMode.review)
           for (final bill in pendingByCat[cat.id] ?? const [])
@@ -245,6 +245,7 @@ abstract final class BudgetCalculator {
               occurredAt: bill.effectiveDate,
               amountMinor: bill.amountMinor,
               isPending: true,
+              accountName: bill.accountName,
             ),
       ]..sort((a, b) {
           final cmp = b.amountMinor.compareTo(a.amountMinor);
@@ -274,6 +275,7 @@ abstract final class BudgetCalculator {
         riskLevel: riskLevel,
         sixMonthTrend: trend,
         topTransactions: contributions.take(3).toList(growable: false),
+        allTransactions: List.unmodifiable(contributions),
         reviewNote: noteByYmCat[(targetYm.ym, cat.id)],
       );
 
@@ -315,8 +317,8 @@ abstract final class BudgetCalculator {
     });
 
     unbudgetedActive.sort((a, b) {
-      final sumCmp =
-          (b.actualMinor + b.pendingMinor).compareTo(a.actualMinor + a.pendingMinor);
+      final sumCmp = (b.actualMinor + b.pendingMinor)
+          .compareTo(a.actualMinor + a.pendingMinor);
       if (sumCmp != 0) return sumCmp;
       return a.categoryName.compareTo(b.categoryName);
     });
@@ -361,7 +363,8 @@ abstract final class BudgetCalculator {
     final unbudgetedAlerts = allExpenseActualMinor > 0
         ? (unbudgetedActive
             .where((c) =>
-                !c.isArchived && (c.actualMinor / allExpenseActualMinor) >= 0.05)
+                !c.isArchived &&
+                (c.actualMinor / allExpenseActualMinor) >= 0.05)
             .map((c) => UnbudgetedSpendAlert(
                   categoryId: c.categoryId,
                   categoryName: c.categoryName,

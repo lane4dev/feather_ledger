@@ -11,8 +11,7 @@ class YearMonth implements Comparable<YearMonth> {
 
   factory YearMonth.fromYm(int ym) => YearMonth(ym ~/ 100, ym % 100);
 
-  factory YearMonth.fromDate(DateTime date) =>
-      YearMonth(date.year, date.month);
+  factory YearMonth.fromDate(DateTime date) => YearMonth(date.year, date.month);
 
   int get ym => year * 100 + month;
 
@@ -138,6 +137,7 @@ class BudgetContributionTx {
   final DateTime occurredAt;
   final int amountMinor;
   final bool isPending;
+  final String accountName;
 
   const BudgetContributionTx({
     required this.transactionId,
@@ -147,6 +147,7 @@ class BudgetContributionTx {
     required this.occurredAt,
     required this.amountMinor,
     required this.isPending,
+    this.accountName = '',
   });
 
   bool get isCommitted => isPending || sourceScheduledBillId != null;
@@ -161,7 +162,8 @@ class BudgetContributionTx {
           other.description == description &&
           other.occurredAt == occurredAt &&
           other.amountMinor == amountMinor &&
-          other.isPending == isPending);
+          other.isPending == isPending &&
+          other.accountName == accountName);
 
   @override
   int get hashCode => Object.hash(
@@ -172,5 +174,6 @@ class BudgetContributionTx {
         occurredAt,
         amountMinor,
         isPending,
+        accountName,
       );
 }

@@ -1181,6 +1181,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetTopTransactionsTitle => '主要贡献支出';
 
   @override
+  String get budgetViewAll => '查看全部';
+
+  @override
   String get budgetNoTransactionsInMonth => '本月暂无支出记录。';
 
   @override
@@ -2404,6 +2407,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetTopTransactionsTitle => '主要贡献支出';
 
   @override
+  String get budgetViewAll => '查看全部';
+
+  @override
   String get budgetNoTransactionsInMonth => '本月暂无支出记录。';
 
   @override
@@ -3625,6 +3631,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetTopTransactionsTitle => '主要貢獻支出';
+
+  @override
+  String get budgetViewAll => '查看全部';
 
   @override
   String get budgetNoTransactionsInMonth => '本月尚無支出記錄。';

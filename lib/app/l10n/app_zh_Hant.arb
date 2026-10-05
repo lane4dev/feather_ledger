@@ -817,6 +817,7 @@
   "budgetArchivedReadOnly": "已封存",
   "budgetArchivedNoteHint": "該分類已封存，歷史預算與複盤備忘僅供唯讀檢視。",
   "budgetTopTransactionsTitle": "主要貢獻支出",
+  "budgetViewAll": "查看全部",
   "budgetNoTransactionsInMonth": "本月尚無支出記錄。",
   "budgetEmptyNoAccountsTitle": "新增帳戶後即可規劃預算",
   "budgetEmptyNoAccountsBody": "目前幣別（{currency}）下尚無活躍帳戶。",

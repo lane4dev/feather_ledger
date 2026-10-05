@@ -2357,6 +2357,12 @@ abstract class AppLocalizations {
   /// **'Top contributing expenses'**
   String get budgetTopTransactionsTitle;
 
+  /// No description provided for @budgetViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get budgetViewAll;
+
   /// No description provided for @budgetNoTransactionsInMonth.
   ///
   /// In en, this message translates to:

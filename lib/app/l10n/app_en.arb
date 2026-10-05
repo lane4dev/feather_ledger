@@ -947,6 +947,7 @@
   "budgetArchivedReadOnly": "Archived",
   "budgetArchivedNoteHint": "Archived category — historical budgets and notes are read-only.",
   "budgetTopTransactionsTitle": "Top contributing expenses",
+  "budgetViewAll": "View all",
   "budgetNoTransactionsInMonth": "No expenses recorded in this month.",
   "budgetEmptyNoAccountsTitle": "Create an account to start budgeting",
   "budgetEmptyNoAccountsBody": "No active accounts exist for {currency} yet.",

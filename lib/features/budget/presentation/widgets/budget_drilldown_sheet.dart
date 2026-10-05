@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
@@ -16,6 +17,7 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_vi
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
 
 import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
@@ -88,21 +90,6 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
       case Failure(:final code):
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(code.message(l10n))));
-    }
-  }
-
-  Future<void> _openTransaction(BudgetContributionTxUiModel tx) async {
-    final notifier = ref.read(budgetViewModelProvider.notifier);
-    if (tx.isPending) {
-      final tile = await notifier.loadPendingBillForEdit(tx.id);
-      if (tile != null && mounted) {
-        await context.push<void>('/ledger/edit-bill', extra: tile);
-      }
-      return;
-    }
-    final tile = await notifier.loadTransactionForEdit(tx.id);
-    if (tile != null && mounted) {
-      await context.push<void>('/ledger/edit', extra: tile);
     }
   }
 
@@ -302,10 +289,21 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                     SizedBox(height: spacing.md),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                      child: Text(
-                        l10n.budgetTopTransactionsTitle,
-                        style: AppTypography.sectionTitle(context),
-                      ),
+                      child: Row(children: [
+                        Expanded(
+                            child: Text(l10n.budgetTopTransactionsTitle,
+                                style: AppTypography.sectionTitle(context))),
+                        if (row.allContributions.length > 3)
+                          AppButton.text(
+                            onPressed: () => Navigator.of(context,
+                                    rootNavigator: true)
+                                .push(MaterialPageRoute<void>(
+                                    builder: (_) => _BudgetContributionsPage(
+                                        month: widget.month,
+                                        categoryId: widget.categoryId))),
+                            child: Text(l10n.budgetViewAll),
+                          ),
+                      ]),
                     ),
                     SizedBox(height: spacing.sm),
                     if (row.topContributions.isEmpty)
@@ -316,60 +314,16 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                         ),
                       )
                     else
-                      AppCard.group(
-                        child: Column(
-                          children: [
-                            for (var i = 0;
-                                i < row.topContributions.length;
-                                i++) ...[
-                              if (i > 0) const FeatherDivider(),
-                              ListTile(
-                                onTap: () =>
-                                    _openTransaction(row.topContributions[i]),
-                                title: Text(
-                                  row.topContributions[i].title.isEmpty
-                                      ? row.name
-                                      : row.topContributions[i].title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Wrap(
-                                  spacing: spacing.xs,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    Text(row.topContributions[i].dateDisplay),
-                                    AppBadge(
-                                      label: row.topContributions[i].isCommitted
-                                          ? l10n.budgetCommitted
-                                          : l10n.budgetDiscretionary,
-                                    ),
-                                    if (row.topContributions[i].isPending)
-                                      AppBadge(
-                                        label: l10n.budgetPendingShort,
-                                        color: context.colors.frequency,
-                                      ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      row.topContributions[i].amountDisplay,
-                                      style: AppTypography.amount(context),
-                                    ),
-                                    SizedBox(width: spacing.xs),
-                                    Icon(
-                                      LucideIcons.chevronRight,
-                                      size: 16,
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                      Column(children: [
+                        for (var i = 0;
+                            i < row.topContributions.length;
+                            i++) ...[
+                          if (i > 0) SizedBox(height: spacing.sm),
+                          _ContributionCard(
+                              transaction: row.topContributions[i],
+                              categoryName: row.name),
+                        ],
+                      ]),
                     SizedBox(height: spacing.md),
                     AppCard(
                       child: Column(
@@ -432,6 +386,109 @@ class _BudgetDrilldownSheetState extends ConsumerState<BudgetDrilldownSheet> {
                 ),
               ),
             ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ContributionCard extends ConsumerWidget {
+  const _ContributionCard(
+      {required this.transaction, required this.categoryName});
+
+  final BudgetContributionTxUiModel transaction;
+  final String categoryName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return TransactionResultCard(
+      title:
+          transaction.title.trim().isEmpty ? categoryName : transaction.title,
+      metadata: [
+        l10n.expense,
+        categoryName,
+        if (transaction.accountName.isNotEmpty) transaction.accountName
+      ].join(' · '),
+      date: transaction.dateDisplay,
+      amount: '- ${transaction.amountDisplay}',
+      amountColor: context.colors.expense,
+      badges: [
+        AppBadge(
+            label: transaction.isCommitted
+                ? l10n.budgetCommitted
+                : l10n.budgetDiscretionary),
+        if (transaction.isPending)
+          AppBadge(
+              label: l10n.budgetPendingShort, color: context.colors.frequency),
+      ],
+      onTap: () async {
+        final notifier = ref.read(budgetViewModelProvider.notifier);
+        final tile = transaction.isPending
+            ? await notifier.loadPendingBillForEdit(transaction.id)
+            : await notifier.loadTransactionForEdit(transaction.id);
+        if (!context.mounted || tile == null) return;
+        await context.push<void>(
+            transaction.isPending ? '/ledger/edit-bill' : '/ledger/edit',
+            extra: tile);
+      },
+    );
+  }
+}
+
+class _BudgetContributionsPage extends ConsumerWidget {
+  const _BudgetContributionsPage(
+      {required this.month, required this.categoryId});
+
+  final YearMonth month;
+  final String categoryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final currency = ref.watch(displayCurrencySymbolProvider);
+    final summary = ref.watch(budgetMonthSummaryProvider(month));
+    return Scaffold(
+      appBar: AppBar(
+        leading: AppIconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(l10n.budgetTopTransactionsTitle),
+      ),
+      body: summary.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) =>
+            Center(child: Text(l10n.errorPrefix(error.toString()))),
+        data: (data) {
+          final model = const BudgetUiMapper()
+              .mapScreen(data, currencySymbol: currency, locale: locale);
+          final row = [
+            ...model.budgetedRows,
+            ...model.unbudgetedActiveRows,
+            ...model.remainingActiveRows
+          ].where((item) => item.categoryId == categoryId).firstOrNull;
+          if (row == null) return const SizedBox.shrink();
+          return ListView.separated(
+            padding: context.pagePadding
+                .add(EdgeInsets.symmetric(vertical: context.spacing.md)),
+            itemCount: row.allContributions.isEmpty
+                ? 2
+                : row.allContributions.length + 1,
+            separatorBuilder: (_, __) => SizedBox(height: context.spacing.sm),
+            itemBuilder: (context, index) => index == 0
+                ? Text(
+                    '${row.name} · ${DateFormat.yMMMM(locale).format(month.toDateTime())}',
+                    style: AppTypography.sectionTitle(context))
+                : row.allContributions.isEmpty
+                    ? Text(l10n.budgetNoTransactionsInMonth,
+                        style: AppTypography.meta(context))
+                    : _ContributionCard(
+                        transaction: row.allContributions[index - 1],
+                        categoryName: row.name),
           );
         },
       ),

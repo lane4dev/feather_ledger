@@ -31,6 +31,7 @@ class BudgetContributionTxUiModel {
   final String dateDisplay;
   final String amountDisplay;
   final bool isCommitted;
+  final String accountName;
 
   const BudgetContributionTxUiModel({
     required this.id,
@@ -39,6 +40,7 @@ class BudgetContributionTxUiModel {
     required this.dateDisplay,
     required this.amountDisplay,
     required this.isCommitted,
+    this.accountName = '',
   });
 }
 
@@ -72,6 +74,7 @@ class BudgetCategoryRowUiModel {
   final String? reviewNote;
   final List<BudgetTrendPointUiModel> trend6Months;
   final List<BudgetContributionTxUiModel> topContributions;
+  final List<BudgetContributionTxUiModel> allContributions;
 
   const BudgetCategoryRowUiModel({
     required this.categoryId,
@@ -102,6 +105,7 @@ class BudgetCategoryRowUiModel {
     required this.reviewNote,
     required this.trend6Months,
     required this.topContributions,
+    this.allContributions = const [],
   });
 }
 

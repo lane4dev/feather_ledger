@@ -1,4 +1,4 @@
-import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -7,7 +7,6 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../models/transaction_tile_ui_model.dart';
-import '../theme/ledger_theme.dart';
 
 /// A standalone search result, including its date and both transfer accounts.
 class SearchTransactionTile extends StatelessWidget {
@@ -52,34 +51,15 @@ class SearchTransactionTile extends StatelessWidget {
       _ => Theme.of(context).colorScheme.onSurface,
     };
 
-    return AppCard.group(
-        child: ListTile(
+    return TransactionResultCard(
       onTap: onTap,
-      title: Text(
-        title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: LedgerTheme.transactionTitle(context),
-      ),
-      subtitle: Text(
-        '$metadata\n$date',
-        style: LedgerTheme.transactionMeta(context),
-      ),
-      isThreeLine: true,
-      trailing: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.4,
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            '${transaction.displaySign} $currencySymbol${transaction.displayAmount}'
-                .trim(),
-            style: LedgerTheme.transactionAmount(context)
-                .copyWith(color: amountColor),
-          ),
-        ),
-      ),
-    ));
+      title: title,
+      metadata: metadata,
+      date: date,
+      amount:
+          '${transaction.displaySign} $currencySymbol${transaction.displayAmount}'
+              .trim(),
+      amountColor: amountColor,
+    );
   }
 }

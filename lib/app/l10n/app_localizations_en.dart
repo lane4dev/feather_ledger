@@ -1241,6 +1241,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetTopTransactionsTitle => 'Top contributing expenses';
 
   @override
+  String get budgetViewAll => 'View all';
+
+  @override
   String get budgetNoTransactionsInMonth =>
       'No expenses recorded in this month.';
 

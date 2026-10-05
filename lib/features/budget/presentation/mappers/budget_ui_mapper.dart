@@ -19,7 +19,7 @@ class BudgetUiMapper {
     required String locale,
   }) {
     final monthFormat = DateFormat.MMM(locale);
-    final dayFormat = DateFormat.Md(locale);
+    final dayFormat = DateFormat.yMd(locale).add_Hm();
 
     final totalBudget = summary.totalBudgetMinor;
     final actualRatio = totalBudget > 0
@@ -84,8 +84,7 @@ class BudgetUiMapper {
         currencySymbol,
       ),
       hasLeftoverPendingInReview: summary.hasLeftoverPendingInReview,
-      hasHighFrequencyMaterializationHint:
-          summary.hasHighFrequencyPending ||
+      hasHighFrequencyMaterializationHint: summary.hasHighFrequencyPending ||
           summary.isFarFutureMaterializedOnly,
     );
 
@@ -156,6 +155,9 @@ class BudgetUiMapper {
         trend6Months:
             c.sixMonthTrend.map((p) => _mapTrendPoint(p, monthFormat)).toList(),
         topContributions: c.topTransactions
+            .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
+            .toList(),
+        allContributions: c.contributions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
             .toList(),
       );
@@ -239,6 +241,7 @@ class BudgetUiMapper {
       dateDisplay: dayFormat.format(tx.occurredAt),
       amountDisplay: formatMinorWithSymbol(tx.amountMinor, currencySymbol),
       isCommitted: tx.isCommitted,
+      accountName: tx.accountName,
     );
   }
 }

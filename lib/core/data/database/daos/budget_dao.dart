@@ -32,6 +32,7 @@ class BudgetExpensePostingRaw {
   final String? categorySnapshotName;
   final String? categorySnapshotIcon;
   final String? categorySnapshotColorInt;
+  final String accountName;
 
   const BudgetExpensePostingRaw({
     required this.transactionId,
@@ -44,6 +45,7 @@ class BudgetExpensePostingRaw {
     required this.categorySnapshotName,
     required this.categorySnapshotIcon,
     required this.categorySnapshotColorInt,
+    this.accountName = '',
   });
 }
 
@@ -81,6 +83,7 @@ class BudgetPendingBillRaw {
   final String status;
   final String accountId;
   final String frequency;
+  final String accountName;
 
   const BudgetPendingBillRaw({
     required this.scheduledBillId,
@@ -92,6 +95,7 @@ class BudgetPendingBillRaw {
     required this.status,
     required this.accountId,
     required this.frequency,
+    this.accountName = '',
   });
 }
 
@@ -146,19 +150,17 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     String currencyCode,
     int targetYm,
   ) {
-    final trigger = db
-        .customSelect(
-          'SELECT 1',
-          readsFrom: {
-            budgetRules,
-            budgetReviewNotes,
-            categoriesView,
-            transactionsView,
-            transactionPostingsView,
-            accountsView,
-          },
-        )
-        .watch();
+    final trigger = db.customSelect(
+      'SELECT 1',
+      readsFrom: {
+        budgetRules,
+        budgetReviewNotes,
+        categoriesView,
+        transactionsView,
+        transactionPostingsView,
+        accountsView,
+      },
+    ).watch();
 
     return trigger.asyncMap(
       (_) => _loadMonthBudgetSummary(currencyCode, targetYm),
@@ -205,7 +207,6 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       innerJoin(
         accountsView,
         accountsView.id.equalsExp(transactionPostingsView.accountId),
-        useColumns: false,
       ),
     ])
       ..where(
@@ -238,6 +239,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         categorySnapshotName: tx.categoryName,
         categorySnapshotIcon: tx.categoryIcon,
         categorySnapshotColorInt: tx.categoryColorInt,
+        accountName: row.readTable(accountsView).name,
       ));
     }
 
@@ -294,16 +296,14 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     String currencyCode,
     int targetYm,
   ) {
-    final trigger = db
-        .customSelect(
-          'SELECT 1',
-          readsFrom: {
-            scheduledTransactionsView,
-            recurringSeries,
-            accountsView,
-          },
-        )
-        .watch();
+    final trigger = db.customSelect(
+      'SELECT 1',
+      readsFrom: {
+        scheduledTransactionsView,
+        recurringSeries,
+        accountsView,
+      },
+    ).watch();
 
     return trigger.asyncMap(
       (_) => _loadMonthPendingExpenses(currencyCode, targetYm),
@@ -332,7 +332,6 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       innerJoin(
         accountsView,
         accountsView.id.equalsExp(recurringSeries.accountId),
-        useColumns: false,
       ),
     ])
       ..where(
@@ -364,6 +363,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         status: scheduled.status,
         accountId: series.accountId,
         frequency: series.frequency,
+        accountName: row.readTable(accountsView).name,
       ));
     }
 
@@ -401,20 +401,18 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     int targetYm,
     String categoryId,
   ) {
-    final trigger = db
-        .customSelect(
-          'SELECT 1',
-          readsFrom: {
-            budgetRules,
-            categoriesView,
-            transactionsView,
-            transactionPostingsView,
-            accountsView,
-            scheduledTransactionsView,
-            recurringSeries,
-          },
-        )
-        .watch();
+    final trigger = db.customSelect(
+      'SELECT 1',
+      readsFrom: {
+        budgetRules,
+        categoriesView,
+        transactionsView,
+        transactionPostingsView,
+        accountsView,
+        scheduledTransactionsView,
+        recurringSeries,
+      },
+    ).watch();
 
     return trigger.asyncMap(
       (_) => _loadCategoryBudgetHint(currencyCode, targetYm, categoryId),
@@ -433,8 +431,9 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
 
     final category = await db.categoriesDao.getCategoryById(categoryId);
     final isArchived = category?.archived ?? false;
-    final archiveYm =
-        category?.archivedAt == null ? null : dateTimeToYm(category!.archivedAt!);
+    final archiveYm = category?.archivedAt == null
+        ? null
+        : dateTimeToYm(category!.archivedAt!);
 
     int? effectiveBudgetMinor;
     if (category != null &&

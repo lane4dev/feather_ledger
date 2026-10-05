@@ -64,6 +64,7 @@ class CategoryBudgetSummary {
   final BudgetRiskLevel riskLevel;
   final List<BudgetTrendPoint> sixMonthTrend;
   final List<BudgetContributionTx> topTransactions;
+  final List<BudgetContributionTx>? allTransactions;
   final String? reviewNote;
 
   const CategoryBudgetSummary({
@@ -88,10 +89,14 @@ class CategoryBudgetSummary {
     required this.riskLevel,
     required this.sixMonthTrend,
     required this.topTransactions,
+    this.allTransactions,
     required this.reviewNote,
   });
 
   bool get hasBudget => budgetMinor != null;
+
+  List<BudgetContributionTx> get contributions =>
+      allTransactions ?? topTransactions;
 
   BudgetVariance? get variance =>
       budgetMinor == null ? null : BudgetVariance(budgetMinor! - actualMinor);

@@ -817,6 +817,7 @@
   "budgetArchivedReadOnly": "已归档",
   "budgetArchivedNoteHint": "该分类已归档，历史预算与复盘备忘仅供只读查看。",
   "budgetTopTransactionsTitle": "主要贡献支出",
+  "budgetViewAll": "查看全部",
   "budgetNoTransactionsInMonth": "本月暂无支出记录。",
   "budgetEmptyNoAccountsTitle": "新建账户后即可规划预算",
   "budgetEmptyNoAccountsBody": "当前币种（{currency}）下暂无活跃账户。",
