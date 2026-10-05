@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,19 +28,22 @@ import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amoun
 
 class _StubBudgetService implements BudgetService {
   final MonthBudgetSummary summary;
+  final Stream<MonthBudgetSummary>? updates;
   bool hasFuture = false;
   String? savedNote;
   BudgetEditScope? lastScope;
   int? lastAmountMinor;
 
-  _StubBudgetService(this.summary);
+  _StubBudgetService(this.summary, {this.updates});
 
   @override
   Stream<MonthBudgetSummary> watchMonthBudget({
     required String currencyCode,
     required YearMonth month,
-  }) =>
-      Stream.value(summary);
+  }) async* {
+    yield summary;
+    if (updates != null) yield* updates!;
+  }
 
   @override
   Stream<CategoryBudgetHint> watchTransactionBudgetHint({
@@ -134,7 +139,32 @@ void main() {
     await initializeDateFormatting('en');
   });
 
-  MonthBudgetSummary buildSummary() {
+  MonthBudgetSummary buildSummary({bool includeMore = false}) {
+    final contributions = [
+      BudgetContributionTx(
+        transactionId: 'tx-1',
+        sourceScheduledBillId: null,
+        scheduledBillId: null,
+        description: 'Lunch',
+        occurredAt: DateTime(2026, 5, 10),
+        amountMinor: 45000,
+        isPending: false,
+        accountName: 'Cash',
+      ),
+      if (includeMore) ...[
+        for (var i = 2; i <= 4; i++)
+          BudgetContributionTx(
+            transactionId: 'tx-$i',
+            sourceScheduledBillId: i == 4 ? 'bill-4' : null,
+            scheduledBillId: i == 4 ? 'bill-4' : null,
+            description: 'Expense $i',
+            occurredAt: DateTime(2026, 5, i),
+            amountMinor: 10000 ~/ i,
+            isPending: i == 4,
+            accountName: 'Cash',
+          ),
+      ],
+    ];
     final dining = CategoryBudgetSummary(
       categoryId: 'dining',
       categoryName: 'Dining',
@@ -164,17 +194,8 @@ void main() {
           hasReviewNote: false,
         ),
       ],
-      topTransactions: [
-        BudgetContributionTx(
-          transactionId: 'tx-1',
-          sourceScheduledBillId: null,
-          scheduledBillId: null,
-          description: 'Lunch',
-          occurredAt: DateTime(2026, 5, 10),
-          amountMinor: 45000,
-          isPending: false,
-        ),
-      ],
+      topTransactions: contributions.take(3).toList(),
+      allTransactions: contributions,
       reviewNote: 'Old note',
     );
     return MonthBudgetSummary(
@@ -217,6 +238,72 @@ void main() {
       monthReviewNote: null,
     );
   }
+
+  testWidgets('view all shows every contribution and preserves an unsaved note',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final updates = StreamController<MonthBudgetSummary>.broadcast();
+    addTearDown(updates.close);
+    final router = GoRouter(initialLocation: '/', routes: [
+      GoRoute(
+          path: '/',
+          builder: (_, __) => Scaffold(
+              body: Builder(
+                  builder: (context) => TextButton(
+                        onPressed: () => showBudgetDrilldownSheet(context,
+                            month: const YearMonth(2026, 5),
+                            categoryId: 'dining'),
+                        child: const Text('Open'),
+                      )))),
+      GoRoute(
+          path: '/ledger/edit',
+          builder: (_, state) => Scaffold(
+              body: Text(
+                  'Editing ${(state.extra as TransactionTileUiModel).id}'))),
+    ]);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        budgetClockProvider
+            .overrideWithValue(FixedClock(DateTime(2026, 5, 15))),
+        budgetServiceProvider.overrideWithValue(_StubBudgetService(
+            buildSummary(includeMore: true), updates: updates.stream)),
+        ledgerRepositoryProvider.overrideWithValue(_StubLedgerRepository()),
+        ledgerCurrencyProvider.overrideWithValue('USD'),
+        displayCurrencySymbolProvider.overrideWithValue('\$'),
+      ],
+      child: MaterialApp.router(
+        theme: AppTheme.lightTheme,
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ));
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Unsaved thought');
+    expect(find.text('Expense 4'), findsNothing);
+    await tester.ensureVisible(find.text('View all'));
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+    expect(find.text('Expense 4'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
+    expect(find.textContaining('Cash'), findsWidgets);
+    await tester.tap(find.text('Expense 2'));
+    await tester.pumpAndSettle();
+    expect(find.text('Editing tx-2'), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Expense 4'), findsOneWidget);
+    updates.add(buildSummary());
+    await tester.pumpAndSettle();
+    expect(find.text('Expense 4'), findsNothing);
+    expect(find.text('Lunch'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Unsaved thought'), findsOneWidget);
+  });
 
   testWidgets(
       'BudgetDrilldownSheet navigates to /ledger/edit and validates Review Note length',

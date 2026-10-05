@@ -4,6 +4,8 @@ import 'package:feather_ledger/app/l10n/app_localizations.dart';
 // Used for testing purposes where a real BuildContext is not available.
 class FakeAppLocalizations implements AppLocalizations {
   @override
+  String get budgetViewAll => 'View all';
+  @override
   String get budget => 'Budget';
   @override
   String get viewReports => 'View reports';
@@ -1139,7 +1141,8 @@ class FakeAppLocalizations implements AppLocalizations {
       'No expenses recorded in this month.';
 
   @override
-  String get budgetEmptyNoAccountsTitle => 'Create an account to start budgeting';
+  String get budgetEmptyNoAccountsTitle =>
+      'Create an account to start budgeting';
 
   @override
   String budgetEmptyNoAccountsBody(String currency) =>
@@ -1160,15 +1163,13 @@ class FakeAppLocalizations implements AppLocalizations {
       'Remaining $remaining · After this: $after';
 
   @override
-  String budgetHintAtRisk(String after) =>
-      'After this + pending: $after over';
+  String budgetHintAtRisk(String after) => 'After this + pending: $after over';
 
   @override
   String budgetHintOver(String over) => 'Budget exceeded by $over after this';
 
   @override
-  String budgetHintUnset(String spent) =>
-      'No budget set · Month spent $spent';
+  String budgetHintUnset(String spent) => 'No budget set · Month spent $spent';
 
   @override
   String get budgetHintExcludedAccount => 'Excluded from budget totals';

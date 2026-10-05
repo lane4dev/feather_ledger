@@ -209,7 +209,8 @@ void main() {
 
       var notes = await dao.getNotesForMonth('CNY', 202605);
       expect(notes.length, 2);
-      expect(notes.firstWhere((n) => n.categoryKey == '').note, 'Month note v2');
+      expect(
+          notes.firstWhere((n) => n.categoryKey == '').note, 'Month note v2');
 
       await dao.upsertReviewNote(
         currencyCode: 'CNY',
@@ -229,8 +230,7 @@ void main() {
         'watchMonthBudgetSummary respects local month bounds, systemCode, '
         'includeInTotals, deleted, and archived accounts', () async {
       await seedAccount(id: 'acc-ok', currencyCode: 'CNY');
-      await seedAccount(
-          id: 'acc-arch', currencyCode: 'CNY', archived: true);
+      await seedAccount(id: 'acc-arch', currencyCode: 'CNY', archived: true);
       await seedAccount(
           id: 'acc-excl', currencyCode: 'CNY', includeInTotals: false);
       await seedAccount(id: 'acc-del', currencyCode: 'CNY', deleted: true);
@@ -302,12 +302,17 @@ void main() {
         amountMinor: 1000,
       );
 
-      final summary =
-          await dao.watchMonthBudgetSummary('CNY', 202605).first;
+      final summary = await dao.watchMonthBudgetSummary('CNY', 202605).first;
 
       expect(summary.expenseCategories.map((c) => c.id), ['dining']);
       expect(summary.windowExpenses.map((e) => e.transactionId),
           unorderedEquals(['tx-may', 'tx-arch']));
+      expect(
+          summary.windowExpenses
+              .where((e) => e.transactionId == 'tx-may')
+              .single
+              .accountName,
+          'Acc acc-ok');
       expect(summary.earliestExpenseYm, 202510);
       expect(summary.hasAnyActiveAccount, isTrue);
     });
@@ -390,12 +395,12 @@ void main() {
             ),
           );
 
-      final pending =
-          await dao.watchMonthPendingExpenses('CNY', 202605).first;
+      final pending = await dao.watchMonthPendingExpenses('CNY', 202605).first;
 
       expect(pending.bills.length, 2);
       expect(pending.bills.map((b) => b.scheduledBillId), ['b-1', 'b-2']);
       expect(pending.bills[0].amountMinor, 320000);
+      expect(pending.bills[0].accountName, 'Acc acc-ok');
       expect(pending.bills[1].amountMinor, 300000);
       expect(pending.hasHighFrequencyActiveSeries, isFalse);
     });

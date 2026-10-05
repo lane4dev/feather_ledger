@@ -82,6 +82,65 @@ void main() {
   }
 
   group('BudgetCalculator', () {
+    test('retains all contributions in the same order as the top three', () {
+      final raw = BudgetMonthRawSummary(
+        currencyCode: 'CNY',
+        targetYm: 202605,
+        rules: const [],
+        expenseCategories: [makeCategory(id: 'dining')],
+        windowExpenses: [
+          makeTx(
+              id: 'a',
+              categoryId: 'dining',
+              occurredAt: DateTime(2026, 5, 1),
+              amountMinor: 300),
+          makeTx(
+              id: 'b',
+              categoryId: 'dining',
+              occurredAt: DateTime(2026, 5, 2),
+              amountMinor: 100),
+          makeTx(
+              id: 'c',
+              categoryId: 'dining',
+              occurredAt: DateTime(2026, 5, 3),
+              amountMinor: 200),
+        ],
+        reviewNotes: const [],
+        earliestExpenseYm: 202605,
+        hasAnyActiveAccount: true,
+      );
+      final pending = BudgetMonthPendingRaw(
+        bills: [
+          makePending(
+              id: 'p',
+              categoryId: 'dining',
+              effectiveDate: DateTime(2026, 5, 4),
+              amountMinor: 400)
+        ],
+        hasHighFrequencyActiveSeries: false,
+      );
+      final tracked = BudgetCalculator.compute(
+              currencyCode: 'CNY',
+              raw: raw,
+              pending: pending,
+              targetYm: const YearMonth(2026, 5),
+              now: DateTime(2026, 5, 10))
+          .findCategory('dining')!;
+      expect(tracked.contributions.map((tx) => tx.transactionId),
+          ['p', 'a', 'c', 'b']);
+      expect(tracked.topTransactions.map((tx) => tx.transactionId),
+          ['p', 'a', 'c']);
+      final reviewed = BudgetCalculator.compute(
+              currencyCode: 'CNY',
+              raw: raw,
+              pending: pending,
+              targetYm: const YearMonth(2026, 5),
+              now: DateTime(2026, 6, 1))
+          .findCategory('dining')!;
+      expect(reviewed.contributions.map((tx) => tx.transactionId),
+          ['a', 'c', 'b']);
+    });
+
     test('selects plan / track / review mode relative to clock date', () {
       const raw = BudgetMonthRawSummary(
         currencyCode: 'CNY',
@@ -143,8 +202,10 @@ void main() {
         currencyCode: 'CNY',
         targetYm: 202605,
         rules: [
-          makeRule(categoryId: 'dining', effectiveYm: 202604, amountMinor: 200000),
-          makeRule(categoryId: 'rent', effectiveYm: 202604, amountMinor: 300000),
+          makeRule(
+              categoryId: 'dining', effectiveYm: 202604, amountMinor: 200000),
+          makeRule(
+              categoryId: 'rent', effectiveYm: 202604, amountMinor: 300000),
         ],
         expenseCategories: [dining, rent, travel, utils],
         windowExpenses: [
@@ -236,7 +297,8 @@ void main() {
         currencyCode: 'CNY',
         targetYm: 202605,
         rules: [
-          makeRule(categoryId: 'dining', effectiveYm: 202603, amountMinor: 200000),
+          makeRule(
+              categoryId: 'dining', effectiveYm: 202603, amountMinor: 200000),
         ],
         expenseCategories: [dining],
         windowExpenses: [
@@ -310,7 +372,8 @@ void main() {
         currencyCode: 'CNY',
         targetYm: 202605,
         rules: [
-          makeRule(categoryId: 'dining', effectiveYm: 202602, amountMinor: 120000),
+          makeRule(
+              categoryId: 'dining', effectiveYm: 202602, amountMinor: 120000),
         ],
         expenseCategories: [dining],
         windowExpenses: const [],
@@ -360,7 +423,8 @@ void main() {
         currencyCode: 'CNY',
         targetYm: 202604,
         rules: [
-          makeRule(categoryId: 'dining', effectiveYm: 202604, amountMinor: 100000),
+          makeRule(
+              categoryId: 'dining', effectiveYm: 202604, amountMinor: 100000),
         ],
         expenseCategories: [dining],
         windowExpenses: [
@@ -399,7 +463,8 @@ void main() {
       expect(summary.hasLeftoverPendingInReview, isTrue);
       expect(summary.budgetedPendingMinor, 0);
       expect(summary.projectedRemainingMinor, 20000);
-      expect(summary.budgetedCategories.single.riskLevel, BudgetRiskLevel.inBudget);
+      expect(summary.budgetedCategories.single.riskLevel,
+          BudgetRiskLevel.inBudget);
       expect(summary.underBudgetTop3.single.varianceMinor, 20000);
     });
   });
