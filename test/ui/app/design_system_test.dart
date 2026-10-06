@@ -20,6 +20,91 @@ double contrast(Color a, Color b) {
 }
 
 void main() {
+  testWidgets('segmented control honors reduced motion', (tester) async {
+    var selected = 0;
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: Scaffold(body: StatefulBuilder(builder: (context, setState) {
+          return AppSegmentedControl<int>(
+            segments: const [
+              ButtonSegment(value: 0, label: Text('First')),
+              ButtonSegment(value: 1, label: Text('Second')),
+            ],
+            selected: selected,
+            onSelected: (value) => setState(() => selected = value),
+          );
+        })),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Second'));
+    await tester.pump();
+    await tester.pump();
+    expect(selected, 1);
+    expect(
+        tester
+            .widgetList<AnimatedPositioned>(find.descendant(
+                of: find.byType(AppSegmentedControl<int>),
+                matching: find.byType(AnimatedPositioned)))
+            .every((surface) => surface.duration == Duration.zero),
+        isTrue);
+  });
+
+  testWidgets(
+      'segmented control raises the selection and separates other items',
+      (tester) async {
+    var selected = 2;
+    final theme = AppTheme.lightTheme;
+    await tester.pumpWidget(MaterialApp(
+      theme: theme,
+      home: Scaffold(body: StatefulBuilder(builder: (context, setState) {
+        return AppSegmentedControl<int>(
+          segments: const [
+            ButtonSegment(value: 0, label: Text('Day')),
+            ButtonSegment(value: 1, label: Text('Week')),
+            ButtonSegment(value: 2, label: Text('Off')),
+          ],
+          selected: selected,
+          onSelected: (value) => setState(() => selected = value),
+        );
+      })),
+    ));
+    await tester.pumpAndSettle();
+    final indicator = find.byKey(const ValueKey('segment-selection'));
+    final surface = tester.widget<Material>(indicator);
+    expect(surface.color, theme.colorScheme.secondaryContainer);
+    expect(surface.elevation, theme.extension<AppMetrics>()!.subtleElevation);
+    final start = tester.getRect(indicator);
+    expect(start.left, lessThan(tester.getTopLeft(find.text('Off')).dx));
+    final divider = tester.widget<DecoratedBox>(find.descendant(
+      of: find.byKey(const ValueKey('segment-divider-1')),
+      matching: find.byType(DecoratedBox),
+    ));
+    expect((divider.decoration as BoxDecoration).color,
+        theme.colorScheme.outlineVariant);
+    await tester.tap(find.text('Day'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final middle = tester.getRect(indicator);
+    expect(middle.left, lessThan(start.left));
+    await tester.pumpAndSettle();
+    expect(selected, 0);
+    final end = tester.getRect(indicator);
+    expect(end.left, lessThan(middle.left));
+    expect(find.byKey(const ValueKey('segment-selection')), findsOneWidget);
+    final button =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Day'));
+    expect(button.style!.splashFactory, NoSplash.splashFactory);
+    final hiddenDivider = tester.widget<DecoratedBox>(find.descendant(
+      of: find.byKey(const ValueKey('segment-divider-1')),
+      matching: find.byType(DecoratedBox),
+    ));
+    expect((hiddenDivider.decoration as BoxDecoration).color!.a, 0);
+  });
+
   for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
     final brightness = theme.brightness.name;
     test('$brightness surfaces keep text readable and charts independent', () {
@@ -79,9 +164,10 @@ void main() {
       expect(selected, 1);
       expect(
           tester
-              .widget<SegmentedButton<int>>(find.byType(SegmentedButton<int>))
+              .widget<AppSegmentedControl<int>>(
+                  find.byType(AppSegmentedControl<int>))
               .selected,
-          {1});
+          1);
       expect(tester.takeException(), isNull);
     });
 

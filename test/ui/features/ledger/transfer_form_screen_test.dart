@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
@@ -212,8 +213,14 @@ void main() {
       (tester) async {
     await pumpForm(tester);
 
-    final selectorWidth =
-        tester.getSize(find.byType(SegmentedButton<TransactionKind>)).width;
+    final selectorWidth = tester
+        .getSize(find
+            .descendant(
+              of: find.byType(AppSegmentedControl<TransactionKind>),
+              matching: find.byType(Row),
+            )
+            .first)
+        .width;
     final screenWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
 
