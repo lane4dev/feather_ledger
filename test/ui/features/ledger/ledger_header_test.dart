@@ -66,6 +66,61 @@ void main() {
     });
   });
 
+  for (final locale in [
+    const Locale('en'),
+    const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+    const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+  ]) {
+    testWidgets('balance visibility sits beside the label ($locale)',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      var opened = 0;
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          balanceVisibilityControllerProvider
+              .overrideWith(() => _FixedVisibility(true)),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: LedgerHeader(
+              summaryAsync: const AsyncData(summary),
+              onTap: () => opened++,
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(LedgerHeader)))!;
+      final label = tester.getRect(find.text(l10n.totalBalance));
+      final eye = tester.getRect(find.byIcon(LucideIcons.eye));
+      final arrow = tester.getRect(find.byIcon(LucideIcons.chevronRight));
+      expect(eye.left, greaterThanOrEqualTo(label.right));
+      expect(eye.left - label.right, lessThan(24));
+      expect(arrow.left, greaterThan(eye.right));
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byIcon(LucideIcons.eye));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(LucideIcons.eyeOff), findsOneWidget);
+      expect(opened, 0);
+      await tester.tap(find.byIcon(LucideIcons.chevronRight));
+      expect(opened, 1);
+    });
+  }
+
   group('the month', () {
     testWidgets('shares a centre line with the search action', (tester) async {
       await tester.pumpWidget(wrap(LedgerAppBarTitle(
@@ -139,8 +194,7 @@ void main() {
       expect(find.text(r'$1,234.56'), findsNothing);
     });
 
-    testWidgets('the steppers give their room to the balance',
-        (tester) async {
+    testWidgets('the steppers give their room to the balance', (tester) async {
       await pump(tester);
 
       expect(find.byIcon(LucideIcons.chevronLeft), findsNothing);
@@ -156,4 +210,7 @@ class _FixedVisibility extends BalanceVisibilityController {
 
   @override
   Future<bool> build() async => visible;
+
+  @override
+  Future<void> toggle() async => state = AsyncData(!(state.value ?? true));
 }

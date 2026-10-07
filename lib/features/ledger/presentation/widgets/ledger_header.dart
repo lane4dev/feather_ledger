@@ -204,19 +204,30 @@ class _BalanceSummary extends ConsumerWidget {
           children: [
             Row(children: [
               Expanded(
-                  child: Text(l10n.totalBalance,
-                      style: AppTypography.meta(context), maxLines: 2)),
-              if (onTap != null)
-                Icon(LucideIcons.chevronRight,
-                    size: context.metrics.iconSize,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
-              AppIconButton(
-                icon: Icon(showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
-                tooltip: l10n.totalBalance,
-                onPressed: () => ref
-                    .read(balanceVisibilityControllerProvider.notifier)
-                    .toggle(),
+                child: Row(children: [
+                  Flexible(
+                    child: Text(l10n.totalBalance,
+                        style: AppTypography.meta(context), maxLines: 2),
+                  ),
+                  AppIconButton(
+                    icon: Icon(
+                        showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
+                    tooltip: l10n.totalBalance,
+                    onPressed: () => ref
+                        .read(balanceVisibilityControllerProvider.notifier)
+                        .toggle(),
+                  ),
+                ]),
               ),
+              if (onTap != null)
+                SizedBox(
+                  width: kMinInteractiveDimension,
+                  child: Center(
+                    child: Icon(LucideIcons.chevronRight,
+                        size: context.metrics.iconSize,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ),
             ]),
             FittedBox(
               fit: BoxFit.scaleDown,
