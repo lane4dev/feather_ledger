@@ -22,6 +22,7 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart'
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 
 import '../../domain/services/budget_service.dart';
+import '../../domain/entities/budget_entities.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../mappers/budget_ui_mapper.dart';
 import '../models/budget_ui_models.dart';
@@ -42,6 +43,36 @@ class BudgetScreen extends ConsumerStatefulWidget {
 
 class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   bool _toolbarVisible = true;
+  late final PageController _pageController;
+
+  int _index(DateTime date) => (date.year - 2000) * 12 + date.month - 1;
+  DateTime _date(int index) => DateTime(2000, index + 1);
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+        initialPage: _index(
+            ref.read(budgetViewModelProvider).selectedMonth.toDateTime()));
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _changeMonth(DateTime date) {
+    final target = _index(date);
+    if (!_pageController.hasClients || target < 0) return;
+    if ((_pageController.page!.round() - target).abs() > 1 ||
+        MediaQuery.disableAnimationsOf(context)) {
+      _pageController.jumpToPage(target);
+    } else {
+      _pageController.animateToPage(target,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    }
+  }
 
   bool _onScroll(ScrollNotification notification) {
     if (notification.depth != 0 ||
@@ -64,8 +95,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final locale = Localizations.localeOf(context).toString();
     final uiState = ref.watch(budgetViewModelProvider);
     ref.listen(budgetViewModelProvider, (previous, next) {
-      if (previous?.selectedMonth != next.selectedMonth && !_toolbarVisible) {
-        setState(() => _toolbarVisible = true);
+      if (previous?.selectedMonth != next.selectedMonth) {
+        if (!_toolbarVisible) setState(() => _toolbarVisible = true);
+        final target = _index(next.selectedMonth.toDateTime());
+        if (_pageController.hasClients &&
+            target >= 0 &&
+            _pageController.page?.round() != target) {
+          _pageController.jumpToPage(target);
+        }
       }
     });
     final selectedDate = uiState.selectedMonth.toDateTime();
@@ -128,14 +165,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       appBar: AppBar(
         title: LedgerMonthSwitcher(
           selectedDate: selectedDate,
-          onChanged: notifier.setMonth,
+          onChanged: _changeMonth,
           onTap: () {
             FeatherMonthPicker.show(
               context,
               initialDate: selectedDate,
               firstDate: DateTime(2000),
               lastDate: DateTime(2100),
-              onMonthSelected: notifier.setMonth,
+              onMonthSelected: _changeMonth,
             );
           },
         ),
@@ -168,153 +205,189 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             ),
         ],
       ),
-      body: summaryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text(err.toString())),
-        data: (summary) {
-          final model = const BudgetUiMapper().mapScreen(
-            summary,
-            currencySymbol: currencySymbol,
-            locale: locale,
-          );
-          final overview = model.overview;
-
-          if (!overview.hasAnyAccount) {
-            return Center(
-              child: Padding(
-                padding: context.pagePadding,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.wallet,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    SizedBox(height: context.spacing.md),
-                    Text(
-                      l10n.budgetEmptyNoAccountsTitle,
-                      style: AppTypography.sectionTitle(context),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: context.spacing.xs),
-                    Text(
-                      l10n.budgetEmptyNoAccountsBody(overview.currencyCode),
-                      style: AppTypography.meta(context),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: context.spacing.lg),
-                    AppButton(
-                      onPressed: () => context.push('/accounts_management'),
-                      child: Text(l10n.manageAccounts),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final showAttribution = overview.mode == BudgetMode.review ||
-              (overview.mode == BudgetMode.track && uiState.isReviewPreview);
-
-          return NotificationListener<ScrollNotification>(
-              onNotification: _onScroll,
-              child: ListView(
-                padding: context.pagePadding.add(
-                  EdgeInsets.symmetric(vertical: context.spacing.md),
-                ),
-                children: [
-                  BudgetOverviewCard(
-                    overview: overview,
-                  ),
-                  if (!overview.hasAnyBudget) ...[
-                    SizedBox(height: context.spacing.md),
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.budgetEmptyNoBudgetsTitle,
-                            style: AppTypography.sectionTitle(context),
-                          ),
-                          SizedBox(height: context.spacing.xs),
-                          Text(
-                            l10n.budgetEmptyNoBudgetsBody,
-                            style: AppTypography.meta(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (showAttribution) ...[
-                    SizedBox(height: context.spacing.md),
-                    BudgetAttributionCard(
-                      overBudgetTop3: model.overBudgetTop3,
-                      underBudgetTop3: model.underBudgetTop3,
-                      unbudgetedAlertsTop3: model.unbudgetedAlertsTop3,
-                      monthReviewNote: model.monthReviewNote,
-                      onCategoryTap: (categoryId) => showBudgetCategoryDetail(
-                        context,
-                        month: uiState.selectedMonth,
-                        categoryId: categoryId,
-                      ),
-                      onSaveMonthNote: (note) async {
-                        final result = await notifier.saveReviewNote(
-                          currencyCode: currencyCode,
-                          month: uiState.selectedMonth,
-                          note: note,
-                        );
-                        if (!context.mounted) return;
-                        switch (result) {
-                          case Success():
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.budgetNoteSaved)),
-                            );
-                          case Failure(:final code):
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(code.message(l10n))),
-                            );
-                        }
-                      },
-                    ),
-                  ],
-                  if (overview.hasAnyBudget ||
-                      summary.allExpenseActualMinor > 0) ...[
-                    SizedBox(height: context.spacing.md),
-                    BudgetTrendChart(points: model.monthTrend6Months),
-                  ],
-                  SizedBox(height: context.spacing.lg),
-                  BudgetCategorySection(
-                    budgetedRows: model.budgetedRows,
-                    unbudgetedActiveRows: model.unbudgetedActiveRows,
-                    remainingActiveRows: model.remainingActiveRows,
-                    showRemaining: uiState.showRemainingCategories,
-                    onToggleRemaining: notifier.toggleRemainingCategories,
-                    onRowTap: (row) => showBudgetCategoryDetail(
-                      context,
-                      month: uiState.selectedMonth,
-                      categoryId: row.categoryId,
-                    ),
-                    onSetBudgetTap: (row) => showBudgetEditSheet(
-                      context,
-                      row: row,
-                      currencyCode: currencyCode,
-                      currencySymbol: currencySymbol,
-                      month: uiState.selectedMonth,
-                      isHistoricalMonth: uiState.selectedMonth < nowYm,
-                    ),
-                  ),
-                  SizedBox(height: context.spacing.xl),
-                  if (showToolbar)
-                    SizedBox(
-                      height: context.metrics.controlHeight +
-                          context.spacing.lg * 2 +
-                          MediaQuery.textScalerOf(context).scale(20) * 2,
-                    ),
-                ],
-              ));
+      body: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) => notifier.setMonth(_date(index)),
+        itemBuilder: (context, index) {
+          final month = YearMonth.fromDate(_date(index));
+          return Consumer(builder: (context, ref, _) {
+            final monthSummary = ref.watch(budgetMonthSummaryProvider(month));
+            return _buildMonth(
+                context,
+                monthSummary,
+                uiState.copyWith(selectedMonth: month),
+                currencyCode,
+                currencySymbol,
+                locale,
+                nowYm);
+          });
         },
       ),
+    );
+  }
+
+  Widget _buildMonth(
+    BuildContext context,
+    AsyncValue<MonthBudgetSummary> summaryAsync,
+    BudgetUiState uiState,
+    String currencyCode,
+    String currencySymbol,
+    String locale,
+    YearMonth nowYm,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final notifier = ref.read(budgetViewModelProvider.notifier);
+    final summary = summaryAsync.asData?.value;
+    final showToolbar = summary != null &&
+        summary.hasAnyActiveAccount &&
+        summary.mode == BudgetMode.track;
+    return summaryAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text(err.toString())),
+      data: (summary) {
+        final model = const BudgetUiMapper().mapScreen(
+          summary,
+          currencySymbol: currencySymbol,
+          locale: locale,
+        );
+        final overview = model.overview;
+
+        if (!overview.hasAnyAccount) {
+          return Center(
+            child: Padding(
+              padding: context.pagePadding,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    LucideIcons.wallet,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(height: context.spacing.md),
+                  Text(
+                    l10n.budgetEmptyNoAccountsTitle,
+                    style: AppTypography.sectionTitle(context),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: context.spacing.xs),
+                  Text(
+                    l10n.budgetEmptyNoAccountsBody(overview.currencyCode),
+                    style: AppTypography.meta(context),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: context.spacing.lg),
+                  AppButton(
+                    onPressed: () => context.push('/accounts_management'),
+                    child: Text(l10n.manageAccounts),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final showAttribution = overview.mode == BudgetMode.review ||
+            (overview.mode == BudgetMode.track && uiState.isReviewPreview);
+
+        return NotificationListener<ScrollNotification>(
+            onNotification: _onScroll,
+            child: ListView(
+              key: PageStorageKey(uiState.selectedMonth),
+              padding: context.pagePadding.add(
+                EdgeInsets.symmetric(vertical: context.spacing.md),
+              ),
+              children: [
+                BudgetOverviewCard(
+                  overview: overview,
+                ),
+                if (!overview.hasAnyBudget) ...[
+                  SizedBox(height: context.spacing.md),
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.budgetEmptyNoBudgetsTitle,
+                          style: AppTypography.sectionTitle(context),
+                        ),
+                        SizedBox(height: context.spacing.xs),
+                        Text(
+                          l10n.budgetEmptyNoBudgetsBody,
+                          style: AppTypography.meta(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (showAttribution) ...[
+                  SizedBox(height: context.spacing.md),
+                  BudgetAttributionCard(
+                    overBudgetTop3: model.overBudgetTop3,
+                    underBudgetTop3: model.underBudgetTop3,
+                    unbudgetedAlertsTop3: model.unbudgetedAlertsTop3,
+                    monthReviewNote: model.monthReviewNote,
+                    onCategoryTap: (categoryId) => showBudgetCategoryDetail(
+                      context,
+                      month: uiState.selectedMonth,
+                      categoryId: categoryId,
+                    ),
+                    onSaveMonthNote: (note) async {
+                      final result = await notifier.saveReviewNote(
+                        currencyCode: currencyCode,
+                        month: uiState.selectedMonth,
+                        note: note,
+                      );
+                      if (!context.mounted) return;
+                      switch (result) {
+                        case Success():
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.budgetNoteSaved)),
+                          );
+                        case Failure(:final code):
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(code.message(l10n))),
+                          );
+                      }
+                    },
+                  ),
+                ],
+                if (overview.hasAnyBudget ||
+                    summary.allExpenseActualMinor > 0) ...[
+                  SizedBox(height: context.spacing.md),
+                  BudgetTrendChart(points: model.monthTrend6Months),
+                ],
+                SizedBox(height: context.spacing.lg),
+                BudgetCategorySection(
+                  budgetedRows: model.budgetedRows,
+                  unbudgetedActiveRows: model.unbudgetedActiveRows,
+                  remainingActiveRows: model.remainingActiveRows,
+                  showRemaining: uiState.showRemainingCategories,
+                  onToggleRemaining: notifier.toggleRemainingCategories,
+                  onRowTap: (row) => showBudgetCategoryDetail(
+                    context,
+                    month: uiState.selectedMonth,
+                    categoryId: row.categoryId,
+                  ),
+                  onSetBudgetTap: (row) => showBudgetEditSheet(
+                    context,
+                    row: row,
+                    currencyCode: currencyCode,
+                    currencySymbol: currencySymbol,
+                    month: uiState.selectedMonth,
+                    isHistoricalMonth: uiState.selectedMonth < nowYm,
+                  ),
+                ),
+                SizedBox(height: context.spacing.xl),
+                if (showToolbar)
+                  SizedBox(
+                    height: context.metrics.controlHeight +
+                        context.spacing.lg * 2 +
+                        MediaQuery.textScalerOf(context).scale(20) * 2,
+                  ),
+              ],
+            ));
+      },
     );
   }
 

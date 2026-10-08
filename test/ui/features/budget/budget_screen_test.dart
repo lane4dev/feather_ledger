@@ -293,7 +293,8 @@ void main() {
         greaterThan(tester.getCenter(find.text('Track')).dx));
     final badge = find.ancestor(
         of: find.textContaining('1/1'), matching: find.byType(AppBadge));
-    final headerRow = find.ancestor(of: badge, matching: find.byType(Row)).first;
+    final headerRow =
+        find.ancestor(of: badge, matching: find.byType(Row)).first;
     expect(tester.getRect(badge).right, tester.getRect(headerRow).right);
 
     // Remaining categories collapsed initially
@@ -316,14 +317,14 @@ void main() {
     expect(isSelected(tester, 'Review preview'), isTrue);
 
     // Navigate backward to April -> Review mode + archived badge + leftover pending hint
-    await tester.tap(find.byIcon(LucideIcons.chevronLeft));
+    await tester.fling(find.byType(PageView), const Offset(900, 0), 1500);
     await tester.pumpAndSettle();
     expect(find.text('Review'), findsOneWidget);
     expect(find.text('Archived'), findsOneWidget);
     expect(find.textContaining('unposted scheduled bills'), findsOneWidget);
 
     // Navigate forward twice to June -> Plan mode
-    await tester.tap(find.byIcon(LucideIcons.chevronRight));
+    await tester.fling(find.byType(PageView), const Offset(-900, 0), 1500);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.chevronRight));
     await tester.pumpAndSettle();
