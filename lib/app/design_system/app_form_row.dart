@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 class AppFormRow extends StatelessWidget {
   const AppFormRow(
       {super.key,
-      required this.icon,
+      this.icon,
       required this.child,
       this.onTap,
       this.showChevron = true})
@@ -19,7 +19,7 @@ class AppFormRow extends StatelessWidget {
       this.onTap,
       this.showChevron = true})
       : _page = true;
-  final IconData icon;
+  final IconData? icon;
   final Widget child;
   final VoidCallback? onTap;
   final bool showChevron;
@@ -33,14 +33,15 @@ class AppFormRow extends StatelessWidget {
           crossAxisAlignment:
               _page ? CrossAxisAlignment.center : CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: _page
-                  ? EdgeInsets.only(right: context.metrics.pageGutter)
-                  : context.metrics.formIconPadding,
-              child: Icon(icon,
-                  size: context.metrics.iconSize,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
+            if (icon != null)
+              Padding(
+                padding: _page
+                    ? EdgeInsets.only(right: context.metrics.pageGutter)
+                    : context.metrics.formIconPadding,
+                child: Icon(icon,
+                    size: context.metrics.iconSize,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
             Expanded(child: child),
             if (onTap != null && showChevron)
               Padding(

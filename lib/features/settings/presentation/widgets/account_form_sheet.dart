@@ -17,7 +17,7 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/settings/domain/services/account_service.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
+import 'account_currency_dialog.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 import 'package:feather_ledger/shared/presentation/money_format.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -64,9 +64,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
         ref.watch(currencyControllerProvider).value ??
         AppCurrencies.defaultCurrency.code;
     final currency = AppCurrencies.getSymbol(currencyKey);
-    final currentCurrencyCode =
-        ref.watch(currencyControllerProvider).value ??
-            AppCurrencies.defaultCurrency.code;
+    final currentCurrencyCode = ref.watch(currencyControllerProvider).value ??
+        AppCurrencies.defaultCurrency.code;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -116,19 +115,19 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   children: [
                     // Name first: an account is what it is called before it
                     // is what it holds.
-                    _FormRow(
-                      icon: LucideIcons.tag,
-                      child: AppTextField(
-                        initialValue: _name,
-                        variant: AppFieldVariant.inline,
-                        hintText: l10n.accountName,
-                        style: theme.textTheme.bodyLarge,
-                        textCapitalization: TextCapitalization.words,
-                        validator: (value) => (value == null || value.isEmpty)
-                            ? l10n.required
-                            : null,
-                        onSaved: (value) => _name = value!,
-                      ),
+                    AppTextField(
+                      initialValue: _name,
+                      textAlign: TextAlign.start,
+                      variant: AppFieldVariant.inline,
+                      hintText: l10n.accountName,
+                      labelText: l10n.name,
+                      floatingLabel: true,
+                      style: theme.textTheme.headlineSmall,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? l10n.required
+                          : null,
+                      onSaved: (value) => _name = value!,
                     ),
                     SizedBox(height: context.spacing.md),
 
@@ -142,6 +141,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                               label: Text(type.localizedLabel(context)))
                       ],
                       selected: _selectedType,
+                      scrollable: true,
                       onSelected: isEditing
                           ? null
                           : (type) => setState(() => _selectedType = type),
@@ -149,7 +149,6 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     SizedBox(height: context.spacing.lg),
 
                     AppFormRow(
-                      icon: LucideIcons.circleDollarSign,
                       onTap: isEditing ? null : _showCurrencyDialog,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,8 +223,8 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       Text(
                         l10n.accountBalanceAdjustmentLedgerHint(
                             AppCurrencies.getName(currencyKey, l10n)),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
                     ],
 
@@ -263,28 +262,14 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     );
   }
 
-  void _showCurrencyDialog() {
-    final l10n = AppLocalizations.of(context)!;
+  Future<void> _showCurrencyDialog() async {
     final current = _selectedCurrencyCode ??
         (ref.read(currencyControllerProvider).value ??
             AppCurrencies.defaultCurrency.code);
-    showDialog<void>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: Text(l10n.accountCurrency),
-        children: AppCurrencies.supportedCurrencyCodes.map((code) {
-          return FeatherDialogOption<String>(
-            label: AppCurrencies.getName(code, l10n),
-            value: code,
-            groupValue: current,
-            onChanged: (value) {
-              setState(() => _selectedCurrencyCode = value);
-              Navigator.pop(context);
-            },
-          );
-        }).toList(),
-      ),
-    );
+    final selected =
+        await showAccountCurrencyDialog(context, selected: current);
+    if (!mounted || selected == null) return;
+    setState(() => _selectedCurrencyCode = selected);
   }
 
   Future<void> _deleteAccount() async {
@@ -554,12 +539,4 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
       }
     }
   }
-}
-
-class _FormRow extends StatelessWidget {
-  const _FormRow({required this.icon, required this.child});
-  final IconData icon;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => AppFormRow(icon: icon, child: child);
 }

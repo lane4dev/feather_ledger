@@ -217,6 +217,10 @@ void main() {
 
     await tester.tap(find.byIcon(LucideIcons.filter));
     await tester.pumpAndSettle();
+    await tester.tap(find.text(r'$ (Dollar)').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(SimpleDialogOption), findsNWidgets(6));
+    expect(find.byIcon(LucideIcons.check), findsOneWidget);
     await tester.tap(find.text('All currencies').last);
     await tester.pumpAndSettle();
     expect(find.text('Yuan wallet'), findsNothing,
@@ -243,6 +247,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.filter));
     await tester.pumpAndSettle();
+    await tester.tap(find.text(r'$ (Dollar)').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('All currencies').last);
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.text('Apply'))).pop();
@@ -256,6 +262,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dollar'), findsOneWidget);
     expect(find.text('Yen'), findsOneWidget);
+
+    await tester.tap(find.byIcon(LucideIcons.filter));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All currencies').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('¥ (Yen)').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Dollar'), findsOneWidget,
+        reason: 'the chosen currency is still a draft');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dollar'), findsNothing);
+    expect(find.text('Yen'), findsOneWidget);
   });
 
   testWidgets('currency filter fits a narrow screen with enlarged text',
@@ -263,10 +282,15 @@ void main() {
     tester.view.physicalSize = const Size(320, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-        wrap(const AccountManagementScreen(), textScale: 1.6));
+    await tester
+        .pumpWidget(wrap(const AccountManagementScreen(), textScale: 1.6));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.filter));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(r'$ (Dollar)').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(SimpleDialog), findsOneWidget);
+    Navigator.of(tester.element(find.byType(SimpleDialog))).pop();
     await tester.pumpAndSettle();
     expect(find.text('Apply'), findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -1,19 +1,20 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
-import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:feather_ledger/app/design_system/app_form_row.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../widgets/account_form_sheet.dart';
+import '../widgets/account_currency_dialog.dart';
 import '../widgets/account_tile.dart';
 
 class AccountManagementScreen extends ConsumerStatefulWidget {
@@ -197,21 +198,34 @@ class _CurrencyFilterSheetState extends State<_CurrencyFilterSheet> {
               Text(l10n.filterTitle,
                   style: Theme.of(context).textTheme.titleLarge),
               SizedBox(height: context.spacing.lg),
-              Text(l10n.accountCurrency,
-                  style: Theme.of(context).textTheme.bodyLarge),
-              SizedBox(height: context.spacing.sm),
-              AppChoiceChips<String>(
-                choices: [
-                  ButtonSegment(
-                      value: _AccountManagementScreenState._allCurrencies,
-                      label: Text(l10n.accountAllCurrencies)),
-                  for (final code in AppCurrencies.supportedCurrencyCodes)
-                    ButtonSegment(
-                        value: code,
-                        label: Text(AppCurrencies.getName(code, l10n))),
-                ],
-                selected: _draft,
-                onSelected: (value) => setState(() => _draft = value),
+              AppFormRow(
+                onTap: () async {
+                  final selected = await showAccountCurrencyDialog(
+                    context,
+                    selected: _draft,
+                    allCurrenciesValue:
+                        _AccountManagementScreenState._allCurrencies,
+                  );
+                  if (!context.mounted || selected == null) return;
+                  setState(() => _draft = selected);
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.accountCurrency,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
+                    SizedBox(height: context.spacing.xs),
+                    Text(
+                      _draft == _AccountManagementScreenState._allCurrencies
+                          ? l10n.accountAllCurrencies
+                          : AppCurrencies.getName(_draft, l10n),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
               ),
               SizedBox(height: context.spacing.lg),
               Row(children: [

@@ -1,4 +1,6 @@
 import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
+import 'package:feather_ledger/app/design_system/app_form_row.dart';
+import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -110,6 +112,33 @@ void main() {
     expect(topOf(tester, name), lessThan(topOf(tester, type)),
         reason: 'an account is what it is called before what it holds');
     expect(topOf(tester, type), lessThan(topOf(tester, balance)));
+    final nameField = tester.widget<AppTextField>(
+        find.ancestor(of: name, matching: find.byType(AppTextField)));
+    expect(nameField.labelText, 'Name');
+    expect(nameField.style,
+        Theme.of(tester.element(name)).textTheme.headlineSmall);
+    expect(find.byIcon(LucideIcons.tag), findsNothing);
+    expect(find.byIcon(LucideIcons.circleDollarSign), findsNothing);
+  });
+
+  testWidgets('account types scroll in one row and remain selectable',
+      (tester) async {
+    await pumpForm(tester);
+    tester.view.physicalSize = const Size(320, 1400);
+    await tester.pumpAndSettle();
+    final choices = find.byType(AppChoiceChips<AccountType>);
+    expect(
+        tester.widget<AppChoiceChips<AccountType>>(choices).scrollable, isTrue);
+    final scroll = find.descendant(
+        of: choices,
+        matching: find.byKey(const ValueKey('choice-chips-scroll')));
+    await tester.drag(scroll, const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other account'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AppChoiceChips<AccountType>>(choices).selected,
+        AccountType.other);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a new account counts toward the totals unless told otherwise',
@@ -374,7 +403,8 @@ void main() {
 
     // The form shows the account's own currency, read-only.
     expect(find.text('€ (Euro)'), findsOneWidget);
-    expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
+    final currencyRow = tester.widget<AppFormRow>(find.byType(AppFormRow));
+    expect(currencyRow.onTap, isNull);
   });
 
   testWidgets('adjusting another currency balance stays in that currency',
