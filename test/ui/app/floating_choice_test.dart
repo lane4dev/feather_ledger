@@ -28,7 +28,7 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(AppFloatingToolbar)).width, 232);
+    expect(tester.getSize(find.byType(AppFloatingToolbar)).width, 200);
     expect(tester.getSize(find.byType(AppFloatingToolbar)).height, 48);
   });
 
