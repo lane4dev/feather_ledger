@@ -119,6 +119,7 @@ void main() {
             name: 'Rent',
             actualMinor: 0,
             committedBaselineMinor: 0,
+            threeMonthAvgMinor: 3000,
           ),
         ],
       ),
@@ -126,13 +127,23 @@ void main() {
     final taps = await _pump(tester, screen);
 
     expect(find.text('Budget ¥200.00'), findsNWidgets(2));
-    expect(find.text('Fixed baseline ¥60.00 · 3-mo avg ¥90.00'), findsOneWidget);
-    // No average, no empty reference and no empty bar.
-    expect(find.text('Fixed baseline ¥0.00'), findsOneWidget);
+    expect(
+        find.text('Fixed baseline ¥60.00 · 3-mo avg ¥90.00'), findsOneWidget);
+    // A zero baseline is omitted rather than printed as ¥0.00; the average
+    // stands on its own.
+    expect(find.text('Fixed baseline ¥0.00'), findsNothing);
+    expect(find.text('3-mo avg ¥30.00'), findsOneWidget);
+    // Plan rows carry no progress bar at all.
     expect(
       find.byKey(const ValueKey('budget-category-bar-rent')),
       findsNothing,
     );
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-dining')),
+      findsNothing,
+    );
+    // The pencil beside the budget amount promises direct editing.
+    expect(find.byIcon(LucideIcons.pencil), findsNWidgets(2));
     // A plan row has no detail view to promise.
     expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
 
@@ -179,9 +190,14 @@ void main() {
         budgetedCategories: const [],
         unbudgetedActualMinor: 100000,
         unbudgetedActiveCategories: [
-          _cat(id: 'hobby', name: 'Hobby', budgetMinor: null, actualMinor: 6000),
+          _cat(
+              id: 'hobby', name: 'Hobby', budgetMinor: null, actualMinor: 6000),
           _cat(id: 'fuel', name: 'Fuel', budgetMinor: null, actualMinor: 5000),
-          _cat(id: 'gadgets', name: 'Gadgets', budgetMinor: null, actualMinor: 4000),
+          _cat(
+              id: 'gadgets',
+              name: 'Gadgets',
+              budgetMinor: null,
+              actualMinor: 4000),
         ],
       ),
     );
@@ -195,8 +211,11 @@ void main() {
     expect(find.text("4% of month's spend"), findsNothing);
     expect(find.text('Set budget'), findsNWidgets(3));
 
-    final button = find.byType(TextButton).first;
-    expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+    final button = find.widgetWithText(FilledButton, 'Set budget').first;
+    // A lightweight pill, not a full-size call to action: it sits beside the
+    // row's data without competing with it.
+    expect(tester.getSize(button).height, lessThan(48));
+    expect(tester.getSize(button).height, greaterThanOrEqualTo(32));
     expect(tester.getSize(button).width, greaterThanOrEqualTo(48));
 
     await tester.tap(find.text('Set budget').first);
@@ -242,7 +261,8 @@ void main() {
         budgetedCategories: const [],
         unbudgetedActualMinor: 10000,
         unbudgetedActiveCategories: [
-          _cat(id: 'hobby', name: 'Hobby', budgetMinor: null, actualMinor: 6000),
+          _cat(
+              id: 'hobby', name: 'Hobby', budgetMinor: null, actualMinor: 6000),
           _cat(
             id: 'travel',
             name: 'Travel',
@@ -323,7 +343,8 @@ void main() {
     );
   });
 
-  testWidgets('a plan bar covers only the fixed baseline', (tester) async {
+  testWidgets('plan rows hide the progress bar even with a baseline',
+      (tester) async {
     final screen = _map(
       _summary(
         mode: BudgetMode.plan,
@@ -339,23 +360,33 @@ void main() {
     );
     await _pump(tester, screen);
 
-    final track = find.byKey(const ValueKey('budget-category-bar-dining'));
-    final baseline = find.byKey(
-      const ValueKey('budget-category-bar-baseline-dining'),
-    );
     expect(
-      tester.getSize(baseline).width / tester.getSize(track).width,
-      closeTo(0.3, 0.01),
-    );
-    expect(
-      find.byKey(const ValueKey('budget-category-bar-actual-dining')),
+      find.byKey(const ValueKey('budget-category-bar-dining')),
       findsNothing,
     );
-    // The baseline is hatched, like the hero bar, so a plan row never reads as
-    // money already spent.
     expect(
-      find.byKey(const ValueKey('budget-category-bar-baseline-hatch-dining')),
-      findsOneWidget,
+      find.byKey(const ValueKey('budget-category-bar-baseline-dining')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a zero-spend track row keeps its grey track', (tester) async {
+    final screen = _map(
+      _summary(
+        mode: BudgetMode.track,
+        budgetedCategories: [
+          _cat(id: 'rent', name: 'Rent', actualMinor: 0),
+        ],
+      ),
+    );
+    await _pump(tester, screen);
+
+    final track = find.byKey(const ValueKey('budget-category-bar-rent'));
+    expect(track, findsOneWidget);
+    expect(tester.getSize(track).height, 4);
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-actual-rent')),
+      findsNothing,
     );
   });
 
@@ -562,9 +593,8 @@ MonthBudgetSummary _summary({
     totalBudgetMinor: budgetedCategories.length * _budget,
     budgetedActualMinor: budgetedActual,
     budgetedPendingMinor: budgetedPending,
-    projectedRemainingMinor: budgetedCategories.length * _budget -
-        budgetedActual -
-        budgetedPending,
+    projectedRemainingMinor:
+        budgetedCategories.length * _budget - budgetedActual - budgetedPending,
     budgetedRemainingActualMinor:
         budgetedCategories.length * _budget - budgetedActual,
     allExpenseActualMinor: budgetedActual + unbudgetedActualMinor,

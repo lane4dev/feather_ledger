@@ -777,7 +777,7 @@
   "budgetOverviewBudgetUsage": "預算使用率",
   "budgetOverviewBaselineShare": "基線佔比",
   "budgetLeftoverPendingHint": "該歷史月仍有未入帳週期帳單，複盤統計已忽略。",
-  "budgetMaterializedOnlyHint": "待入帳僅含已物化排期帳單。",
+  "budgetMaterializedOnlyHint": "僅統計已生成的週期帳單。",
   "budgetTrendTitle": "近 6 個月預算 vs 實際",
   "budgetReviewTitle": "月度複盤與趨勢",
   "budgetReviewScopeNote": "整月口徑，含未設預算的分類。",

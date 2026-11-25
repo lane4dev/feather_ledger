@@ -97,6 +97,9 @@ enum BudgetCategorySubtitle {
   /// Plan: the fixed baseline, with the three-month average beside it when
   /// the category has one.
   baseline,
+
+  /// Plan: no fixed baseline, so the three-month average stands on its own.
+  average,
 }
 
 /// The header of the unbudgeted group.

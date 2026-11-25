@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
@@ -34,9 +35,9 @@ class BudgetCategorySection extends StatelessWidget {
     final spacing = context.spacing;
     // Every row of the group carries the same header model, so the total
     // above the rows is derived from those rows and cannot contradict them.
-    final unbudgetedGroup =
-        unbudgetedActiveRows.isEmpty ? null : unbudgetedActiveRows.first
-            .unbudgetedGroup;
+    final unbudgetedGroup = unbudgetedActiveRows.isEmpty
+        ? null
+        : unbudgetedActiveRows.first.unbudgetedGroup;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -54,11 +55,10 @@ class BudgetCategorySection extends StatelessWidget {
                     // A plan row has nothing to read: the tap belongs to the
                     // editor. An archived row is not editable, so it falls
                     // back to the read-only detail.
-                    onTap: () =>
-                        budgetedRows[i].mode == BudgetMode.plan &&
-                                budgetedRows[i].isBudgetEditable
-                            ? onSetBudgetTap(budgetedRows[i])
-                            : onRowTap(budgetedRows[i]),
+                    onTap: () => budgetedRows[i].mode == BudgetMode.plan &&
+                            budgetedRows[i].isBudgetEditable
+                        ? onSetBudgetTap(budgetedRows[i])
+                        : onRowTap(budgetedRows[i]),
                   ),
                 ],
               ],
@@ -109,26 +109,27 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trailing = this.trailing;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: context.spacing.xs),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(title, style: AppTypography.sectionTitle(context)),
-          ),
-          if (trailing != null) ...[
-            SizedBox(width: context.spacing.sm),
-            Flexible(
-              child: Text(
-                trailing,
-                textAlign: TextAlign.end,
-                style: AppTypography.compactAmount(context),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Flexible(
+          child: Text(title, style: AppTypography.sectionTitle(context)),
+        ),
+        if (trailing != null) ...[
+          SizedBox(width: context.spacing.sm),
+          Flexible(
+            child: Text(
+              trailing,
+              textAlign: TextAlign.end,
+              style: AppTypography.meta(context).copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -236,19 +237,34 @@ class _RowAmounts extends StatelessWidget {
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: textAlign == TextAlign.end
-              ? AlignmentDirectional.centerEnd
-              : AlignmentDirectional.centerStart,
-          child: Text(
-            amount,
-            textAlign: textAlign,
-            style: AppTypography.amount(context).copyWith(
-              fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-              color: color,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: textAlign == TextAlign.end
+                    ? AlignmentDirectional.centerEnd
+                    : AlignmentDirectional.centerStart,
+                child: Text(
+                  amount,
+                  textAlign: textAlign,
+                  style: AppTypography.amount(context).copyWith(
+                    fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
+                    color: color,
+                  ),
+                ),
+              ),
             ),
-          ),
+            if (row.mode == BudgetMode.plan && row.isBudgetEditable) ...[
+              const SizedBox(width: 4),
+              Icon(
+                LucideIcons.pencil,
+                size: 14,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ],
+          ],
         ),
         if (row.secondaryAmountDisplay != null)
           Text(
@@ -376,9 +392,7 @@ class _BudgetedCategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.spacing;
-    final showBar = row.mode == BudgetMode.plan
-        ? row.baselineProgress > 0
-        : row.actualProgress > 0 || row.pendingProgress > 0;
+    final showBar = row.mode != BudgetMode.plan;
 
     return InkWell(
       onTap: onTap,
@@ -408,7 +422,8 @@ class _BudgetedCategoryRow extends StatelessWidget {
                         padding: EdgeInsetsDirectional.only(
                           start: 40 + spacing.sm,
                         ),
-                        child: _RowAmounts(row: row, textAlign: TextAlign.start),
+                        child:
+                            _RowAmounts(row: row, textAlign: TextAlign.start),
                       ),
                     ],
                   )
@@ -474,11 +489,15 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final stacked = constraints.maxWidth < _stackedLayoutWidth ||
-                MediaQuery.textScalerOf(context).scale(1) > 1.3;
             final action = row.isBudgetEditable
                 ? _SetBudgetAction(onPressed: onSetBudgetTap)
                 : null;
+            // A trailing action needs room the bare amount block does not:
+            // below this width the button moves under the amount instead of
+            // squeezing the name.
+            final stacked = constraints.maxWidth <
+                    (action == null ? _stackedLayoutWidth : 360) ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3;
 
             final header = stacked
                 ? Column(
@@ -543,17 +562,15 @@ class _SetBudgetAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return TextButton(
+    return FilledButton.tonal(
       onPressed: onPressed,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        padding: EdgeInsets.symmetric(horizontal: context.spacing.sm),
-        foregroundColor: Theme.of(context).colorScheme.primary,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        padding: EdgeInsets.symmetric(horizontal: context.spacing.md),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: AppTypography.compactAmount(context),
       ),
-      child: Text(
-        l10n.budgetSetButton,
-        style: AppTypography.compactAmount(context),
-      ),
+      child: Text(l10n.budgetSetButton),
     );
   }
 }
@@ -585,6 +602,8 @@ String? _subtitleText(AppLocalizations l10n, BudgetCategoryRowUiModel row) {
       l10n.budgetRowPending(row.subtitleAmountDisplay!),
     BudgetCategorySubtitle.usage =>
       l10n.budgetRowUsage(row.subtitlePercentDisplay!),
+    BudgetCategorySubtitle.average =>
+      l10n.budgetThreeMoAvgRef(row.subtitleAmountDisplay!),
     BudgetCategorySubtitle.baseline => row.subtitleReferenceDisplay == null
         ? l10n.budgetRowBaseline(row.subtitleAmountDisplay!)
         : '${l10n.budgetRowBaseline(row.subtitleAmountDisplay!)} · '

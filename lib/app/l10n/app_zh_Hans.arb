@@ -777,7 +777,7 @@
   "budgetOverviewBudgetUsage": "预算使用率",
   "budgetOverviewBaselineShare": "基线占比",
   "budgetLeftoverPendingHint": "该历史月仍有未入账周期账单，复盘统计已忽略。",
-  "budgetMaterializedOnlyHint": "待入账仅含已物化排期账单。",
+  "budgetMaterializedOnlyHint": "仅统计已生成的周期账单。",
   "budgetTrendTitle": "近 6 个月预算 vs 实际",
   "budgetReviewTitle": "月度复盘与趋势",
   "budgetReviewScopeNote": "整月口径，含未设预算的分类。",

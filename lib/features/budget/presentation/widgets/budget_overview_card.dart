@@ -54,10 +54,11 @@ class BudgetOverviewCard extends StatelessWidget {
           color: scheme.primary,
           compact: true,
         ),
-      AppBadge(
-        label: '${l10n.budgetCompliance} ${overview.complianceDisplay}',
-        compact: true,
-      ),
+      if (overview.mode != BudgetMode.plan)
+        AppBadge(
+          label: '${l10n.budgetCompliance} ${overview.complianceDisplay}',
+          compact: true,
+        ),
     ];
 
     return AppCard.overview(
@@ -97,16 +98,26 @@ class BudgetOverviewCard extends StatelessWidget {
                       // rather than swapping one of them mid-fade.
                       child: AnimatedSwitcher(
                         duration: duration,
+                        // The default switcher stacks children centred, which
+                        // insets the label from the amount and footer below it.
+                        // Pin the stack to the leading edge so the three share
+                        // one vertical baseline.
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: AlignmentDirectional.centerStart,
+                          children: [
+                            ...previous,
+                            if (current != null) current,
+                          ],
+                        ),
                         child: Text(
                           mainLabel,
                           key: ValueKey('budget-overview-label-$mainLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall!
-                              .copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          textAlign: TextAlign.start,
+                          style:
+                              Theme.of(context).textTheme.titleSmall!.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                         ),
                       ),
                     ),
@@ -498,10 +509,8 @@ class _FooterMetric extends StatelessWidget {
         BudgetOverviewMetric.pending => l10n.budgetPendingShort,
         BudgetOverviewMetric.totalBudget => l10n.budgetTotal,
         BudgetOverviewMetric.budgetUsage => l10n.budgetOverviewBudgetUsage,
-        BudgetOverviewMetric.committedBaseline =>
-          l10n.budgetCommittedBaseline,
-        BudgetOverviewMetric.baselineShare =>
-          l10n.budgetOverviewBaselineShare,
+        BudgetOverviewMetric.committedBaseline => l10n.budgetCommittedBaseline,
+        BudgetOverviewMetric.baselineShare => l10n.budgetOverviewBaselineShare,
       };
 }
 

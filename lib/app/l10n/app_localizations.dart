@@ -2120,7 +2120,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetMaterializedOnlyHint.
   ///
   /// In en, this message translates to:
-  /// **'Includes materialized pending bills only.'**
+  /// **'Only generated recurring bills are included.'**
   String get budgetMaterializedOnlyHint;
 
   /// No description provided for @budgetTrendTitle.

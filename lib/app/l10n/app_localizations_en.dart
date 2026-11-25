@@ -1102,7 +1102,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budgetMaterializedOnlyHint =>
-      'Includes materialized pending bills only.';
+      'Only generated recurring bills are included.';
 
   @override
   String get budgetTrendTitle => '6-Month Budget vs Actual';

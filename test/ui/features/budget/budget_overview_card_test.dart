@@ -186,8 +186,22 @@ void main() {
       expect(find.byKey(_tickKey), findsNothing);
     });
 
-    testWidgets('draws a dashed outline instead of a hairline',
+    testWidgets('hides compliance and keeps the label flush left',
         (tester) async {
+      await _pump(tester, summary: _plan());
+
+      // A month that has not happened has no compliance to report.
+      expect(find.text('On budget 1/1'), findsNothing);
+      expect(find.text('Plan'), findsOneWidget);
+
+      final label = tester.getRect(find.text('Available to spend'));
+      final amount = tester.getRect(find.text('¥140.00'));
+      final footer = tester.getRect(find.text('Committed baseline'));
+      expect(label.left, closeTo(amount.left, _tolerance));
+      expect(label.left, closeTo(footer.left, _tolerance));
+    });
+
+    testWidgets('draws a dashed outline instead of a hairline', (tester) async {
       await _pump(tester, summary: _plan());
 
       expect(find.byKey(_dashedOutlineKey), findsOneWidget);
@@ -325,7 +339,8 @@ void main() {
 
       final scheme = AppTheme.darkTheme.colorScheme;
       final decoration = _surface(tester).decoration;
-      expect(decoration.gradient!.colors.first, isNot(scheme.surfaceContainerHigh));
+      expect(decoration.gradient!.colors.first,
+          isNot(scheme.surfaceContainerHigh));
       expect(find.text('¥130.00'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -413,8 +428,7 @@ Future<void> _pump(
 }
 
 ({Rect rect, BoxDecoration decoration}) _surface(WidgetTester tester) {
-  final container =
-      tester.widget<AnimatedContainer>(find.byKey(_surfaceKey));
+  final container = tester.widget<AnimatedContainer>(find.byKey(_surfaceKey));
   return (
     rect: tester.getRect(find.byKey(_surfaceKey)),
     decoration: container.decoration! as BoxDecoration,

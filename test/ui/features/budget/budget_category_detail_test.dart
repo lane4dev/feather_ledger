@@ -763,7 +763,7 @@ void main() {
 
   testWidgets('the materialization hint explains high-frequency pending bills',
       (tester) async {
-    final hint = find.text('Includes materialized pending bills only.');
+    final hint = find.text('Only generated recurring bills are included.');
     final plain = _StubBudgetService(buildSummary());
     await pumpDetail(tester, service: plain, size: const Size(900, 1200));
     expect(hint, findsNothing);

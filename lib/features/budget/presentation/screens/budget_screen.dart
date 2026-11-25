@@ -412,6 +412,12 @@ class _ReviewEntry extends StatelessWidget {
             ],
           ),
         ),
+        SizedBox(width: spacing.sm),
+        Icon(
+          LucideIcons.chevronRight,
+          size: 18,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ],
     );
 

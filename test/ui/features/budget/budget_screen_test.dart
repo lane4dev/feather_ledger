@@ -24,7 +24,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(400, 1600),
     );
 
@@ -40,6 +41,14 @@ void main() {
       find.descendant(
         of: find.byKey(budgetReviewEntryKey),
         matching: find.byIcon(LucideIcons.barChart2),
+      ),
+      findsOneWidget,
+    );
+    // The entry points forward, so the affordance is explicit.
+    expect(
+      find.descendant(
+        of: find.byKey(budgetReviewEntryKey),
+        matching: find.byIcon(LucideIcons.chevronRight),
       ),
       findsOneWidget,
     );
@@ -117,8 +126,7 @@ void main() {
     expect(find.textContaining('unspent'), findsNothing);
   });
 
-  testWidgets('review entry falls back to the biggest surplus',
-      (tester) async {
+  testWidgets('review entry falls back to the biggest surplus', (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
@@ -257,14 +265,21 @@ void main() {
           pendingMinor: 150000,
         ),
       ],
-      unbudgeted: [budgetCategory(id: 'travel', name: 'Travel', month: budgetTestJune)],
-      remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)],
+      unbudgeted: [
+        budgetCategory(id: 'travel', name: 'Travel', month: budgetTestJune)
+      ],
+      remaining: [
+        budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)
+      ],
       hasHighFrequencyPending: true,
     );
 
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay), budgetTestJune: plan}),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay),
+        budgetTestJune: plan
+      }),
       size: const Size(400, 1600),
     );
 
@@ -274,6 +289,8 @@ void main() {
 
     expect(find.byKey(budgetPlanHintKey), findsOneWidget);
     expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    // A future month has no compliance reading yet.
+    expect(find.textContaining('On budget'), findsNothing);
     expect(find.byKey(budgetReviewBarKey), findsNothing);
     expect(find.text('Monthly Review & Trends'), findsNothing);
     // The rules the rows show *are* last month's, so the page may say so.
@@ -283,7 +300,7 @@ void main() {
     );
     expect(find.textContaining('Fixed bills \$2100.00'), findsOneWidget);
     expect(
-      find.text('Includes materialized pending bills only.'),
+      find.text('Only generated recurring bills are included.'),
       findsOneWidget,
     );
     // The hint says "this month", so it carries the calendar marker.
@@ -357,13 +374,18 @@ void main() {
         ),
       ],
       unbudgeted: const [],
-      remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)],
+      remaining: [
+        budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)
+      ],
     );
 
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(
-        overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay), budgetTestJune: replanned},
+        overrides: {
+          budgetTestMay: monthBudgetSummary(budgetTestMay),
+          budgetTestJune: replanned
+        },
       ),
       size: const Size(400, 1600),
     );
@@ -383,7 +405,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     await tester.tap(find.text('Dining'));
@@ -407,7 +430,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     expect(find.text('Utilities'), findsNothing);
@@ -452,7 +476,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     expect(find.text('May 2026'), findsOneWidget);
@@ -534,7 +559,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     await tester.drag(find.byType(ListView), const Offset(0, -2000));
@@ -554,7 +580,8 @@ void main() {
         (tester) async {
       await pumpBudgetScreen(
         tester,
-        service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+        service: FakeBudgetService(
+            overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
         theme: theme,
       );
 
@@ -579,7 +606,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(320, 700),
       textScale: 1.5,
     );
@@ -602,7 +630,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(
+          overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(900, 700),
     );
 
@@ -620,7 +649,8 @@ void main() {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
-        budgetTestMay: monthBudgetSummary(budgetTestMay, hasAnyActiveAccount: false, budgeted: const []),
+        budgetTestMay: monthBudgetSummary(budgetTestMay,
+            hasAnyActiveAccount: false, budgeted: const []),
       }),
     );
 
@@ -643,9 +673,15 @@ void main() {
           budgetTestMay,
           budgeted: const [],
           unbudgeted: [
-            budgetCategory(id: 'travel', name: 'Travel', month: budgetTestMay, actualMinor: 25000),
+            budgetCategory(
+                id: 'travel',
+                name: 'Travel',
+                month: budgetTestMay,
+                actualMinor: 25000),
           ],
-          remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestMay)],
+          remaining: [
+            budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestMay)
+          ],
         ),
       }),
       size: const Size(400, 1600),
@@ -716,7 +752,8 @@ void main() {
         budgetTestMay: monthBudgetSummary(
           budgetTestMay,
           overBudget: [
-            budgetAttribution(id: 'dining', name: 'Dining', varianceMinor: -40000),
+            budgetAttribution(
+                id: 'dining', name: 'Dining', varianceMinor: -40000),
           ],
         ),
       }),

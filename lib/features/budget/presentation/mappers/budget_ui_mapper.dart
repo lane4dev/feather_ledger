@@ -249,9 +249,8 @@ class BudgetUiMapper {
       final hasLimit = budget != null && budget > 0;
       final limit = budget ?? 0;
       final mode = summary.mode;
-      final catActualRatio = hasLimit
-          ? (c.actualMinor / limit).clamp(0.0, 1.0)
-          : 0.0;
+      final catActualRatio =
+          hasLimit ? (c.actualMinor / limit).clamp(0.0, 1.0) : 0.0;
       final catWithPendingRatio = hasLimit
           ? ((c.actualMinor + c.pendingMinor) / limit).clamp(0.0, 1.0)
           : 0.0;
@@ -308,7 +307,8 @@ class BudgetUiMapper {
               '${(c.actualMinor * 100 / monthTotal).round()}%';
         }
       } else if (!hasLimit) {
-        mainAmountDisplay = formatMinorWithSymbol(c.actualMinor, currencySymbol);
+        mainAmountDisplay =
+            formatMinorWithSymbol(c.actualMinor, currencySymbol);
       } else {
         final readings = _rowSemantics(c, mode);
         amountLabel = readings.label;
@@ -476,15 +476,26 @@ class BudgetUiMapper {
     final limit = c.budgetMinor!;
     switch (mode) {
       case BudgetMode.plan:
+        // A zero baseline is not a fact worth a line: fall back to the
+        // three-month average when there is one, and say nothing otherwise.
+        final baseline = c.committedBaselineMinor;
+        final average = c.threeMonthAvgMinor;
         return _RowSemantics(
           label: BudgetCategoryAmountLabel.planBudget,
           amountMinor: limit,
-          subtitle: BudgetCategorySubtitle.baseline,
-          subtitleAmountMinor: c.committedBaselineMinor,
+          subtitle: baseline > 0
+              ? BudgetCategorySubtitle.baseline
+              : average != null && average > 0
+                  ? BudgetCategorySubtitle.average
+                  : BudgetCategorySubtitle.none,
+          subtitleAmountMinor: baseline > 0
+              ? baseline
+              : average != null && average > 0
+                  ? average
+                  : null,
           referenceMinor:
-              (c.threeMonthAvgMinor ?? 0) > 0 ? c.threeMonthAvgMinor : null,
-          baselineProgress:
-              (c.committedBaselineMinor / limit).clamp(0.0, 1.0),
+              baseline > 0 && average != null && average > 0 ? average : null,
+          baselineProgress: (c.committedBaselineMinor / limit).clamp(0.0, 1.0),
         );
       case BudgetMode.review:
         // A closed month has no bills left to arrive: pending is not its story.
@@ -524,9 +535,8 @@ class BudgetUiMapper {
               ? BudgetCategorySubtitle.pendingIncluded
               : BudgetCategorySubtitle.usage,
           subtitleAmountMinor: c.pendingMinor > 0 ? c.pendingMinor : null,
-          subtitlePercent: c.pendingMinor > 0
-              ? null
-              : (c.actualMinor * 100 / limit).round(),
+          subtitlePercent:
+              c.pendingMinor > 0 ? null : (c.actualMinor * 100 / limit).round(),
         );
     }
   }
