@@ -36,6 +36,10 @@ class BudgetReviewUiModel {
 
   final String? monthReviewNote;
 
+  /// Formatted write time of [monthReviewNote] (for example `May 12`), or
+  /// null when the month has no note. The mapper owns the locale formatting.
+  final String? monthReviewNoteUpdatedDisplay;
+
   const BudgetReviewUiModel({
     required this.month,
     required this.monthLabel,
@@ -49,6 +53,7 @@ class BudgetReviewUiModel {
     required this.underBudgetTop3,
     required this.monthTrend6Months,
     required this.monthReviewNote,
+    required this.monthReviewNoteUpdatedDisplay,
   });
 
   bool get hasAttribution =>

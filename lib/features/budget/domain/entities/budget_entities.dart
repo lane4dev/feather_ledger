@@ -203,6 +203,10 @@ class MonthBudgetSummary {
   final List<BudgetTrendPoint> monthTrend6Months;
   final String? monthReviewNote;
 
+  /// When [monthReviewNote] was last written, or null when the month has no
+  /// note yet. Display-only: callers must not derive budget figures from it.
+  final DateTime? monthReviewNoteUpdatedAt;
+
   const MonthBudgetSummary({
     required this.currencyCode,
     required this.month,
@@ -233,6 +237,7 @@ class MonthBudgetSummary {
     required this.unbudgetedAlertsTop3,
     required this.monthTrend6Months,
     required this.monthReviewNote,
+    this.monthReviewNoteUpdatedAt,
   });
 
   List<CategoryBudgetSummary> get allSummaries => [

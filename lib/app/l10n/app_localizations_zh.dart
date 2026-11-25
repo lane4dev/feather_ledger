@@ -1064,9 +1064,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetReviewBaselineRow => '固定基线（含待入账）';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
-
-  @override
   String get budgetTrendLegendActual => '全部实际支出';
 
   @override
@@ -1098,13 +1095,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
+  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
+
+  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
+
+  @override
+  String get budgetNoteEmptyTitle => '记一句本月复盘';
+
+  @override
+  String get budgetNoteEmptySubtitle => '记录偏差原因或下月调整思路';
+
+  @override
+  String get budgetNoteAdd => '添加';
+
+  @override
+  String budgetNoteUpdatedOn(String date) {
+    return '更新于 $date';
+  }
+
+  @override
+  String get budgetNoteDeleted => '复盘备忘已删除';
+
+  @override
+  String get budgetNoteUndo => '撤销';
+
+  @override
+  String get budgetNoteQuickLargeExpense => '大额支出原因';
+
+  @override
+  String get budgetNoteQuickLargeExpensePrefix => '大额支出原因：';
+
+  @override
+  String get budgetNoteQuickNextMonth => '下月调整';
+
+  @override
+  String get budgetNoteQuickNextMonthPrefix => '下月调整：';
+
+  @override
+  String get budgetNoteQuickTakeaway => '结余心得';
+
+  @override
+  String get budgetNoteQuickTakeawayPrefix => '结余心得：';
 
   @override
   String get budgetCategoryNoteLabel => '分类复盘备忘';
 
   @override
-  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路（最多 500 字）...';
+  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路';
 
   @override
   String get budgetNoteSaved => '复盘备忘已保存';
@@ -2449,9 +2487,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetReviewBaselineRow => '固定基线（含待入账）';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
-
-  @override
   String get budgetTrendLegendActual => '全部实际支出';
 
   @override
@@ -2483,13 +2518,54 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
+  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
+
+  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
+
+  @override
+  String get budgetNoteEmptyTitle => '记一句本月复盘';
+
+  @override
+  String get budgetNoteEmptySubtitle => '记录偏差原因或下月调整思路';
+
+  @override
+  String get budgetNoteAdd => '添加';
+
+  @override
+  String budgetNoteUpdatedOn(String date) {
+    return '更新于 $date';
+  }
+
+  @override
+  String get budgetNoteDeleted => '复盘备忘已删除';
+
+  @override
+  String get budgetNoteUndo => '撤销';
+
+  @override
+  String get budgetNoteQuickLargeExpense => '大额支出原因';
+
+  @override
+  String get budgetNoteQuickLargeExpensePrefix => '大额支出原因：';
+
+  @override
+  String get budgetNoteQuickNextMonth => '下月调整';
+
+  @override
+  String get budgetNoteQuickNextMonthPrefix => '下月调整：';
+
+  @override
+  String get budgetNoteQuickTakeaway => '结余心得';
+
+  @override
+  String get budgetNoteQuickTakeawayPrefix => '结余心得：';
 
   @override
   String get budgetCategoryNoteLabel => '分类复盘备忘';
 
   @override
-  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路（最多 500 字）...';
+  String get budgetNotePlaceholder => '记录本月偏差原因或下月调整思路';
 
   @override
   String get budgetNoteSaved => '复盘备忘已保存';
@@ -3834,9 +3910,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetReviewBaselineRow => '固定基線（含待入帳）';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '備註留空並儲存即可刪除。';
-
-  @override
   String get budgetTrendLegendActual => '全部實際支出';
 
   @override
@@ -3868,13 +3941,54 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '結餘 TOP';
 
   @override
+  String get budgetReviewNoteEmptyDeletes => '備註留空並儲存即可刪除。';
+
+  @override
   String get budgetMonthNoteLabel => '月度複盤備忘';
+
+  @override
+  String get budgetNoteEmptyTitle => '記一句本月複盤';
+
+  @override
+  String get budgetNoteEmptySubtitle => '記錄偏差原因或下月調整思路';
+
+  @override
+  String get budgetNoteAdd => '新增';
+
+  @override
+  String budgetNoteUpdatedOn(String date) {
+    return '更新於 $date';
+  }
+
+  @override
+  String get budgetNoteDeleted => '複盤備忘已刪除';
+
+  @override
+  String get budgetNoteUndo => '復原';
+
+  @override
+  String get budgetNoteQuickLargeExpense => '大額支出原因';
+
+  @override
+  String get budgetNoteQuickLargeExpensePrefix => '大額支出原因：';
+
+  @override
+  String get budgetNoteQuickNextMonth => '下月調整';
+
+  @override
+  String get budgetNoteQuickNextMonthPrefix => '下月調整：';
+
+  @override
+  String get budgetNoteQuickTakeaway => '結餘心得';
+
+  @override
+  String get budgetNoteQuickTakeawayPrefix => '結餘心得：';
 
   @override
   String get budgetCategoryNoteLabel => '分類複盤備忘';
 
   @override
-  String get budgetNotePlaceholder => '記錄本月偏差原因或下月調整思路（最多 500 字）...';
+  String get budgetNotePlaceholder => '記錄本月偏差原因或下月調整思路';
 
   @override
   String get budgetNoteSaved => '複盤備忘已儲存';

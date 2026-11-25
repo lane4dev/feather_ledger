@@ -12,6 +12,10 @@ import '../models/budget_ui_models.dart';
 /// The whole-month figures fold every category summary so unbudgeted spend is
 /// included. Attribution lists keep the domain ordering (over: largest overrun
 /// first, under: largest surplus first) and only add formatted deltas.
+/// Formats the month-note write time for the L2 preview card.
+String formatReviewNoteUpdatedAt(DateTime updatedAt, String locale) =>
+    DateFormat.MMMd(locale).format(updatedAt.toLocal());
+
 class BudgetReviewUiMapper {
   const BudgetReviewUiMapper();
 
@@ -66,6 +70,12 @@ class BudgetReviewUiMapper {
               ))
           .toList(growable: false),
       monthReviewNote: _normalizedNote(summary.monthReviewNote),
+      monthReviewNoteUpdatedDisplay: summary.monthReviewNoteUpdatedAt == null
+          ? null
+          : formatReviewNoteUpdatedAt(
+              summary.monthReviewNoteUpdatedAt!,
+              locale,
+            ),
     );
   }
 

@@ -1032,10 +1032,6 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetReviewBaselineRow => 'Committed baseline (incl. pending)';
 
   @override
-  String get budgetReviewNoteEmptyDeletes =>
-      'Leave the note empty and save to remove it.';
-
-  @override
   String get budgetTrendLegendActual => 'All actual spend';
 
   @override
@@ -1063,14 +1059,55 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetUnderTopTitle => 'Top Under Budget';
 
   @override
-  String get budgetMonthNoteLabel => 'Month review note';
+  String get budgetMonthNoteLabel => 'Monthly review note';
+
+  @override
+  String get budgetReviewNoteEmptyDeletes =>
+      'Leave the note empty and save to remove it.';
+
+  @override
+  String get budgetNoteEmptyTitle => "Jot down this month's review";
+
+  @override
+  String get budgetNoteEmptySubtitle =>
+      'Note why it varied or what to adjust next month';
+
+  @override
+  String get budgetNoteAdd => 'Add';
+
+  @override
+  String budgetNoteUpdatedOn(String date) => 'Updated $date';
+
+  @override
+  String get budgetNoteDeleted => 'Review note deleted';
+
+  @override
+  String get budgetNoteUndo => 'Undo';
+
+  @override
+  String get budgetNoteQuickLargeExpense => 'Large expense reason';
+
+  @override
+  String get budgetNoteQuickLargeExpensePrefix => 'Large expense reason: ';
+
+  @override
+  String get budgetNoteQuickNextMonth => 'Next month adjustments';
+
+  @override
+  String get budgetNoteQuickNextMonthPrefix => 'Next month adjustments: ';
+
+  @override
+  String get budgetNoteQuickTakeaway => 'Takeaways';
+
+  @override
+  String get budgetNoteQuickTakeawayPrefix => 'Takeaways: ';
 
   @override
   String get budgetCategoryNoteLabel => 'Category review note';
 
   @override
   String get budgetNotePlaceholder =>
-      'Add a brief note on why this month varied (max 500 chars)...';
+      'Note why this month varied or what to adjust next month';
 
   @override
   String get budgetNoteSaved => 'Review note saved';

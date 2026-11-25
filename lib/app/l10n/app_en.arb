@@ -885,7 +885,6 @@
   "budgetReviewCommittedActual": "Committed",
   "budgetReviewDiscretionaryActual": "Discretionary",
   "budgetReviewBaselineRow": "Committed baseline (incl. pending)",
-  "budgetReviewNoteEmptyDeletes": "Leave the note empty and save to remove it.",
   "budgetTrendLegendActual": "All actual spend",
   "budgetTrendLegendBudget": "Total budget",
   "budgetTrendLegendAverage": "3-month average",
@@ -909,9 +908,29 @@
   "budgetAttributionActualBasis": "Posted only",
   "budgetOverTopTitle": "Top Over Budget",
   "budgetUnderTopTitle": "Top Under Budget",
-  "budgetMonthNoteLabel": "Month review note",
+  "budgetReviewNoteEmptyDeletes": "Leave the note empty and save to remove it.",
+  "budgetMonthNoteLabel": "Monthly review note",
+  "budgetNoteEmptyTitle": "Jot down this month's review",
+  "budgetNoteEmptySubtitle": "Note why it varied or what to adjust next month",
+  "budgetNoteAdd": "Add",
+  "budgetNoteUpdatedOn": "Updated {date}",
+  "@budgetNoteUpdatedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNoteDeleted": "Review note deleted",
+  "budgetNoteUndo": "Undo",
+  "budgetNoteQuickLargeExpense": "Large expense reason",
+  "budgetNoteQuickLargeExpensePrefix": "Large expense reason: ",
+  "budgetNoteQuickNextMonth": "Next month adjustments",
+  "budgetNoteQuickNextMonthPrefix": "Next month adjustments: ",
+  "budgetNoteQuickTakeaway": "Takeaways",
+  "budgetNoteQuickTakeawayPrefix": "Takeaways: ",
   "budgetCategoryNoteLabel": "Category review note",
-  "budgetNotePlaceholder": "Add a brief note on why this month varied (max 500 chars)...",
+  "budgetNotePlaceholder": "Note why this month varied or what to adjust next month",
   "budgetNoteSaved": "Review note saved",
   "budgetSaveNote": "Save note",
   "budgetNoteCharCount": "{count}/500",

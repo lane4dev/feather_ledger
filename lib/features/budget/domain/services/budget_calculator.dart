@@ -37,10 +37,14 @@ abstract final class BudgetCalculator {
           .add((ym: rule.effectiveYm, amount: rule.amountMinor));
     }
 
-    // Index review notes by (ym, categoryKey).
-    final noteByYmCat = <(int, String), String>{};
+    // Index review notes by (ym, categoryKey). Keep the write time so the L2
+    // card can show when the month note was last updated.
+    final noteByYmCat = <(int, String), ({String note, DateTime updatedAt})>{};
     for (final note in raw.reviewNotes) {
-      noteByYmCat[(note.ym, note.categoryKey)] = note.note;
+      noteByYmCat[(note.ym, note.categoryKey)] = (
+        note: note.note,
+        updatedAt: note.updatedAt,
+      );
     }
 
     // Index expense rows by (categoryId, ym) and total by ym.
@@ -217,7 +221,7 @@ abstract final class BudgetCalculator {
             actualMinor: actualByCatYm[(cat.id, m.ym)] ?? 0,
             pendingMinor: m == targetYm ? pendingMinor : 0,
             hasReviewNote:
-                (noteByYmCat[(m.ym, cat.id)] ?? '').trim().isNotEmpty,
+                (noteByYmCat[(m.ym, cat.id)]?.note ?? '').trim().isNotEmpty,
           ),
         );
       }
@@ -276,7 +280,7 @@ abstract final class BudgetCalculator {
         sixMonthTrend: trend,
         topTransactions: contributions.take(3).toList(growable: false),
         allTransactions: List.unmodifiable(contributions),
-        reviewNote: noteByYmCat[(targetYm.ym, cat.id)],
+        reviewNote: noteByYmCat[(targetYm.ym, cat.id)]?.note,
       );
 
       if (effectiveBudget != null) {
@@ -384,7 +388,8 @@ abstract final class BudgetCalculator {
               budgetMinor: monthTrendBudgetTotals[m.ym],
               actualMinor: allActualByYm[m.ym] ?? 0,
               pendingMinor: m == targetYm ? allExpensePendingMinor : 0,
-              hasReviewNote: (noteByYmCat[(m.ym, '')] ?? '').trim().isNotEmpty,
+              hasReviewNote:
+                  (noteByYmCat[(m.ym, '')]?.note ?? '').trim().isNotEmpty,
             ))
         .toList(growable: false);
 
@@ -423,7 +428,8 @@ abstract final class BudgetCalculator {
       underBudgetTop3: underItems.take(3).toList(growable: false),
       unbudgetedAlertsTop3: unbudgetedAlerts.take(3).toList(growable: false),
       monthTrend6Months: monthTrend,
-      monthReviewNote: noteByYmCat[(targetYm.ym, '')],
+      monthReviewNote: noteByYmCat[(targetYm.ym, '')]?.note,
+      monthReviewNoteUpdatedAt: noteByYmCat[(targetYm.ym, '')]?.updatedAt,
     );
   }
 }

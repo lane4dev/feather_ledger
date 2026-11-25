@@ -56,6 +56,7 @@ void main() {
     int totalBudgetMinor = 0,
     bool hasLeftoverPendingInReview = false,
     String? monthReviewNote,
+    DateTime? monthReviewNoteUpdatedAt,
   }) {
     final categories = [...?budgeted, ...unbudgeted];
     return MonthBudgetSummary(
@@ -88,6 +89,7 @@ void main() {
       unbudgetedAlertsTop3: const [],
       monthTrend6Months: trend,
       monthReviewNote: monthReviewNote,
+      monthReviewNoteUpdatedAt: monthReviewNoteUpdatedAt,
     );
   }
 
@@ -249,6 +251,32 @@ void main() {
     );
 
     expect(model.monthTrend6Months, isEmpty);
+  });
+
+  test('maps the note write time to a localized short date', () {
+    expect(
+      mapper
+          .map(
+            summary(
+              monthReviewNote: 'Car repair',
+              monthReviewNoteUpdatedAt: DateTime(2026, 5, 12, 9, 30),
+            ),
+            currencySymbol: '\$',
+            locale: 'en',
+          )
+          .monthReviewNoteUpdatedDisplay,
+      'May 12',
+    );
+    expect(
+      mapper
+          .map(
+            summary(monthReviewNote: 'Car repair'),
+            currencySymbol: '\$',
+            locale: 'en',
+          )
+          .monthReviewNoteUpdatedDisplay,
+      isNull,
+    );
   });
 
   test('normalizes blank notes to null and carries leftover-pending flag', () {

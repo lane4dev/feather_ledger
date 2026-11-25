@@ -2153,12 +2153,6 @@ abstract class AppLocalizations {
   /// **'Committed baseline (incl. pending)'**
   String get budgetReviewBaselineRow;
 
-  /// No description provided for @budgetReviewNoteEmptyDeletes.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave the note empty and save to remove it.'**
-  String get budgetReviewNoteEmptyDeletes;
-
   /// No description provided for @budgetTrendLegendActual.
   ///
   /// In en, this message translates to:
@@ -2213,11 +2207,89 @@ abstract class AppLocalizations {
   /// **'Top Under Budget'**
   String get budgetUnderTopTitle;
 
+  /// No description provided for @budgetReviewNoteEmptyDeletes.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the note empty and save to remove it.'**
+  String get budgetReviewNoteEmptyDeletes;
+
   /// No description provided for @budgetMonthNoteLabel.
   ///
   /// In en, this message translates to:
-  /// **'Month review note'**
+  /// **'Monthly review note'**
   String get budgetMonthNoteLabel;
+
+  /// No description provided for @budgetNoteEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Jot down this month\'s review'**
+  String get budgetNoteEmptyTitle;
+
+  /// No description provided for @budgetNoteEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Note why it varied or what to adjust next month'**
+  String get budgetNoteEmptySubtitle;
+
+  /// No description provided for @budgetNoteAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get budgetNoteAdd;
+
+  /// No description provided for @budgetNoteUpdatedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String budgetNoteUpdatedOn(String date);
+
+  /// No description provided for @budgetNoteDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Review note deleted'**
+  String get budgetNoteDeleted;
+
+  /// No description provided for @budgetNoteUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get budgetNoteUndo;
+
+  /// No description provided for @budgetNoteQuickLargeExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Large expense reason'**
+  String get budgetNoteQuickLargeExpense;
+
+  /// No description provided for @budgetNoteQuickLargeExpensePrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Large expense reason: '**
+  String get budgetNoteQuickLargeExpensePrefix;
+
+  /// No description provided for @budgetNoteQuickNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month adjustments'**
+  String get budgetNoteQuickNextMonth;
+
+  /// No description provided for @budgetNoteQuickNextMonthPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month adjustments: '**
+  String get budgetNoteQuickNextMonthPrefix;
+
+  /// No description provided for @budgetNoteQuickTakeaway.
+  ///
+  /// In en, this message translates to:
+  /// **'Takeaways'**
+  String get budgetNoteQuickTakeaway;
+
+  /// No description provided for @budgetNoteQuickTakeawayPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Takeaways: '**
+  String get budgetNoteQuickTakeawayPrefix;
 
   /// No description provided for @budgetCategoryNoteLabel.
   ///
@@ -2228,7 +2300,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetNotePlaceholder.
   ///
   /// In en, this message translates to:
-  /// **'Add a brief note on why this month varied (max 500 chars)...'**
+  /// **'Note why this month varied or what to adjust next month'**
   String get budgetNotePlaceholder;
 
   /// No description provided for @budgetNoteSaved.

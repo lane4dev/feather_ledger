@@ -119,8 +119,9 @@ the month picker.
   circular tonal badges.
 - Trend: note dots sit centred under their month labels; three light Y ticks
   appear; tapping a bar shows the actual/budget tooltip.
-- Note editor: the field's left edge lines up with the title and `0/500`, and
-  保存 is a tonal button on the right.
+- Note preview: an empty month shows the dashed 20 dp card with the pen badge,
+  `记一句本月复盘`, and the `+ 添加` pill; a saved note shows the notebook icon,
+  the primary vertical bar, and `更新于 …` under the text.
 - [ ] pass  [ ] fail — notes:
 
 ## 11. Budget app bar scroll tint
@@ -128,4 +129,30 @@ the month picker.
 - Pages: L1 month list and L2 review
 - Scroll down: the app bar turns a shallow `surfaceContainer`; scroll back to
   the top and it returns to the page surface with no shadow or jump.
+- [ ] pass  [ ] fail — notes:
+
+## 12. Month review note card and sheet
+
+- Page: L2 月度复盘与趋势, bottom of the page
+- Light and dark, 400x700, plus one narrow 320 dp device.
+- Empty month: 20 dp card with a 1 dp dashed `outlineVariant` border, 36 dp
+  tonal pen badge, two-line prompt, and a `+ 添加` pill; no `(最多 500 字)`
+  placeholder anywhere on the card.
+- Saved note: `surfaceContainerLow` card, 13 sp `onSurfaceVariant` header with
+  the notebook icon, a 34 dp tonal pencil on the right, a 3 dp `primary` bar
+  beside 15 sp / 1.6 text capped at five lines, and `更新于 M月d日`.
+- Tapping anywhere on either card opens the sheet; tapping the pencil opens the
+  same sheet.
+- Sheet: 28 dp top radius, centred drag handle, month pill beside the title,
+  delete icon only when a note already exists. The input sits on a white
+  (`surfaceContainerLowest`) 16 dp inset with a 14 dp visual gutter on all four
+  sides; the cursor lands in the field on open.
+- Counter: hidden at 399 characters, appears softly at 400 (`400/500`), turns
+  `error` above 500 and disables 保存.
+- Empty field: three chips (大额支出原因 / 下月调整 / 结余心得); tapping one
+  inserts its prefix at the cursor and the chips disappear.
+- Keyboard: summon the soft keyboard; 取消 and 保存 stay fully above it on a
+  700 dp-tall viewport and on a 320 dp-wide device.
+- Delete: the trash icon clears the note, closes the sheet, shows
+  `复盘备忘已删除` with 撤销, and 撤销 restores the previous text.
 - [ ] pass  [ ] fail — notes:

@@ -163,6 +163,7 @@ void main() {
 
   MonthBudgetSummary buildSummary({
     String? note,
+    DateTime? noteUpdatedAt,
     List<BudgetTrendPoint>? trend,
     bool hasLeftoverPendingInReview = false,
     YearMonth month = may,
@@ -240,6 +241,7 @@ void main() {
           shareOfTotalActual: 0.66,
         ),
       ],
+      monthReviewNoteUpdatedAt: noteUpdatedAt,
       monthTrend6Months: trend ??
           const [
             BudgetTrendPoint(
@@ -382,13 +384,50 @@ void main() {
     expect(find.byIcon(LucideIcons.arrowLeft), findsWidgets);
   });
 
+  Future<void> openEmptyNote(WidgetTester tester) async {
+    final title = find.text("Jot down this month's review");
+    await tester.scrollUntilVisible(title, 300);
+    await tester.ensureVisible(title);
+    await tester.pumpAndSettle();
+    await tester.tap(title);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openExistingNote(WidgetTester tester) async {
+    final edit = find.byKey(const ValueKey('budget-note-edit'));
+    await tester.scrollUntilVisible(edit, 300);
+    await tester.ensureVisible(edit);
+    await tester.pumpAndSettle();
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('an empty month shows the dashed prompt without an inline form',
+      (tester) async {
+    await pumpReview(tester);
+
+    final prompt = find.text("Jot down this month's review");
+    await tester.scrollUntilVisible(prompt, 300);
+    expect(prompt, findsOneWidget);
+    expect(
+      find.text('Note why it varied or what to adjust next month'),
+      findsOneWidget,
+    );
+    expect(find.text('Add'), findsOneWidget);
+    expect(find.text('Edit'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    expect(
+      find.textContaining('max 500 chars'),
+      findsNothing,
+    );
+  });
+
   testWidgets('rejects a note over 500 characters locally and keeps the draft',
       (tester) async {
     final service = await pumpReview(tester);
     final tooLong = 'a' * 501;
 
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
+    await openEmptyNote(tester);
     await tester.enterText(find.byType(TextField), tooLong);
     await tester.pump();
     expect(find.text('501/500'), findsOneWidget);
@@ -397,19 +436,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(service.saveCalls, 0);
-    expect(find.textContaining('500 characters'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       tooLong,
     );
   });
 
+  testWidgets('the counter appears at 400 characters, not before',
+      (tester) async {
+    await pumpReview(tester);
+
+    await openEmptyNote(tester);
+    await tester.enterText(find.byType(TextField), 'a' * 399);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('budget-note-counter')), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'a' * 400);
+    await tester.pump();
+    expect(find.text('400/500'), findsOneWidget);
+  });
+
   testWidgets('accepts a note of exactly 500 characters', (tester) async {
     final service = await pumpReview(tester);
     final atLimit = 'a' * 500;
 
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
+    await openEmptyNote(tester);
     await tester.enterText(find.byType(TextField), atLimit);
     await tester.pump();
     expect(find.text('500/500'), findsOneWidget);
@@ -425,8 +477,7 @@ void main() {
   testWidgets('saves a valid note and shows it read-only', (tester) async {
     final service = await pumpReview(tester);
 
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
+    await openEmptyNote(tester);
     await tester.enterText(find.byType(TextField), 'Car repair');
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
@@ -435,27 +486,78 @@ void main() {
     expect(find.text('Review note saved'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
     expect(find.text('Car repair'), findsOneWidget);
+    expect(find.text('Updated May 15'), findsOneWidget);
+    expect(find.text('Monthly review note'), findsOneWidget);
   });
 
-  testWidgets('saving an empty note deletes it', (tester) async {
+  testWidgets('an existing note opens the editor and offers delete',
+      (tester) async {
+    await pumpReview(
+      tester,
+      summary: buildSummary(
+        note: 'Car repair',
+        noteUpdatedAt: DateTime(2026, 5, 12, 9, 30),
+      ),
+    );
+
+    await tester.scrollUntilVisible(find.text('Car repair'), 300);
+    expect(find.text('Updated May 12'), findsOneWidget);
+
+    await openExistingNote(tester);
+    expect(find.byKey(const ValueKey('budget-note-delete')), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('the delete action clears the note and offers undo',
+      (tester) async {
     final service =
         await pumpReview(tester, summary: buildSummary(note: 'Car repair'));
-    expect(find.text('Car repair'), findsOneWidget);
 
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '  ');
-    await tester.tap(find.text('Save note'));
+    await openExistingNote(tester);
+    await tester.tap(find.byKey(const ValueKey('budget-note-delete')));
     await tester.pumpAndSettle();
 
     expect(service.savedNote, '');
     expect(find.text('Car repair'), findsNothing);
+    expect(find.text('Review note deleted'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget);
     expect(
-      find.text(
-        'Add a brief note on why this month varied (max 500 chars)...',
-      ),
+      find.text("Jot down this month's review"),
       findsOneWidget,
     );
+    expect(find.textContaining('Leave the note empty'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(service.savedNote, 'Car repair');
+    expect(service.saveCalls, 2);
+  });
+
+  testWidgets('quick chips insert their prefix at the cursor', (tester) async {
+    await pumpReview(tester);
+
+    await openEmptyNote(tester);
+    expect(find.text('Takeaways'), findsOneWidget);
+
+    await tester.tap(find.text('Takeaways'));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField)).controller!;
+    expect(controller.text, 'Takeaways: ');
+    expect(controller.selection.baseOffset, 'Takeaways: '.length);
+    expect(find.text('Takeaways'), findsNothing);
+  });
+
+  testWidgets('an empty note has no delete affordance', (tester) async {
+    await pumpReview(tester);
+
+    await openEmptyNote(tester);
+    expect(find.byKey(const ValueKey('budget-note-delete')), findsNothing);
   });
 
   testWidgets('a failed save keeps the draft and shows the localized error',
@@ -465,8 +567,7 @@ void main() {
       saveResult: const Result.failure(LedgerErrorCode.unknownEvent, 'boom'),
     );
 
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
+    await openEmptyNote(tester);
     await tester.enterText(find.byType(TextField), 'Car repair');
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
@@ -479,6 +580,44 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'Car repair',
     );
+  });
+
+  testWidgets('the sheet stays unclipped at 320 dp with large text',
+      (tester) async {
+    await pumpReview(
+      tester,
+      size: const Size(320, 700),
+      textScale: 1.6,
+      brightness: Brightness.dark,
+    );
+
+    await openEmptyNote(tester);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Save note'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('budget-note-save'))).bottom,
+      lessThanOrEqualTo(440),
+    );
+  });
+
+  testWidgets('the sheet keeps its actions above the keyboard', (tester) async {
+    await pumpReview(tester, size: const Size(400, 700));
+
+    await openEmptyNote(tester);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    final saveRect =
+        tester.getRect(find.byKey(const ValueKey('budget-note-save')));
+    expect(saveRect.bottom, lessThanOrEqualTo(400));
   });
 
   testWidgets('hides the trend block when fewer than two months have data',
@@ -538,8 +677,11 @@ void main() {
     expect(find.text('Committed baseline (incl. pending)'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.scrollUntilVisible(find.text('Month review note'), 300);
-    expect(find.text('Month review note'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text("Jot down this month's review"),
+      300,
+    );
+    expect(find.text("Jot down this month's review"), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
