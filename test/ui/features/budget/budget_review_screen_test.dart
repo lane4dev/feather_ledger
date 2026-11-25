@@ -658,6 +658,22 @@ void main() {
     expect(find.text('Total budget'), findsOneWidget);
   });
 
+  testWidgets('a saved note renders in dark mode', (tester) async {
+    await pumpReview(
+      tester,
+      summary: buildSummary(
+        note: 'Car repair',
+        noteUpdatedAt: DateTime(2026, 5, 12, 9, 30),
+      ),
+      brightness: Brightness.dark,
+    );
+
+    await tester.scrollUntilVisible(find.text('Car repair'), 300);
+    expect(find.text('Monthly review note'), findsOneWidget);
+    expect(find.text('Updated May 12'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders in dark mode', (tester) async {
     await pumpReview(tester, brightness: Brightness.dark);
 
