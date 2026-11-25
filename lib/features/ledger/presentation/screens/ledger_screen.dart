@@ -40,6 +40,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   bool _programmaticMonthChange = false;
   final _monthControllers = <DateTime, ScrollController>{};
   bool _collapsed = false;
+  bool _scrolled = false;
 
   void _resetEmptyMonth(DateTime month) {
     if (!mounted) return;
@@ -64,10 +65,15 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final selected = ref.read(ledgerViewModelProvider).selectedDate;
     if (selected.year != month.year || selected.month != month.month) return;
     final controller = _monthControllers[month];
-    final collapsed = controller != null &&
-        controller.hasClients &&
-        controller.offset >= headerHeight - 0.5;
-    if (_collapsed != collapsed) setState(() => _collapsed = collapsed);
+    final hasOffset = controller != null && controller.hasClients;
+    final collapsed = hasOffset && controller.offset >= headerHeight - 0.5;
+    final scrolled = hasOffset && controller.offset > 0.5;
+    if (_collapsed != collapsed || _scrolled != scrolled) {
+      setState(() {
+        _collapsed = collapsed;
+        _scrolled = scrolled;
+      });
+    }
   }
 
   // Base date for PageView index mapping
@@ -182,6 +188,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         (_, __) {});
 
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     // The ledger's own currency, the same one the header and the day totals
     // use — not the display preference, which the accounts may have outgrown.
@@ -198,6 +205,12 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
             pinned: true,
             centerTitle: !_collapsed,
             titleSpacing: _collapsed ? null : 8,
+            elevation: _scrolled ? 2.0 : 0.0,
+            scrolledUnderElevation: _scrolled ? 2.0 : 0.0,
+            backgroundColor:
+                _scrolled ? scheme.surfaceContainer : scheme.surface,
+            surfaceTintColor: scheme.surfaceContainer,
+            shadowColor: scheme.shadow.withValues(alpha: 0.12),
             title: _collapsed
                 ? InkWell(
                     borderRadius: context.metrics.chipBorderRadius,

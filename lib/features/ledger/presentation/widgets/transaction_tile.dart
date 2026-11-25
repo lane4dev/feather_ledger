@@ -35,7 +35,7 @@ class TransactionTile extends StatelessWidget {
     final amountStyle = LedgerTheme.transactionAmount(context).copyWith(
       decoration: isSkipped ? TextDecoration.lineThrough : null,
       color: isSkipped
-          ? theme.colorScheme.onSurfaceVariant
+          ? LedgerTheme.skippedColor(context)
           : switch (transaction.type) {
               TransactionKind.expense => context.colors.expense,
               TransactionKind.income => context.colors.income,
@@ -53,10 +53,45 @@ class TransactionTile extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: context.spacing.md,
-            vertical: 10.0,
+            vertical: LedgerTheme.rowVerticalPadding,
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final amountWidget = Text(
+                amountText,
+                textAlign: TextAlign.end,
+                style: amountStyle,
+              );
+
+              final iconGap = context.spacing.sm + context.spacing.xs;
+              final amountWidth = _measureAmountWidth(
+                context,
+                amountText: amountText,
+                amountStyle: amountStyle,
+              );
+              final stackedAmount = _shouldStackAmount(
+                maxWidth: constraints.maxWidth,
+                amountWidth: amountWidth,
+                avatarGap: iconGap,
+                leadingGap: context.spacing.md,
+              );
+              final availableTextWidth = constraints.maxWidth.isFinite
+                  ? (constraints.maxWidth -
+                          LedgerTheme.categoryAvatarSize -
+                          iconGap -
+                          (stackedAmount ? 0 : context.spacing.md + amountWidth))
+                      .clamp(48.0, constraints.maxWidth)
+                  : double.infinity;
+              final maxBadgeWidth = availableTextWidth.isFinite
+                  ? (availableTextWidth * 0.65).clamp(48.0, availableTextWidth)
+                  : double.infinity;
+
+              final subtitleStyle = isSkipped
+                  ? LedgerTheme.transactionMeta(context).copyWith(
+                      color: LedgerTheme.skippedColor(context),
+                    )
+                  : LedgerTheme.transactionMeta(context);
+
               final textColumn = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,7 +100,7 @@ class TransactionTile extends StatelessWidget {
                     _title(l10n),
                     style: LedgerTheme.transactionTitle(context).copyWith(
                       color: isSkipped
-                          ? theme.colorScheme.onSurfaceVariant
+                          ? LedgerTheme.skippedColor(context)
                           : theme.colorScheme.onSurface,
                       decoration:
                           isSkipped ? TextDecoration.lineThrough : null,
@@ -73,30 +108,31 @@ class TransactionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    _subtitle,
-                    style: LedgerTheme.transactionMeta(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: LedgerTheme.rowTextGap),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _subtitle,
+                          style: subtitleStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (transaction.isPending) ...[
+                        SizedBox(width: context.metrics.inlineBadgeGap),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxBadgeWidth),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: _statusBadge(l10n),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
-              );
-
-              final amountWidget = Text(
-                amountText,
-                textAlign: TextAlign.end,
-                style: amountStyle,
-              );
-
-              final iconGap = context.spacing.sm + context.spacing.xs;
-              final stackedAmount = _shouldStackAmount(
-                context,
-                maxWidth: constraints.maxWidth,
-                amountText: amountText,
-                amountStyle: amountStyle,
-                avatarGap: iconGap,
-                leadingGap: context.spacing.md,
               );
 
               return Column(
@@ -127,20 +163,6 @@ class TransactionTile extends StatelessWidget {
                         child: amountWidget,
                       ),
                     ),
-                  if (transaction.isPending)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        left: LedgerTheme.categoryAvatarSize + iconGap,
-                        top: context.spacing.xs,
-                      ),
-                      child: Wrap(
-                        spacing: context.spacing.xs,
-                        runSpacing: context.spacing.xs,
-                        children: [
-                          _statusBadge(l10n),
-                        ],
-                      ),
-                    ),
                 ],
               );
             },
@@ -150,15 +172,11 @@ class TransactionTile extends StatelessWidget {
     );
   }
 
-  static bool _shouldStackAmount(
+  static double _measureAmountWidth(
     BuildContext context, {
-    required double maxWidth,
     required String amountText,
     required TextStyle amountStyle,
-    required double avatarGap,
-    required double leadingGap,
   }) {
-    if (!maxWidth.isFinite) return false;
     final painter = TextPainter(
       text: TextSpan(text: amountText, style: amountStyle),
       textDirection: Directionality.of(context),
@@ -167,7 +185,16 @@ class TransactionTile extends StatelessWidget {
     )..layout();
     final amountWidth = painter.width;
     painter.dispose();
+    return amountWidth;
+  }
 
+  static bool _shouldStackAmount({
+    required double maxWidth,
+    required double amountWidth,
+    required double avatarGap,
+    required double leadingGap,
+  }) {
+    if (!maxWidth.isFinite) return false;
     const minTextColumnWidth = 72.0;
     final neededForInline = LedgerTheme.categoryAvatarSize +
         avatarGap +
@@ -234,17 +261,20 @@ class TransactionTile extends StatelessWidget {
       return AppBadge(
         label: l10n.skippedBill,
         icon: LucideIcons.circlePause,
+        compact: true,
       );
     }
     if (transaction.isFailed) {
       return AppBadge.error(
         label: l10n.failedBill,
         icon: LucideIcons.triangleAlert,
+        compact: true,
       );
     }
     return AppBadge.outlined(
       label: l10n.pendingBill,
       icon: LucideIcons.clock,
+      compact: true,
     );
   }
 

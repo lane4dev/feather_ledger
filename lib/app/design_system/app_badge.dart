@@ -6,8 +6,13 @@ enum _AppBadgeVariant { standard, outlined, error }
 
 /// Optional color is user-owned category data, not another app palette.
 class AppBadge extends StatelessWidget {
-  const AppBadge({super.key, required this.label, this.color, this.icon})
-      : _variant = _AppBadgeVariant.standard,
+  const AppBadge({
+    super.key,
+    required this.label,
+    this.color,
+    this.icon,
+    this.compact = false,
+  })  : _variant = _AppBadgeVariant.standard,
         _backgroundColor = null;
 
   /// Status pill with an `outline` border on a tonal surface (e.g. pending bill).
@@ -15,20 +20,26 @@ class AppBadge extends StatelessWidget {
     super.key,
     required this.label,
     this.icon,
+    this.compact = false,
     Color? backgroundColor,
   })  : color = null,
         _variant = _AppBadgeVariant.outlined,
         _backgroundColor = backgroundColor;
 
   /// High-contrast error pill backed by `errorContainer` / `onErrorContainer`.
-  const AppBadge.error({super.key, required this.label, this.icon})
-      : color = null,
+  const AppBadge.error({
+    super.key,
+    required this.label,
+    this.icon,
+    this.compact = false,
+  })  : color = null,
         _variant = _AppBadgeVariant.error,
         _backgroundColor = null;
 
   final String label;
   final Color? color;
   final IconData? icon;
+  final bool compact;
   final _AppBadgeVariant _variant;
   final Color? _backgroundColor;
 
@@ -57,9 +68,36 @@ class AppBadge extends StatelessWidget {
     final BoxBorder? border = _variant == _AppBadgeVariant.outlined
         ? Border.all(color: scheme.outline, width: 1)
         : null;
+    final metrics = context.metrics;
+    final padding = compact
+        ? EdgeInsets.symmetric(
+            horizontal: metrics.compactBadgeHorizontalPadding,
+            vertical: metrics.compactBadgeVerticalPadding,
+          )
+        : EdgeInsets.symmetric(
+            horizontal: context.spacing.sm,
+            vertical: context.spacing.xs,
+          );
+    final iconSize = compact ? metrics.compactBadgeIconSize : 12.0;
+
     final labelText = Text(
       label,
+      maxLines: compact ? 1 : null,
+      softWrap: !compact,
       style: AppTypography.compactLabel(context).copyWith(color: foreground),
+    );
+    final content = Padding(
+      padding: padding,
+      child: icon == null
+          ? labelText
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: iconSize, color: foreground),
+                SizedBox(width: context.spacing.xs),
+                Flexible(child: labelText),
+              ],
+            ),
     );
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -67,20 +105,14 @@ class AppBadge extends StatelessWidget {
         borderRadius: borderRadius,
         border: border,
       ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: context.spacing.sm, vertical: context.spacing.xs),
-        child: icon == null
-            ? labelText
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 12, color: foreground),
-                  SizedBox(width: context.spacing.xs),
-                  Flexible(child: labelText),
-                ],
+      child: compact
+          ? ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: metrics.compactBadgeMinHeight,
               ),
-      ),
+              child: Center(widthFactor: 1.0, child: content),
+            )
+          : content,
     );
   }
 }

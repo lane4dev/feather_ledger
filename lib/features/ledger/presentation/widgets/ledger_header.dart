@@ -90,6 +90,8 @@ class LedgerAppBarTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     if (!collapsed) {
       return LedgerMonthSwitcher(
@@ -107,14 +109,40 @@ class LedgerAppBarTitle extends StatelessWidget {
             DateFormat.yMMM(locale).format(selectedDate),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: LedgerTheme.collapsedTitle(context),
           ),
         ),
-        SizedBox(width: context.spacing.md),
+        SizedBox(width: context.spacing.sm),
         Flexible(
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: LedgerCompactBalance(summaryAsync: summaryAsync),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.spacing.sm + context.spacing.xs,
+                  vertical: context.spacing.xs,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (l10n != null) ...[
+                      Text(
+                        l10n.balance,
+                        style: AppTypography.compactLabel(context).copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      SizedBox(width: context.spacing.xs),
+                    ],
+                    LedgerCompactBalance(summaryAsync: summaryAsync),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -133,8 +161,8 @@ class LedgerCompactBalance extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
-    final style = AppTypography.amount(context).copyWith(
-      color: Theme.of(context).colorScheme.onSurface,
+    final style = AppTypography.compactAmount(context).copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
 
     return summaryAsync.when(

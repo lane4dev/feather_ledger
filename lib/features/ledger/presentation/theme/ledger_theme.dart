@@ -9,7 +9,12 @@ class LedgerTheme {
   // --- Layout Constants ---
   static const double colAnchorWidth = 56.0;
   static const double dayCardGap = 14.0;
-  static const double rowMinHeight = 62.0;
+  static const double rowMinHeight = 60.0;
+  static const double rowVerticalPadding = 10.0;
+  static const double rowTextGap = 2.0;
+  static const double subtotalVerticalPadding = 6.0;
+  static const double subtotalDividerAlpha = 0.45;
+  static const double skippedTextAlpha = 0.58;
   static const double categoryAvatarSize = 40.0;
 
   /// The ceiling on the field-name column in the transaction form. The column
@@ -107,4 +112,13 @@ class LedgerTheme {
         fontWeight: FontWeight.w700,
         color: Theme.of(context).colorScheme.onSurface,
       );
+  static Color skippedColor(BuildContext context) => Theme.of(context)
+      .colorScheme
+      .onSurfaceVariant
+      .withValues(alpha: skippedTextAlpha);
+  static TextStyle collapsedTitle(BuildContext context) =>
+      Theme.of(context).textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          );
 }

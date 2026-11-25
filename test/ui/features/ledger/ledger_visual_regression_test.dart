@@ -424,9 +424,15 @@ void main() {
       findsOneWidget,
     );
 
-    // Scroll down to collapse header and verify collapsed app-bar balance is also masked.
+    // Scroll down to collapse header and verify collapsed app-bar balance is also masked
+    // and SliverAppBar adopts M3 scrolledUnder surfaceContainer backing.
     controller.jumpTo(260);
     await tester.pumpAndSettle();
+    final scrolledAppBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
+    final ledgerScheme =
+        Theme.of(tester.element(find.byType(SliverAppBar))).colorScheme;
+    expect(scrolledAppBar.backgroundColor, ledgerScheme.surfaceContainer);
+    expect(scrolledAppBar.scrolledUnderElevation, 2.0);
     expect(
       find.descendant(
         of: find.byType(LedgerCompactBalance),
@@ -438,6 +444,9 @@ void main() {
     // Scroll back up and restore visibility.
     controller.jumpTo(0);
     await tester.pumpAndSettle();
+    final topAppBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
+    expect(topAppBar.backgroundColor, ledgerScheme.surface);
+    expect(topAppBar.scrolledUnderElevation, 0.0);
     await tester.tap(find.byIcon(LucideIcons.eyeOff));
     await tester.pumpAndSettle();
     expect(find.text('¥1195.00'), findsOneWidget);

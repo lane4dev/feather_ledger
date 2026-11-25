@@ -24,6 +24,11 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
     this.pageGutter = 24,
     this.compactGutter = 16,
     this.sectionGap = 32,
+    this.inlineBadgeGap = 6,
+    this.compactBadgeMinHeight = 20,
+    this.compactBadgeHorizontalPadding = 6,
+    this.compactBadgeVerticalPadding = 2,
+    this.compactBadgeIconSize = 11,
   });
 
   final double cardRadius;
@@ -44,6 +49,11 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   final double pageGutter;
   final double compactGutter;
   final double sectionGap;
+  final double inlineBadgeGap;
+  final double compactBadgeMinHeight;
+  final double compactBadgeHorizontalPadding;
+  final double compactBadgeVerticalPadding;
+  final double compactBadgeIconSize;
 
   BorderRadius get cellBorderRadius => BorderRadius.circular(cellRadius);
   BorderRadius get legendBorderRadius => BorderRadius.circular(cellRadius / 2);
@@ -85,6 +95,11 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
     double? pageGutter,
     double? compactGutter,
     double? sectionGap,
+    double? inlineBadgeGap,
+    double? compactBadgeMinHeight,
+    double? compactBadgeHorizontalPadding,
+    double? compactBadgeVerticalPadding,
+    double? compactBadgeIconSize,
   }) =>
       AppMetrics(
         cardRadius: cardRadius ?? this.cardRadius,
@@ -105,6 +120,14 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
         pageGutter: pageGutter ?? this.pageGutter,
         compactGutter: compactGutter ?? this.compactGutter,
         sectionGap: sectionGap ?? this.sectionGap,
+        inlineBadgeGap: inlineBadgeGap ?? this.inlineBadgeGap,
+        compactBadgeMinHeight:
+            compactBadgeMinHeight ?? this.compactBadgeMinHeight,
+        compactBadgeHorizontalPadding:
+            compactBadgeHorizontalPadding ?? this.compactBadgeHorizontalPadding,
+        compactBadgeVerticalPadding:
+            compactBadgeVerticalPadding ?? this.compactBadgeVerticalPadding,
+        compactBadgeIconSize: compactBadgeIconSize ?? this.compactBadgeIconSize,
       );
 
   @override
@@ -130,6 +153,15 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
       pageGutter: lerpDouble(pageGutter, other.pageGutter, t)!,
       compactGutter: lerpDouble(compactGutter, other.compactGutter, t)!,
       sectionGap: lerpDouble(sectionGap, other.sectionGap, t)!,
+      inlineBadgeGap: lerpDouble(inlineBadgeGap, other.inlineBadgeGap, t)!,
+      compactBadgeMinHeight:
+          lerpDouble(compactBadgeMinHeight, other.compactBadgeMinHeight, t)!,
+      compactBadgeHorizontalPadding: lerpDouble(compactBadgeHorizontalPadding,
+          other.compactBadgeHorizontalPadding, t)!,
+      compactBadgeVerticalPadding: lerpDouble(
+          compactBadgeVerticalPadding, other.compactBadgeVerticalPadding, t)!,
+      compactBadgeIconSize:
+          lerpDouble(compactBadgeIconSize, other.compactBadgeIconSize, t)!,
     );
   }
 }

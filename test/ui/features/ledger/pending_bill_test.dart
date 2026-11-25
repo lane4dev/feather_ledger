@@ -13,6 +13,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/transaction_tile.dart';
@@ -201,7 +202,7 @@ void main() {
       expect(find.byIcon(LucideIcons.slidersHorizontal), findsOneWidget);
     });
 
-    testWidgets('skipped row renders neutral onSurfaceVariant with strikethrough and Skipped badge',
+    testWidgets('skipped row renders muted onSurfaceVariant with strikethrough and compact Skipped badge',
         (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(
         transaction: tile(
@@ -215,15 +216,31 @@ void main() {
       expect(find.text('Pending'), findsNothing);
       expect(find.byIcon(LucideIcons.circlePause), findsOneWidget);
 
+      final expectedMuted = AppTheme.lightTheme.colorScheme.onSurfaceVariant
+          .withValues(alpha: LedgerTheme.skippedTextAlpha);
+
       final titleText = tester.widget<Text>(find.text('Rent'));
       expect(titleText.style?.decoration, TextDecoration.lineThrough);
-      expect(titleText.style?.color,
-          AppTheme.lightTheme.colorScheme.onSurfaceVariant);
+      expect(titleText.style?.color, expectedMuted);
+
+      final subtitleText = tester.widget<Text>(find.text('Cash'));
+      expect(subtitleText.style?.color, expectedMuted);
 
       final amountText = tester.widget<Text>(find.text(r'-$5000.00'));
       expect(amountText.style?.decoration, TextDecoration.lineThrough);
-      expect(amountText.style?.color,
-          AppTheme.lightTheme.colorScheme.onSurfaceVariant);
+      expect(amountText.style?.color, expectedMuted);
+
+      // Badge sits on the same 2nd line immediately after the account name.
+      final cashRect = tester.getRect(find.text('Cash'));
+      final badgeRect = tester.getRect(find.byType(AppBadge));
+      expect(badgeRect.left - cashRect.right, closeTo(6.0, 0.5));
+      expect(badgeRect.height, closeTo(20.0, 1.0));
+      expect((badgeRect.center.dy - cashRect.center.dy).abs(), lessThan(4.0));
+
+      // Leading circular icon and trailing amount remain vertically centered.
+      final tileRect = tester.getRect(find.byType(TransactionTile));
+      final amountRect = tester.getRect(find.text(r'-$5000.00'));
+      expect((amountRect.center.dy - tileRect.center.dy).abs(), lessThan(2.0));
     });
 
     testWidgets('failed row renders AppBadge.error without Opacity',

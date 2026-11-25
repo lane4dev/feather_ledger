@@ -513,6 +513,39 @@ void main() {
       });
     }
   });
+
+  testWidgets('collapsed app bar renders month title hierarchy and tonal balance capsule',
+      (tester) async {
+    await tester.pumpWidget(wrap(
+      LedgerAppBarTitle(
+        selectedDate: DateTime(2026, 11),
+        summaryAsync: const AsyncData(summary),
+        collapsed: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final monthText = tester.widget<Text>(find.text('Nov 2026'));
+    expect(monthText.style?.fontWeight, FontWeight.w600);
+    expect(monthText.style?.color, AppTheme.lightTheme.colorScheme.onSurface);
+
+    expect(find.text('Balance'), findsOneWidget);
+    final balanceText = tester.widget<Text>(find.text(r'$1,234.56'));
+    expect(
+      balanceText.style?.color,
+      AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+    );
+
+    final capsule = tester.widget<DecoratedBox>(find.ancestor(
+      of: find.byType(LedgerCompactBalance),
+      matching: find.byType(DecoratedBox),
+    ));
+    final decoration = capsule.decoration as BoxDecoration;
+    expect(
+      decoration.color,
+      AppTheme.lightTheme.colorScheme.surfaceContainerHigh,
+    );
+  });
 }
 
 class _FixedVisibility extends BalanceVisibilityController {

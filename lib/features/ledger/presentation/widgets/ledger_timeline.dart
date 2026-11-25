@@ -131,13 +131,15 @@ class _DailySummary extends StatelessWidget {
         FeatherDivider(
           indent: context.spacing.md,
           endIndent: context.spacing.md,
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: LedgerTheme.subtotalDividerAlpha),
         ),
         Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.spacing.md,
-            context.spacing.sm,
-            context.spacing.md,
-            context.spacing.sm + 2,
+          padding: EdgeInsets.symmetric(
+            horizontal: context.spacing.md,
+            vertical: LedgerTheme.subtotalVerticalPadding,
           ),
           child: Wrap(
             alignment: WrapAlignment.end,

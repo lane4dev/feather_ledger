@@ -573,4 +573,70 @@ void main() {
       }
     }
   });
+
+  testWidgets('daily subtotal divider uses faded outlineVariant and compact footer padding',
+      (tester) async {
+    const cash = AccountEntity(
+      id: 'acc_cash',
+      name: 'Cash',
+      type: AccountType.cash,
+      currencyCode: 'CNY',
+      balanceMinor: 0,
+      archived: false,
+      lastUpdatedEventId: 0,
+    );
+    const food = CategoryEntity(
+      id: 'cat_food',
+      name: 'Food',
+      iconKey: '1',
+      colorInt: 0xFF0F766E,
+      type: CategoryType.expense,
+    );
+    final groups = LedgerDayGroup.group([
+      TransactionTileUiModel(
+        id: 't1',
+        amount: 1000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 24, 18),
+        note: 'Dinner',
+        category: food,
+        account: cash,
+        displayAmount: '10.00',
+        displaySign: '-',
+      ),
+      TransactionTileUiModel(
+        id: 't2',
+        amount: 2000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 24, 12),
+        note: 'Lunch',
+        category: food,
+        account: cash,
+        displayAmount: '20.00',
+        displaySign: '-',
+      ),
+    ], currencySymbol: '¥');
+
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.lightTheme,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('en')],
+      home: Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            LedgerTimeline(days: groups, currencySymbol: '¥'),
+          ],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final divider = tester.widget<Divider>(find.byType(Divider));
+    expect(
+      divider.color,
+      AppTheme.lightTheme.colorScheme.outlineVariant
+          .withValues(alpha: LedgerTheme.subtotalDividerAlpha),
+    );
+    expect(find.text('¥30.00'), findsOneWidget);
+  });
 }
