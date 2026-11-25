@@ -51,7 +51,10 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: MediaQuery(
-            data: MediaQueryData(size: size, textScaler: TextScaler.linear(textScale)),
+            data: MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(textScale),
+            ),
             child: Scaffold(
               body: Padding(
                 padding: const EdgeInsets.all(16),
@@ -147,7 +150,8 @@ void main() {
     final plate = tester
         .widgetList<DecoratedBox>(find.descendant(
           of: find.byWidgetPredicate(
-            (w) => w is ClipRRect && w.borderRadius == BorderRadius.circular(24),
+            (w) =>
+                w is ClipRRect && w.borderRadius == BorderRadius.circular(24),
           ),
           matching: find.byType(DecoratedBox),
         ))

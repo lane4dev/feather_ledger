@@ -557,7 +557,9 @@ class _IncomeExpenseBar extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: scheme.surface.withValues(
-          alpha: dark ? LedgerTheme.footerBarAlphaDark : LedgerTheme.footerBarAlpha,
+          alpha: dark
+              ? LedgerTheme.footerBarAlphaDark
+              : LedgerTheme.footerBarAlpha,
         ),
         border: Border(
           top: BorderSide(
