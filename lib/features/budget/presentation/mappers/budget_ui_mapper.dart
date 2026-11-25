@@ -22,6 +22,9 @@ class BudgetUiMapper {
   }) {
     final monthFormat = DateFormat.MMM(locale);
     final dayFormat = DateFormat.yMd(locale).add_Hm();
+    final monthDisplay =
+        DateFormat.yMMMM(locale).format(summary.month.toDateTime());
+    final todayMonth = today == null ? null : YearMonth.fromDate(today);
 
     final totalBudget = summary.totalBudgetMinor;
     final actualRatio = totalBudget > 0
@@ -37,7 +40,7 @@ class BudgetUiMapper {
 
     final complianceDisplay = summary.budgetedCategoryCount > 0
         ? '${summary.inBudgetCount}/${summary.budgetedCategoryCount}'
-        : '—';
+        : _placeholder;
 
     final committedBaselineMinor = summary.allSummaries
         .fold<int>(0, (sum, c) => sum + c.committedBaselineMinor);
@@ -52,100 +55,106 @@ class BudgetUiMapper {
     final budgetedBaselineMinor = summary.budgetedCategories
         .fold<int>(0, (sum, c) => sum + c.committedBaselineMinor);
 
-    // The main amount is the one number each mode exists to show: what is left
-    // after what is spent and billed (track), what the closed month ended with
-    // (review), and what the budget has not been pinned down by (plan).
-    final mainMinor = switch (summary.mode) {
-      BudgetMode.track => summary.projectedRemainingMinor,
-      BudgetMode.review => summary.budgetedRemainingActualMinor,
-      BudgetMode.plan => summary.totalBudgetMinor - budgetedBaselineMinor,
-    };
-
-    final mainLabel = switch (summary.mode) {
-      BudgetMode.track => mainMinor < 0
-          ? BudgetOverviewMainLabel.projectedOver
-          : BudgetOverviewMainLabel.projectedRemaining,
-      BudgetMode.review => mainMinor < 0
-          ? BudgetOverviewMainLabel.monthlyOverspend
-          : BudgetOverviewMainLabel.monthlySurplus,
-      BudgetMode.plan => BudgetOverviewMainLabel.availableToSpend,
-    };
-
-    final baselineRatio = totalBudget > 0
-        ? (budgetedBaselineMinor / totalBudget).clamp(0.0, 1.0)
-        : 0.0;
-
     // A share of nothing has no answer; `—` says so instead of `0%`.
     final sharePercent = totalBudget > 0
         ? '${(budgetedBaselineMinor / totalBudget * 100).round()}%'
-        : '—';
+        : _placeholder;
     // Usage is deliberately uncapped: a month that spent 150% of its budget
     // should be readable as such, the bar being full is the geometric half.
     final usagePercent = totalBudget > 0
         ? '${(summary.budgetedActualMinor / totalBudget * 100).round()}%'
-        : '—';
+        : _placeholder;
 
     final budgetedBaselineDisplay =
         formatMinorWithSymbol(budgetedBaselineMinor, currencySymbol);
     final remainingBudgetDisplay =
         formatMinorWithSymbol(summary.totalBudgetMinor, currencySymbol);
     final budgetValueDisplay =
-        summary.hasAnyBudget ? remainingBudgetDisplay : '—';
+        summary.hasAnyBudget ? remainingBudgetDisplay : _placeholder;
 
-    final footerMetrics = switch (summary.mode) {
-      BudgetMode.track => [
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.spent,
-            value: formatMinorWithSymbol(
-              summary.budgetedActualMinor,
-              currencySymbol,
+    // Each mode is one row of this table: the hero's amount with its label, and
+    // the three footer columns. One switch keeps a mode's hero from drifting
+    // away from the footer that explains it. The main amount is the one number
+    // each mode exists to show: what is left after what is spent and billed
+    // (track), what the closed month ended with (review), and what the budget
+    // has not been pinned down by (plan).
+    final readings = switch (summary.mode) {
+      BudgetMode.track => (
+          mainMinor: summary.projectedRemainingMinor,
+          label: summary.projectedRemainingMinor < 0
+              ? BudgetOverviewMainLabel.projectedOver
+              : BudgetOverviewMainLabel.projectedRemaining,
+          footer: [
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.spent,
+              value: formatMinorWithSymbol(
+                summary.budgetedActualMinor,
+                currencySymbol,
+              ),
             ),
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.pending,
-            value: formatMinorWithSymbol(
-              summary.budgetedPendingMinor,
-              currencySymbol,
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.pending,
+              value: formatMinorWithSymbol(
+                summary.budgetedPendingMinor,
+                currencySymbol,
+              ),
+              tone: BudgetOverviewMetricTone.pending,
             ),
-            tone: BudgetOverviewMetricTone.pending,
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.totalBudget,
-            value: budgetValueDisplay,
-          ),
-        ],
-      BudgetMode.review => [
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.spent,
-            value: formatMinorWithSymbol(
-              summary.budgetedActualMinor,
-              currencySymbol,
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.totalBudget,
+              value: budgetValueDisplay,
             ),
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.budgetUsage,
-            value: usagePercent,
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.totalBudget,
-            value: budgetValueDisplay,
-          ),
-        ],
-      BudgetMode.plan => [
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.committedBaseline,
-            value: budgetedBaselineDisplay,
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.baselineShare,
-            value: sharePercent,
-          ),
-          BudgetOverviewMetricUiModel(
-            metric: BudgetOverviewMetric.totalBudget,
-            value: budgetValueDisplay,
-          ),
-        ],
+          ],
+        ),
+      BudgetMode.review => (
+          mainMinor: summary.budgetedRemainingActualMinor,
+          label: summary.budgetedRemainingActualMinor < 0
+              ? BudgetOverviewMainLabel.monthlyOverspend
+              : BudgetOverviewMainLabel.monthlySurplus,
+          footer: [
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.spent,
+              value: formatMinorWithSymbol(
+                summary.budgetedActualMinor,
+                currencySymbol,
+              ),
+            ),
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.budgetUsage,
+              value: usagePercent,
+            ),
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.totalBudget,
+              value: budgetValueDisplay,
+            ),
+          ],
+        ),
+      BudgetMode.plan => (
+          mainMinor: summary.totalBudgetMinor - budgetedBaselineMinor,
+          label: BudgetOverviewMainLabel.availableToSpend,
+          footer: [
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.committedBaseline,
+              value: budgetedBaselineDisplay,
+            ),
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.baselineShare,
+              value: sharePercent,
+            ),
+            BudgetOverviewMetricUiModel(
+              metric: BudgetOverviewMetric.totalBudget,
+              value: budgetValueDisplay,
+            ),
+          ],
+        ),
     };
+
+    final mainMinor = readings.mainMinor;
+    final mainLabel = readings.label;
+
+    final baselineRatio = totalBudget > 0
+        ? (budgetedBaselineMinor / totalBudget).clamp(0.0, 1.0)
+        : 0.0;
 
     // Today's position on the bar only means something in the month that
     // contains it; other months get no tick at all.
@@ -186,6 +195,7 @@ class BudgetUiMapper {
         committedBaselineMinor,
         currencySymbol,
       ),
+      hasCommittedBaseline: committedBaselineMinor > 0,
       committedActualDisplay: formatMinorWithSymbol(
         committedActualMinor,
         currencySymbol,
@@ -201,10 +211,10 @@ class BudgetUiMapper {
       mainAmount: BalanceDisplayParts.parse(
         summary.hasAnyBudget
             ? formatMinorWithSymbol(mainMinor, currencySymbol)
-            : '—',
+            : _placeholder,
       ),
       isMainAmountNegative: summary.hasAnyBudget && mainMinor < 0,
-      footerMetrics: footerMetrics,
+      footerMetrics: readings.footer,
       fixedBaselineRatio: baselineRatio,
       hasFixedBaseline: budgetedBaselineMinor > 0,
       todayTickRatio: todayTickRatio,
@@ -299,67 +309,34 @@ class BudgetUiMapper {
         }
       } else if (!hasLimit) {
         mainAmountDisplay = formatMinorWithSymbol(c.actualMinor, currencySymbol);
-      } else if (mode == BudgetMode.plan) {
-        amountLabel = BudgetCategoryAmountLabel.planBudget;
-        mainAmountDisplay = formatMinorWithSymbol(limit, currencySymbol);
-        subtitleKind = BudgetCategorySubtitle.baseline;
-        subtitleAmountDisplay = formatMinorWithSymbol(
-          c.committedBaselineMinor,
-          currencySymbol,
-        );
-        final average = c.threeMonthAvgMinor;
-        if (average != null && average > 0) {
-          subtitleReferenceDisplay =
-              formatMinorWithSymbol(average, currencySymbol);
-        }
-        baselineProgress =
-            (c.committedBaselineMinor / limit).clamp(0.0, 1.0);
-      } else if (mode == BudgetMode.review) {
-        // A closed month has no bills left to arrive: pending is not its story.
-        if (c.actualMinor > limit) {
-          amountLabel = BudgetCategoryAmountLabel.reviewOver;
-          mainAmountDisplay =
-              formatMinorWithSymbol(c.actualMinor - limit, currencySymbol);
-          isMainAmountNegative = true;
-        } else {
-          amountLabel = BudgetCategoryAmountLabel.reviewRemaining;
-          mainAmountDisplay =
-              formatMinorWithSymbol(limit - c.actualMinor, currencySymbol);
-        }
-        subtitleKind = BudgetCategorySubtitle.usage;
-        subtitlePercentDisplay =
-            '${(c.actualMinor * 100 / limit).round()}%';
       } else {
-        final committed = c.actualMinor + c.pendingMinor;
-        if (c.actualMinor > limit) {
-          amountLabel = BudgetCategoryAmountLabel.over;
-          mainAmountDisplay =
-              formatMinorWithSymbol(c.actualMinor - limit, currencySymbol);
-          isMainAmountNegative = true;
-        } else if (committed > limit) {
-          amountLabel = BudgetCategoryAmountLabel.projectedOver;
-          mainAmountDisplay =
-              formatMinorWithSymbol(committed - limit, currencySymbol);
-          isMainAmountNegative = true;
-        } else {
-          amountLabel = BudgetCategoryAmountLabel.remaining;
-          mainAmountDisplay =
-              formatMinorWithSymbol(limit - committed, currencySymbol);
-        }
-        if (c.pendingMinor > 0) {
-          subtitleKind = BudgetCategorySubtitle.pendingIncluded;
+        final readings = _rowSemantics(c, mode);
+        amountLabel = readings.label;
+        mainAmountDisplay =
+            formatMinorWithSymbol(readings.amountMinor, currencySymbol);
+        isMainAmountNegative = readings.negative;
+        subtitleKind = readings.subtitle;
+        baselineProgress = readings.baselineProgress;
+        final subtitleAmountMinor = readings.subtitleAmountMinor;
+        if (subtitleAmountMinor != null) {
           subtitleAmountDisplay =
-              formatMinorWithSymbol(c.pendingMinor, currencySymbol);
-        } else {
-          subtitleKind = BudgetCategorySubtitle.usage;
-          subtitlePercentDisplay =
-              '${(c.actualMinor * 100 / limit).round()}%';
+              formatMinorWithSymbol(subtitleAmountMinor, currencySymbol);
+        }
+        final subtitlePercent = readings.subtitlePercent;
+        if (subtitlePercent != null) {
+          subtitlePercentDisplay = '$subtitlePercent%';
+        }
+        final referenceMinor = readings.referenceMinor;
+        if (referenceMinor != null) {
+          subtitleReferenceDisplay =
+              formatMinorWithSymbol(referenceMinor, currencySymbol);
         }
       }
 
       return BudgetCategoryRowUiModel(
         categoryId: c.categoryId,
         name: c.categoryName,
+        titleDisplay: '${c.categoryName} · $monthDisplay',
         iconKey: c.iconKey,
         colorInt: c.colorInt,
         archived: c.isArchived,
@@ -389,14 +366,17 @@ class BudgetUiMapper {
         lastMonthActualMinor: c.lastMonthActualMinor,
         threeMonthAvgMinor: c.threeMonthAvgMinor,
         committedBaselineMinor: c.committedBaselineMinor,
+        threeMonthAvgChartValue: _chartValue(c.threeMonthAvgMinor),
+        budgetChartValue: hasLimit ? limit / 100.0 : null,
         actualProgress: catActualRatio,
         pendingProgress: catPendingRatio,
         riskLevel: c.riskLevel,
         isAnomaly: c.isAnomaly,
         anomalyPercent: anomalyPercent,
         reviewNote: c.reviewNote,
-        trend6Months:
-            c.sixMonthTrend.map((p) => _mapTrendPoint(p, monthFormat)).toList(),
+        trend6Months: c.sixMonthTrend
+            .map((p) => _mapTrendPoint(p, monthFormat, todayMonth))
+            .toList(),
         topContributions: c.topTransactions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
             .toList(),
@@ -424,6 +404,7 @@ class BudgetUiMapper {
 
     return BudgetScreenUiModel(
       overview: overview,
+      monthDisplay: monthDisplay,
       budgetedRows: summary.budgetedCategories
           .map((c) => mapCategory(c, _CategoryGroup.budgeted))
           .toList(),
@@ -460,7 +441,7 @@ class BudgetUiMapper {
               ))
           .toList(),
       monthTrend6Months: summary.monthTrend6Months
-          .map((p) => _mapTrendPoint(p, monthFormat))
+          .map((p) => _mapTrendPoint(p, monthFormat, todayMonth))
           .toList(),
       monthReviewNote: summary.monthReviewNote,
     );
@@ -469,6 +450,7 @@ class BudgetUiMapper {
   BudgetTrendPointUiModel _mapTrendPoint(
     BudgetTrendPoint p,
     DateFormat monthFormat,
+    YearMonth? todayMonth,
   ) {
     return BudgetTrendPointUiModel(
       ym: p.month,
@@ -478,7 +460,75 @@ class BudgetUiMapper {
       budgetChartValue: (p.budgetMinor ?? 0) / 100.0,
       actualChartValue: p.actualMinor / 100.0,
       hasReviewNote: p.hasReviewNote,
+      isFuture: todayMonth != null && p.month > todayMonth,
     );
+  }
+
+  /// Major units for a chart axis, or null when there is nothing to plot.
+  /// The only division by 100 outside the domain is this bridge.
+  double? _chartValue(int? minor) =>
+      minor != null && minor > 0 ? minor / 100.0 : null;
+
+  /// The one place a month phase's row semantics live: what the right-hand
+  /// amount measures, how it is signed, and what the second line says. Keeping
+  /// one arm per mode means a mode's amount and its own subtitle cannot drift.
+  _RowSemantics _rowSemantics(CategoryBudgetSummary c, BudgetMode mode) {
+    final limit = c.budgetMinor!;
+    switch (mode) {
+      case BudgetMode.plan:
+        return _RowSemantics(
+          label: BudgetCategoryAmountLabel.planBudget,
+          amountMinor: limit,
+          subtitle: BudgetCategorySubtitle.baseline,
+          subtitleAmountMinor: c.committedBaselineMinor,
+          referenceMinor:
+              (c.threeMonthAvgMinor ?? 0) > 0 ? c.threeMonthAvgMinor : null,
+          baselineProgress:
+              (c.committedBaselineMinor / limit).clamp(0.0, 1.0),
+        );
+      case BudgetMode.review:
+        // A closed month has no bills left to arrive: pending is not its story.
+        final usagePercent = (c.actualMinor * 100 / limit).round();
+        if (c.actualMinor > limit) {
+          return _RowSemantics(
+            label: BudgetCategoryAmountLabel.reviewOver,
+            amountMinor: c.actualMinor - limit,
+            negative: true,
+            subtitle: BudgetCategorySubtitle.usage,
+            subtitlePercent: usagePercent,
+          );
+        }
+        return _RowSemantics(
+          label: BudgetCategoryAmountLabel.reviewRemaining,
+          amountMinor: limit - c.actualMinor,
+          subtitle: BudgetCategorySubtitle.usage,
+          subtitlePercent: usagePercent,
+        );
+      case BudgetMode.track:
+        final committed = c.actualMinor + c.pendingMinor;
+        final over = c.actualMinor > limit;
+        final projectedOver = !over && committed > limit;
+        return _RowSemantics(
+          label: over
+              ? BudgetCategoryAmountLabel.over
+              : projectedOver
+                  ? BudgetCategoryAmountLabel.projectedOver
+                  : BudgetCategoryAmountLabel.remaining,
+          amountMinor: over
+              ? c.actualMinor - limit
+              : projectedOver
+                  ? committed - limit
+                  : limit - committed,
+          negative: over || projectedOver,
+          subtitle: c.pendingMinor > 0
+              ? BudgetCategorySubtitle.pendingIncluded
+              : BudgetCategorySubtitle.usage,
+          subtitleAmountMinor: c.pendingMinor > 0 ? c.pendingMinor : null,
+          subtitlePercent: c.pendingMinor > 0
+              ? null
+              : (c.actualMinor * 100 / limit).round(),
+        );
+    }
   }
 
   BudgetContributionTxUiModel _mapContribution(
@@ -505,3 +555,30 @@ class BudgetUiMapper {
 /// and untouched — so the same category summary turns into a different row
 /// depending on which one it lands in.
 enum _CategoryGroup { budgeted, unbudgetedActive, remaining }
+
+/// How a category row reads in one month phase.
+class _RowSemantics {
+  const _RowSemantics({
+    required this.label,
+    required this.amountMinor,
+    this.negative = false,
+    required this.subtitle,
+    this.subtitleAmountMinor,
+    this.subtitlePercent,
+    this.referenceMinor,
+    this.baselineProgress = 0,
+  });
+
+  final BudgetCategoryAmountLabel label;
+  final int amountMinor;
+  final bool negative;
+  final BudgetCategorySubtitle subtitle;
+  final int? subtitleAmountMinor;
+  final int? subtitlePercent;
+  final int? referenceMinor;
+  final double baselineProgress;
+}
+
+/// Stands in for a figure that has no answer, e.g. a share of a month with no
+/// budget. One spelling so the placeholders cannot drift apart.
+const _placeholder = '—';

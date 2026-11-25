@@ -12,6 +12,8 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_vi
 import '../../domain/entities/budget_entities.dart';
 import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
+import '../mappers/budget_ui_mapper.dart';
+import '../models/budget_ui_models.dart';
 
 part 'budget_view_model.g.dart';
 
@@ -38,18 +40,6 @@ class BudgetViewModel extends _$BudgetViewModel {
     final next = YearMonth.fromDate(date);
     if (next == state.selectedMonth) return;
     state = state.copyWith(selectedMonth: next);
-  }
-
-  Future<bool> hasFutureRulesAfter({
-    required String currencyCode,
-    required String categoryId,
-    required YearMonth month,
-  }) {
-    return ref.read(budgetServiceProvider).hasFutureRulesAfter(
-          currencyCode: currencyCode,
-          categoryId: categoryId,
-          month: month,
-        );
   }
 
   Future<Result<bool>> checkFutureRules({
@@ -142,4 +132,56 @@ Stream<MonthBudgetSummary> budgetMonthSummary(Ref ref, YearMonth month) {
         currencyCode: currencyCode,
         month: month,
       );
+}
+
+/// The home page's view model for one month: the mapper's output, derived from
+/// the month stream, the display currency and the locale.
+///
+/// A provider rather than a call in `build`, so the page never re-maps on a
+/// rebuild that changed none of those three, and so every consumer of the same
+/// month shares one model.
+@riverpod
+AsyncValue<BudgetScreenUiModel> budgetScreenUiModel(
+  Ref ref,
+  ({YearMonth month, String locale}) request,
+) {
+  final currencySymbol = ref.watch(displayCurrencySymbolProvider);
+  final today = ref.watch(budgetClockProvider).now();
+  return ref.watch(budgetMonthSummaryProvider(request.month)).whenData(
+        (summary) => const BudgetUiMapper().mapScreen(
+          summary,
+          currencySymbol: currencySymbol,
+          locale: request.locale,
+          today: today,
+        ),
+      );
+}
+
+/// The category detail page's view model: one row out of the month's model,
+/// or null once that category has no row in this month.
+@riverpod
+AsyncValue<BudgetCategoryDetailUiModel?> budgetCategoryDetail(
+  Ref ref,
+  ({YearMonth month, String categoryId, String locale}) request,
+) {
+  final today = ref.watch(budgetClockProvider).now();
+  return ref
+      .watch(budgetScreenUiModelProvider(
+        (month: request.month, locale: request.locale),
+      ))
+      .whenData((screen) {
+    final row = [
+      ...screen.budgetedRows,
+      ...screen.unbudgetedActiveRows,
+      ...screen.remainingActiveRows,
+    ].where((row) => row.categoryId == request.categoryId).firstOrNull;
+    if (row == null) return null;
+    return BudgetCategoryDetailUiModel(
+      row: row,
+      monthDisplay: screen.monthDisplay,
+      isHistoricalMonth: request.month < YearMonth.fromDate(today),
+      showMaterializationHint:
+          screen.overview.hasHighFrequencyMaterializationHint,
+    );
+  });
 }

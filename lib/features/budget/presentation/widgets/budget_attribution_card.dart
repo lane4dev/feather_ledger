@@ -39,7 +39,8 @@ class BudgetAttributionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(LucideIcons.sparkles, size: 18, color: scheme.primary),
+              Icon(LucideIcons.sparkles,
+                  size: context.metrics.inlineIconSize, color: scheme.primary),
               SizedBox(width: spacing.xs),
               Expanded(
                 child: Text(
@@ -176,7 +177,7 @@ class _AttributionRow extends StatelessWidget {
           children: [
             CategoryIcon(
               iconKey: iconKey,
-              size: 16,
+              size: context.metrics.rowIconSize,
               color: Color(colorInt),
             ),
             SizedBox(width: context.spacing.xs),

@@ -14,6 +14,10 @@ class BudgetTrendPointUiModel {
   final double actualChartValue;
   final bool hasReviewNote;
 
+  /// Whether the month is after the mapper's today. A future month may carry a
+  /// budget rule but no spending, so it must not open a chart on its own.
+  final bool isFuture;
+
   const BudgetTrendPointUiModel({
     required this.ym,
     required this.shortLabel,
@@ -22,6 +26,7 @@ class BudgetTrendPointUiModel {
     required this.budgetChartValue,
     required this.actualChartValue,
     required this.hasReviewNote,
+    this.isFuture = false,
   });
 }
 
@@ -118,6 +123,11 @@ class BudgetUnbudgetedGroupUiModel {
 class BudgetCategoryRowUiModel {
   final String categoryId;
   final String name;
+
+  /// The category name with the month, e.g. `Dining · May 2026`. Composite text
+  /// belongs here rather than in a widget so the same phrase cannot drift
+  /// between the detail screen and its contributions page.
+  final String titleDisplay;
   final String iconKey;
   final int colorInt;
   final bool archived;
@@ -136,6 +146,14 @@ class BudgetCategoryRowUiModel {
   final int? lastMonthActualMinor;
   final int? threeMonthAvgMinor;
   final int committedBaselineMinor;
+
+  /// [threeMonthAvgMinor] in chart units (major units, as fl_chart draws them),
+  /// or null when there is no average to plot.
+  final double? threeMonthAvgChartValue;
+
+  /// [budgetMinor] in chart units, or null when the category has no budget in
+  /// this month.
+  final double? budgetChartValue;
   final double actualProgress;
   final double pendingProgress;
   final BudgetRiskLevel riskLevel;
@@ -192,6 +210,7 @@ class BudgetCategoryRowUiModel {
   const BudgetCategoryRowUiModel({
     required this.categoryId,
     required this.name,
+    required this.titleDisplay,
     required this.iconKey,
     required this.colorInt,
     required this.archived,
@@ -210,6 +229,8 @@ class BudgetCategoryRowUiModel {
     required this.lastMonthActualMinor,
     required this.threeMonthAvgMinor,
     required this.committedBaselineMinor,
+    this.threeMonthAvgChartValue,
+    this.budgetChartValue,
     required this.actualProgress,
     required this.pendingProgress,
     required this.riskLevel,
@@ -274,6 +295,12 @@ class BudgetOverviewUiModel {
   final String unbudgetedActualDisplay;
   final bool hasUnbudgetedSpend;
   final String committedBaselineDisplay;
+
+  /// Whether any category carries a fixed baseline at all — the same total
+  /// [committedBaselineDisplay] shows. Plan hints ask this rather than "is
+  /// every bill in a budgeted category", so a bill in an unbudgeted category is
+  /// still visible.
+  final bool hasCommittedBaseline;
   final String committedActualDisplay;
   final String discretionaryActualDisplay;
   final bool hasLeftoverPendingInReview;
@@ -326,6 +353,7 @@ class BudgetOverviewUiModel {
     required this.unbudgetedActualDisplay,
     required this.hasUnbudgetedSpend,
     required this.committedBaselineDisplay,
+    required this.hasCommittedBaseline,
     required this.committedActualDisplay,
     required this.discretionaryActualDisplay,
     required this.hasLeftoverPendingInReview,
@@ -385,6 +413,9 @@ class BudgetOverviewMetricUiModel {
 @immutable
 class BudgetScreenUiModel {
   final BudgetOverviewUiModel overview;
+
+  /// The month written out in the active locale, e.g. `May 2026`.
+  final String monthDisplay;
   final List<BudgetCategoryRowUiModel> budgetedRows;
   final List<BudgetCategoryRowUiModel> unbudgetedActiveRows;
   final List<BudgetCategoryRowUiModel> remainingActiveRows;
@@ -395,6 +426,7 @@ class BudgetScreenUiModel {
 
   const BudgetScreenUiModel({
     required this.overview,
+    required this.monthDisplay,
     required this.budgetedRows,
     required this.unbudgetedActiveRows,
     required this.remainingActiveRows,
@@ -409,4 +441,31 @@ class BudgetScreenUiModel {
         ...unbudgetedActiveRows.where((r) => r.isBudgetEditable),
         ...remainingActiveRows.where((r) => r.isBudgetEditable),
       ];
+}
+
+/// What the category detail page (L3) needs from its month, resolved once.
+///
+/// The page is one category out of the month's rows, so it reads the same
+/// [BudgetScreenUiModel] the home does and keeps the row it is about.
+@immutable
+class BudgetCategoryDetailUiModel {
+  final BudgetCategoryRowUiModel row;
+
+  /// The month written out in the active locale, for the clear-budget dialog.
+  final String monthDisplay;
+
+  /// A month that has already ended: no bill can still arrive in it, so the
+  /// page drops every pending figure.
+  final bool isHistoricalMonth;
+
+  /// The month's pending money is only materialised bills, which the
+  /// composition card says out loud.
+  final bool showMaterializationHint;
+
+  const BudgetCategoryDetailUiModel({
+    required this.row,
+    required this.monthDisplay,
+    required this.isHistoricalMonth,
+    required this.showMaterializationHint,
+  });
 }

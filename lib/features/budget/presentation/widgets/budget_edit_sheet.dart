@@ -81,17 +81,31 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
   }
 
   Future<void> _checkFutureRules() async {
-    final hasFuture =
-        await ref.read(budgetViewModelProvider.notifier).hasFutureRulesAfter(
+    final result =
+        await ref.read(budgetViewModelProvider.notifier).checkFutureRules(
               currencyCode: widget.currencyCode,
               categoryId: widget.row.categoryId,
               month: widget.month,
             );
     if (!mounted) return;
-    setState(() {
-      _hasFutureRules = hasFuture;
-      _loadingFutureCheck = false;
-    });
+    switch (result) {
+      case Success(:final value):
+        setState(() {
+          _hasFutureRules = value;
+          _loadingFutureCheck = false;
+        });
+      case Failure(:final code):
+        // A failed probe is not a reason to block the sheet: the default scope
+        // (this and following) is the safe one, and the save path reports its
+        // own failure. Say so rather than throwing out of `initState`.
+        setState(() => _loadingFutureCheck = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                code.message(AppLocalizations.of(context)!)),
+          ),
+        );
+    }
   }
 
   @override
@@ -185,7 +199,7 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
               SizedBox(width: spacing.xs),
               CategoryIcon(
                 iconKey: widget.row.iconKey,
-                size: 20,
+                size: context.metrics.iconSize,
                 color: Color(widget.row.colorInt),
               ),
               SizedBox(width: spacing.sm),
