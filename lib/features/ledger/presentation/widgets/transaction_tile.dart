@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:flutter/material.dart';
 
@@ -5,6 +7,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../models/transaction_tile_ui_model.dart';
@@ -29,162 +32,265 @@ class TransactionTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isSkipped = transaction.isSkipped;
-    final isFailed = transaction.isFailed;
 
-    final row = InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.spacing.md,
-          vertical: context.spacing.sm,
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: LedgerTheme.colAnchorWidth),
+    final amountText = transaction.formattedAmount(effectiveCurrencySymbol);
+    final amountStyle = LedgerTheme.transactionAmount(context).copyWith(
+      decoration: isSkipped ? TextDecoration.lineThrough : null,
+      color: isSkipped
+          ? theme.colorScheme.onSurfaceVariant
+          : switch (transaction.type) {
+              TransactionKind.expense => context.colors.expense,
+              TransactionKind.income => context.colors.income,
+              TransactionKind.transfer ||
+              TransactionKind.openingBalance ||
+              TransactionKind.balanceAdjustment =>
+                theme.colorScheme.onSurface,
+            },
+    );
 
-            // Main Content
-            Expanded(
-              child: Column(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: LedgerTheme.rowMinHeight),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.spacing.md,
+            vertical: 10.0,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textColumn = Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title: Note if exists, else Account (transfer shows its
-                  // localized label with both sides in the subtitle).
-                  // Pending/failed/skipped bills get an icon so the row
-                  // announces its state even before opacity or badge registers.
+                  Text(
+                    _title(l10n),
+                    style: LedgerTheme.transactionTitle(context).copyWith(
+                      color: isSkipped
+                          ? theme.colorScheme.onSurfaceVariant
+                          : theme.colorScheme.onSurface,
+                      decoration:
+                          isSkipped ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2.0),
+                  Text(
+                    _subtitle,
+                    style: LedgerTheme.transactionMeta(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              );
+
+              final amountWidget = Text(
+                amountText,
+                textAlign: TextAlign.end,
+                style: amountStyle,
+              );
+
+              final stackedAmount = _shouldStackAmount(
+                context,
+                maxWidth: constraints.maxWidth,
+                amountText: amountText,
+                amountStyle: amountStyle,
+                leadingGap: context.spacing.md,
+              );
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (transaction.isPending) ...[
-                        Icon(
-                          isFailed
-                              ? LucideIcons.triangleAlert
-                              : (isSkipped
-                                  ? LucideIcons.circlePause
-                                  : LucideIcons.clock),
-                          size: 16.0,
-                          color: isFailed
-                              ? theme.colorScheme.error
-                              : LedgerTheme.transactionMeta(context).color,
-                        ),
-                        const SizedBox(width: 4.0),
+                      _buildLeadingIcon(context),
+                      const SizedBox(width: 12.0),
+                      Expanded(child: textColumn),
+                      if (!stackedAmount) ...[
+                        SizedBox(width: context.spacing.md),
+                        amountWidget,
                       ],
-                      Expanded(
-                        child: Text(
-                          _title(context),
-                          style: LedgerTheme.transactionTitle(context).copyWith(
-                            decoration:
-                                isSkipped ? TextDecoration.lineThrough : null,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
                     ],
                   ),
-
-                  // Subtitle: Account (only if note was the title)
-                  if (_subtitle != null)
+                  if (stackedAmount)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2.0),
-                      child: Text(
-                        _subtitle!,
-                        style: LedgerTheme.transactionMeta(context),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      padding: const EdgeInsets.only(
+                        left: LedgerTheme.categoryAvatarSize + 12.0,
+                        top: 4.0,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: amountWidget,
                       ),
                     ),
-
-                  // Ordinary transactions have a category. Transfers and
-                  // balance purposes intentionally do not.
-                  if (transaction.category != null || transaction.isPending)
+                  if (transaction.isPending)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Row(
+                      padding: const EdgeInsets.only(
+                        left: LedgerTheme.categoryAvatarSize + 12.0,
+                        top: 6.0,
+                      ),
+                      child: Wrap(
+                        spacing: 6.0,
+                        runSpacing: 4.0,
                         children: [
-                          if (transaction.category != null)
-                            AppBadge(
-                                label: transaction.category!.name,
-                                color: Color(transaction.category!.colorInt)),
-                          if (transaction.isPending) ...[
-                            if (transaction.type != TransactionKind.transfer)
-                              const SizedBox(width: 6.0),
-                            _statusBadge(context, l10n, theme),
-                          ],
+                          _statusBadge(l10n),
                         ],
                       ),
                     ),
                 ],
-              ),
-            ),
-
-            SizedBox(width: context.spacing.md),
-
-            // Amount — transfers are neutral (net zero, spec US5).
-            Text(
-              transaction.formattedAmount(effectiveCurrencySymbol),
-              style: LedgerTheme.transactionAmount(context).copyWith(
-                decoration: isSkipped ? TextDecoration.lineThrough : null,
-                color: switch (transaction.type) {
-                  TransactionKind.expense => context.colors.expense,
-                  TransactionKind.income => context.colors.income,
-                  TransactionKind.transfer ||
-                  TransactionKind.openingBalance ||
-                  TransactionKind.balanceAdjustment =>
-                    theme.colorScheme.onSurface,
-                },
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
+  }
 
-    // Pending/skipped/failed rows are muted as a whole rather than restyled
-    // piece by piece. Posted rows — the common case — skip the extra layer.
-    if (!transaction.isPending) return row;
-    final opacity = isSkipped ? 0.45 : (isFailed ? 0.85 : 0.55);
-    return Opacity(opacity: opacity, child: row);
+  static bool _shouldStackAmount(
+    BuildContext context, {
+    required double maxWidth,
+    required String amountText,
+    required TextStyle amountStyle,
+    required double leadingGap,
+  }) {
+    if (!maxWidth.isFinite) return false;
+    final painter = TextPainter(
+      text: TextSpan(text: amountText, style: amountStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      locale: Localizations.maybeLocaleOf(context),
+    )..layout();
+    final amountWidth = painter.width;
+    painter.dispose();
+
+    const minTextColumnWidth = 72.0;
+    final neededForInline = LedgerTheme.categoryAvatarSize +
+        12.0 +
+        minTextColumnWidth +
+        leadingGap +
+        amountWidth;
+    return neededForInline > maxWidth;
+  }
+
+  Widget _buildLeadingIcon(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final cardSurface = scheme.surfaceContainerLow;
+    final category = transaction.category;
+
+    final Color bgColor;
+    final Color fgColor;
+
+    if (transaction.isSkipped) {
+      bgColor = scheme.surfaceContainerHigh;
+      fgColor = scheme.onSurfaceVariant;
+    } else if (category != null) {
+      final rawColor = Color(category.colorInt);
+      final isDark = theme.brightness == Brightness.dark;
+      bgColor = Color.lerp(cardSurface, rawColor, isDark ? 0.28 : 0.16)!;
+      fgColor = _readableForeground(rawColor, bgColor);
+    } else {
+      bgColor = scheme.surfaceContainerHigh;
+      fgColor = scheme.onSurfaceVariant;
+    }
+
+    final Widget icon;
+    if (category != null) {
+      icon = CategoryIcon(
+        iconKey: category.iconKey,
+        size: 20.0,
+        color: fgColor,
+      );
+    } else {
+      final iconData = switch (transaction.type) {
+        TransactionKind.transfer => LucideIcons.arrowLeftRight,
+        TransactionKind.openingBalance => LucideIcons.wallet,
+        TransactionKind.balanceAdjustment => LucideIcons.slidersHorizontal,
+        TransactionKind.income || TransactionKind.expense => LucideIcons.tag,
+      };
+      icon = Icon(iconData, size: 20.0, color: fgColor);
+    }
+
+    return Container(
+      width: LedgerTheme.categoryAvatarSize,
+      height: LedgerTheme.categoryAvatarSize,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: icon,
+    );
+  }
+
+  /// Ensures category icon contrast stays >= 4.5:1 on its tinted circle in
+  /// both light and dark modes while preserving the category hue.
+  static Color _readableForeground(Color raw, Color background) {
+    if (_contrastRatio(raw, background) >= 4.5) return raw;
+    final bgLuminance = background.computeLuminance();
+    final hsl = HSLColor.fromColor(raw);
+    final lighten = bgLuminance < 0.5;
+    for (var step = 1; step <= 20; step++) {
+      final t = step / 20.0;
+      final lightness = lighten
+          ? hsl.lightness + (0.92 - hsl.lightness) * t
+          : hsl.lightness * (1 - t * 0.85);
+      final candidate =
+          hsl.withLightness(lightness.clamp(0.08, 0.94)).toColor();
+      if (_contrastRatio(candidate, background) >= 4.5) return candidate;
+    }
+    return lighten ? Colors.white : Colors.black;
+  }
+
+  static double _contrastRatio(Color a, Color b) {
+    final l1 = a.computeLuminance();
+    final l2 = b.computeLuminance();
+    final lighter = math.max(l1, l2);
+    final darker = math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
   }
 
   /// The scheduled status tag (`待入账` / `已跳过` / `自动入账失败`).
-  Widget _statusBadge(
-    BuildContext context,
-    AppLocalizations l10n,
-    ThemeData theme,
-  ) {
+  Widget _statusBadge(AppLocalizations l10n) {
     if (transaction.isSkipped) {
-      return AppBadge(label: l10n.skippedBill);
-    }
-    if (transaction.isFailed) {
       return AppBadge(
-        label: l10n.failedBill,
-        color: theme.colorScheme.error,
+        label: l10n.skippedBill,
+        icon: LucideIcons.circlePause,
       );
     }
-    return AppBadge(label: l10n.pendingBill);
+    if (transaction.isFailed) {
+      return AppBadge.error(
+        label: l10n.failedBill,
+        icon: LucideIcons.triangleAlert,
+      );
+    }
+    return AppBadge.outlined(
+      label: l10n.pendingBill,
+      icon: LucideIcons.clock,
+    );
   }
 
-  String _title(BuildContext context) {
+  String _title(AppLocalizations l10n) {
     final hasNote = transaction.note != null && transaction.note!.isNotEmpty;
     if (hasNote) return transaction.note!;
-    if (transaction.type == TransactionKind.transfer) {
-      return AppLocalizations.of(context)!.transfer;
-    }
-    if (transaction.type == TransactionKind.openingBalance) {
-      return AppLocalizations.of(context)!.initialBalance;
-    }
-    if (transaction.type == TransactionKind.balanceAdjustment) {
-      return AppLocalizations.of(context)!.accountBalanceAdjustmentDescription;
-    }
-    return transaction.account.name;
+    return switch (transaction.type) {
+      TransactionKind.transfer => l10n.transfer,
+      TransactionKind.openingBalance => l10n.initialBalance,
+      TransactionKind.balanceAdjustment => l10n.accountBalanceAdjustmentDescription,
+      TransactionKind.income => transaction.category?.name ?? l10n.income,
+      TransactionKind.expense => transaction.category?.name ?? l10n.expense,
+    };
   }
 
-  String? get _subtitle {
-    final hasNote = transaction.note != null && transaction.note!.isNotEmpty;
+  String get _subtitle {
     if (transaction.type == TransactionKind.transfer &&
         transaction.toAccount != null) {
       return '${transaction.account.name} → ${transaction.toAccount!.name}';
     }
-    if (hasNote) return transaction.account.name;
-    return null;
+    return transaction.account.name;
   }
 }

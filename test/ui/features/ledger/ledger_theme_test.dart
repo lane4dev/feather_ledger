@@ -27,9 +27,34 @@ void main() {
       ),
     );
 
-    // Widest, not first, not last, not the sum.
+    //Widest, not first, not last, not the sum.
     expect(oneLongName, greaterThan(shortNames));
     // And the ceiling holds, so one word cannot take the row from the value.
     expect(absurd, LedgerTheme.formLabelMaxWidth);
+  });
+
+  testWidgets('layout constants and tabular amount style match Ticket 04 bounds',
+      (tester) async {
+    late TextStyle amountStyle;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            amountStyle = LedgerTheme.transactionAmount(context);
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+
+    expect(LedgerTheme.colAnchorWidth, inInclusiveRange(52.0, 56.0));
+    expect(LedgerTheme.dayCardGap, inInclusiveRange(12.0, 16.0));
+    expect(LedgerTheme.rowMinHeight, inInclusiveRange(60.0, 68.0));
+    expect(LedgerTheme.categoryAvatarSize, inInclusiveRange(36.0, 40.0));
+    expect(
+      amountStyle.fontFeatures,
+      contains(const FontFeature.tabularFigures()),
+    );
   });
 }

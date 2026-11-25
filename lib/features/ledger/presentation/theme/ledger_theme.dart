@@ -7,7 +7,10 @@ class LedgerTheme {
   const LedgerTheme._();
 
   // --- Layout Constants ---
-  static const double colAnchorWidth = 72.0;
+  static const double colAnchorWidth = 56.0;
+  static const double dayCardGap = 14.0;
+  static const double rowMinHeight = 62.0;
+  static const double categoryAvatarSize = 40.0;
 
   /// The ceiling on the field-name column in the transaction form. The column
   /// is measured from the labels the form actually shows in the language being

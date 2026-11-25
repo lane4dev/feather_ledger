@@ -189,7 +189,18 @@ void main() {
         note: 'Lunch',
       ),
     );
-    final groups = LedgerDayGroup.group([expenseTile], currencySymbol: '¥');
+    final transferTile = mapper.toTile(
+      tx(
+        id: 'trf-1',
+        type: TransactionKind.transfer,
+        amount: 2000,
+        note: 'Top up',
+      ),
+    );
+    final groups = LedgerDayGroup.group(
+      [expenseTile, transferTile],
+      currencySymbol: '¥',
+    );
 
     await tester.pumpWidget(wrap(
       CustomScrollView(

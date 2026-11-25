@@ -1,3 +1,4 @@
+import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -42,19 +43,31 @@ void main() {
 
   TransactionTileUiModel tile({
     required bool isPending,
+    String? note = 'Rent',
+    TransactionKind type = TransactionKind.expense,
+    CategoryEntity? category = rent,
+    AccountEntity? toAccount,
     RecurringSeriesMode mode = RecurringSeriesMode.repeating,
     ScheduledTransactionStatus? scheduledStatus,
   }) =>
       TransactionTileUiModel(
         id: isPending ? 'sched_1' : 'tx_1',
         amount: 500000,
-        type: TransactionKind.expense,
+        type: type,
         date: DateTime(2026, 11, 1, 14, 35),
-        note: 'Rent',
-        category: rent,
+        note: note,
+        category: category,
         account: cash,
+        toAccount: toAccount,
         displayAmount: '5000.00',
-        displaySign: '-',
+        displaySign: switch (type) {
+          TransactionKind.income => '+',
+          TransactionKind.expense => '-',
+          TransactionKind.transfer ||
+          TransactionKind.openingBalance ||
+          TransactionKind.balanceAdjustment =>
+            '',
+        },
         isPending: isPending,
         scheduledStatus: isPending
             ? (scheduledStatus ?? ScheduledTransactionStatus.scheduled)
@@ -76,8 +89,8 @@ void main() {
             : null,
       );
 
-  Widget wrap(Widget child) => MaterialApp(
-        theme: AppTheme.lightTheme,
+  Widget wrap(Widget child, {ThemeData? theme}) => MaterialApp(
+        theme: theme ?? AppTheme.lightTheme,
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -89,36 +102,106 @@ void main() {
       );
 
   group('the pending row', () {
-    testWidgets('is muted and tagged, and posted rows are not', (tester) async {
-      await tester.pumpWidget(
-          wrap(TransactionTile(transaction: tile(isPending: true))));
-
-      // Muted as a whole.
-      final opacity = tester.widget<Opacity>(find.byType(Opacity));
-      expect(opacity.opacity, lessThan(1.0));
-      // Announces itself twice: a clock on the title and a tag on the row.
-      expect(find.byIcon(LucideIcons.clock), findsOneWidget);
-      expect(find.text('Pending'), findsOneWidget);
-
-      await tester.pumpWidget(
-          wrap(TransactionTile(transaction: tile(isPending: false))));
-
-      expect(find.byType(Opacity), findsNothing,
-          reason: 'a posted row pays for no extra layer');
-      expect(find.byIcon(LucideIcons.clock), findsNothing);
-      expect(find.text('Pending'), findsNothing);
-    });
-
-    testWidgets('keeps its category tag alongside the pending tag',
+    testWidgets('uses AppBadge.outlined without Opacity muting, and posted rows omit badge',
         (tester) async {
       await tester.pumpWidget(
           wrap(TransactionTile(transaction: tile(isPending: true))));
 
-      expect(find.text('Rent'), findsWidgets);
+      expect(find.byType(Opacity), findsNothing,
+          reason: 'pending rows keep readable title contrast without Opacity');
+      expect(find.byIcon(LucideIcons.clock), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
+      expect(find.byType(AppBadge), findsOneWidget);
+
+      final titleText = tester.widget<Text>(find.text('Rent'));
+      expect(titleText.style?.color, AppTheme.lightTheme.colorScheme.onSurface);
+
+      await tester.pumpWidget(
+          wrap(TransactionTile(transaction: tile(isPending: false))));
+
+      expect(find.byType(Opacity), findsNothing);
+      expect(find.byIcon(LucideIcons.clock), findsNothing);
+      expect(find.text('Pending'), findsNothing);
+      expect(find.byType(AppBadge), findsNothing);
     });
 
-    testWidgets('skipped row renders muted with strikethrough and Skipped badge',
+    testWidgets('uses two-line structure without inline category pill',
+        (tester) async {
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(isPending: true, note: 'Monthly rent'),
+      )));
+
+      expect(find.text('Monthly rent'), findsOneWidget);
+      expect(find.text('Cash'), findsOneWidget);
+      expect(find.text('Rent'), findsNothing,
+          reason: 'inline duplicate category pill was removed');
+      expect(find.byType(AppBadge), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+
+      // Without a note, line 1 falls back to the category snapshot name and
+      // line 2 shows the account name.
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(isPending: false, note: null),
+      )));
+
+      expect(find.text('Rent'), findsOneWidget);
+      expect(find.text('Cash'), findsOneWidget);
+      expect(find.byType(AppBadge), findsNothing);
+      expect(tester.getSize(find.byType(TransactionTile)).height,
+          inInclusiveRange(60.0, 68.0));
+    });
+
+    testWidgets('renders transfer and balance-purpose tiles with dedicated icons',
+        (tester) async {
+      const bank = AccountEntity(
+        id: 'acc_bank',
+        name: 'Bank',
+        type: AccountType.bank,
+        currencyCode: 'USD',
+        balanceMinor: 0,
+        archived: false,
+        lastUpdatedEventId: 0,
+      );
+
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(
+          isPending: false,
+          note: null,
+          type: TransactionKind.transfer,
+          category: null,
+          toAccount: bank,
+        ),
+      )));
+      expect(find.text('Transfer'), findsOneWidget);
+      expect(find.text('Cash → Bank'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.arrowLeftRight), findsOneWidget);
+
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(
+          isPending: false,
+          note: null,
+          type: TransactionKind.openingBalance,
+          category: null,
+        ),
+      )));
+      expect(find.text('Initial Balance'), findsOneWidget);
+      expect(find.text('Cash'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.wallet), findsOneWidget);
+
+      await tester.pumpWidget(wrap(TransactionTile(
+        transaction: tile(
+          isPending: false,
+          note: null,
+          type: TransactionKind.balanceAdjustment,
+          category: null,
+        ),
+      )));
+      expect(find.text('Balance adjustment'), findsOneWidget);
+      expect(find.text('Cash'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.slidersHorizontal), findsOneWidget);
+    });
+
+    testWidgets('skipped row renders neutral onSurfaceVariant with strikethrough and Skipped badge',
         (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(
         transaction: tile(
@@ -127,16 +210,23 @@ void main() {
         ),
       )));
 
-      final opacity = tester.widget<Opacity>(find.byType(Opacity));
-      expect(opacity.opacity, lessThan(0.55));
+      expect(find.byType(Opacity), findsNothing);
       expect(find.text('Skipped'), findsOneWidget);
       expect(find.text('Pending'), findsNothing);
+      expect(find.byIcon(LucideIcons.circlePause), findsOneWidget);
 
-      final titleText = tester.widget<Text>(find.text('Rent').first);
+      final titleText = tester.widget<Text>(find.text('Rent'));
       expect(titleText.style?.decoration, TextDecoration.lineThrough);
+      expect(titleText.style?.color,
+          AppTheme.lightTheme.colorScheme.onSurfaceVariant);
+
+      final amountText = tester.widget<Text>(find.text(r'-$5000.00'));
+      expect(amountText.style?.decoration, TextDecoration.lineThrough);
+      expect(amountText.style?.color,
+          AppTheme.lightTheme.colorScheme.onSurfaceVariant);
     });
 
-    testWidgets('failed row renders warning icon and Failed badge',
+    testWidgets('failed row renders AppBadge.error without Opacity',
         (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(
         transaction: tile(
@@ -145,9 +235,25 @@ void main() {
         ),
       )));
 
+      expect(find.byType(Opacity), findsNothing);
       expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
       expect(find.text('Auto-post failed'), findsOneWidget);
       expect(find.text('Pending'), findsNothing);
+
+      final titleText = tester.widget<Text>(find.text('Rent'));
+      expect(titleText.style?.color, AppTheme.lightTheme.colorScheme.onSurface);
+    });
+
+    testWidgets('adjusts dark-category foreground contrast in dark theme',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        TransactionTile(transaction: tile(isPending: false)),
+        theme: AppTheme.darkTheme,
+      ));
+
+      final icon = tester.widget<Icon>(find.byType(Icon).first);
+      expect(icon.color, isNot(const Color(0xFF000000)));
+      expect(icon.color!.computeLuminance(), greaterThan(0.2));
     });
   });
 
