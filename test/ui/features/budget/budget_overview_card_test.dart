@@ -23,6 +23,7 @@ const _amountKey = ValueKey('budget-overview-main-amount');
 const _actualKey = ValueKey('budget-overview-bar-actual');
 const _pendingKey = ValueKey('budget-overview-bar-pending');
 const _baselineKey = ValueKey('budget-overview-bar-baseline');
+const _hatchKey = ValueKey('budget-hero-baseline-hatch');
 const _tickKey = ValueKey('budget-overview-today-tick');
 
 void main() {
@@ -129,6 +130,8 @@ void main() {
       expect(decoration.gradient, isNotNull);
       expect(decoration.border, isNotNull);
       expect(find.byKey(_dashedOutlineKey), findsNothing);
+      // A real spend bar is a solid fill; only the plan baseline is hatched.
+      expect(find.byKey(_hatchKey), findsNothing);
     });
   });
 
@@ -200,6 +203,19 @@ void main() {
       expect(
         baseline.width,
         closeTo((card.width - _barInset * 2) * 0.3, _tolerance),
+      );
+    });
+
+    testWidgets('hatches the baseline so it reads as a reference, not spend',
+        (tester) async {
+      await _pump(tester, summary: _plan());
+
+      final hatch = find.byKey(_hatchKey);
+      expect(hatch, findsOneWidget);
+      // The stripes cover exactly the baseline segment.
+      expect(
+        tester.getRect(hatch),
+        tester.getRect(find.byKey(_baselineKey)),
       );
     });
 
@@ -320,11 +336,25 @@ void main() {
         tester.widget<AnimatedContainer>(find.byKey(_surfaceKey)).duration,
         Duration.zero,
       );
+      final still = tester.widgetList<AnimatedSwitcher>(
+        find.byType(AnimatedSwitcher),
+      );
+      expect(still, isNotEmpty);
+      expect(still.every((switcher) => switcher.duration == Duration.zero),
+          isTrue);
 
       await _pump(tester, summary: _track());
       expect(
         tester.widget<AnimatedContainer>(find.byKey(_surfaceKey)).duration,
         BudgetOverviewCard.transitionDuration,
+      );
+      final animated = tester.widgetList<AnimatedSwitcher>(
+        find.byType(AnimatedSwitcher),
+      );
+      expect(
+        animated.every((switcher) =>
+            switcher.duration == BudgetOverviewCard.transitionDuration),
+        isTrue,
       );
     });
   });

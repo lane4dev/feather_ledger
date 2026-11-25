@@ -339,6 +339,10 @@ class FakeAppLocalizations implements AppLocalizations {
   String get errorUnknownEvent => 'Something went wrong. Please try again.';
 
   @override
+  String get budgetLoadFailedBody =>
+      "We couldn't load this month's budget. Try again in a moment.";
+
+  @override
   String get auditHistory => 'Audit history';
 
   @override
@@ -1165,13 +1169,13 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetZeroAmountHint =>
-      'Budget must be greater than 0. Tap Remove budget to unset.';
+      'Budget must be greater than 0. Tap Delete budget to unset.';
 
   @override
-  String get budgetClearAction => 'Remove budget';
+  String get budgetClearAction => 'Delete budget';
 
   @override
-  String budgetClearConfirmTitle(String category) => 'Remove $category budget?';
+  String budgetClearConfirmTitle(String category) => 'Delete $category budget?';
 
   @override
   String budgetClearConfirmThisMonth(
@@ -1197,7 +1201,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetSaved => 'Budget updated';
 
   @override
-  String get budgetCleared => 'Budget removed';
+  String get budgetCleared => 'Budget deleted';
 
 
 
@@ -1269,6 +1273,10 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String budgetReviewEntrySurplus(String category, String amount) =>
       '$category unspent $amount';
+
+  @override
+  String budgetReviewEntryActuals(String committed, String discretionary) =>
+      'Committed $committed · Discretionary $discretionary';
 
   @override
   String get budgetReviewEntryQuiet =>

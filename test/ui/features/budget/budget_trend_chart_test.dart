@@ -21,6 +21,7 @@ void main() {
     int? budgetMinor,
     required int actualMinor,
     bool hasReviewNote = false,
+    bool isFuture = false,
   }) {
     final ym = YearMonth(year, month);
     return BudgetTrendPointUiModel(
@@ -31,6 +32,7 @@ void main() {
       budgetChartValue: (budgetMinor ?? 0) / 100.0,
       actualChartValue: actualMinor / 100.0,
       hasReviewNote: hasReviewNote,
+      isFuture: isFuture,
     );
   }
 
@@ -90,6 +92,27 @@ void main() {
       expect(BudgetTrendChart.shouldShow(months), isFalse);
     });
 
+    test('a future month counts neither its budget nor its empty actual', () {
+      final months = [
+        point(2026, 5, budgetMinor: null, actualMinor: 0),
+        // Next month has a plan budget; planning is not spending, so it must
+        // not earn the category a chart of its own.
+        point(2026, 6, budgetMinor: 50000, actualMinor: 0, isFuture: true),
+      ];
+
+      expect(BudgetTrendChart.validMonthCount(months), 0);
+      expect(BudgetTrendChart.shouldShow(months), isFalse);
+    });
+
+    test('the current month unlocks the chart with actual spend', () {
+      expect(
+        BudgetTrendChart.validMonthCount([
+          point(2026, 5, budgetMinor: null, actualMinor: 1200),
+          point(2026, 6, budgetMinor: 50000, actualMinor: 0, isFuture: true),
+        ]),
+        1,
+      );
+    });
   });
 
   testWidgets('renders nothing at all with zero or one valid month',
@@ -116,7 +139,6 @@ void main() {
           point(2026, 4, budgetMinor: 20000, actualMinor: 10000),
           point(2026, 5, budgetMinor: 20000, actualMinor: 24000),
         ],
-        budgetLineChartValue: 200,
       ),
     );
 
@@ -128,14 +150,20 @@ void main() {
     expect(rods(tester), hasLength(2));
     expect(rods(tester).every((rod) => rod.width == 10), isTrue);
 
-    final lines = tester
-        .widget<BarChart>(find.byType(BarChart))
-        .data
-        .extraLinesData
-        .horizontalLines;
-    expect(lines, hasLength(1));
-    expect(lines.single.y, 200);
-    expect(lines.single.dashArray, isNotNull);
+    // Each month carries its own budget as a ghost column behind the bar, so
+    // there is no budget line left to draw.
+    expect(
+      tester
+          .widget<BarChart>(find.byType(BarChart))
+          .data
+          .extraLinesData
+          .horizontalLines,
+      isEmpty,
+    );
+    for (final rod in rods(tester)) {
+      expect(rod.backDrawRodData.show, isTrue);
+      expect(rod.backDrawRodData.toY, 200);
+    }
   });
 
   testWidgets('whole-month bars stay primary even above the budget line',
@@ -148,7 +176,6 @@ void main() {
           // ¥240 spent against a ¥200 budget, ¥40 of it unbudgeted.
           point(2026, 5, budgetMinor: 20000, actualMinor: 24000),
         ],
-        budgetLineChartValue: 200,
       ),
     );
 
@@ -239,37 +266,22 @@ void main() {
     expect(lines.map((line) => line.y), contains(150));
   });
 
-  testWidgets('falls back to the selected month budget when no line value is '
-      'given, and stays hidden when that month is unbudgeted', (tester) async {
+  testWidgets('draws each month its own budget column and none where the '
+      'month has no budget', (tester) async {
     await pumpChart(
       tester,
       BudgetTrendChart(
         points: [
-          point(2026, 4, budgetMinor: 20000, actualMinor: 10000),
+          point(2026, 4, budgetMinor: 15000, actualMinor: 10000),
           point(2026, 5, budgetMinor: 20000, actualMinor: 24000),
+          point(2026, 6, budgetMinor: null, actualMinor: 24000),
         ],
       ),
-    );
-    expect(
-      tester
-          .widget<BarChart>(find.byType(BarChart))
-          .data
-          .extraLinesData
-          .horizontalLines
-          .single
-          .y,
-      200,
     );
 
-    await pumpChart(
-      tester,
-      BudgetTrendChart(
-        points: [
-          point(2026, 4, budgetMinor: 20000, actualMinor: 10000),
-          point(2026, 5, budgetMinor: null, actualMinor: 24000),
-        ],
-      ),
-    );
+    final columns = rods(tester).map((rod) => rod.backDrawRodData).toList();
+    expect(columns.map((column) => column.show), [true, true, false]);
+    expect(columns.map((column) => column.toY), [150, 200, 0]);
     expect(
       tester
           .widget<BarChart>(find.byType(BarChart))
@@ -278,7 +290,24 @@ void main() {
           .horizontalLines,
       isEmpty,
     );
+    expect(find.text('Total budget'), findsOneWidget);
+  });
+
+  testWidgets('leaves the budget legend off when no month in view has a '
+      'budget', (tester) async {
+    await pumpChart(
+      tester,
+      BudgetTrendChart(
+        points: [
+          point(2026, 4, budgetMinor: null, actualMinor: 10000),
+          point(2026, 5, budgetMinor: null, actualMinor: 24000),
+        ],
+      ),
+    );
+
+    expect(find.text('All actual spend'), findsOneWidget);
     expect(find.text('Total budget'), findsNothing);
+    expect(rods(tester).every((rod) => !rod.backDrawRodData.show), isTrue);
   });
 
   testWidgets('keeps the legacy constructor call shape compiling and renders '

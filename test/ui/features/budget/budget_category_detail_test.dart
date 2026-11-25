@@ -693,12 +693,12 @@ void main() {
 
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
-    expect(find.text('Budget removed'), findsOneWidget);
+    expect(find.text('Budget deleted'), findsOneWidget);
 
     // The write lands as a new stream value: the note above the field and the
     // chart marker both come from it, never from a cached copy.
