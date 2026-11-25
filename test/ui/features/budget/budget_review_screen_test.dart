@@ -542,4 +542,24 @@ void main() {
     expect(find.text('Month review note'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('the app bar takes a shallow tint once the review scrolls',
+      (tester) async {
+    await pumpReview(tester, size: const Size(400, 700));
+    final appBar = find.byType(AppBar);
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -320));
+    await tester.pump();
+
+    final scheme = Theme.of(tester.element(appBar)).colorScheme;
+    expect(
+      tester.widget<AppBar>(appBar).backgroundColor,
+      scheme.surfaceContainer,
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, 400));
+    await tester.pump();
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
+  });
 }

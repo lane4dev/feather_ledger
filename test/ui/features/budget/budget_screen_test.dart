@@ -852,4 +852,24 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('the app bar takes a shallow tint once the month scrolls',
+      (tester) async {
+    await pumpBudgetScreen(tester, service: FakeBudgetService());
+    final appBar = find.byType(AppBar);
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, -320));
+    await tester.pump();
+
+    final scheme = Theme.of(tester.element(appBar)).colorScheme;
+    expect(
+      tester.widget<AppBar>(appBar).backgroundColor,
+      scheme.surfaceContainer,
+    );
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, 400));
+    await tester.pump();
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
+  });
 }

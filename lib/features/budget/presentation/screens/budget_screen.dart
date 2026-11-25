@@ -24,6 +24,7 @@ import '../view_model/budget_view_model.dart';
 import '../widgets/budget_category_section.dart';
 import '../widgets/budget_edit_sheet.dart';
 import '../widgets/budget_overview_card.dart';
+import '../widgets/scrolled_tint_scaffold.dart';
 import 'budget_category_detail_screen.dart';
 import 'budget_review_screen.dart';
 
@@ -115,8 +116,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             ...selectedSummaryValue.remainingActiveRows,
           ].where((row) => row.isBudgetEditable).toList();
 
-    return Scaffold(
-      appBar: AppBar(
+    return ScrolledTintScaffold(
+      appBarBuilder: (context, scrolledUnder) => AppBar(
+        backgroundColor: scrolledUnder
+            ? Theme.of(context).colorScheme.surfaceContainer
+            : null,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         title: LedgerMonthSwitcher(
           selectedDate: selectedDate,
           onChanged: _changeMonth,
