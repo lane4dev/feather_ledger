@@ -346,25 +346,40 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
       subtitle: row.pendingDisplay != null
           ? Text('${l10n.budgetPendingShort} ${row.pendingDisplay}')
           : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            row.actualDisplay,
-            style: AppTypography.amount(context),
-          ),
-          if (row.isBudgetEditable) ...[
-            SizedBox(width: context.spacing.sm),
-            TextButton(
-              onPressed: onSetBudgetTap,
-              style: TextButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.symmetric(horizontal: context.spacing.sm),
-              ),
-              child: Text(l10n.budgetSetButton),
+      // A ListTile trailing slot is laid out against the tile width; at
+      // narrow widths with large text the amount plus the inline "set budget"
+      // button can exceed it and _RenderListTile asserts. Scaling the slot
+      // down and capping it below the tile width keeps the row readable until
+      // the grouped-row redesign owns this layout.
+      trailing: LayoutBuilder(
+        builder: (context, constraints) => ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.75),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  row.actualDisplay,
+                  style: AppTypography.amount(context),
+                ),
+                if (row.isBudgetEditable) ...[
+                  SizedBox(width: context.spacing.sm),
+                  TextButton(
+                    onPressed: onSetBudgetTap,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: context.spacing.sm),
+                    ),
+                    child: Text(l10n.budgetSetButton),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

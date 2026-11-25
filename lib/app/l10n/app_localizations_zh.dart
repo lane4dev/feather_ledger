@@ -1081,6 +1081,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetTrendTitle => '近 6 个月预算 vs 实际';
 
   @override
+  String get budgetReviewTitle => '月度复盘与趋势';
+
+  @override
+  String get budgetReviewScopeNote => '整月口径，含未设预算的分类。';
+
+  @override
+  String get budgetReviewCommittedActual => '固定支出';
+
+  @override
+  String get budgetReviewDiscretionaryActual => '弹性支出';
+
+  @override
+  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入账。仅供参考，三个数字不可相加。';
+
+  @override
+  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
+
+  @override
+  String get budgetTrendLegendActual => '全部实际支出';
+
+  @override
+  String get budgetTrendLegendBudget => '已设预算总额';
+
+  @override
+  String get budgetTrendLegendAverage => '3 个月平均';
+
+  @override
   String get budgetAttributionTitle => '月度复盘与归因';
 
   @override
@@ -2347,6 +2374,33 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetTrendTitle => '近 6 个月预算 vs 实际';
 
   @override
+  String get budgetReviewTitle => '月度复盘与趋势';
+
+  @override
+  String get budgetReviewScopeNote => '整月口径，含未设预算的分类。';
+
+  @override
+  String get budgetReviewCommittedActual => '固定支出';
+
+  @override
+  String get budgetReviewDiscretionaryActual => '弹性支出';
+
+  @override
+  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入账。仅供参考，三个数字不可相加。';
+
+  @override
+  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
+
+  @override
+  String get budgetTrendLegendActual => '全部实际支出';
+
+  @override
+  String get budgetTrendLegendBudget => '已设预算总额';
+
+  @override
+  String get budgetTrendLegendAverage => '3 个月平均';
+
+  @override
   String get budgetAttributionTitle => '月度复盘与归因';
 
   @override
@@ -3611,6 +3665,33 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetTrendTitle => '近 6 個月預算 vs 實際';
+
+  @override
+  String get budgetReviewTitle => '月度複盤與趨勢';
+
+  @override
+  String get budgetReviewScopeNote => '整月口徑，含未設預算的分類。';
+
+  @override
+  String get budgetReviewCommittedActual => '固定支出';
+
+  @override
+  String get budgetReviewDiscretionaryActual => '彈性支出';
+
+  @override
+  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入帳。僅供參考，三個數字不可相加。';
+
+  @override
+  String get budgetReviewNoteEmptyDeletes => '備註留空並儲存即可刪除。';
+
+  @override
+  String get budgetTrendLegendActual => '全部實際支出';
+
+  @override
+  String get budgetTrendLegendBudget => '已設預算總額';
+
+  @override
+  String get budgetTrendLegendAverage => '3 個月平均';
 
   @override
   String get budgetAttributionTitle => '月度複盤與歸因';

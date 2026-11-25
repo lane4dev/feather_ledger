@@ -1037,6 +1037,35 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetTrendTitle => '6-Month Budget vs Actual';
+  @override
+  String get budgetReviewTitle => 'Monthly Review & Trends';
+
+  @override
+  String get budgetReviewScopeNote =>
+      'Whole month, including unbudgeted categories.';
+
+  @override
+  String get budgetReviewCommittedActual => 'Committed spent';
+
+  @override
+  String get budgetReviewDiscretionaryActual => 'Discretionary spent';
+
+  @override
+  String get budgetReviewBaselineNote =>
+      'Committed spent + effective pending bills. Reference only; the three figures are not additive.';
+
+  @override
+  String get budgetReviewNoteEmptyDeletes =>
+      'Leave the note empty and save to remove it.';
+
+  @override
+  String get budgetTrendLegendActual => 'All actual spend';
+
+  @override
+  String get budgetTrendLegendBudget => 'Total budget';
+
+  @override
+  String get budgetTrendLegendAverage => '3-month average';
 
   @override
   String get budgetAttributionTitle => 'Month Review & Attribution';

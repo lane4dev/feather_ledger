@@ -9,53 +9,110 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 
 import '../models/budget_ui_models.dart';
 
+/// How the actual bars are coloured.
+enum BudgetTrendChartMode {
+  /// Whole-month spend: bars are always primary, even above the budget line,
+  /// because they include unbudgeted categories.
+  total,
+
+  /// One category's spend: a bar takes the overrun colour only when that month
+  /// has a budget and actual spend strictly exceeds it.
+  category,
+}
+
+/// Shared six-month budget-vs-actual chart.
+///
+/// Bars are always the actual spend. The budget is a dashed reference line at
+/// the selected month's budget (the last point), while per-month budgets only
+/// decide category overrun colour. The block hides itself entirely when fewer
+/// than [minValidMonths] months have data, so callers must gate the spacing
+/// around it with [shouldShow].
 class BudgetTrendChart extends StatelessWidget {
+  static const int minValidMonths = 2;
+
   final List<BudgetTrendPointUiModel> points;
   final double? threeMonthAvgChartValue;
+  final double? budgetLineChartValue;
+  final BudgetTrendChartMode mode;
   final bool wrappedInCard;
 
   const BudgetTrendChart({
     super.key,
     required this.points,
     this.threeMonthAvgChartValue,
+    this.budgetLineChartValue,
+    this.mode = BudgetTrendChartMode.total,
     this.wrappedInCard = true,
   });
 
+  /// Months that carry information: a positive budget or any actual spend.
+  /// Padded empty months and a lone review-note marker do not count.
+  static int validMonthCount(List<BudgetTrendPointUiModel> points) =>
+      points.where(_isValidMonth).length;
+
+  static bool shouldShow(List<BudgetTrendPointUiModel> points) =>
+      validMonthCount(points) >= minValidMonths;
+
+  static bool _isValidMonth(BudgetTrendPointUiModel point) =>
+      (point.budgetMinor != null && point.budgetMinor! > 0) ||
+      point.actualMinor != 0;
+
+  double? get _budgetLine {
+    final explicit = budgetLineChartValue;
+    if (explicit != null) return explicit > 0 ? explicit : null;
+    if (points.isEmpty) return null;
+    final lastBudget = points.last.budgetMinor;
+    if (lastBudget == null || lastBudget <= 0) return null;
+    return lastBudget / 100.0;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!shouldShow(points)) return const SizedBox.shrink();
+
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final spacing = context.spacing;
+    final budgetLine = _budgetLine;
+    final averageLine = threeMonthAvgChartValue != null &&
+            threeMonthAvgChartValue! > 0
+        ? threeMonthAvgChartValue
+        : null;
 
     final maxVal = points.fold<double>(
-      threeMonthAvgChartValue ?? 0.0,
-      (prev, p) => math.max(
-        prev,
-        math.max(p.budgetChartValue, p.actualChartValue),
-      ),
+      math.max(budgetLine ?? 0.0, averageLine ?? 0.0),
+      (prev, p) => math.max(prev, p.actualChartValue),
     );
     final chartMaxY = maxVal <= 0 ? 100.0 : maxVal * 1.18;
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Text(
+          l10n.budgetTrendTitle,
+          style: AppTypography.sectionTitle(context),
+        ),
+        SizedBox(height: spacing.sm),
+        Wrap(
+          spacing: spacing.md,
+          runSpacing: spacing.xs,
           children: [
-            Expanded(
-              child: Text(
-                l10n.budgetTrendTitle,
-                style: AppTypography.sectionTitle(context),
-              ),
-            ),
-            _LegendDot(
-              color: scheme.outlineVariant,
-              label: l10n.budgetTotal,
-            ),
-            SizedBox(width: spacing.sm),
-            _LegendDot(
+            _LegendItem(
               color: scheme.primary,
-              label: l10n.budgetActualSpent,
+              label: l10n.budgetTrendLegendActual,
             ),
+            if (budgetLine != null)
+              _LegendItem(
+                color: scheme.outline,
+                label: l10n.budgetTrendLegendBudget,
+                isLine: true,
+              ),
+            if (averageLine != null)
+              _LegendItem(
+                color: scheme.secondary,
+                label: l10n.budgetTrendLegendAverage,
+                isLine: true,
+              ),
           ],
         ),
         SizedBox(height: spacing.md),
@@ -77,19 +134,24 @@ class BudgetTrendChart extends StatelessWidget {
                 ),
               ),
               borderData: FlBorderData(show: false),
-              extraLinesData: threeMonthAvgChartValue != null &&
-                      threeMonthAvgChartValue! > 0
-                  ? ExtraLinesData(
-                      horizontalLines: [
-                        HorizontalLine(
-                          y: threeMonthAvgChartValue!,
-                          color: scheme.secondary.withValues(alpha: 0.75),
-                          strokeWidth: 1.5,
-                          dashArray: [5, 4],
-                        ),
-                      ],
-                    )
-                  : null,
+              extraLinesData: ExtraLinesData(
+                horizontalLines: [
+                  if (budgetLine != null)
+                    HorizontalLine(
+                      y: budgetLine,
+                      color: scheme.outline,
+                      strokeWidth: 1.5,
+                      dashArray: const [5, 4],
+                    ),
+                  if (averageLine != null)
+                    HorizontalLine(
+                      y: averageLine,
+                      color: scheme.secondary.withValues(alpha: 0.75),
+                      strokeWidth: 1.5,
+                      dashArray: const [5, 4],
+                    ),
+                ],
+              ),
               titlesData: FlTitlesData(
                 leftTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
@@ -103,27 +165,24 @@ class BudgetTrendChart extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 30,
+                    reservedSize: 40,
                     getTitlesWidget: (value, meta) {
                       final idx = value.toInt();
                       if (idx < 0 || idx >= points.length) {
                         return const SizedBox.shrink();
                       }
-                      final p = points[idx];
+                      final point = points[idx];
                       return SideTitleWidget(
                         meta: meta,
                         space: 4,
-                        child: Column(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              p.shortLabel,
-                              style: AppTypography.compactLabel(context)
-                                  .copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                            if (p.hasReviewNote)
+                            if (point.hasReviewNote) ...[
                               Container(
-                                margin: const EdgeInsets.only(top: 2),
+                                key: ValueKey(
+                                  'budget-trend-note-marker-${point.ym}',
+                                ),
                                 width: 4,
                                 height: 4,
                                 decoration: BoxDecoration(
@@ -131,6 +190,13 @@ class BudgetTrendChart extends StatelessWidget {
                                   shape: BoxShape.circle,
                                 ),
                               ),
+                              const SizedBox(width: 2),
+                            ],
+                            Text(
+                              point.shortLabel,
+                              style: AppTypography.compactLabel(context)
+                                  .copyWith(color: scheme.onSurfaceVariant),
+                            ),
                           ],
                         ),
                       );
@@ -139,27 +205,19 @@ class BudgetTrendChart extends StatelessWidget {
                 ),
               ),
               barGroups: points.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final p = entry.value;
-                final over =
-                    p.budgetMinor != null && p.actualMinor > p.budgetMinor!;
+                final point = entry.value;
+                final overrun = mode == BudgetTrendChartMode.category &&
+                    point.budgetMinor != null &&
+                    point.budgetMinor! > 0 &&
+                    point.actualMinor > point.budgetMinor!;
                 return BarChartGroupData(
-                  x: idx,
-                  barsSpace: 4,
+                  x: entry.key,
                   barRods: [
-                    if (p.budgetMinor != null)
-                      BarChartRodData(
-                        toY: p.budgetChartValue,
-                        width: 10,
-                        color: scheme.outlineVariant.withValues(alpha: 0.75),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(4),
-                        ),
-                      ),
                     BarChartRodData(
-                      toY: p.actualChartValue,
+                      toY: point.actualChartValue,
                       width: 10,
-                      color: over ? context.colors.expense : scheme.primary,
+                      color:
+                          overrun ? context.colors.expense : scheme.primary,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(4),
                       ),
@@ -177,11 +235,16 @@ class BudgetTrendChart extends StatelessWidget {
   }
 }
 
-class _LegendDot extends StatelessWidget {
+class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
+  final bool isLine;
 
-  const _LegendDot({required this.color, required this.label});
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    this.isLine = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -189,18 +252,21 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: isLine ? 12 : 8,
+          height: isLine ? 2 : 8,
           decoration: BoxDecoration(
             color: color,
             borderRadius: context.metrics.legendBorderRadius,
           ),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: AppTypography.compactLabel(context)
-              .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Flexible(
+          child: Text(
+            label,
+            softWrap: true,
+            style: AppTypography.compactLabel(context).copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
         ),
       ],
     );
