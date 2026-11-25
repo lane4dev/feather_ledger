@@ -1228,6 +1228,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
+
+  @override
+  String get hideOverviewAmounts => '隐藏概览金额';
+
+  @override
+  String get showOverviewAmounts => '显示概览金额';
+
+  @override
+  String monthIncome(String month) {
+    return '$month收入';
+  }
+
+  @override
+  String monthExpense(String month) {
+    return '$month支出';
+  }
+
+  @override
+  String get previousMonth => '上个月';
+
+  @override
+  String get nextMonth => '下个月';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2454,6 +2476,28 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
+
+  @override
+  String get hideOverviewAmounts => '隐藏概览金额';
+
+  @override
+  String get showOverviewAmounts => '显示概览金额';
+
+  @override
+  String monthIncome(String month) {
+    return '$month收入';
+  }
+
+  @override
+  String monthExpense(String month) {
+    return '$month支出';
+  }
+
+  @override
+  String get previousMonth => '上个月';
+
+  @override
+  String get nextMonth => '下个月';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3680,4 +3724,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetHintPastPlanned => '歷史月計劃帳單不計入已完結複盤';
+
+  @override
+  String get hideOverviewAmounts => '隱藏概覽金額';
+
+  @override
+  String get showOverviewAmounts => '顯示概覽金額';
+
+  @override
+  String monthIncome(String month) {
+    return '$month收入';
+  }
+
+  @override
+  String monthExpense(String month) {
+    return '$month支出';
+  }
+
+  @override
+  String get previousMonth => '上個月';
+
+  @override
+  String get nextMonth => '下個月';
 }

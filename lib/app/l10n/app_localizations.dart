@@ -2434,6 +2434,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past-month planned bills are excluded from closed reviews'**
   String get budgetHintPastPlanned;
+
+  /// No description provided for @hideOverviewAmounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide overview amounts'**
+  String get hideOverviewAmounts;
+
+  /// No description provided for @showOverviewAmounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Show overview amounts'**
+  String get showOverviewAmounts;
+
+  /// No description provided for @monthIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'{month} income'**
+  String monthIncome(String month);
+
+  /// No description provided for @monthExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'{month} expense'**
+  String monthExpense(String month);
+
+  /// No description provided for @previousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
 }
 
 class _AppLocalizationsDelegate

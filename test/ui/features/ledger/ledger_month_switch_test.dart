@@ -21,6 +21,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 class _VisibleBalance extends BalanceVisibilityController {
   @override
   Future<bool> build() async => true;
+
+  @override
+  Future<void> toggle() async => state = AsyncData(!(state.value ?? true));
 }
 
 void main() {
@@ -260,5 +263,64 @@ void main() {
     expect(tester.getTopLeft(switcher), switcherPosition);
     await gesture.up();
     await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'switching month updates overview labels and hiding masks overview and collapsed balance',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          balanceVisibilityControllerProvider.overrideWith(_VisibleBalance.new),
+          displayCurrencySymbolProvider.overrideWith((ref) => r'$'),
+          accountListProvider
+              .overrideWith((ref) => Stream.value(const <AccountEntity>[])),
+          pendingBillMonthsProvider
+              .overrideWith((ref) => Stream.value(const <DateTime>{})),
+          ledgerMonthlySummaryProvider.overrideWith(
+              (ref, month) => Stream.value(month == next ? second : first)),
+          ledgerMonthlyTransactionsProvider.overrideWith((ref, month) =>
+              Stream.value(List.generate(
+                  20,
+                  (i) => LedgerDayGroup(
+                      date: DateTime(month.year, month.month, i + 1),
+                      transactions: const [])))),
+        ],
+        child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const LedgerScreen())));
+    await tester.pumpAndSettle();
+
+    final l10n =
+        AppLocalizations.of(tester.element(find.byType(LedgerScreen)))!;
+    final currentAbbr = DateFormat.MMM('en').format(current);
+    final nextAbbr = DateFormat.MMM('en').format(next);
+
+    expect(find.text(l10n.monthIncome(currentAbbr)), findsOneWidget);
+    expect(find.text(l10n.monthExpense(currentAbbr)), findsOneWidget);
+
+    await tester.tap(find.descendant(
+        of: find.byType(LedgerMonthSwitcher),
+        matching: find.byIcon(LucideIcons.chevronRight)));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.monthIncome(nextAbbr)), findsOneWidget);
+    expect(find.text(l10n.monthExpense(nextAbbr)), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.hideOverviewAmounts));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(l10n.showOverviewAmounts), findsOneWidget);
+    expect(find.text('******'), findsNWidgets(3));
+
+    await tester.drag(
+        find.byType(LedgerTransactionList), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.byType(LedgerCompactBalance), findsOneWidget);
+    expect(find.text('******'), findsOneWidget);
+
+    await tester.tap(find.byType(LedgerCompactBalance));
+    await tester.pumpAndSettle();
+    expect(find.byType(LedgerMonthSwitcher), findsOneWidget);
   });
 }

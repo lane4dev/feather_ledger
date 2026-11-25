@@ -829,5 +829,11 @@
   "budgetHintOver": "记后将超支 {over}",
   "budgetHintUnset": "未设预算 · 本月已耗 {spent}",
   "budgetHintExcludedAccount": "该账户不计入预算统计",
-  "budgetHintPastPlanned": "历史月计划账单不计入已完结复盘"
+  "budgetHintPastPlanned": "历史月计划账单不计入已完结复盘",
+  "hideOverviewAmounts": "隐藏概览金额",
+  "showOverviewAmounts": "显示概览金额",
+  "monthIncome": "{month}收入",
+  "monthExpense": "{month}支出",
+  "previousMonth": "上个月",
+  "nextMonth": "下个月"
 }

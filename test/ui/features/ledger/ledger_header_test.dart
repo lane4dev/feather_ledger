@@ -1,7 +1,10 @@
+import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -23,7 +26,8 @@ void main() {
     displayExpense: r'$200.00',
   );
 
-  Widget wrap(Widget child, {bool showBalance = true}) => ProviderScope(
+  Widget wrap(Widget child, {bool showBalance = true, bool centerTitle = false}) =>
+      ProviderScope(
         overrides: [
           balanceVisibilityControllerProvider
               .overrideWith(() => _FixedVisibility(showBalance)),
@@ -42,9 +46,11 @@ void main() {
               slivers: [
                 SliverAppBar(
                   pinned: true,
+                  centerTitle: centerTitle,
+                  titleSpacing: centerTitle ? 8 : null,
                   title: child,
                   actions: [
-                    IconButton(
+                    AppIconButton(
                       icon: const Icon(LucideIcons.search),
                       onPressed: () {},
                     ),
@@ -200,6 +206,312 @@ void main() {
       expect(find.byIcon(LucideIcons.chevronLeft), findsNothing);
       expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
     });
+  });
+
+  group('overview card expressive design', () {
+    for (final entry in [
+      (
+        label: 'light 360 en',
+        theme: AppTheme.lightTheme,
+        width: 360.0,
+        locale: const Locale('en'),
+      ),
+      (
+        label: 'dark 360 zh_Hans',
+        theme: AppTheme.darkTheme,
+        width: 360.0,
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+      ),
+      (
+        label: 'light 800 zh_Hant',
+        theme: AppTheme.lightTheme,
+        width: 800.0,
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      ),
+      (
+        label: 'dark 800 zh',
+        theme: AppTheme.darkTheme,
+        width: 800.0,
+        locale: const Locale('zh'),
+      ),
+    ]) {
+      testWidgets(
+          'uses overview surface, 50/50 tonal sub-containers, and tabular bold balance (${entry.label})',
+          (tester) async {
+        tester.view.physicalSize = Size(entry.width, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        final targetMonth = DateTime(2026, 11);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            balanceVisibilityControllerProvider
+                .overrideWith(() => _FixedVisibility(true)),
+          ],
+          child: MaterialApp(
+            theme: entry.theme,
+            locale: entry.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: Scaffold(
+              body: LedgerHeader(
+                month: targetMonth,
+                summaryAsync: const AsyncData(summary),
+                onTap: () {},
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        final ctx = tester.element(find.byType(LedgerHeader));
+        final l10n = AppLocalizations.of(ctx)!;
+        final scheme = Theme.of(ctx).colorScheme;
+        final semantics = Theme.of(ctx).extension<AppSemanticColors>()!;
+        final monthAbbr =
+            DateFormat.MMM(entry.locale.toString()).format(targetMonth);
+
+        // Uses AppCard.overview -> surfaceContainerHigh + 24dp radius.
+        expect(find.byType(AppCard), findsOneWidget);
+        final card = tester.widget<Card>(find.descendant(
+          of: find.byType(LedgerHeader),
+          matching: find.byType(Card),
+        ));
+        expect(card.color, scheme.surfaceContainerHigh);
+        final shape = card.shape! as RoundedRectangleBorder;
+        expect(
+          shape.borderRadius,
+          BorderRadius.circular(24),
+        );
+
+        // Main balance uses bold tabular figures and onSurface.
+        final balanceText = tester.widget<Text>(find.text(summary.displayBalance));
+        expect(balanceText.style?.fontWeight, FontWeight.w700);
+        expect(balanceText.style?.color, scheme.onSurface);
+        expect(
+          balanceText.style?.fontFeatures,
+          contains(const FontFeature.tabularFigures()),
+        );
+
+        // Month income & expense labels reflect the selected month and share 50/50 width.
+        final incomeLabelFinder = find.text(l10n.monthIncome(monthAbbr));
+        final expenseLabelFinder = find.text(l10n.monthExpense(monthAbbr));
+        expect(incomeLabelFinder, findsOneWidget);
+        expect(expenseLabelFinder, findsOneWidget);
+
+        final incomeAmountFinder = find.text(summary.displayIncome);
+        final expenseAmountFinder = find.text(summary.displayExpense);
+        expect(incomeAmountFinder, findsOneWidget);
+        expect(expenseAmountFinder, findsOneWidget);
+
+        final incomeAmountText = tester.widget<Text>(incomeAmountFinder);
+        final expenseAmountText = tester.widget<Text>(expenseAmountFinder);
+        expect(
+          incomeAmountText.style?.fontFeatures,
+          contains(const FontFeature.tabularFigures()),
+        );
+        expect(
+          expenseAmountText.style?.fontFeatures,
+          contains(const FontFeature.tabularFigures()),
+        );
+        expect(incomeAmountText.style?.color, semantics.onIncomeContainer);
+        expect(expenseAmountText.style?.color, semantics.onExpenseContainer);
+
+        // Both sub-containers are tonal boxes of equal width and left-aligned content.
+        final incomeBoxFinder = find.ancestor(
+          of: incomeLabelFinder,
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).color ==
+                    semantics.incomeContainer,
+          ),
+        );
+        final expenseBoxFinder = find.ancestor(
+          of: expenseLabelFinder,
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).color ==
+                    semantics.expenseContainer,
+          ),
+        );
+        expect(incomeBoxFinder, findsOneWidget);
+        expect(expenseBoxFinder, findsOneWidget);
+
+        final incomeBoxRect = tester.getRect(incomeBoxFinder);
+        final expenseBoxRect = tester.getRect(expenseBoxFinder);
+        expect(incomeBoxRect.width, closeTo(expenseBoxRect.width, 0.5));
+        expect(expenseBoxRect.left, greaterThan(incomeBoxRect.right));
+
+        expect(
+          tester.getTopLeft(incomeLabelFinder).dx,
+          closeTo(tester.getTopLeft(incomeAmountFinder).dx, 0.5),
+        );
+        expect(
+          tester.getTopLeft(expenseLabelFinder).dx,
+          closeTo(tester.getTopLeft(expenseAmountFinder).dx, 0.5),
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets(
+        'eye button updates tooltip and semantic label and masks balance, income, and expense',
+        (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          balanceVisibilityControllerProvider
+              .overrideWith(() => _FixedVisibility(true)),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: LedgerHeader(
+              month: DateTime(2026, 11),
+              summaryAsync: const AsyncData(summary),
+              onTap: () {},
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(LedgerHeader)))!;
+      final eyeFinder = find.byIcon(LucideIcons.eye);
+      expect(find.byTooltip(l10n.hideOverviewAmounts), findsOneWidget);
+      final eyeButtonRect = tester.getRect(
+        find.ancestor(of: eyeFinder, matching: find.byType(AppIconButton)),
+      );
+      expect(eyeButtonRect.width, greaterThanOrEqualTo(48));
+      expect(eyeButtonRect.height, greaterThanOrEqualTo(48));
+      expect(
+        tester.getSemantics(find.byTooltip(l10n.hideOverviewAmounts)).tooltip,
+        l10n.hideOverviewAmounts,
+      );
+
+      await tester.tap(eyeFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(LucideIcons.eyeOff), findsOneWidget);
+      expect(find.byTooltip(l10n.showOverviewAmounts), findsOneWidget);
+      expect(
+        tester.getSemantics(find.byTooltip(l10n.showOverviewAmounts)).tooltip,
+        l10n.showOverviewAmounts,
+      );
+      expect(find.text('******'), findsNWidgets(3));
+      expect(find.text(summary.displayBalance), findsNothing);
+      expect(find.text(summary.displayIncome), findsNothing);
+      expect(find.text(summary.displayExpense), findsNothing);
+    });
+  });
+
+  group('compact centered month toolbar', () {
+    for (final entry in [
+      (width: 360.0, locale: const Locale('en')),
+      (
+        width: 360.0,
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+      ),
+      (width: 800.0, locale: const Locale('en')),
+      (
+        width: 800.0,
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      ),
+      (width: 800.0, locale: const Locale('zh')),
+    ]) {
+      testWidgets(
+          'keeps arrows compact around month label with >=48dp hit targets (${entry.width}dp, ${entry.locale})',
+          (tester) async {
+        tester.view.physicalSize = Size(entry.width, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        final targetMonth = DateTime(2026, 11);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            balanceVisibilityControllerProvider
+                .overrideWith(() => _FixedVisibility(true)),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            locale: entry.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: Scaffold(
+              body: CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    centerTitle: true,
+                    titleSpacing: 8,
+                    title: LedgerAppBarTitle(
+                      selectedDate: targetMonth,
+                      summaryAsync: const AsyncData(summary),
+                      collapsed: false,
+                      onMonthChanged: (_) {},
+                      onMonthTap: () {},
+                    ),
+                    actions: [
+                      AppIconButton(
+                        icon: const Icon(LucideIcons.search),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        final monthStr =
+            DateFormat.yMMMM(entry.locale.toString()).format(targetMonth);
+        final leftButton = find.ancestor(
+          of: find.byIcon(LucideIcons.chevronLeft),
+          matching: find.byType(AppIconButton),
+        );
+        final rightButton = find.ancestor(
+          of: find.byIcon(LucideIcons.chevronRight),
+          matching: find.byType(AppIconButton),
+        );
+        final searchButton = find.ancestor(
+          of: find.byIcon(LucideIcons.search),
+          matching: find.byType(AppIconButton),
+        );
+
+        final leftRect = tester.getRect(leftButton);
+        final monthRect = tester.getRect(find.text(monthStr));
+        final rightRect = tester.getRect(rightButton);
+        final searchRect = tester.getRect(searchButton);
+
+        for (final rect in [leftRect, rightRect, searchRect]) {
+          expect(rect.width, greaterThanOrEqualTo(48));
+          expect(rect.height, greaterThanOrEqualTo(48));
+        }
+
+        // Arrows hug the month text rather than stretching to toolbar edges.
+        expect(monthRect.left - leftRect.right, lessThan(24));
+        expect(rightRect.left - monthRect.right, lessThan(24));
+        expect(searchRect.left, greaterThanOrEqualTo(rightRect.right));
+
+        if (entry.width >= 800) {
+          final switcherRect = tester.getRect(find.byType(LedgerMonthSwitcher));
+          expect(switcherRect.center.dx, closeTo(entry.width / 2, 4));
+        } else {
+          expect(leftRect.left, greaterThanOrEqualTo(0));
+          expect(rightRect.right, lessThanOrEqualTo(searchRect.left));
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 }
 

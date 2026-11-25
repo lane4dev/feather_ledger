@@ -977,5 +977,17 @@
     "placeholders": { "spent": { "type": "String" } }
   },
   "budgetHintExcludedAccount": "Excluded from budget totals",
-  "budgetHintPastPlanned": "Past-month planned bills are excluded from closed reviews"
+  "budgetHintPastPlanned": "Past-month planned bills are excluded from closed reviews",
+  "hideOverviewAmounts": "Hide overview amounts",
+  "showOverviewAmounts": "Show overview amounts",
+  "monthIncome": "{month} income",
+  "@monthIncome": {
+    "placeholders": { "month": { "type": "String" } }
+  },
+  "monthExpense": "{month} expense",
+  "@monthExpense": {
+    "placeholders": { "month": { "type": "String" } }
+  },
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month"
 }

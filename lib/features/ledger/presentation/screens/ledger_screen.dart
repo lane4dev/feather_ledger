@@ -1,5 +1,6 @@
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_floating_action_button_location.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -187,7 +188,7 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final currency = ref.watch(displayCurrencySymbolProvider);
     final summary = ref.watch(ledgerMonthlySummaryProvider(selectedDate));
     final scaled = MediaQuery.textScalerOf(context).scale(120);
-    final headerHeight = 200.0 + (scaled > 120 ? scaled - 120 : 0);
+    final headerHeight = 220.0 + (scaled > 120 ? (scaled - 120) * 1.3 : 0);
 
     return Scaffold(
       body: CustomScrollView(
@@ -195,25 +196,43 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            title: InkWell(
-              onTap: _collapsed
-                  ? () {
+            centerTitle: !_collapsed,
+            titleSpacing: _collapsed ? null : 8,
+            title: _collapsed
+                ? InkWell(
+                    borderRadius: context.metrics.chipBorderRadius,
+                    onTap: () {
                       final controller = _monthControllers[selectedDate];
                       if (controller != null && controller.hasClients) {
                         controller.animateTo(0,
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeOut);
                       }
-                    }
-                  : null,
-              child: LedgerAppBarTitle(
-                selectedDate: selectedDate,
-                summaryAsync: summary,
-                collapsed: _collapsed,
-                onMonthChanged: _goToMonth,
-                onMonthTap: () => _onMonthTap(selectedDate),
-              ),
-            ),
+                    },
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: kMinInteractiveDimension,
+                      ),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        widthFactor: 1.0,
+                        child: LedgerAppBarTitle(
+                          selectedDate: selectedDate,
+                          summaryAsync: summary,
+                          collapsed: true,
+                          onMonthChanged: _goToMonth,
+                          onMonthTap: () => _onMonthTap(selectedDate),
+                        ),
+                      ),
+                    ),
+                  )
+                : LedgerAppBarTitle(
+                    selectedDate: selectedDate,
+                    summaryAsync: summary,
+                    collapsed: false,
+                    onMonthChanged: _goToMonth,
+                    onMonthTap: () => _onMonthTap(selectedDate),
+                  ),
             actions: [
               AppIconButton(
                 icon: const Icon(LucideIcons.search),

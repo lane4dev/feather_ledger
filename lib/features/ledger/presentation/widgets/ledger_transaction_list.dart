@@ -63,6 +63,7 @@ class LedgerTransactionList extends ConsumerWidget {
               height: headerHeight,
               child: LedgerHeader(
                   cardKey: summaryCardKey,
+                  month: month,
                   onTap: () => context.push('/ledger/reports',
                       extra: CardPageOrigin(month, summaryCardKey)),
                   summaryAsync: ref.watch(ledgerMonthlySummaryProvider(month))),

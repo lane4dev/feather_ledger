@@ -30,11 +30,17 @@ class LedgerHeader extends StatelessWidget {
   /// widget would be formatting money, which is the currency's business and
   /// not the header's.
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+  final DateTime? month;
   final VoidCallback? onTap;
   final GlobalKey? cardKey;
 
-  const LedgerHeader(
-      {super.key, required this.summaryAsync, this.onTap, this.cardKey});
+  const LedgerHeader({
+    super.key,
+    required this.summaryAsync,
+    this.month,
+    this.onTap,
+    this.cardKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +53,11 @@ class LedgerHeader extends StatelessWidget {
         children: [
           // Balance Summary - Full Width
           _BalanceSummary(
-              summaryAsync: summaryAsync, onTap: onTap, cardKey: cardKey),
+            summaryAsync: summaryAsync,
+            month: month ?? DateTime.now(),
+            onTap: onTap,
+            cardKey: cardKey,
+          ),
         ],
       ),
     );
@@ -81,31 +91,32 @@ class LedgerAppBarTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
 
+    if (!collapsed) {
+      return LedgerMonthSwitcher(
+        selectedDate: selectedDate,
+        onChanged: onMonthChanged,
+        onTap: onMonthTap,
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (collapsed)
-          Flexible(
-              child: Text(
+        Flexible(
+          child: Text(
             DateFormat.yMMM(locale).format(selectedDate),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium,
-          ))
-        else
-          Expanded(
-              child: LedgerMonthSwitcher(
-            selectedDate: selectedDate,
-            onChanged: onMonthChanged,
-            onTap: onMonthTap,
-          )),
-        if (collapsed) ...[
-          SizedBox(width: context.spacing.md),
-          Flexible(
-              child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: LedgerCompactBalance(summaryAsync: summaryAsync))),
-        ],
+          ),
+        ),
+        SizedBox(width: context.spacing.md),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: LedgerCompactBalance(summaryAsync: summaryAsync),
+          ),
+        ),
       ],
     );
   }
@@ -122,15 +133,18 @@ class LedgerCompactBalance extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
+    final style = AppTypography.amount(context).copyWith(
+      color: Theme.of(context).colorScheme.onSurface,
+    );
 
     return summaryAsync.when(
       data: (summary) => Text(
         showBalance ? summary.displayBalance : '******',
-        style: AppTypography.amount(context),
+        style: style,
       ),
       loading: () => Text(
         showBalance ? '—' : '******',
-        style: AppTypography.amount(context),
+        style: style,
       ),
       error: (_, __) => const SizedBox(),
     );
@@ -151,32 +165,40 @@ class LedgerMonthSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         AppIconButton(
           icon: const Icon(LucideIcons.chevronLeft),
+          tooltip: l10n?.previousMonth,
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
                   DateTime(selectedDate.year, selectedDate.month - 1)),
         ),
-        Expanded(
-            child: InkWell(
-          onTap: onTap,
-          borderRadius: context.metrics.chipBorderRadius,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: FittedBox(
+        Flexible(
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: context.metrics.chipBorderRadius,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
+              child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   DateFormat.yMMMM(locale).format(selectedDate),
+                  maxLines: 1,
                   style: Theme.of(context).textTheme.titleLarge,
-                )),
+                ),
+              ),
+            ),
           ),
-        )),
+        ),
         AppIconButton(
           icon: const Icon(LucideIcons.chevronRight),
+          tooltip: l10n?.nextMonth,
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
@@ -188,16 +210,27 @@ class LedgerMonthSwitcher extends StatelessWidget {
 }
 
 class _BalanceSummary extends ConsumerWidget {
-  const _BalanceSummary({required this.summaryAsync, this.onTap, this.cardKey});
+  const _BalanceSummary({
+    required this.summaryAsync,
+    required this.month,
+    this.onTap,
+    this.cardKey,
+  });
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
+  final DateTime month;
   final VoidCallback? onTap;
   final GlobalKey? cardKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final monthLabel = DateFormat.MMM(locale).format(month);
     final showBalance =
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
+    final visibilityLabel =
+        showBalance ? l10n.hideOverviewAmounts : l10n.showOverviewAmounts;
+
     Widget summaryContent(MonthlySummaryUiModel? summary) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -206,13 +239,17 @@ class _BalanceSummary extends ConsumerWidget {
               Expanded(
                 child: Row(children: [
                   Flexible(
-                    child: Text(l10n.totalBalance,
-                        style: AppTypography.meta(context), maxLines: 2),
+                    child: Text(
+                      l10n.totalBalance,
+                      style: AppTypography.meta(context),
+                      maxLines: 2,
+                    ),
                   ),
                   AppIconButton(
                     icon: Icon(
                         showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
-                    tooltip: l10n.totalBalance,
+                    iconSize: 18,
+                    tooltip: visibilityLabel,
                     onPressed: () => ref
                         .read(balanceVisibilityControllerProvider.notifier)
                         .toggle(),
@@ -222,10 +259,13 @@ class _BalanceSummary extends ConsumerWidget {
               if (onTap != null)
                 SizedBox(
                   width: kMinInteractiveDimension,
+                  height: kMinInteractiveDimension,
                   child: Center(
-                    child: Icon(LucideIcons.chevronRight,
-                        size: context.metrics.iconSize,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    child: Icon(
+                      LucideIcons.chevronRight,
+                      size: context.metrics.iconSize,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
             ]),
@@ -233,106 +273,133 @@ class _BalanceSummary extends ConsumerWidget {
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
               child: Text(
-                  showBalance ? summary?.displayBalance ?? '—' : '******',
-                  style: AppTypography.balance(context)),
+                showBalance ? summary?.displayBalance ?? '—' : '******',
+                style: AppTypography.balance(context).copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ),
             SizedBox(height: context.spacing.md),
-            Row(children: [
-              Expanded(
-                  child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: _IncomeExpenseCompact(
-                        label: l10n.income,
-                        displayAmount: summary?.displayIncome ?? '—',
-                        color: context.colors.income,
-                        icon: LucideIcons.arrowDown,
-                        showBalance: showBalance,
-                      ))),
-              SizedBox(width: context.spacing.md),
-              Expanded(
-                  child: Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: _IncomeExpenseCompact(
-                        label: l10n.expense,
-                        displayAmount: summary?.displayExpense ?? '—',
-                        color: context.colors.expense,
-                        icon: LucideIcons.arrowUp,
-                        showBalance: showBalance,
-                      ))),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  child: _IncomeExpenseTile(
+                    label: l10n.monthIncome(monthLabel),
+                    displayAmount: summary?.displayIncome ?? '—',
+                    containerColor: context.colors.incomeContainer,
+                    onContainerColor: context.colors.onIncomeContainer,
+                    icon: LucideIcons.arrowDown,
+                    showBalance: showBalance,
+                  ),
+                ),
+                SizedBox(width: context.spacing.sm + context.spacing.xs),
+                Expanded(
+                  child: _IncomeExpenseTile(
+                    label: l10n.monthExpense(monthLabel),
+                    displayAmount: summary?.displayExpense ?? '—',
+                    containerColor: context.colors.expenseContainer,
+                    onContainerColor: context.colors.onExpenseContainer,
+                    icon: LucideIcons.arrowUp,
+                    showBalance: showBalance,
+                  ),
+                ),
+              ],
+            ),
           ],
         );
     return Semantics(
       label: onTap == null ? null : l10n.viewReports,
       button: onTap != null,
       explicitChildNodes: true,
-      child: AppCard(
-          key: cardKey,
-          onTap: onTap,
-          child: summaryAsync.when(
-            data: summaryContent,
-            loading: () => summaryContent(null),
-            error: (error, _) => Text(l10n.errorPrefix('$error')),
-          )),
+      child: AppCard.overview(
+        key: cardKey,
+        onTap: onTap,
+        child: summaryAsync.when(
+          data: summaryContent,
+          loading: () => summaryContent(null),
+          error: (error, _) => Text(l10n.errorPrefix('$error')),
+        ),
+      ),
     );
   }
 }
 
-class _IncomeExpenseCompact extends StatelessWidget {
+class _IncomeExpenseTile extends StatelessWidget {
   final String label;
 
   /// Written out, symbol and all.
   final String displayAmount;
-  final Color color;
+  final Color containerColor;
+  final Color onContainerColor;
   final IconData icon;
   final bool showBalance;
 
-  const _IncomeExpenseCompact({
+  const _IncomeExpenseTile({
     required this.label,
     required this.displayAmount,
-    required this.color,
+    required this.containerColor,
+    required this.onContainerColor,
     required this.icon,
     required this.showBalance,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 12,
-                color: color,
-              ),
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.spacing.sm + context.spacing.xs,
+        vertical: context.spacing.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: containerColor,
+        borderRadius: context.metrics.controlBorderRadius,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: onContainerColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 15,
+              color: onContainerColor,
+            ),
+          ),
+          SizedBox(width: context.spacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  showBalance ? displayAmount : '******',
-                  style: AppTypography.amount(context)
-                      .copyWith(color: theme.colorScheme.onSurface),
-                ),
-                Text(
                   label,
-                  style: LedgerTheme.denseLabel(context).copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: LedgerTheme.denseLabel(context)
+                      .copyWith(color: onContainerColor),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    showBalance ? displayAmount : '******',
+                    maxLines: 1,
+                    style: AppTypography.compactAmount(context)
+                        .copyWith(color: onContainerColor),
                   ),
                 ),
               ],
             ),
-          ],
-        ));
+          ),
+        ],
+      ),
+    );
   }
 }

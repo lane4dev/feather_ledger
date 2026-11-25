@@ -1292,4 +1292,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get budgetHintPastPlanned =>
       'Past-month planned bills are excluded from closed reviews';
+
+  @override
+  String get hideOverviewAmounts => 'Hide overview amounts';
+
+  @override
+  String get showOverviewAmounts => 'Show overview amounts';
+
+  @override
+  String monthIncome(String month) {
+    return '$month income';
+  }
+
+  @override
+  String monthExpense(String month) {
+    return '$month expense';
+  }
+
+  @override
+  String get previousMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
 }
