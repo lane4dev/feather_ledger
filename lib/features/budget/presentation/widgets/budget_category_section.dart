@@ -494,12 +494,6 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
                 : null;
             final stacked = constraints.maxWidth < _stackedLayoutWidth ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.3;
-            // The action keeps its place at the end of the row; on a narrow
-            // card the amount block gives up width first and lets its
-            // FittedBox shrink, rather than pushing the button underneath.
-            final amountMaxWidth = action != null && constraints.maxWidth < 340
-                ? 104.0
-                : _amountBlockMaxWidth;
 
             final header = stacked
                 ? Column(
@@ -534,13 +528,24 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
                       Expanded(child: _CategoryText(row: row)),
                       SizedBox(width: spacing.sm),
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: amountMaxWidth),
-                        child: _RowAmounts(row: row, textAlign: TextAlign.end),
+                        constraints: const BoxConstraints(
+                          maxWidth: _amountBlockMaxWidth,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _RowAmounts(
+                              row: row,
+                              textAlign: TextAlign.end,
+                            ),
+                            if (action != null) ...[
+                              SizedBox(height: spacing.xs),
+                              action,
+                            ],
+                          ],
+                        ),
                       ),
-                      if (action != null) ...[
-                        SizedBox(width: spacing.xs),
-                        action,
-                      ],
                     ],
                   );
 
@@ -565,8 +570,9 @@ class _SetBudgetAction extends StatelessWidget {
     return FilledButton.tonal(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 32),
-        padding: EdgeInsets.symmetric(horizontal: context.spacing.sm),
+        minimumSize: const Size(0, 36),
+        padding: EdgeInsets.symmetric(horizontal: context.spacing.xs),
+        visualDensity: VisualDensity.compact,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: AppTypography.compactAmount(context),
       ),

@@ -214,8 +214,7 @@ void main() {
     final button = find.widgetWithText(FilledButton, 'Set budget').first;
     // A lightweight pill, not a full-size call to action: it sits beside the
     // row's data without competing with it.
-    expect(tester.getSize(button).height, lessThan(48));
-    expect(tester.getSize(button).height, greaterThanOrEqualTo(32));
+    expect(tester.getSize(button).height, lessThanOrEqualTo(32));
     expect(tester.getSize(button).width, greaterThanOrEqualTo(48));
 
     await tester.tap(find.text('Set budget').first);
@@ -458,7 +457,7 @@ void main() {
     );
   });
 
-  testWidgets('320dp keeps Set budget at the end of the row', (tester) async {
+  testWidgets('320dp puts Set budget below the amount', (tester) async {
     final screen = _map(
       _summary(
         mode: BudgetMode.track,
@@ -477,7 +476,7 @@ void main() {
 
     final amount = tester.getRect(find.text('¥60.00'));
     final action = tester.getRect(find.text('Set budget'));
-    expect(action.left, greaterThan(amount.left));
+    expect(action.top, greaterThanOrEqualTo(amount.bottom));
     expect(action.right, lessThanOrEqualTo(320 - 16));
     expect(tester.takeException(), isNull);
   });
