@@ -351,6 +351,56 @@ void main() {
       find.byKey(const ValueKey('budget-category-bar-actual-dining')),
       findsNothing,
     );
+    // The baseline is hatched, like the hero bar, so a plan row never reads as
+    // money already spent.
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-baseline-hatch-dining')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a track row fills solidly and carries no baseline hatch',
+      (tester) async {
+    final screen = _map(
+      _summary(
+        mode: BudgetMode.track,
+        budgetedCategories: [
+          _cat(id: 'dining', name: 'Dining', actualMinor: 5000),
+        ],
+      ),
+    );
+    await _pump(tester, screen);
+
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-baseline-hatch-dining')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-actual-dining')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a review row carries no baseline hatch either', (tester) async {
+    final screen = _map(
+      _summary(
+        mode: BudgetMode.review,
+        budgetedCategories: [
+          _cat(
+            id: 'dining',
+            name: 'Dining',
+            actualMinor: 5000,
+            committedBaselineMinor: 6000,
+          ),
+        ],
+      ),
+    );
+    await _pump(tester, screen);
+
+    expect(
+      find.byKey(const ValueKey('budget-category-bar-baseline-hatch-dining')),
+      findsNothing,
+    );
   });
 
   testWidgets('dark theme keeps the row shapes and the shortfall colour',

@@ -64,6 +64,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     required this.income,
     required this.expense,
     required this.frequency,
+    required this.warning,
     required this.incomeContainer,
     required this.onIncomeContainer,
     required this.expenseContainer,
@@ -73,6 +74,11 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   final Color income;
   final Color expense;
   final Color frequency;
+
+  /// Attention marker for a value that is off-pattern but not an error, e.g.
+  /// the anomaly dot next to a category. Deliberately not [expense]: an
+  /// anomaly is amber, a shortfall is red.
+  final Color warning;
   final Color incomeContainer;
   final Color onIncomeContainer;
   final Color expenseContainer;
@@ -83,6 +89,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     Color? income,
     Color? expense,
     Color? frequency,
+    Color? warning,
     Color? incomeContainer,
     Color? onIncomeContainer,
     Color? expenseContainer,
@@ -92,6 +99,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       income: income ?? this.income,
       expense: expense ?? this.expense,
       frequency: frequency ?? this.frequency,
+      warning: warning ?? this.warning,
       incomeContainer: incomeContainer ?? this.incomeContainer,
       onIncomeContainer: onIncomeContainer ?? this.onIncomeContainer,
       expenseContainer: expenseContainer ?? this.expenseContainer,
@@ -108,6 +116,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       income: Color.lerp(income, other.income, t) ?? income,
       expense: Color.lerp(expense, other.expense, t) ?? expense,
       frequency: Color.lerp(frequency, other.frequency, t) ?? frequency,
+      warning: Color.lerp(warning, other.warning, t) ?? warning,
       incomeContainer:
           Color.lerp(incomeContainer, other.incomeContainer, t) ??
               incomeContainer,
@@ -132,6 +141,7 @@ class AppTheme {
     income: Color(0xFF0F766E),
     expense: Color(0xFFC2410C),
     frequency: Color(0xFF665BD8),
+    warning: Color(0xFFA76A13),
     incomeContainer: Color(0xFFDAEDDF),
     onIncomeContainer: Color(0xFF25392E),
     expenseContainer: Color(0xFFF9E5DF),
@@ -141,6 +151,7 @@ class AppTheme {
     income: Color(0xFF81C995),
     expense: Color(0xFFF2B8B5),
     frequency: Color(0xFFB6AEFF),
+    warning: Color(0xFFE0B15C),
     incomeContainer: Color(0xFF1D3A2B),
     onIncomeContainer: Color(0xFFC2EAD0),
     expenseContainer: Color(0xFF4B2521),
@@ -625,6 +636,11 @@ class AppTheme {
       allCardSurfaces,
       dark ? 4.5 : 3.0,
     );
+    final warning = _ensureContrast(
+      _ensureContrast(base.warning, primarySurfaces, 4.5),
+      allCardSurfaces,
+      dark ? 4.5 : 3.0,
+    );
     final onIncomeContainer = _ensureContrast(
       base.onIncomeContainer,
       [base.incomeContainer],
@@ -639,6 +655,7 @@ class AppTheme {
       income: income,
       expense: expense,
       frequency: frequency,
+      warning: warning,
       incomeContainer: base.incomeContainer,
       onIncomeContainer: onIncomeContainer,
       expenseContainer: base.expenseContainer,

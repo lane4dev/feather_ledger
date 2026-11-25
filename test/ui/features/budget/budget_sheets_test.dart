@@ -32,6 +32,7 @@ class _StubBudgetService implements BudgetService {
   final MonthBudgetSummary summary;
   final Stream<MonthBudgetSummary>? updates;
   bool hasFuture = false;
+  bool failFutureProbe = false;
   Result<void>? clearResult;
   String? savedNote;
   BudgetEditScope? lastScope;
@@ -62,8 +63,10 @@ class _StubBudgetService implements BudgetService {
     required String currencyCode,
     required String categoryId,
     required YearMonth month,
-  }) async =>
-      hasFuture;
+  }) async {
+    if (failFutureProbe) throw StateError('database is closed');
+    return hasFuture;
+  }
 
   @override
   Future<Result<void>> setCategoryBudget({
@@ -303,7 +306,7 @@ void main() {
   Future<void> openClearDialog(WidgetTester tester) async {
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
   }
 
@@ -314,7 +317,7 @@ void main() {
     await pumpDetail(tester, service: service, size: const Size(400, 700));
 
     await openClearDialog(tester);
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
 
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
@@ -336,7 +339,7 @@ void main() {
     expect(service.lastScope, isNull);
     // The category note is still the one the (undone) clear would have deleted.
     expect(find.text('Old note'), findsOneWidget);
-    expect(find.text('Budget removed'), findsNothing);
+    expect(find.text('Budget deleted'), findsNothing);
   });
 
   testWidgets('archived category is read only and has no overflow menu',
@@ -355,7 +358,7 @@ void main() {
 
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
@@ -419,7 +422,7 @@ void main() {
         const Offset(0, -120),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove budget'));
+      await tester.tap(find.text('Delete budget'));
       await tester.pumpAndSettle();
 
       expect(service.lastScope, BudgetEditScope.thisAndFollowing);
@@ -482,12 +485,12 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Unsaved thought');
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    expect(find.text('Remove budget'), findsOneWidget);
+    expect(find.text('Delete budget'), findsOneWidget);
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
-    expect(find.text('Remove budget'), findsNothing);
+    expect(find.text('Delete budget'), findsNothing);
     await tester.tap(find.descendant(
         of: find.byType(BudgetEditSheet),
         matching: find.byIcon(LucideIcons.x)));
@@ -516,7 +519,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
     // The safe default is this month only, so the future-rule warning stays
     // away until the wider scope is picked; the copy still names the category,
@@ -535,19 +538,19 @@ void main() {
     expect(service.lastScope, isNull);
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
     service.lastScope = null;
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('This & following months'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Remove budget'));
+    await tester.tap(find.text('Delete budget'));
     await tester.pumpAndSettle();
     expect(service.lastScope, BudgetEditScope.thisAndFollowing);
     tester.view.physicalSize = const Size(1200, 2400);
@@ -567,6 +570,8 @@ void main() {
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
     expect(find.text('Expense 4'), findsOneWidget);
+    // The page title is the mapper's, month included — not reassembled here.
+    expect(find.text('Dining · May 2026'), findsWidgets);
     expect(find.text('Pending'), findsOneWidget);
     expect(find.textContaining('Cash'), findsWidgets);
     await tester.tap(find.text('Expense 2'));
@@ -693,6 +698,7 @@ void main() {
     const row = BudgetCategoryRowUiModel(
       categoryId: 'dining',
       name: 'Dining',
+      titleDisplay: 'Dining · May 2026',
       iconKey: 'utensils',
       colorInt: 0xFFE65100,
       archived: false,
@@ -777,5 +783,80 @@ void main() {
 
     expect(service.lastAmountMinor, 80000);
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
+  });
+
+  testWidgets('a failed future-rules probe says so and leaves the sheet usable',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary())..failFutureProbe = true;
+    const row = BudgetCategoryRowUiModel(
+      categoryId: 'dining',
+      name: 'Dining',
+      titleDisplay: 'Dining · May 2026',
+      iconKey: 'utensils',
+      colorInt: 0xFFE65100,
+      archived: false,
+      isBudgetEditable: true,
+      budgetMinor: 100000,
+      lastMonthActualMinor: 80000,
+      threeMonthAvgMinor: 75000,
+      committedBaselineMinor: 15000,
+      budgetDisplay: '\$1000.00',
+      actualDisplay: '\$200.00',
+      pendingDisplay: null,
+      varianceDisplay: null,
+      isOverBudget: false,
+      committedActualDisplay: '\$0.00',
+      discretionaryActualDisplay: '\$200.00',
+      committedBaselineDisplay: '\$150.00',
+      lastMonthActualDisplay: '\$800.00',
+      threeMonthAvgDisplay: '\$750.00',
+      actualProgress: 0,
+      pendingProgress: 0,
+      riskLevel: BudgetRiskLevel.inBudget,
+      isAnomaly: false,
+      anomalyPercent: null,
+      trend6Months: [],
+      topContributions: [],
+      reviewNote: null,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          budgetServiceProvider.overrideWithValue(service),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(
+            body: BudgetEditSheet(
+              row: row,
+              currencyCode: 'USD',
+              currencySymbol: '\$',
+              month: const YearMonth(2026, 5),
+              isHistoricalMonth: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The failure is named in the user's language, never as an exception.
+    expect(find.text('Something went wrong. Please try again.'), findsOneWidget);
+    expect(find.textContaining('StateError'), findsNothing);
+
+    // And the sheet can still save: an unknown probe is not a veto.
+    await tester.tap(find.text('This month only'));
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(service.lastAmountMinor, 100000);
   });
 }

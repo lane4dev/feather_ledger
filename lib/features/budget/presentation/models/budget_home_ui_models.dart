@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/value_objects/budget_value_objects.dart';
 import 'budget_ui_models.dart';
 
 /// What the home's single review entry has to say about the month.
@@ -8,6 +9,11 @@ import 'budget_ui_models.dart';
 /// names the meaning and the widget resolves it — the same split as
 /// [BudgetCategoryAmountLabel]. The amounts and names arrive ready to print.
 enum BudgetReviewEntryKind {
+  /// A tracked month: what was actually spent, split into fixed and
+  /// discretionary. A month still running has no overrun or surplus to report —
+  /// its budget is not finished yet.
+  actuals,
+
   /// A category ended over its limit. The strongest reason to read L2, so it
   /// outranks any surplus.
   overrun,
@@ -24,7 +30,9 @@ enum BudgetReviewEntryKind {
 /// it.
 ///
 /// Track and review months share this model: one entry each, and the entry is
-/// the only way into L2 besides the category rows.
+/// the only way into L2 besides the category rows. The kind decides which line
+/// the entry prints, so a running month says what it spent while a closed month
+/// says what ended over or under.
 @immutable
 class BudgetReviewEntryUiModel {
   final BudgetReviewEntryKind kind;
@@ -37,6 +45,11 @@ class BudgetReviewEntryUiModel {
   /// symbol.
   final String? amountDisplay;
 
+  /// Fixed and discretionary spend of a tracked month, formatted with the
+  /// currency symbol. Set only for [BudgetReviewEntryKind.actuals].
+  final String? committedActualDisplay;
+  final String? discretionaryActualDisplay;
+
   /// A one-line month-note preview, collapsed and shortened; null when the
   /// month has no note.
   final String? notePreview;
@@ -45,19 +58,33 @@ class BudgetReviewEntryUiModel {
     required this.kind,
     this.categoryName,
     this.amountDisplay,
+    this.committedActualDisplay,
+    this.discretionaryActualDisplay,
     this.notePreview,
   });
 
-  /// Reads the entry off the month's already-sorted attribution lists.
+  /// Reads the entry off the month's phase, then off its already-sorted
+  /// attribution lists.
   ///
-  /// Both top-3 lists are computed for every mode by the domain calculator, so
-  /// the same rule holds for a tracked month that already overspent one
-  /// category and for a closed month.
+  /// A running month reports actuals: its spend is the fact, and calling a
+  /// category "over" halfway through the month would be a guess. A closed month
+  /// reports the overrun or surplus it ended with; both top-3 lists are computed
+  /// for every mode by the domain calculator, so that rule reads the same data
+  /// the review page does.
   factory BudgetReviewEntryUiModel.from(
     BudgetScreenUiModel screen, {
     int notePreviewLength = 40,
   }) {
     final notePreview = _preview(screen.monthReviewNote, notePreviewLength);
+    if (screen.overview.mode == BudgetMode.track) {
+      return BudgetReviewEntryUiModel(
+        kind: BudgetReviewEntryKind.actuals,
+        committedActualDisplay: screen.overview.committedActualDisplay,
+        discretionaryActualDisplay:
+            screen.overview.discretionaryActualDisplay,
+        notePreview: notePreview,
+      );
+    }
     final overrun = screen.overBudgetTop3.isEmpty
         ? null
         : screen.overBudgetTop3.first;
@@ -135,7 +162,9 @@ class BudgetPlanHintUiModel {
 
   factory BudgetPlanHintUiModel.from(BudgetScreenUiModel screen) {
     final carriesLastMonthRules = _carriesLastMonthRules(screen);
-    final hasFixedBills = screen.overview.hasFixedBaseline;
+    // The same total the plan hero shows, so a scheduled bill in a category
+    // nobody has budgeted yet still counts as committed.
+    final hasFixedBills = screen.overview.hasCommittedBaseline;
     return BudgetPlanHintUiModel(
       parts: [
         if (carriesLastMonthRules) BudgetPlanHintPart.carryForward,
@@ -153,30 +182,29 @@ class BudgetPlanHintUiModel {
   /// Whether this month's limits are simply last month's.
   ///
   /// Budget rules carry forward silently, so the only honest evidence is the
-  /// data: every category's last-month budget point has to equal the limit the
-  /// row shows for this month. A re-planned category breaks the equality; an
-  /// unknown last month (a brand new currency, say) breaks it too, and the
-  /// hint then says nothing about carrying forward.
+  /// data: the budgeted categories' limits must add up to what those same
+  /// categories were budgeted last month. Comparing totals rather than rows
+  /// keeps the claim true across a re-planned category that moved money
+  /// between two of them, and an unknown last month (a brand new currency,
+  /// say) breaks it, so the hint then says nothing about carrying forward.
   static bool _carriesLastMonthRules(BudgetScreenUiModel screen) {
-    if (screen.budgetedRows.isEmpty) return false;
     final lastMonth = screen.overview.targetYm.previous;
-    final rows = [
-      ...screen.budgetedRows,
-      ...screen.unbudgetedActiveRows,
-      ...screen.remainingActiveRows,
-    ];
-    for (final row in rows) {
+    var currentTotal = 0;
+    var lastMonthTotal = 0;
+    for (final row in screen.budgetedRows) {
+      final budget = row.budgetMinor;
+      if (budget == null || budget <= 0) return false;
       int? lastMonthBudget;
-      var found = false;
       for (final point in row.trend6Months) {
         if (point.ym == lastMonth) {
           lastMonthBudget = point.budgetMinor;
-          found = true;
           break;
         }
       }
-      if (!found || lastMonthBudget != row.budgetMinor) return false;
+      if (lastMonthBudget == null || lastMonthBudget <= 0) return false;
+      currentTotal += budget;
+      lastMonthTotal += lastMonthBudget;
     }
-    return true;
+    return currentTotal > 0 && currentTotal == lastMonthTotal;
   }
 }

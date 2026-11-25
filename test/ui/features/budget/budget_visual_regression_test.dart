@@ -126,7 +126,8 @@ void main() {
             theme.colorScheme.onSurface.withValues(alpha: 0.55),
           );
 
-          // The anomaly marker is the semantic expense colour, not a one-off.
+          // The anomaly marker is the semantic warning colour — amber, so it
+          // reads as a nudge, while an overrun keeps the expense red.
           final anomaly = tester.widget<Semantics>(
             find.byWidgetPredicate(
               (widget) =>
@@ -144,7 +145,7 @@ void main() {
           );
           expect(
             (dot.decoration! as BoxDecoration).color,
-            theme.extension<AppSemanticColors>()!.expense,
+            theme.extension<AppSemanticColors>()!.warning,
           );
 
           expectNoTruncation(tester);

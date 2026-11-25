@@ -24,11 +24,9 @@ class BudgetReviewUiModel {
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
 
+  /// Six months of budget and actual, each carrying its own budget for the
+  /// chart's ghost columns.
   final List<BudgetTrendPointUiModel> monthTrend6Months;
-
-  /// Selected month's total budget in major units, used for the chart's dashed
-  /// budget reference line. `null` when the month has no budget at all.
-  final double? budgetLineChartValue;
 
   final String? monthReviewNote;
 
@@ -42,7 +40,6 @@ class BudgetReviewUiModel {
     required this.overBudgetTop3,
     required this.underBudgetTop3,
     required this.monthTrend6Months,
-    required this.budgetLineChartValue,
     required this.monthReviewNote,
   });
 

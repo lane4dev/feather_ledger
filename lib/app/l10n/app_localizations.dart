@@ -63,7 +63,7 @@ import 'app_localizations_zh.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,18 +86,18 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('zh'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
-    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')
   ];
 
   /// The title of the application
@@ -1161,10 +1161,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This backup holds {backupEvents} events. This ledger has {currentEvents}, so restoring discards {discarded} of them. Everything currently stored will be replaced.'**
   String restoreConfirmMessage(
-    int backupEvents,
-    int currentEvents,
-    int discarded,
-  );
+      int backupEvents, int currentEvents, int discarded);
 
   /// Title shown once a restore has been staged
   ///
@@ -2399,19 +2396,19 @@ abstract class AppLocalizations {
   /// No description provided for @budgetZeroAmountHint.
   ///
   /// In en, this message translates to:
-  /// **'Budget must be greater than 0. Tap Remove budget to unset.'**
+  /// **'Budget must be greater than 0. Tap Delete budget to unset.'**
   String get budgetZeroAmountHint;
 
   /// No description provided for @budgetClearAction.
   ///
   /// In en, this message translates to:
-  /// **'Remove budget'**
+  /// **'Delete budget'**
   String get budgetClearAction;
 
   /// No description provided for @budgetClearConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove {category} budget?'**
+  /// **'Delete {category} budget?'**
   String budgetClearConfirmTitle(String category);
 
   /// No description provided for @budgetClearConfirmThisMonth.
@@ -2419,20 +2416,14 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deletes the {amount} {category} budget for {month} and clears this month\'s category review note.'**
   String budgetClearConfirmThisMonth(
-    String month,
-    String category,
-    String amount,
-  );
+      String month, String category, String amount);
 
   /// No description provided for @budgetClearConfirmThisAndFollowing.
   ///
   /// In en, this message translates to:
   /// **'Deletes the {amount} {category} budget for {month} and clears {category} review notes from {month} onward, including months that carry the budget forward.'**
   String budgetClearConfirmThisAndFollowing(
-    String month,
-    String category,
-    String amount,
-  );
+      String month, String category, String amount);
 
   /// No description provided for @budgetClearFutureRulesWarning.
   ///
@@ -2449,7 +2440,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetCleared.
   ///
   /// In en, this message translates to:
-  /// **'Budget removed'**
+  /// **'Budget deleted'**
   String get budgetCleared;
 
   /// No description provided for @budgetAnomalyDetail.
@@ -2578,6 +2569,18 @@ abstract class AppLocalizations {
   /// **'Every budgeted category is still inside its limit'**
   String get budgetReviewEntryQuiet;
 
+  /// No description provided for @budgetReviewEntryActuals.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed {committed} · Discretionary {discretionary}'**
+  String budgetReviewEntryActuals(String committed, String discretionary);
+
+  /// No description provided for @budgetLoadFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load this month\'s budget. Try again in a moment.'**
+  String get budgetLoadFailedBody;
+
   /// No description provided for @budgetReviewNotePreview.
   ///
   /// In en, this message translates to:
@@ -2680,9 +2683,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

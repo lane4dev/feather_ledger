@@ -41,7 +41,7 @@ final class BudgetViewModelProvider
   }
 }
 
-String _$budgetViewModelHash() => r'474dc233d1b29fd154c774b8a2c1555b82f77188';
+String _$budgetViewModelHash() => r'3cc9897701d368edd7fdba17d72102de8c17a379';
 
 abstract class _$BudgetViewModel extends $Notifier<BudgetUiState> {
   BudgetUiState build();
@@ -136,4 +136,262 @@ final class BudgetMonthSummaryFamily extends $Family
 
   @override
   String toString() => r'budgetMonthSummaryProvider';
+}
+
+/// The home page's view model for one month: the mapper's output, derived from
+/// the month stream, the display currency and the locale.
+///
+/// A provider rather than a call in `build`, so the page never re-maps on a
+/// rebuild that changed none of those three, and so every consumer of the same
+/// month shares one model.
+
+@ProviderFor(budgetScreenUiModel)
+final budgetScreenUiModelProvider = BudgetScreenUiModelFamily._();
+
+/// The home page's view model for one month: the mapper's output, derived from
+/// the month stream, the display currency and the locale.
+///
+/// A provider rather than a call in `build`, so the page never re-maps on a
+/// rebuild that changed none of those three, and so every consumer of the same
+/// month shares one model.
+
+final class BudgetScreenUiModelProvider extends $FunctionalProvider<
+        AsyncValue<BudgetScreenUiModel>,
+        AsyncValue<BudgetScreenUiModel>,
+        AsyncValue<BudgetScreenUiModel>>
+    with $Provider<AsyncValue<BudgetScreenUiModel>> {
+  /// The home page's view model for one month: the mapper's output, derived from
+  /// the month stream, the display currency and the locale.
+  ///
+  /// A provider rather than a call in `build`, so the page never re-maps on a
+  /// rebuild that changed none of those three, and so every consumer of the same
+  /// month shares one model.
+  BudgetScreenUiModelProvider._(
+      {required BudgetScreenUiModelFamily super.from,
+      required ({
+        String locale,
+        YearMonth month,
+      })
+          super.argument})
+      : super(
+          retry: null,
+          name: r'budgetScreenUiModelProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$budgetScreenUiModelHash();
+
+  @override
+  String toString() {
+    return r'budgetScreenUiModelProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<AsyncValue<BudgetScreenUiModel>> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AsyncValue<BudgetScreenUiModel> create(Ref ref) {
+    final argument = this.argument as ({
+      String locale,
+      YearMonth month,
+    });
+    return budgetScreenUiModel(
+      ref,
+      argument,
+    );
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<BudgetScreenUiModel> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<AsyncValue<BudgetScreenUiModel>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BudgetScreenUiModelProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$budgetScreenUiModelHash() =>
+    r'9a982c2e965bf9e90aa3196f1461a7683e0070f8';
+
+/// The home page's view model for one month: the mapper's output, derived from
+/// the month stream, the display currency and the locale.
+///
+/// A provider rather than a call in `build`, so the page never re-maps on a
+/// rebuild that changed none of those three, and so every consumer of the same
+/// month shares one model.
+
+final class BudgetScreenUiModelFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+            AsyncValue<BudgetScreenUiModel>,
+            ({
+              String locale,
+              YearMonth month,
+            })> {
+  BudgetScreenUiModelFamily._()
+      : super(
+          retry: null,
+          name: r'budgetScreenUiModelProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// The home page's view model for one month: the mapper's output, derived from
+  /// the month stream, the display currency and the locale.
+  ///
+  /// A provider rather than a call in `build`, so the page never re-maps on a
+  /// rebuild that changed none of those three, and so every consumer of the same
+  /// month shares one model.
+
+  BudgetScreenUiModelProvider call(
+    ({
+      String locale,
+      YearMonth month,
+    }) request,
+  ) =>
+      BudgetScreenUiModelProvider._(argument: request, from: this);
+
+  @override
+  String toString() => r'budgetScreenUiModelProvider';
+}
+
+/// The category detail page's view model: one row out of the month's model,
+/// or null once that category has no row in this month.
+
+@ProviderFor(budgetCategoryDetail)
+final budgetCategoryDetailProvider = BudgetCategoryDetailFamily._();
+
+/// The category detail page's view model: one row out of the month's model,
+/// or null once that category has no row in this month.
+
+final class BudgetCategoryDetailProvider extends $FunctionalProvider<
+        AsyncValue<BudgetCategoryDetailUiModel?>,
+        AsyncValue<BudgetCategoryDetailUiModel?>,
+        AsyncValue<BudgetCategoryDetailUiModel?>>
+    with $Provider<AsyncValue<BudgetCategoryDetailUiModel?>> {
+  /// The category detail page's view model: one row out of the month's model,
+  /// or null once that category has no row in this month.
+  BudgetCategoryDetailProvider._(
+      {required BudgetCategoryDetailFamily super.from,
+      required ({
+        String categoryId,
+        String locale,
+        YearMonth month,
+      })
+          super.argument})
+      : super(
+          retry: null,
+          name: r'budgetCategoryDetailProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$budgetCategoryDetailHash();
+
+  @override
+  String toString() {
+    return r'budgetCategoryDetailProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<AsyncValue<BudgetCategoryDetailUiModel?>> $createElement(
+          $ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AsyncValue<BudgetCategoryDetailUiModel?> create(Ref ref) {
+    final argument = this.argument as ({
+      String categoryId,
+      String locale,
+      YearMonth month,
+    });
+    return budgetCategoryDetail(
+      ref,
+      argument,
+    );
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<BudgetCategoryDetailUiModel?> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<AsyncValue<BudgetCategoryDetailUiModel?>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BudgetCategoryDetailProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$budgetCategoryDetailHash() =>
+    r'd6b61a34f27f29f3d5d2dab39af963ea8053d746';
+
+/// The category detail page's view model: one row out of the month's model,
+/// or null once that category has no row in this month.
+
+final class BudgetCategoryDetailFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+            AsyncValue<BudgetCategoryDetailUiModel?>,
+            ({
+              String categoryId,
+              String locale,
+              YearMonth month,
+            })> {
+  BudgetCategoryDetailFamily._()
+      : super(
+          retry: null,
+          name: r'budgetCategoryDetailProvider',
+          dependencies: null,
+          $allTransitiveDependencies: null,
+          isAutoDispose: true,
+        );
+
+  /// The category detail page's view model: one row out of the month's model,
+  /// or null once that category has no row in this month.
+
+  BudgetCategoryDetailProvider call(
+    ({
+      String categoryId,
+      String locale,
+      YearMonth month,
+    }) request,
+  ) =>
+      BudgetCategoryDetailProvider._(argument: request, from: this);
+
+  @override
+  String toString() => r'budgetCategoryDetailProvider';
 }

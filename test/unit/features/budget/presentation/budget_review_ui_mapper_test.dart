@@ -203,17 +203,49 @@ void main() {
     expect(model.monthTrend6Months.first.actualChartValue, 240);
     expect(model.monthTrend6Months.first.hasReviewNote, isTrue);
     expect(model.monthTrend6Months.last.shortLabel, 'May');
-    expect(model.budgetLineChartValue, 200);
+    // Each month carries its own budget into the chart's ghost column.
+    expect(model.monthTrend6Months.last.budgetChartValue, 200);
+    expect(model.monthTrend6Months.every((point) => !point.isFuture), isTrue);
   });
 
-  test('no budget means no chart budget line', () {
+  test('months after today are flagged as future', () {
+    final model = mapper.map(
+      summary(
+        trend: const [
+          BudgetTrendPoint(
+            month: YearMonth(2026, 5),
+            budgetMinor: 0,
+            actualMinor: 1200,
+            pendingMinor: 0,
+            hasReviewNote: false,
+          ),
+          BudgetTrendPoint(
+            month: YearMonth(2026, 6),
+            budgetMinor: 50000,
+            actualMinor: 0,
+            pendingMinor: 0,
+            hasReviewNote: false,
+          ),
+        ],
+      ),
+      currencySymbol: '\$',
+      locale: 'en',
+      today: DateTime(2026, 5, 10),
+    );
+
+    expect(model.monthTrend6Months.map((point) => point.isFuture), [
+      false,
+      true,
+    ]);
+  });
+
+  test('no budget means no chart budget columns', () {
     final model = mapper.map(
       summary(totalBudgetMinor: 0),
       currencySymbol: '\$',
       locale: 'en',
     );
 
-    expect(model.budgetLineChartValue, isNull);
     expect(model.monthTrend6Months, isEmpty);
   });
 

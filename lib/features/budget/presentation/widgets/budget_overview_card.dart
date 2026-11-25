@@ -8,6 +8,7 @@ import 'package:feather_ledger/shared/presentation/models/balance_display_parts.
 
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../models/budget_ui_models.dart';
+import 'budget_hatch.dart';
 
 /// The month's headline: one amount, one bar, three figures.
 ///
@@ -42,6 +43,7 @@ class BudgetOverviewCard extends StatelessWidget {
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : transitionDuration;
+    final mainLabel = _mainLabel(l10n);
 
     final badges = <Widget>[
       if (overview.mode != BudgetMode.track)
@@ -90,15 +92,22 @@ class BudgetOverviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(
-                        _mainLabel(l10n),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall!
-                            .copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      // The label names the number below it, so the two change
+                      // together: a month switch or a mode switch fades the pair
+                      // rather than swapping one of them mid-fade.
+                      child: AnimatedSwitcher(
+                        duration: duration,
+                        child: Text(
+                          mainLabel,
+                          key: ValueKey('budget-overview-label-$mainLabel'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall!
+                              .copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
                       ),
                     ),
                     SizedBox(width: spacing.sm),
@@ -120,11 +129,23 @@ class BudgetOverviewCard extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: spacing.xs),
-                _OverviewAmount(
-                  parts: overview.mainAmount,
-                  color: overview.isMainAmountNegative
-                      ? context.colors.expense
-                      : scheme.onSurface,
+                AnimatedSwitcher(
+                  duration: duration,
+                  // [_OverviewAmount] keeps no key of its own, so without a
+                  // content-derived key the switcher would reuse the old child
+                  // and nothing would cross-fade.
+                  child: _OverviewAmount(
+                    key: ValueKey(
+                      'budget-overview-amount-$mainLabel-'
+                      '${overview.mainAmount.sign}'
+                      '${overview.mainAmount.whole}'
+                      '${overview.mainAmount.fraction}',
+                    ),
+                    parts: overview.mainAmount,
+                    color: overview.isMainAmountNegative
+                        ? context.colors.expense
+                        : scheme.onSurface,
+                  ),
                 ),
                 SizedBox(height: spacing.sm),
                 _OverviewBar(overview: overview),
@@ -207,8 +228,10 @@ class BudgetOverviewCard extends StatelessWidget {
       ),
       border: mode == BudgetMode.track
           ? Border.all(
-              color: const Color(0xFFFFFFFF)
-                  .withValues(alpha: dark ? 0.07 : 0.65),
+              // The track card's own surface is near-white in light mode; the
+              // hairline is white-derived by intent, so take the surface's
+              // foreground partner rather than a literal.
+              color: scheme.onPrimary.withValues(alpha: dark ? 0.07 : 0.65),
             )
           : null,
     );
@@ -220,7 +243,11 @@ class BudgetOverviewCard extends StatelessWidget {
 /// Same typesetting as the ledger header (`AppTypography.overview*Size`), so
 /// the two hero numbers in the app read as the same kind of thing.
 class _OverviewAmount extends StatelessWidget {
-  const _OverviewAmount({required this.parts, required this.color});
+  const _OverviewAmount({
+    super.key,
+    required this.parts,
+    required this.color,
+  });
 
   final BalanceDisplayParts parts;
   final Color color;
@@ -340,10 +367,20 @@ class _OverviewBar extends StatelessWidget {
                             width: baselineWidth,
                             top: 0,
                             bottom: 0,
-                            child: ColoredBox(
-                              key: const ValueKey(
-                                  'budget-overview-bar-baseline'),
-                              color: frequency.withValues(alpha: 0.5),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ColoredBox(
+                                  key: const ValueKey(
+                                      'budget-overview-bar-baseline'),
+                                  color: frequency.withValues(alpha: 0.16),
+                                ),
+                                BudgetHatch(
+                                  key: const ValueKey(
+                                      'budget-hero-baseline-hatch'),
+                                  color: frequency.withValues(alpha: 0.7),
+                                ),
+                              ],
                             ),
                           ),
                       ] else ...[

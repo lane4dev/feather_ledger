@@ -62,13 +62,44 @@ void main() {
     );
   });
 
-  testWidgets('track entry prefers the worst overrun over a surplus',
+  testWidgets('track entry shows both actuals and keeps the note preview',
       (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
         budgetTestMay: monthBudgetSummary(
           budgetTestMay,
+          note: 'Travel spiked on the spring trip',
+        ),
+      }),
+      size: const Size(400, 1600),
+    );
+
+    // Track mode is mid-month: the line is what has been spent, not how far
+    // past a limit a category went.
+    expect(
+      find.text('Committed \$0.00 · Discretionary \$3150.00'),
+      findsOneWidget,
+    );
+    expect(find.text('Note: Travel spiked on the spring trip'), findsOneWidget);
+    expect(find.textContaining('over by'), findsNothing);
+    expect(find.textContaining('unspent'), findsNothing);
+    expect(
+      find.text('Every budgeted category is still inside its limit'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('review entry prefers the worst overrun over a surplus',
+      (tester) async {
+    await pumpBudgetScreen(
+      tester,
+      service: FakeBudgetService(overrides: {
+        // The page still shows May; the summary itself is a closed month so
+        // the entry renders in review mode.
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
+          now: DateTime(2026, 6, 10),
           overBudget: [
             budgetAttribution(
                 id: 'dining', name: 'Dining', varianceMinor: -40000),
@@ -86,12 +117,14 @@ void main() {
     expect(find.textContaining('unspent'), findsNothing);
   });
 
-  testWidgets('track entry falls back to the biggest surplus', (tester) async {
+  testWidgets('review entry falls back to the biggest surplus',
+      (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
         budgetTestMay: monthBudgetSummary(
           budgetTestMay,
+          now: DateTime(2026, 6, 10),
           underBudget: [
             budgetAttribution(
                 id: 'groceries', name: 'Groceries', varianceMinor: 30000),
@@ -104,11 +137,16 @@ void main() {
     expect(find.text('Groceries unspent \$300.00'), findsOneWidget);
   });
 
-  testWidgets('track entry says so when every limit still holds',
+  testWidgets('review entry says so when every limit still holds',
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
+          now: DateTime(2026, 6, 10),
+        ),
+      }),
       size: const Size(400, 1600),
     );
 
@@ -248,6 +286,61 @@ void main() {
       find.text('Includes materialized pending bills only.'),
       findsOneWidget,
     );
+    // The hint says "this month", so it carries the calendar marker.
+    expect(
+      find.descendant(
+        of: find.byKey(budgetPlanHintKey),
+        matching: find.byIcon(LucideIcons.calendar),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a scheduled bill outside the budget still counts as fixed',
+      (tester) async {
+    final plan = monthBudgetSummary(
+      budgetTestJune,
+      budgeted: [
+        budgetCategory(
+          id: 'dining',
+          name: 'Dining',
+          month: budgetTestJune,
+          budgetMinor: 100000,
+        ),
+      ],
+      unbudgeted: [
+        budgetCategory(
+          id: 'travel',
+          name: 'Travel',
+          month: budgetTestJune,
+          committedMinor: 15000,
+          pendingMinor: 15000,
+        ),
+      ],
+      remaining: [
+        budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune),
+      ],
+    );
+
+    await pumpBudgetScreen(
+      tester,
+      service: FakeBudgetService(
+        overrides: {
+          budgetTestMay: monthBudgetSummary(budgetTestMay),
+          budgetTestJune: plan,
+        },
+      ),
+      size: const Size(400, 1600),
+    );
+
+    await tester.tap(find.byTooltip('Next month'));
+    await tester.pumpAndSettle();
+    expect(find.text('June 2026'), findsOneWidget);
+
+    // The bill sits in a category nobody has budgeted yet; the hint counts it
+    // anyway, because it is money the month has already committed.
+    expect(find.textContaining('Fixed bills \$150.00'), findsOneWidget);
+    expect(find.textContaining('Nothing scheduled'), findsNothing);
   });
 
   testWidgets('future month drops the carry-forward claim once a limit differs',

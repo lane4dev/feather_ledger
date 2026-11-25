@@ -12,6 +12,58 @@ void main() {
       await initializeDateFormatting('en');
     });
 
+    test('names the month once and lets each row carry it', () {
+      final screen = _track();
+
+      expect(screen.monthDisplay, 'May 2026');
+      expect(screen.budgetedRows.single.titleDisplay, 'Dining · May 2026');
+    });
+
+    test('hands the chart major units so no widget divides by 100', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.plan,
+          budgetedCategories: [
+            _cat(budgetMinor: 20000, threeMonthAvgMinor: 9000),
+          ],
+        ),
+      );
+
+      final row = screen.budgetedRows.single;
+      expect(row.budgetChartValue, 200.0);
+      expect(row.threeMonthAvgChartValue, 90.0);
+    });
+
+    test('a zero average or missing limit has nothing to draw', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedCategories: [_cat(budgetMinor: null)],
+        ),
+      );
+
+      final row = screen.budgetedRows.single;
+      expect(row.budgetChartValue, isNull);
+      expect(row.threeMonthAvgChartValue, isNull);
+    });
+
+    test('months after today are flagged as future', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedCategories: [
+            _cat(sixMonthTrend: [_trendPoint(4), _trendPoint(6)]),
+          ],
+        ),
+        today: DateTime(2026, 5, 10),
+      );
+
+      expect(
+        screen.budgetedRows.single.trend6Months.map((p) => p.isFuture),
+        [false, true],
+      );
+    });
+
     test('formats overview, category rows, compliance, and 6-mo chart points',
         () {
       final summary = MonthBudgetSummary(
@@ -753,6 +805,7 @@ CategoryBudgetSummary _cat({
   int committedBaselineMinor = 0,
   int threeMonthAvgMinor = 0,
   bool isAnomaly = false,
+  List<BudgetTrendPoint> sixMonthTrend = const [],
 }) {
   return CategoryBudgetSummary(
     categoryId: categoryId,
@@ -774,8 +827,17 @@ CategoryBudgetSummary _cat({
     isAnomaly: isAnomaly,
     anomalyDeltaRatio: null,
     riskLevel: BudgetRiskLevel.inBudget,
-    sixMonthTrend: const [],
+    sixMonthTrend: sixMonthTrend,
     topTransactions: const [],
     reviewNote: null,
   );
 }
+
+BudgetTrendPoint _trendPoint(int month, {int? budgetMinor = 10000}) =>
+    BudgetTrendPoint(
+      month: YearMonth(2026, month),
+      budgetMinor: budgetMinor,
+      actualMinor: 0,
+      pendingMinor: 0,
+      hasReviewNote: false,
+    );

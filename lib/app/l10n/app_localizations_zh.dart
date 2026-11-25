@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -545,10 +544,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String restoreConfirmMessage(
-    int backupEvents,
-    int currentEvents,
-    int discarded,
-  ) {
+      int backupEvents, int currentEvents, int discarded) {
     return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
   }
 
@@ -1221,10 +1217,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetHistoryEditHint => '历史月已结束，建议调整当前或未来月份以指导后续执行。';
 
   @override
-  String get budgetZeroAmountHint => '预算需大于 0；如需取消请点击「取消预算」。';
+  String get budgetZeroAmountHint => '预算需大于 0；如需删除请点击「删除预算」。';
 
   @override
-  String get budgetClearAction => '取消预算';
+  String get budgetClearAction => '删除预算';
 
   @override
   String budgetClearConfirmTitle(String category) {
@@ -1233,19 +1229,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String budgetClearConfirmThisMonth(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '将删除 $month 的$category预算 $amount，并清除本月的分类复盘备忘。';
   }
 
   @override
   String budgetClearConfirmThisAndFollowing(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '将删除 $month 及以后的$category预算 $amount，并清除 $month 及以后的$category分类复盘备忘（含沿用预算、未单独设预算的月份）。';
   }
 
@@ -1256,7 +1246,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetSaved => '预算已更新';
 
   @override
-  String get budgetCleared => '预算已取消';
+  String get budgetCleared => '预算已删除';
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -1336,6 +1326,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetReviewEntryQuiet => '已设预算分类都还在额度内';
+
+  @override
+  String budgetReviewEntryActuals(String committed, String discretionary) {
+    return '固定 $committed · 弹性 $discretionary';
+  }
+
+  @override
+  String get budgetLoadFailedBody => '无法加载本月预算，请稍后重试。';
 
   @override
   String budgetReviewNotePreview(String note) {
@@ -1916,10 +1914,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String restoreConfirmMessage(
-    int backupEvents,
-    int currentEvents,
-    int discarded,
-  ) {
+      int backupEvents, int currentEvents, int discarded) {
     return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
   }
 
@@ -2592,10 +2587,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetHistoryEditHint => '历史月已结束，建议调整当前或未来月份以指导后续执行。';
 
   @override
-  String get budgetZeroAmountHint => '预算需大于 0；如需取消请点击「取消预算」。';
+  String get budgetZeroAmountHint => '预算需大于 0；如需删除请点击「删除预算」。';
 
   @override
-  String get budgetClearAction => '取消预算';
+  String get budgetClearAction => '删除预算';
 
   @override
   String budgetClearConfirmTitle(String category) {
@@ -2604,19 +2599,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String budgetClearConfirmThisMonth(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '将删除 $month 的$category预算 $amount，并清除本月的分类复盘备忘。';
   }
 
   @override
   String budgetClearConfirmThisAndFollowing(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '将删除 $month 及以后的$category预算 $amount，并清除 $month 及以后的$category分类复盘备忘（含沿用预算、未单独设预算的月份）。';
   }
 
@@ -2627,7 +2616,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetSaved => '预算已更新';
 
   @override
-  String get budgetCleared => '预算已取消';
+  String get budgetCleared => '预算已删除';
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -2707,6 +2696,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetReviewEntryQuiet => '已设预算分类都还在额度内';
+
+  @override
+  String budgetReviewEntryActuals(String committed, String discretionary) {
+    return '固定 $committed · 弹性 $discretionary';
+  }
+
+  @override
+  String get budgetLoadFailedBody => '无法加载本月预算，请稍后重试。';
 
   @override
   String budgetReviewNotePreview(String note) {
@@ -3287,10 +3284,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String restoreConfirmMessage(
-    int backupEvents,
-    int currentEvents,
-    int discarded,
-  ) {
+      int backupEvents, int currentEvents, int discarded) {
     return '這份備份包含 $backupEvents 條事件，目前帳本有 $currentEvents 條，還原將捨棄其中 $discarded 條。目前儲存的全部內容都會被取代。';
   }
 
@@ -3963,10 +3957,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetHistoryEditHint => '歷史月已結束，建議調整目前或未來月份以指導後續執行。';
 
   @override
-  String get budgetZeroAmountHint => '預算須大於 0；如需取消請點擊「取消預算」。';
+  String get budgetZeroAmountHint => '預算須大於 0；如需刪除請點擊「刪除預算」。';
 
   @override
-  String get budgetClearAction => '取消預算';
+  String get budgetClearAction => '刪除預算';
 
   @override
   String budgetClearConfirmTitle(String category) {
@@ -3975,19 +3969,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String budgetClearConfirmThisMonth(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '將刪除 $month 的$category預算 $amount，並清除本月的分類複盤備忘。';
   }
 
   @override
   String budgetClearConfirmThisAndFollowing(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return '將刪除 $month 及以後的$category預算 $amount，並清除 $month 及以後的$category分類複盤備忘（含沿用預算、未單獨設預算的月份）。';
   }
 
@@ -3998,7 +3986,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetSaved => '預算已更新';
 
   @override
-  String get budgetCleared => '預算已取消';
+  String get budgetCleared => '預算已刪除';
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -4078,6 +4066,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetReviewEntryQuiet => '已設預算分類都還在額度內';
+
+  @override
+  String budgetReviewEntryActuals(String committed, String discretionary) {
+    return '固定 $committed · 彈性 $discretionary';
+  }
+
+  @override
+  String get budgetLoadFailedBody => '無法載入本月預算，請稍後再試。';
 
   @override
   String budgetReviewNotePreview(String note) {

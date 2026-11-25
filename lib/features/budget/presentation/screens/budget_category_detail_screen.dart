@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
@@ -18,9 +17,7 @@ import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
 
-import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
-import '../mappers/budget_ui_mapper.dart';
 import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
 import '../widgets/budget_category_detail_sections.dart';
@@ -85,9 +82,9 @@ class _BudgetCategoryDetailScreenState
 
   Future<void> _clearBudget({
     required String currencyCode,
-    required BudgetCategoryRowUiModel row,
-    required String locale,
+    required BudgetCategoryDetailUiModel detail,
   }) async {
+    final row = detail.row;
     if (_clearingBudget) return;
     final budgetDisplay = row.budgetDisplay;
     if (budgetDisplay == null) return;
@@ -107,8 +104,7 @@ class _BudgetCategoryDetailScreenState
     }
 
     final l10n = AppLocalizations.of(context)!;
-    final monthLabel =
-        DateFormat.yMMMM(locale).format(widget.month.toDateTime());
+    final monthLabel = detail.monthDisplay;
     // Both scopes only ever touch the selected month or later, so "this month
     // only" is the safe default (ADR-0007).
     var scope = BudgetEditScope.thisMonthOnly;
@@ -241,38 +237,44 @@ class _BudgetCategoryDetailScreenState
     final locale = Localizations.localeOf(context).toString();
     final currencyCode = ref.watch(ledgerCurrencyProvider);
     final currencySymbol = ref.watch(displayCurrencySymbolProvider);
-    final summaryAsync = ref.watch(budgetMonthSummaryProvider(widget.month));
+    final request = (
+      month: widget.month,
+      categoryId: widget.categoryId,
+      locale: locale,
+    );
+    final detailAsync = ref.watch(budgetCategoryDetailProvider(request));
     // A budget change also rewrites this category's note (removing a budget
-    // clears it), so follow the stream instead of caching the first value.
-    ref.listen(budgetMonthSummaryProvider(widget.month), (_, next) {
-      final category = next.value?.findCategory(widget.categoryId);
-      if (category != null) _syncNoteFromStream(category.reviewNote ?? '');
+    // clears it), so follow the model instead of caching the first value.
+    ref.listen(budgetCategoryDetailProvider(request), (_, next) {
+      final row = next.value?.row;
+      // A cleared budget has no note left, and that empty note is exactly what
+      // the field must adopt.
+      if (row != null) _syncNoteFromStream(row.reviewNote ?? '');
     });
-    final nowYm = YearMonth.fromDate(ref.read(budgetClockProvider).now());
 
-    return summaryAsync.when(
+    return detailAsync.when(
       loading: () => Scaffold(
           body: SafeArea(child: _statusPage(const CircularProgressIndicator()))),
-      error: (err, _) => Scaffold(
+      // The exception is a developer's to read, not the user's: the body is one
+      // localized sentence and the cause goes to the log.
+      error: (error, _) {
+        debugPrint('budget category ${widget.categoryId} failed to load: $error');
+        return Scaffold(
           body: SafeArea(
-              child: _statusPage(Text(l10n.errorPrefix(err.toString()))))),
-      data: (summary) {
-        final screenModel = const BudgetUiMapper().mapScreen(
-          summary,
-          currencySymbol: currencySymbol,
-          locale: locale,
+            child: _statusPage(Text(
+              l10n.budgetLoadFailedBody,
+              style: AppTypography.meta(context),
+              textAlign: TextAlign.center,
+            )),
+          ),
         );
-        final allRows = [
-          ...screenModel.budgetedRows,
-          ...screenModel.unbudgetedActiveRows,
-          ...screenModel.remainingActiveRows,
-        ];
-        final row =
-            allRows.where((r) => r.categoryId == widget.categoryId).firstOrNull;
-        if (row == null) {
+      },
+      data: (detail) {
+        if (detail == null) {
           return Scaffold(
               body: SafeArea(child: _statusPage(const SizedBox.shrink())));
         }
+        final row = detail.row;
 
         if (!_noteInitialized) {
           _noteController.text = row.reviewNote ?? '';
@@ -280,11 +282,9 @@ class _BudgetCategoryDetailScreenState
           _noteInitialized = true;
         }
 
-        final isHistoricalMonth = widget.month < nowYm;
         // A closed month has no bills left to arrive: actual only.
-        final showPending = !isHistoricalMonth && row.pendingDisplay != null;
-        final showMaterializationHint =
-            summary.hasHighFrequencyPending || summary.isFarFutureMaterializedOnly;
+        final showPending = !detail.isHistoricalMonth && row.pendingDisplay != null;
+        final showMaterializationHint = detail.showMaterializationHint;
         final spacing = context.spacing;
         final scheme = Theme.of(context).colorScheme;
 
@@ -332,12 +332,11 @@ class _BudgetCategoryDetailScreenState
                             currencyCode: currencyCode,
                             currencySymbol: currencySymbol,
                             month: widget.month,
-                            isHistoricalMonth: widget.month < nowYm);
+                            isHistoricalMonth: detail.isHistoricalMonth);
                       case _BudgetAction.clear:
                         _clearBudget(
                           currencyCode: currencyCode,
-                          row: row,
-                          locale: locale,
+                          detail: detail,
                         );
                     }
                   },
@@ -384,15 +383,7 @@ class _BudgetCategoryDetailScreenState
                   BudgetTrendChart(
                     points: row.trend6Months,
                     mode: BudgetTrendChartMode.category,
-                    threeMonthAvgChartValue:
-                        row.threeMonthAvgMinor != null &&
-                                row.threeMonthAvgMinor! > 0
-                            ? row.threeMonthAvgMinor! / 100.0
-                            : null,
-                    budgetLineChartValue:
-                        row.budgetMinor != null && row.budgetMinor! > 0
-                            ? row.budgetMinor! / 100.0
-                            : null,
+                    threeMonthAvgChartValue: row.threeMonthAvgChartValue,
                   ),
                 ],
                 SizedBox(height: context.metrics.sectionGap),
@@ -586,9 +577,11 @@ class _BudgetContributionsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).toString();
-    final currency = ref.watch(displayCurrencySymbolProvider);
-    final summary = ref.watch(budgetMonthSummaryProvider(month));
+    final detailAsync = ref.watch(budgetCategoryDetailProvider((
+      month: month,
+      categoryId: categoryId,
+      locale: Localizations.localeOf(context).toString(),
+    )));
     return Scaffold(
       appBar: AppBar(
         leading: AppIconButton(
@@ -598,19 +591,24 @@ class _BudgetContributionsPage extends ConsumerWidget {
         ),
         title: Text(l10n.budgetTopTransactionsTitle),
       ),
-      body: summary.when(
+      body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text(l10n.errorPrefix(error.toString()))),
-        data: (data) {
-          final model = const BudgetUiMapper()
-              .mapScreen(data, currencySymbol: currency, locale: locale);
-          final row = [
-            ...model.budgetedRows,
-            ...model.unbudgetedActiveRows,
-            ...model.remainingActiveRows
-          ].where((item) => item.categoryId == categoryId).firstOrNull;
-          if (row == null) return const SizedBox.shrink();
+        error: (error, _) {
+          debugPrint('budget contributions $categoryId failed: $error');
+          return Center(
+            child: Padding(
+              padding: context.pagePadding,
+              child: Text(
+                l10n.budgetLoadFailedBody,
+                style: AppTypography.meta(context),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        },
+        data: (detail) {
+          if (detail == null) return const SizedBox.shrink();
+          final row = detail.row;
           return ListView.separated(
             padding: context.pagePadding
                 .add(EdgeInsets.symmetric(vertical: context.spacing.md)),
@@ -619,8 +617,7 @@ class _BudgetContributionsPage extends ConsumerWidget {
                 : row.allContributions.length + 1,
             separatorBuilder: (_, __) => SizedBox(height: context.spacing.sm),
             itemBuilder: (context, index) => index == 0
-                ? Text(
-                    '${row.name} · ${DateFormat.yMMMM(locale).format(month.toDateTime())}',
+                ? Text(row.titleDisplay,
                     style: AppTypography.sectionTitle(context))
                 : row.allContributions.isEmpty
                     ? Text(l10n.budgetNoTransactionsInMonth,

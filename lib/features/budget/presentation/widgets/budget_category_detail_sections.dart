@@ -84,7 +84,7 @@ class BudgetCategoryProgressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(LucideIcons.triangleAlert,
-                    size: context.metrics.iconSize, color: colors.expense),
+                    size: context.metrics.iconSize, color: colors.warning),
                 SizedBox(width: spacing.xs),
                 Expanded(
                   child: Text(
@@ -93,7 +93,7 @@ class BudgetCategoryProgressCard extends StatelessWidget {
                       row.threeMonthAvgDisplay!,
                     ),
                     style: AppTypography.meta(context)
-                        .copyWith(color: colors.expense),
+                        .copyWith(color: colors.warning),
                   ),
                 ),
               ],

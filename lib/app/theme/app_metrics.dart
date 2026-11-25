@@ -21,6 +21,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
     this.controlHeight = 48,
     this.actionHeight = 52,
     this.iconSize = 20,
+    this.inlineIconSize = 18,
+    this.rowIconSize = 16,
     this.pageGutter = 24,
     this.compactGutter = 16,
     this.sectionGap = 32,
@@ -46,6 +48,13 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   final double controlHeight;
   final double actionHeight;
   final double iconSize;
+
+  /// Glyph in a section header or a compact trailing affordance.
+  final double inlineIconSize;
+
+  /// Smallest glyph in a dense row, e.g. a category avatar in an attribution
+  /// list.
+  final double rowIconSize;
   final double pageGutter;
   final double compactGutter;
   final double sectionGap;
@@ -92,6 +101,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
     double? controlHeight,
     double? actionHeight,
     double? iconSize,
+    double? inlineIconSize,
+    double? rowIconSize,
     double? pageGutter,
     double? compactGutter,
     double? sectionGap,
@@ -117,6 +128,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
         controlHeight: controlHeight ?? this.controlHeight,
         actionHeight: actionHeight ?? this.actionHeight,
         iconSize: iconSize ?? this.iconSize,
+        inlineIconSize: inlineIconSize ?? this.inlineIconSize,
+        rowIconSize: rowIconSize ?? this.rowIconSize,
         pageGutter: pageGutter ?? this.pageGutter,
         compactGutter: compactGutter ?? this.compactGutter,
         sectionGap: sectionGap ?? this.sectionGap,
@@ -150,6 +163,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
       controlHeight: lerpDouble(controlHeight, other.controlHeight, t)!,
       actionHeight: lerpDouble(actionHeight, other.actionHeight, t)!,
       iconSize: lerpDouble(iconSize, other.iconSize, t)!,
+      inlineIconSize: lerpDouble(inlineIconSize, other.inlineIconSize, t)!,
+      rowIconSize: lerpDouble(rowIconSize, other.rowIconSize, t)!,
       pageGutter: lerpDouble(pageGutter, other.pageGutter, t)!,
       compactGutter: lerpDouble(compactGutter, other.compactGutter, t)!,
       sectionGap: lerpDouble(sectionGap, other.sectionGap, t)!,
