@@ -102,6 +102,42 @@ computed colors, not how the screen looks. Triage each item on a device/emulator
 - [ ] Animation feel: the eye-mask, collapse, and nav hide should share a similar
       duration curve.
 
+## 8. Hero overview card (rebuild)
+
+Rendered offscreen as PNGs during implementation (light / dark / hidden / 360dp
+with `textScale` 1.6) with placeholder fonts, so the layout and the gradient are
+verified — the *materials* and the iconography are not.
+
+- [ ] Icons actually render: eye / eye-off, chevron, arrow-down / arrow-up discs.
+      Offscreen renders used a fallback font, so every icon was a box there.
+- [ ] `¥ ****` mask: check the asterisks sit on the value's baseline and read as
+      a mask, not as text, in both themes.
+- [ ] The gradient reads as depth rather than as a flat tint — especially on an
+      OLED panel in dark mode, where a 0.42-alpha `primaryContainer` mix can
+      look either invisible or like a colour cast.
+- [ ] The corner glow does not band on the real display, and is not visible as a
+      circle edge.
+- [ ] The 1dp hairline is visible on light surfaces (white at 0.65) without
+      looking like a rim, and stops the card from melting into the dark
+      background (white at 0.07).
+- [ ] With dynamic color from a wallpaper, the mixed plate is not muddy or
+      off-hue; if it is, the tint weights in `LedgerTheme` are the knob.
+- [ ] Sparkline with real data: a month with one heavy day, a month with two
+      points, and a month with nothing (it should show the dashed baseline) all
+      look intentional at 88x38dp.
+- [ ] The sparkline does not leak what the eye just hid. It is a shape without
+      values, so it stays visible by design — confirm that reads as intended
+      rather than as an oversight.
+- [ ] zh_Hans / zh_Hant labels (`全部余额` / `當月收入`) stay on one line at
+      `textScale` 1.0–1.6; English `Total Balance` was the tight case in tests.
+- [ ] Long balances (`¥1,234,567.89`) shrink rather than clip, and the
+      `FittedBox` scale-down still looks like a headline.
+- [ ] Footer band: the income/expense split still reads as 50/50 with the
+      hairline divider, and the amount does not sit closer to the edge than the
+      label does.
+- [ ] Card height is not taller than the previous version — the header slot is
+      still 220dp (scaled for large text), so the list must not start lower.
+
 ## Known out-of-scope / pre-existing
 
 - `test/ui/app/floating_choice_test.dart:32` fails on `main` too (Ahem font wraps

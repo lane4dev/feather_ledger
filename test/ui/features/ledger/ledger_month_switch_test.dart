@@ -110,10 +110,13 @@ void main() {
     streams[current]!.add(first);
     await tester.pump();
     await tester.pump();
+    // The hero plate is no longer a Card: it is a clipped gradient surface.
     final card = find.descendant(
-        of: find.byType(LedgerHeader), matching: find.byType(Card));
+        of: find.byType(LedgerHeader),
+        matching: find.byWidgetPredicate(
+            (w) => w is ClipRRect && w.borderRadius == BorderRadius.circular(24)));
     final height = tester.getSize(card).height;
-    expect(find.text(r'$100'), findsWidgets);
+    expect(find.text(r'$100', findRichText: true), findsWidgets);
     expect(streams.containsKey(next), isTrue,
         reason: 'the next month is prefetched');
 
@@ -124,13 +127,13 @@ void main() {
         matching: find.byIcon(LucideIcons.chevronRight)));
     await tester.pumpAndSettle();
     expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(find.text(r'$100'), findsNothing);
+    expect(find.text(r'$100', findRichText: true), findsNothing);
     expect(find.text('—'), findsWidgets);
     expect(tester.getSize(card).height, closeTo(height, 0.01));
     streams[next]!.add(second);
     await tester.pump();
     await tester.pump();
-    expect(find.text(r'$200'), findsWidgets);
+    expect(find.text(r'$200', findRichText: true), findsWidgets);
     expect(tester.getSize(card).height, closeTo(height, 0.01));
   });
 
@@ -168,7 +171,7 @@ void main() {
         of: find.byType(LedgerMonthSwitcher),
         matching: find.byIcon(LucideIcons.chevronRight)));
     await tester.pumpAndSettle();
-    expect(find.text(r'$200'), findsWidgets);
+    expect(find.text(r'$200', findRichText: true), findsWidgets);
     expect(find.text('—'), findsNothing);
     await tester.pumpAndSettle();
     await tester.drag(find.byType(PageView), const Offset(-700, 0));
@@ -311,7 +314,7 @@ void main() {
     await tester.tap(find.byTooltip(l10n.hideOverviewAmounts));
     await tester.pumpAndSettle();
     expect(find.byTooltip(l10n.showOverviewAmounts), findsOneWidget);
-    expect(find.text('******'), findsNWidgets(3));
+    expect(find.textContaining('****'), findsNWidgets(3));
 
     await tester.drag(
         find.byType(LedgerTransactionList), const Offset(0, -500));

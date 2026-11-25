@@ -1,4 +1,3 @@
-import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
+import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_balance_sparkline.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_header.dart';
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -271,27 +272,56 @@ void main() {
         final monthAbbr =
             DateFormat.MMM(entry.locale.toString()).format(targetMonth);
 
-        // Uses AppCard.overview -> surfaceContainerHigh + 24dp radius.
-        expect(find.byType(AppCard), findsOneWidget);
-        final card = tester.widget<Card>(find.descendant(
-          of: find.byType(LedgerHeader),
-          matching: find.byType(Card),
-        ));
-        expect(card.color, scheme.surfaceContainerHigh);
-        final shape = card.shape! as RoundedRectangleBorder;
-        expect(
-          shape.borderRadius,
-          BorderRadius.circular(24),
+        // The hero plate: 24dp radius, a gradient base, a 1dp hairline.
+        final plateFinder = find.byWidgetPredicate(
+          (w) => w is ClipRRect && w.borderRadius == BorderRadius.circular(24),
         );
-
-        // Main balance uses bold tabular figures and onSurface.
-        final balanceText = tester.widget<Text>(find.text(summary.displayBalance));
-        expect(balanceText.style?.fontWeight, FontWeight.w700);
-        expect(balanceText.style?.color, scheme.onSurface);
+        expect(plateFinder, findsOneWidget);
+        final plate = tester
+            .widgetList<DecoratedBox>(find.descendant(
+              of: plateFinder,
+              matching: find.byType(DecoratedBox),
+            ))
+            .map((d) => d.decoration as BoxDecoration)
+            .firstWhere((d) => d.border != null);
         expect(
-          balanceText.style?.fontFeatures,
+          plate.gradient,
+          isA<LinearGradient>(),
+          reason: 'a flat fill is what the card used to be',
+        );
+        expect(plate.border!.top.width, LedgerTheme.overviewBorderWidth);
+        expect(plate.border!.top.color.a, greaterThan(0));
+
+        // The balance is three tiers of one string: symbol, units, decimals.
+        final balanceFinder =
+            find.text(summary.displayBalance, findRichText: true);
+        expect(balanceFinder, findsOneWidget);
+        final balanceSpans = tester
+            .widget<Text>(find.byWidgetPredicate(
+              (w) =>
+                  w is Text &&
+                  w.textSpan?.toPlainText() == summary.displayBalance,
+            ))
+            .textSpan! as TextSpan;
+        final tiers = balanceSpans.children!.cast<TextSpan>();
+        expect(tiers.length, 3);
+        expect(tiers[0].text, r'$');
+        expect(tiers[0].style?.fontSize, LedgerTheme.balanceSymbolSize);
+        expect(tiers[0].style?.color, scheme.onSurfaceVariant);
+        expect(tiers[1].text, '1,234');
+        expect(tiers[1].style?.fontSize, LedgerTheme.balanceWholeSize);
+        expect(tiers[1].style?.fontWeight, FontWeight.w700);
+        expect(tiers[1].style?.color, scheme.onSurface);
+        expect(
+          tiers[1].style?.fontFeatures,
           contains(const FontFeature.tabularFigures()),
         );
+        expect(tiers[2].text, '.56');
+        expect(tiers[2].style?.fontSize, LedgerTheme.balanceFractionSize);
+        expect(tiers[2].style?.color, scheme.onSurfaceVariant);
+
+        // The month's spending rides alongside the balance.
+        expect(find.byType(LedgerBalanceSparkline), findsOneWidget);
 
         // Month income & expense labels reflect the selected month and share 50/50 width.
         final incomeLabelFinder = find.text(l10n.monthIncome(monthAbbr));
@@ -314,30 +344,39 @@ void main() {
           expenseAmountText.style?.fontFeatures,
           contains(const FontFeature.tabularFigures()),
         );
-        expect(incomeAmountText.style?.color, semantics.onIncomeContainer);
-        expect(expenseAmountText.style?.color, semantics.onExpenseContainer);
+        expect(
+          incomeAmountText.style?.color,
+          scheme.onSurface,
+          reason: 'the figures sit on the card itself, not on a tinted box',
+        );
+        expect(
+          expenseAmountText.style?.color,
+          scheme.onSurface,
+          reason: 'the figures sit on the card itself, not on a tinted box',
+        );
+        // The kind still has its colour — on the icon disc behind the arrow.
+        expect(
+          find.ancestor(
+            of: find.byIcon(LucideIcons.arrowDown),
+            matching: find.byWidgetPredicate(
+              (w) =>
+                  w is Container &&
+                  w.decoration is BoxDecoration &&
+                  (w.decoration! as BoxDecoration).color ==
+                      semantics.incomeContainer,
+            ),
+          ),
+          findsOneWidget,
+        );
 
-        // Both sub-containers are tonal boxes of equal width and left-aligned content.
-        final incomeBoxFinder = find.ancestor(
-          of: incomeLabelFinder,
-          matching: find.byWidgetPredicate(
-            (w) =>
-                w is Container &&
-                w.decoration is BoxDecoration &&
-                (w.decoration! as BoxDecoration).color ==
-                    semantics.incomeContainer,
-          ),
-        );
-        final expenseBoxFinder = find.ancestor(
-          of: expenseLabelFinder,
-          matching: find.byWidgetPredicate(
-            (w) =>
-                w is Container &&
-                w.decoration is BoxDecoration &&
-                (w.decoration! as BoxDecoration).color ==
-                    semantics.expenseContainer,
-          ),
-        );
+        // The two halves are columns of one bar, not two boxes: equal width,
+        // a hairline between them, and each label sits above its own figure.
+        final incomeBoxFinder = find
+            .ancestor(of: incomeLabelFinder, matching: find.byType(Expanded))
+            .last;
+        final expenseBoxFinder = find
+            .ancestor(of: expenseLabelFinder, matching: find.byType(Expanded))
+            .last;
         expect(incomeBoxFinder, findsOneWidget);
         expect(expenseBoxFinder, findsOneWidget);
 
@@ -405,8 +444,8 @@ void main() {
         tester.getSemantics(find.byTooltip(l10n.showOverviewAmounts)).tooltip,
         l10n.showOverviewAmounts,
       );
-      expect(find.text('******'), findsNWidgets(3));
-      expect(find.text(summary.displayBalance), findsNothing);
+      expect(find.textContaining('****'), findsNWidgets(3));
+      expect(find.text(summary.displayBalance, findRichText: true), findsNothing);
       expect(find.text(summary.displayIncome), findsNothing);
       expect(find.text(summary.displayExpense), findsNothing);
     });

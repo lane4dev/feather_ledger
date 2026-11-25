@@ -406,7 +406,7 @@ void main() {
     await tester.tap(find.byIcon(LucideIcons.eye));
     await tester.pumpAndSettle();
     expect(find.byIcon(LucideIcons.eyeOff), findsOneWidget);
-    expect(find.text('******'), findsNWidgets(3));
+    expect(find.textContaining('****'), findsNWidgets(3));
     expect(find.text('¥1195.00'), findsNothing);
     expect(find.text('-¥10.00'), findsOneWidget);
     expect(

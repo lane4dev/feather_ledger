@@ -1,4 +1,3 @@
-import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +9,10 @@ import 'package:feather_ledger/core/presentation/providers/balance_visibility_pr
 
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../models/balance_display_parts.dart';
+import '../models/ledger_expense_trend.dart';
 import '../theme/ledger_theme.dart';
+import 'ledger_balance_sparkline.dart';
 
 /// The expanded part of the header: the month's figures.
 ///
@@ -34,12 +36,18 @@ class LedgerHeader extends StatelessWidget {
   final VoidCallback? onTap;
   final GlobalKey? cardKey;
 
+  /// The month's daily spending, for the card's sparkline. Already reduced —
+  /// see [LedgerExpenseTrend]: this widget decides how the shape looks, not
+  /// what the days add up to.
+  final LedgerExpenseTrend expenseTrend;
+
   const LedgerHeader({
     super.key,
     required this.summaryAsync,
     this.month,
     this.onTap,
     this.cardKey,
+    this.expenseTrend = const LedgerExpenseTrend.empty(),
   });
 
   @override
@@ -55,6 +63,7 @@ class LedgerHeader extends StatelessWidget {
           _BalanceSummary(
             summaryAsync: summaryAsync,
             month: month ?? DateTime.now(),
+            expenseTrend: expenseTrend,
             onTap: onTap,
             cardKey: cardKey,
           ),
@@ -243,11 +252,13 @@ class _BalanceSummary extends ConsumerWidget {
   const _BalanceSummary({
     required this.summaryAsync,
     required this.month,
+    required this.expenseTrend,
     this.onTap,
     this.cardKey,
   });
   final AsyncValue<MonthlySummaryUiModel> summaryAsync;
   final DateTime month;
+  final LedgerExpenseTrend expenseTrend;
   final VoidCallback? onTap;
   final GlobalKey? cardKey;
 
@@ -260,99 +271,336 @@ class _BalanceSummary extends ConsumerWidget {
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
     final visibilityLabel =
         showBalance ? l10n.hideOverviewAmounts : l10n.showOverviewAmounts;
+    final scheme = Theme.of(context).colorScheme;
 
     Widget summaryContent(MonthlySummaryUiModel? summary) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(children: [
-              Expanded(
-                child: Row(children: [
-                  Flexible(
-                    child: Text(
-                      l10n.totalBalance,
-                      style: AppTypography.meta(context),
-                      maxLines: 2,
-                    ),
-                  ),
-                  AppIconButton(
-                    icon: Icon(
-                        showBalance ? LucideIcons.eye : LucideIcons.eyeOff),
-                    iconSize: 18,
-                    tooltip: visibilityLabel,
-                    onPressed: () => ref
-                        .read(balanceVisibilityControllerProvider.notifier)
-                        .toggle(),
-                  ),
-                ]),
+            Padding(
+              padding: EdgeInsetsDirectional.fromSTEB(
+                context.spacing.md,
+                context.spacing.sm,
+                context.spacing.md,
+                context.spacing.sm + context.spacing.xs,
               ),
-              if (onTap != null)
-                SizedBox(
-                  width: kMinInteractiveDimension,
-                  height: kMinInteractiveDimension,
-                  child: Center(
-                    child: Icon(
-                      LucideIcons.chevronRight,
-                      size: context.metrics.iconSize,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            // The label and its eye travel together at the
+                            // start of the row; the chevron belongs to the far
+                            // edge. A lone `Flexible` here would share the free
+                            // space with the chevron's gap and set the label in
+                            // a column two words wide.
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      l10n.totalBalance,
+                                      style: AppTypography.meta(context),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  AppIconButton(
+                                    icon: Icon(showBalance
+                                        ? LucideIcons.eye
+                                        : LucideIcons.eyeOff),
+                                    iconSize: 18,
+                                    tooltip: visibilityLabel,
+                                    onPressed: () => ref
+                                        .read(
+                                            balanceVisibilityControllerProvider
+                                                .notifier)
+                                        .toggle(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Decorative only: the whole card is the target,
+                            // so the chevron does not need a 48dp box of its
+                            // own — and taking one would squeeze the label
+                            // the row exists to show.
+                            if (onTap != null)
+                              Icon(
+                                LucideIcons.chevronRight,
+                                size: context.metrics.iconSize,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                          ],
+                        ),
+                        _OverviewBalance(
+                          display: summary?.displayBalance ?? '—',
+                          showBalance: showBalance,
+                        ),
+                      ],
                     ),
                   ),
-                ),
-            ]),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(
-                showBalance ? summary?.displayBalance ?? '—' : '******',
-                style: LedgerTheme.overviewBalance(context),
+                  SizedBox(width: context.spacing.sm),
+                  Padding(
+                    // The curve sits on the amount's baseline rather than the
+                    // card's centre: it is the balance's companion, not a
+                    // separate thing in the corner.
+                    padding: EdgeInsets.only(bottom: context.spacing.xs),
+                    child: LedgerBalanceSparkline(
+                      trend: expenseTrend,
+                      lineColor: context.colors.expense,
+                      axisHintColor: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: context.spacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: _IncomeExpenseTile(
-                    label: l10n.monthIncome(monthLabel),
-                    displayAmount: summary?.displayIncome ?? '—',
-                    containerColor: context.colors.incomeContainer,
-                    onContainerColor: context.colors.onIncomeContainer,
-                    icon: LucideIcons.arrowDown,
-                    showBalance: showBalance,
-                  ),
-                ),
-                SizedBox(width: context.spacing.sm + context.spacing.xs),
-                Expanded(
-                  child: _IncomeExpenseTile(
-                    label: l10n.monthExpense(monthLabel),
-                    displayAmount: summary?.displayExpense ?? '—',
-                    containerColor: context.colors.expenseContainer,
-                    onContainerColor: context.colors.onExpenseContainer,
-                    icon: LucideIcons.arrowUp,
-                    showBalance: showBalance,
-                  ),
-                ),
-              ],
+            _IncomeExpenseBar(
+              monthLabel: monthLabel,
+              income: summary?.displayIncome ?? '—',
+              expense: summary?.displayExpense ?? '—',
+              showBalance: showBalance,
             ),
           ],
         );
+
     return Semantics(
       label: onTap == null ? null : l10n.viewReports,
       button: onTap != null,
       explicitChildNodes: true,
-      child: AppCard.overview(
+      child: _OverviewCardSurface(
         key: cardKey,
         onTap: onTap,
         child: summaryAsync.when(
           data: summaryContent,
           loading: () => summaryContent(null),
-          error: (error, _) => Text(l10n.errorPrefix('$error')),
+          error: (error, _) => Padding(
+            padding: EdgeInsets.all(context.spacing.md),
+            child: Text(l10n.errorPrefix('$error')),
+          ),
         ),
       ),
     );
   }
 }
 
-class _IncomeExpenseTile extends StatelessWidget {
+/// The card itself: a tinted, softly lit plate rather than a flat rectangle.
+///
+/// The layering is the point of it — a diagonal wash, a glow that runs out
+/// before it reaches an edge, and a one-pixel line catching the top. Each is
+/// quiet on its own; together they read as a card with a surface you could
+/// touch, which a single grey fill could not.
+class _OverviewCardSurface extends StatelessWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _OverviewCardSurface({super.key, required this.child, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(context.metrics.overviewCardRadius);
+    final scheme = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: radius,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: LedgerTheme.overviewBackdrop(context),
+          border: Border.all(
+            color: LedgerTheme.overviewBorder(context),
+            width: LedgerTheme.overviewBorderWidth,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: radius,
+                    gradient: LedgerTheme.overviewGlow(context),
+                  ),
+                ),
+              ),
+            ),
+            Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: radius,
+                splashColor: scheme.primary.withValues(alpha: 0.06),
+                highlightColor: scheme.primary.withValues(alpha: 0.03),
+                child: child,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The balance in three sizes: symbol, whole units, decimals.
+///
+/// The size change is what makes a balance feel like an amount of money rather
+/// than a number: the digits you read at a glance are the ones that carry the
+/// magnitude, and the cents step back into the supporting colour.
+class _OverviewBalance extends StatelessWidget {
+  final String display;
+  final bool showBalance;
+
+  const _OverviewBalance({required this.display, required this.showBalance});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final parts = BalanceDisplayParts.parse(display);
+    final features = const [FontFeature.tabularFigures()];
+
+    final symbolStyle = TextStyle(
+      fontSize: LedgerTheme.balanceSymbolSize,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurfaceVariant,
+      height: 1.25,
+      fontFeatures: features,
+    );
+    final wholeStyle = TextStyle(
+      fontSize: LedgerTheme.balanceWholeSize,
+      fontWeight: FontWeight.w700,
+      letterSpacing: LedgerTheme.balanceWholeTracking,
+      color: scheme.onSurface,
+      height: 1.1,
+      fontFeatures: features,
+    );
+    final fractionStyle = TextStyle(
+      fontSize: LedgerTheme.balanceFractionSize,
+      fontWeight: FontWeight.w600,
+      color: scheme.onSurfaceVariant,
+      height: 1.1,
+      fontFeatures: features,
+    );
+
+    // A non-numeric display (`—`, or an error's text) has no symbol and no
+    // decimas to step down; painting it all at the headline size is the honest
+    // rendering of a value that is not a number.
+    if (!parts.isNumeric) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(display, style: wholeStyle),
+      );
+    }
+
+    // One string, one Text: the mask keeps the symbol so the card does not
+    // rearrange itself when the balance is hidden, and loses the decimal point
+    // rather than splitting an asterisk run across two sizes.
+    final hidden = !showBalance;
+    // Asterisks ride above the baseline of the size they are set in, so a mask
+    // at headline size floats; at the decimals' size it sits where the value
+    // sat, and reads unmistakably as "something is here, and it is hidden".
+    final maskStyle = fractionStyle.copyWith(fontWeight: FontWeight.w600);
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '${parts.sign}${parts.symbol}', style: symbolStyle),
+            TextSpan(
+              text: hidden ? ' ****' : parts.whole,
+              style: hidden ? maskStyle : wholeStyle,
+            ),
+            if (!hidden && parts.fraction.isNotEmpty)
+              TextSpan(text: parts.fraction, style: fractionStyle),
+          ],
+        ),
+        maxLines: 1,
+        softWrap: false,
+      ),
+    );
+  }
+}
+
+/// The month's income and expense, fused into the card's lower edge.
+///
+/// They used to be two small rounded boxes floating inside the card, which is
+/// a card inside a card inside a card. One translucent band across the full
+/// width, divided by a hairline, says the same thing with one surface instead
+/// of three — the figures read as the card's footer rather than as guests.
+class _IncomeExpenseBar extends StatelessWidget {
+  final String monthLabel;
+  final String income;
+  final String expense;
+  final bool showBalance;
+
+  const _IncomeExpenseBar({
+    required this.monthLabel,
+    required this.income,
+    required this.expense,
+    required this.showBalance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(
+          alpha: dark ? LedgerTheme.footerBarAlphaDark : LedgerTheme.footerBarAlpha,
+        ),
+        border: Border(
+          top: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _IncomeExpenseColumn(
+                label: l10n.monthIncome(monthLabel),
+                displayAmount: showBalance ? income : '******',
+                containerColor: context.colors.incomeContainer,
+                onContainerColor: context.colors.onIncomeContainer,
+                icon: LucideIcons.arrowDown,
+              ),
+            ),
+            Container(
+              width: 1,
+              color: scheme.outlineVariant
+                  .withValues(alpha: LedgerTheme.footerDividerAlpha),
+            ),
+            Expanded(
+              child: _IncomeExpenseColumn(
+                label: l10n.monthExpense(monthLabel),
+                displayAmount: showBalance ? expense : '******',
+                containerColor: context.colors.expenseContainer,
+                onContainerColor: context.colors.onExpenseContainer,
+                icon: LucideIcons.arrowUp,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IncomeExpenseColumn extends StatelessWidget {
   final String label;
 
   /// Written out, symbol and all.
@@ -360,43 +608,34 @@ class _IncomeExpenseTile extends StatelessWidget {
   final Color containerColor;
   final Color onContainerColor;
   final IconData icon;
-  final bool showBalance;
 
-  const _IncomeExpenseTile({
+  const _IncomeExpenseColumn({
     required this.label,
     required this.displayAmount,
     required this.containerColor,
     required this.onContainerColor,
     required this.icon,
-    required this.showBalance,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.sm + context.spacing.xs,
-        vertical: context.spacing.sm + 2,
-      ),
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: context.metrics.controlBorderRadius,
+        horizontal: context.spacing.md,
+        vertical: LedgerTheme.footerVerticalPadding,
       ),
       child: Row(
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: LedgerTheme.footerIconSize,
+            height: LedgerTheme.footerIconSize,
             decoration: BoxDecoration(
-              color: onContainerColor.withValues(alpha: 0.12),
+              color: containerColor,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 15,
-              color: onContainerColor,
-            ),
+            child: Icon(icon, size: 16, color: onContainerColor),
           ),
           SizedBox(width: context.spacing.sm),
           Expanded(
@@ -408,18 +647,20 @@ class _IncomeExpenseTile extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: LedgerTheme.denseLabel(context)
-                      .copyWith(color: onContainerColor),
+                  style: AppTypography.compactLabel(context)
+                      .copyWith(color: scheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: AlignmentDirectional.centerStart,
                   child: Text(
-                    showBalance ? displayAmount : '******',
+                    displayAmount,
                     maxLines: 1,
-                    style: AppTypography.compactAmount(context)
-                        .copyWith(color: onContainerColor),
+                    style: AppTypography.amount(context).copyWith(
+                      fontSize: 15.5,
+                      color: scheme.onSurface,
+                    ),
                   ),
                 ),
               ],

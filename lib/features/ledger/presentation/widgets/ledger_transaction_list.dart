@@ -14,6 +14,7 @@ import 'package:feather_ledger/core/presentation/providers/currency_provider.dar
 
 import 'pending_bill_sheet.dart';
 import 'show_transaction_detail_sheet.dart';
+import '../models/ledger_expense_trend.dart';
 import '../view_model/ledger_view_model.dart';
 
 import 'ledger_empty.dart';
@@ -74,6 +75,9 @@ class LedgerTransactionList extends ConsumerWidget {
               child: LedgerHeader(
                   cardKey: summaryCardKey,
                   month: month,
+                  expenseTrend: LedgerExpenseTrend.fromDays(
+                    days ?? const [],
+                  ),
                   onTap: () => context.push('/ledger/reports',
                       extra: CardPageOrigin(month, summaryCardKey)),
                   summaryAsync: ref.watch(ledgerMonthlySummaryProvider(month))),

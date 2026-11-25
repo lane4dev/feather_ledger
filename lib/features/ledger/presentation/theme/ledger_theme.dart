@@ -17,6 +17,83 @@ class LedgerTheme {
   static const double skippedTextAlpha = 0.58;
   static const double categoryAvatarSize = 40.0;
 
+  // --- Overview card (hero) ---
+  /// The gradient's top-left tint weight. Low enough that the colours are a
+  /// cast over the surface rather than a second surface of their own.
+  static const double overviewTintAlpha = 0.5;
+  static const double overviewTintAlphaDark = 0.42;
+  /// The bottom-right end. The card fades back into the plain surface, which
+  /// is what keeps it from reading as a flat slab of colour.
+  static const double overviewFloorAlpha = 0.06;
+  /// The corner glow: present enough to catch the eye, never a spotlight.
+  static const double overviewGlowAlpha = 0.10;
+  static const double overviewGlowRadius = 1.05;
+  /// The hairline. White picks out an edge on light surfaces; on dark ones it
+  /// has to be nearly nothing or it reads as a chrome trim.
+  static const double overviewBorderAlpha = 0.65;
+  static const double overviewBorderAlphaDark = 0.07;
+  static const double overviewBorderWidth = 1.0;
+
+  // --- Overview card footer (the merged income/expense bar) ---
+  static const double footerBarAlpha = 0.5;
+  static const double footerBarAlphaDark = 0.28;
+  static const double footerDividerAlpha = 0.4;
+  static const double footerIconSize = 32.0;
+  static const double footerVerticalPadding = 10.0;
+
+  // --- Overview card balance typesetting ---
+  static const double balanceSymbolSize = 20.0;
+  static const double balanceWholeSize = 36.0;
+  static const double balanceFractionSize = 22.0;
+  static const double balanceWholeTracking = -0.5;
+
+  /// The card's backplate: a soft diagonal mix of the scheme's own tones.
+  ///
+  /// Built from [ColorScheme.primaryContainer] over
+  /// [ColorScheme.surfaceContainerHigh] at both ends, so a dynamic palette
+  /// gets a tinted card and the fixed palettes get their familiar green — the
+  /// two mixes differ, the recipe does not.
+  static LinearGradient overviewBackdrop(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final tintAlpha = dark ? overviewTintAlphaDark : overviewTintAlpha;
+    final top = Color.alphaBlend(
+      scheme.primaryContainer.withValues(alpha: tintAlpha),
+      scheme.surfaceContainerHigh,
+    );
+    final bottom = Color.alphaBlend(
+      scheme.primary.withValues(alpha: overviewFloorAlpha),
+      scheme.surfaceContainer,
+    );
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [top, scheme.surfaceContainerHigh, bottom],
+      stops: const [0.0, 0.55, 1.0],
+    );
+  }
+
+  /// The corner highlight. Radial rather than linear so it has no edge of its
+  /// own — it simply runs out.
+  static RadialGradient overviewGlow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return RadialGradient(
+      center: const Alignment(0.82, -1.0),
+      radius: overviewGlowRadius,
+      colors: [
+        scheme.primary.withValues(alpha: overviewGlowAlpha),
+        scheme.primary.withValues(alpha: 0),
+      ],
+    );
+  }
+
+  static Color overviewBorder(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return const Color(0xFFFFFFFF).withValues(
+      alpha: dark ? overviewBorderAlphaDark : overviewBorderAlpha,
+    );
+  }
+
   /// The ceiling on the field-name column in the transaction form. The column
   /// is measured from the labels the form actually shows in the language being
   /// read ([formLabelWidth]), not fixed: a name must be as wide as it needs to
