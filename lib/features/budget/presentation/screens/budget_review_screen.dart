@@ -13,6 +13,7 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_vi
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import '../../domain/commands/save_review_note_command.dart';
+import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../mappers/budget_review_ui_mapper.dart';
 import '../models/budget_review_ui_models.dart';
@@ -104,6 +105,7 @@ class BudgetReviewScreen extends ConsumerWidget {
             summary,
             currencySymbol: ref.watch(displayCurrencySymbolProvider),
             locale: Localizations.localeOf(context).toString(),
+            today: ref.watch(budgetClockProvider).now(),
           );
           return _BudgetReviewBody(model: model, currencyCode: currencyCode);
         },
@@ -153,10 +155,7 @@ class _BudgetReviewBody extends StatelessWidget {
         ],
         if (showTrend) ...[
           SizedBox(height: spacing.md),
-          BudgetTrendChart(
-            points: model.monthTrend6Months,
-            budgetLineChartValue: model.budgetLineChartValue,
-          ),
+          BudgetTrendChart(points: model.monthTrend6Months),
         ],
         SizedBox(height: spacing.md),
         _MonthNoteCard(

@@ -9,6 +9,7 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart'
 
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../models/budget_ui_models.dart';
+import 'budget_hatch.dart';
 
 /// The category lists of the budget screen: every budgeted category, then the
 /// categories that spent without a limit. Untouched categories have no group
@@ -191,11 +192,14 @@ class _CategoryText extends StatelessWidget {
                 container: true,
                 label: l10n.budgetRowAnomalySemantics,
                 child: Container(
+                  key: ValueKey('budget-category-anomaly-${row.categoryId}'),
                   width: 6,
                   height: 6,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: context.colors.expense,
+                    // Amber, not [expense]: an off-pattern month is a nudge,
+                    // an overrun is the red one.
+                    color: context.colors.warning,
                   ),
                 ),
               ),
@@ -296,9 +300,27 @@ class _CategoryBar extends StatelessWidget {
                   width: width * row.baselineProgress,
                   top: 0,
                   bottom: 0,
-                  child: ColoredBox(
-                    key: ValueKey('budget-category-bar-baseline-${row.categoryId}'),
-                    color: context.colors.frequency.withValues(alpha: 0.5),
+                  // Hatched, like the hero bar: a plan baseline is a reference
+                  // rather than money that has moved. A two-dp gap keeps the
+                  // stripes legible in a four-dp tall track.
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        key: ValueKey(
+                          'budget-category-bar-baseline-${row.categoryId}',
+                        ),
+                        color: context.colors.frequency.withValues(alpha: 0.16),
+                      ),
+                      BudgetHatch(
+                        key: ValueKey(
+                          'budget-category-bar-baseline-hatch-'
+                          '${row.categoryId}',
+                        ),
+                        color: context.colors.frequency.withValues(alpha: 0.7),
+                        gap: 2,
+                      ),
+                    ],
                   ),
                 )
               else ...[

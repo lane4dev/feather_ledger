@@ -37,11 +37,12 @@ the month picker.
 - Page: L1 overview (track, plan, review months) and one category row with an
   anomaly marker
 - Viewport: same device, compare DPR 1 (or emulator) against the real 3x screen
-- Look at: the overview gradient and hairline border, the 1 dp dashed baseline
-  in plan mode, the 2 dp today tick, the 6 dp anomaly dot
-- Expected: gradient is smooth with no banding, the dashed outline has even
-  5/4 dashes and rounded corners, tick and dot are crisp (not blurry or
-  invisible), anomaly dot is the expense colour rather than the primary colour.
+- Look at: the overview gradient and hairline border, the diagonal hatch over
+  the plan-mode baseline, the 2 dp today tick, the 6 dp anomaly dot
+- Expected: gradient is smooth with no banding, the baseline hatch reads as a
+  diagonal stripe (not a moiré smear) at both densities and its segment edges
+  stay square, tick and dot are crisp (not blurry or invisible), anomaly dot is
+  the amber warning colour rather than the red expense colour.
 - [ ] pass  [ ] fail — notes:
 
 ## 4. Motion and reduce-motion
@@ -60,7 +61,7 @@ the month picker.
 - Page: L1 track, L1 plan, L2, L3
 - Viewport: 400x700, light and dark
 - Look at: the same properties the automated visual-regression test asserts
-  (three-tier amount, dashed baseline, today tick, anomaly colour, legend)
+  (three-tier amount, hatched baseline, today tick, anomaly colour, legend)
 - Expected: device matches what the assertions describe. There are no image
   goldens in this repository (the test font would make them meaningless), so
   this pass is the only pixel-level comparison.

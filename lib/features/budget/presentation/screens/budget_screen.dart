@@ -16,10 +16,8 @@ import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 
-import '../../domain/entities/budget_entities.dart';
 import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
-import '../mappers/budget_ui_mapper.dart';
 import '../models/budget_home_ui_models.dart';
 import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
@@ -102,22 +100,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final currencyCode = ref.watch(ledgerCurrencyProvider);
     final currencySymbol = ref.watch(displayCurrencySymbolProvider);
     final notifier = ref.read(budgetViewModelProvider.notifier);
-    final selectedSummary =
-        ref.watch(budgetMonthSummaryProvider(selectedMonth));
+    final selectedSummary = ref.watch(
+      budgetScreenUiModelProvider((month: selectedMonth, locale: locale)),
+    );
 
     // The "+" drawer is where the untouched categories went: editable, and
     // neither budgeted nor spending. Everywhere else they have no row.
     final selectedSummaryValue = selectedSummary.asData?.value;
     final settableRows = selectedSummaryValue == null
         ? const <BudgetCategoryRowUiModel>[]
-        : const BudgetUiMapper()
-            .mapScreen(
-              selectedSummaryValue,
-              currencySymbol: currencySymbol,
-              locale: locale,
-              today: now,
-            )
-            .remainingActiveRows
+        : selectedSummaryValue.remainingActiveRows
             .where((row) => row.isBudgetEditable)
             .toList();
 
@@ -138,7 +130,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         ),
         actions: [
           if (selectedSummaryValue != null &&
-              selectedSummaryValue.hasAnyActiveAccount &&
+              selectedSummaryValue.overview.hasAnyAccount &&
               settableRows.isNotEmpty)
             AppIconButton(
               icon: const Icon(LucideIcons.plus),
@@ -160,14 +152,15 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         itemBuilder: (context, index) {
           final month = YearMonth.fromDate(_date(index));
           return Consumer(builder: (context, ref, _) {
-            final monthSummary = ref.watch(budgetMonthSummaryProvider(month));
+            final monthModel = ref.watch(
+              budgetScreenUiModelProvider((month: month, locale: locale)),
+            );
             return _buildMonth(
               context,
-              monthSummary,
+              monthModel,
               month: month,
               currencyCode: currencyCode,
               currencySymbol: currencySymbol,
-              locale: locale,
               now: now,
             );
           });
@@ -178,24 +171,32 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
   Widget _buildMonth(
     BuildContext context,
-    AsyncValue<MonthBudgetSummary> summaryAsync, {
+    AsyncValue<BudgetScreenUiModel> monthModelAsync, {
     required YearMonth month,
     required String currencyCode,
     required String currencySymbol,
-    required String locale,
     required DateTime now,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final isHistoricalMonth = month < YearMonth.fromDate(now);
-    return summaryAsync.when(
+    return monthModelAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text(err.toString())),
-      data: (summary) {
-        final model = const BudgetUiMapper().mapScreen(
-          summary,
-          currencySymbol: currencySymbol,
-          locale: locale,
-          today: now,
+      // The exception is a developer's to read, not the user's: the body is
+      // one localized sentence and the cause goes to the log.
+      error: (error, _) {
+        debugPrint('budget month $month failed to load: $error');
+        return Center(
+          child: Padding(
+            padding: context.pagePadding,
+            child: Text(
+              l10n.budgetLoadFailedBody,
+              style: AppTypography.meta(context),
+              textAlign: TextAlign.center,
+            ),
+          ),
         );
+      },
+      data: (model) {
         final overview = model.overview;
 
         if (!overview.hasAnyAccount) {
@@ -376,7 +377,9 @@ class _ReviewEntry extends StatelessWidget {
       children: [
         Icon(
           LucideIcons.barChart2,
-          size: compact ? 18 : context.metrics.iconSize,
+          size: compact
+              ? context.metrics.inlineIconSize
+              : context.metrics.iconSize,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         SizedBox(width: spacing.md),
@@ -445,7 +448,23 @@ class _PlanHint extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(clauses.join(' · '), style: AppTypography.meta(context)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              LucideIcons.calendar,
+              size: context.metrics.inlineIconSize,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            SizedBox(width: context.spacing.xs),
+            Expanded(
+              child: Text(
+                clauses.join(' · '),
+                style: AppTypography.meta(context),
+              ),
+            ),
+          ],
+        ),
         if (model.showMaterializedHint) ...[
           SizedBox(height: context.spacing.xs),
           Text(
@@ -536,6 +555,10 @@ String _reviewEntryLine(
   BudgetReviewEntryUiModel entry,
 ) {
   return switch (entry.kind) {
+    BudgetReviewEntryKind.actuals => l10n.budgetReviewEntryActuals(
+        entry.committedActualDisplay!,
+        entry.discretionaryActualDisplay!,
+      ),
     BudgetReviewEntryKind.overrun => l10n.budgetReviewEntryOverrun(
         entry.categoryName!,
         entry.amountDisplay!,

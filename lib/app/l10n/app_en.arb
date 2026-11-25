@@ -975,9 +975,9 @@
   "budgetScopeThisAndFollowing": "This & following months",
   "budgetScopeFutureOverrideWarning": "Later months already have custom rules and will be replaced.",
   "budgetHistoryEditHint": "Past month has ended. Consider adjusting current or future months instead.",
-  "budgetZeroAmountHint": "Budget must be greater than 0. Tap Remove budget to unset.",
-  "budgetClearAction": "Remove budget",
-  "budgetClearConfirmTitle": "Remove {category} budget?",
+  "budgetZeroAmountHint": "Budget must be greater than 0. Tap Delete budget to unset.",
+  "budgetClearAction": "Delete budget",
+  "budgetClearConfirmTitle": "Delete {category} budget?",
   "@budgetClearConfirmTitle": {
     "placeholders": { "category": { "type": "String" } }
   },
@@ -999,7 +999,7 @@
   },
   "budgetClearFutureRulesWarning": "Budgets already set in later months will also be removed.",
   "budgetSaved": "Budget updated",
-  "budgetCleared": "Budget removed",
+  "budgetCleared": "Budget deleted",
   "budgetAnomalyDetail": "Spending is {percent}% above the 3-month average of {average}.",
   "@budgetAnomalyDetail": {
     "placeholders": {
@@ -1051,6 +1051,11 @@
     "placeholders": { "category": { "type": "String" }, "amount": { "type": "String" } }
   },
   "budgetReviewEntryQuiet": "Every budgeted category is still inside its limit",
+  "budgetReviewEntryActuals": "Committed {committed} · Discretionary {discretionary}",
+  "@budgetReviewEntryActuals": {
+    "placeholders": { "committed": { "type": "String" }, "discretionary": { "type": "String" } }
+  },
+  "budgetLoadFailedBody": "We couldn't load this month's budget. Try again in a moment.",
   "budgetReviewNotePreview": "Note: {note}",
   "@budgetReviewNotePreview": {
     "placeholders": { "note": { "type": "String" } }

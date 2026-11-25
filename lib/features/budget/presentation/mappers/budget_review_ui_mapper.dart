@@ -19,7 +19,9 @@ class BudgetReviewUiMapper {
     MonthBudgetSummary summary, {
     required String currencySymbol,
     required String locale,
+    DateTime? today,
   }) {
+    final todayMonth = today == null ? null : YearMonth.fromDate(today);
     final monthFormat = DateFormat.yMMMM(locale);
     final shortMonthFormat = DateFormat.MMM(locale);
 
@@ -49,10 +51,8 @@ class BudgetReviewUiMapper {
           .map((item) => _mapAttribution(item, currencySymbol, isOver: false))
           .toList(growable: false),
       monthTrend6Months: summary.monthTrend6Months
-          .map((point) => _mapTrendPoint(point, shortMonthFormat))
+          .map((point) => _mapTrendPoint(point, shortMonthFormat, todayMonth))
           .toList(growable: false),
-      budgetLineChartValue:
-          summary.totalBudgetMinor > 0 ? summary.totalBudgetMinor / 100.0 : null,
       monthReviewNote: _normalizedNote(summary.monthReviewNote),
     );
   }
@@ -78,6 +78,7 @@ class BudgetReviewUiMapper {
   BudgetTrendPointUiModel _mapTrendPoint(
     BudgetTrendPoint point,
     DateFormat monthFormat,
+    YearMonth? todayMonth,
   ) {
     return BudgetTrendPointUiModel(
       ym: point.month,
@@ -87,6 +88,7 @@ class BudgetReviewUiMapper {
       budgetChartValue: (point.budgetMinor ?? 0) / 100.0,
       actualChartValue: point.actualMinor / 100.0,
       hasReviewNote: point.hasReviewNote,
+      isFuture: todayMonth != null && point.month > todayMonth,
     );
   }
 

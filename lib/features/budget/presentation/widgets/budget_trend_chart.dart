@@ -22,17 +22,23 @@ enum BudgetTrendChartMode {
 
 /// Shared six-month budget-vs-actual chart.
 ///
-/// Bars are always the actual spend. The budget is a dashed reference line at
-/// the selected month's budget (the last point), while per-month budgets only
-/// decide category overrun colour. The block hides itself entirely when fewer
-/// than [minValidMonths] months have data, so callers must gate the spacing
-/// around it with [shouldShow].
+/// Bars are always the actual spend; each month's own budget sits behind its bar
+/// as a wider ghost column, so six different budgets draw six different heights
+/// and a month without a budget draws none. A single average line can be laid
+/// over the bars, and category overrun colour still comes from the same
+/// per-month budget. The block hides itself entirely when fewer than
+/// [minValidMonths] months have data, so callers must gate the spacing around
+/// it with [shouldShow].
+///
+/// A true budget *polyline* would need `LineChart`, which cannot share a
+/// category axis with [BarChart]; the background rod is the closest faithful
+/// rendering because fl_chart aligns it to the bar's own x slot exactly.
 class BudgetTrendChart extends StatelessWidget {
   static const int minValidMonths = 2;
+  static const double _chartHeight = 156;
 
   final List<BudgetTrendPointUiModel> points;
   final double? threeMonthAvgChartValue;
-  final double? budgetLineChartValue;
   final BudgetTrendChartMode mode;
   final bool wrappedInCard;
 
@@ -40,13 +46,13 @@ class BudgetTrendChart extends StatelessWidget {
     super.key,
     required this.points,
     this.threeMonthAvgChartValue,
-    this.budgetLineChartValue,
     this.mode = BudgetTrendChartMode.total,
     this.wrappedInCard = true,
   });
 
-  /// Months that carry information: a positive budget or any actual spend.
-  /// Padded empty months and a lone review-note marker do not count.
+  /// Months that carry information: a positive budget or any actual spend in a
+  /// month that has already started. Padded empty months, a future month whose
+  /// only content is a budget rule, and a lone review-note marker do not count.
   static int validMonthCount(List<BudgetTrendPointUiModel> points) =>
       points.where(_isValidMonth).length;
 
@@ -54,17 +60,12 @@ class BudgetTrendChart extends StatelessWidget {
       validMonthCount(points) >= minValidMonths;
 
   static bool _isValidMonth(BudgetTrendPointUiModel point) =>
-      (point.budgetMinor != null && point.budgetMinor! > 0) ||
-      point.actualMinor != 0;
+      !point.isFuture &&
+      ((point.budgetMinor != null && point.budgetMinor! > 0) ||
+          point.actualMinor != 0);
 
-  double? get _budgetLine {
-    final explicit = budgetLineChartValue;
-    if (explicit != null) return explicit > 0 ? explicit : null;
-    if (points.isEmpty) return null;
-    final lastBudget = points.last.budgetMinor;
-    if (lastBudget == null || lastBudget <= 0) return null;
-    return lastBudget / 100.0;
-  }
+  static bool _hasBudget(List<BudgetTrendPointUiModel> points) =>
+      points.any((p) => p.budgetChartValue > 0);
 
   @override
   Widget build(BuildContext context) {
@@ -73,15 +74,16 @@ class BudgetTrendChart extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final spacing = context.spacing;
-    final budgetLine = _budgetLine;
+    final hasBudget = _hasBudget(points);
     final averageLine = threeMonthAvgChartValue != null &&
             threeMonthAvgChartValue! > 0
         ? threeMonthAvgChartValue
         : null;
 
     final maxVal = points.fold<double>(
-      math.max(budgetLine ?? 0.0, averageLine ?? 0.0),
-      (prev, p) => math.max(prev, p.actualChartValue),
+      averageLine ?? 0.0,
+      (prev, p) =>
+          math.max(prev, math.max(p.actualChartValue, p.budgetChartValue)),
     );
     final chartMaxY = maxVal <= 0 ? 100.0 : maxVal * 1.18;
 
@@ -101,11 +103,10 @@ class BudgetTrendChart extends StatelessWidget {
               color: scheme.primary,
               label: l10n.budgetTrendLegendActual,
             ),
-            if (budgetLine != null)
+            if (hasBudget)
               _LegendItem(
-                color: scheme.outline,
+                color: scheme.outline.withValues(alpha: 0.35),
                 label: l10n.budgetTrendLegendBudget,
-                isLine: true,
               ),
             if (averageLine != null)
               _LegendItem(
@@ -117,7 +118,7 @@ class BudgetTrendChart extends StatelessWidget {
         ),
         SizedBox(height: spacing.md),
         SizedBox(
-          height: 156,
+          height: _chartHeight,
           child: BarChart(
             BarChartData(
               maxY: chartMaxY,
@@ -136,13 +137,6 @@ class BudgetTrendChart extends StatelessWidget {
               borderData: FlBorderData(show: false),
               extraLinesData: ExtraLinesData(
                 horizontalLines: [
-                  if (budgetLine != null)
-                    HorizontalLine(
-                      y: budgetLine,
-                      color: scheme.outline,
-                      strokeWidth: 1.5,
-                      dashArray: const [5, 4],
-                    ),
                   if (averageLine != null)
                     HorizontalLine(
                       y: averageLine,
@@ -210,6 +204,7 @@ class BudgetTrendChart extends StatelessWidget {
                     point.budgetMinor != null &&
                     point.budgetMinor! > 0 &&
                     point.actualMinor > point.budgetMinor!;
+                final budget = point.budgetChartValue;
                 return BarChartGroupData(
                   x: entry.key,
                   barRods: [
@@ -220,6 +215,14 @@ class BudgetTrendChart extends StatelessWidget {
                           overrun ? context.colors.expense : scheme.primary,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(4),
+                      ),
+                      // Each month's own budget, drawn as a wider ghost column
+                      // behind its bar: exactly aligned with that month's slot,
+                      // absent when the month has no budget.
+                      backDrawRodData: BackgroundBarChartRodData(
+                        show: budget > 0,
+                        toY: budget,
+                        color: scheme.outline.withValues(alpha: 0.35),
                       ),
                     ),
                   ],

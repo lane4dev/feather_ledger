@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -562,10 +561,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String restoreConfirmMessage(
-    int backupEvents,
-    int currentEvents,
-    int discarded,
-  ) {
+      int backupEvents, int currentEvents, int discarded) {
     return 'This backup holds $backupEvents events. This ledger has $currentEvents, so restoring discards $discarded of them. Everything currently stored will be replaced.';
   }
 
@@ -1284,31 +1280,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budgetZeroAmountHint =>
-      'Budget must be greater than 0. Tap Remove budget to unset.';
+      'Budget must be greater than 0. Tap Delete budget to unset.';
 
   @override
-  String get budgetClearAction => 'Remove budget';
+  String get budgetClearAction => 'Delete budget';
 
   @override
   String budgetClearConfirmTitle(String category) {
-    return 'Remove $category budget?';
+    return 'Delete $category budget?';
   }
 
   @override
   String budgetClearConfirmThisMonth(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return 'Deletes the $amount $category budget for $month and clears this month\'s category review note.';
   }
 
   @override
   String budgetClearConfirmThisAndFollowing(
-    String month,
-    String category,
-    String amount,
-  ) {
+      String month, String category, String amount) {
     return 'Deletes the $amount $category budget for $month and clears $category review notes from $month onward, including months that carry the budget forward.';
   }
 
@@ -1320,7 +1310,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetSaved => 'Budget updated';
 
   @override
-  String get budgetCleared => 'Budget removed';
+  String get budgetCleared => 'Budget deleted';
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -1406,6 +1396,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get budgetReviewEntryQuiet =>
       'Every budgeted category is still inside its limit';
+
+  @override
+  String budgetReviewEntryActuals(String committed, String discretionary) {
+    return 'Committed $committed · Discretionary $discretionary';
+  }
+
+  @override
+  String get budgetLoadFailedBody =>
+      'We couldn\'t load this month\'s budget. Try again in a moment.';
 
   @override
   String budgetReviewNotePreview(String note) {
