@@ -294,45 +294,37 @@ class _BalanceSummary extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            // The label and its eye travel together at the
-                            // start of the row; the chevron belongs to the far
-                            // edge. A lone `Flexible` here would share the free
-                            // space with the chevron's gap and set the label in
-                            // a column two words wide.
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      l10n.totalBalance,
-                                      style: AppTypography.meta(context),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  AppIconButton(
-                                    icon: Icon(showBalance
-                                        ? LucideIcons.eye
-                                        : LucideIcons.eyeOff),
-                                    iconSize: 18,
-                                    tooltip: visibilityLabel,
-                                    onPressed: () => ref
-                                        .read(
-                                            balanceVisibilityControllerProvider
-                                                .notifier)
-                                        .toggle(),
-                                  ),
-                                ],
+                            // The label, its eye and the chevron are one
+                            // cluster at the start of the row. The chevron
+                            // used to be pushed to the card's far edge, where
+                            // it floated alone above the sparkline — an arrow
+                            // with nothing to its left reads as decoration,
+                            // not as "this opens something".
+                            Flexible(
+                              child: Text(
+                                l10n.totalBalance,
+                                style: AppTypography.meta(context),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            AppIconButton(
+                              icon: Icon(showBalance
+                                  ? LucideIcons.eye
+                                  : LucideIcons.eyeOff),
+                              iconSize: 18,
+                              tooltip: visibilityLabel,
+                              onPressed: () => ref
+                                  .read(balanceVisibilityControllerProvider
+                                      .notifier)
+                                  .toggle(),
+                            ),
                             // Decorative only: the whole card is the target,
-                            // so the chevron does not need a 48dp box of its
-                            // own — and taking one would squeeze the label
-                            // the row exists to show.
+                            // so the chevron needs no box of its own.
                             if (onTap != null)
                               Icon(
                                 LucideIcons.chevronRight,
-                                size: context.metrics.iconSize,
+                                size: LedgerTheme.overviewChevronSize,
                                 color: scheme.onSurfaceVariant,
                               ),
                           ],

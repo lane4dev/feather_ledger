@@ -33,6 +33,8 @@ class LedgerTheme {
   static const double overviewBorderAlpha = 0.65;
   static const double overviewBorderAlphaDark = 0.07;
   static const double overviewBorderWidth = 1.0;
+  /// Small enough to read as punctuation after the label, not as a button.
+  static const double overviewChevronSize = 18.0;
 
   // --- Overview card footer (the merged income/expense bar) ---
   static const double footerBarAlpha = 0.5;

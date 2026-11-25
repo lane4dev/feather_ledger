@@ -116,7 +116,10 @@ void main() {
       final arrow = tester.getRect(find.byIcon(LucideIcons.chevronRight));
       expect(eye.left, greaterThanOrEqualTo(label.right));
       expect(eye.left - label.right, lessThan(24));
+      // The chevron is punctuation after the label, not a marker on the card's
+      // far edge: it used to be pushed out there and read as floating.
       expect(arrow.left, greaterThan(eye.right));
+      expect(arrow.left - eye.right, lessThan(24));
       expect(tester.takeException(), isNull);
 
       await tester.tap(find.byIcon(LucideIcons.eye));
