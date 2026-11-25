@@ -559,13 +559,21 @@ void main() {
     expect(find.text('Expense 4'), findsNothing);
     await tester.ensureVisible(find.text('View all'));
     final viewAll = find.widgetWithText(AppButton, 'View all');
-    expect(tester.getTopLeft(viewAll).dy,
-        greaterThan(tester.getBottomLeft(find.text('Expense 3')).dy));
+    // The action sits in the section header, level with its title.
+    expect(
+        (tester.getCenter(viewAll).dy -
+                tester.getCenter(find.text('Top contributing expenses')).dy)
+            .abs(),
+        lessThan(4));
     final arrow = find.descendant(
         of: viewAll, matching: find.byIcon(LucideIcons.chevronRight));
     expect(arrow, findsOneWidget);
     expect(tester.getCenter(arrow).dx,
         greaterThan(tester.getCenter(find.text('View all')).dx));
+    debugPrint('VIEWALL ${tester.getRect(viewAll)}');
+    debugPrint('NOTE ${tester.getRect(find.text('Category review note'))}');
+    debugPrint(
+        'TITLE ${tester.getRect(find.text('Top contributing expenses'))}');
     expect(tester.getTopLeft(find.text('Category review note')).dy,
         greaterThan(tester.getBottomLeft(viewAll).dy));
     await tester.tap(find.text('View all'));

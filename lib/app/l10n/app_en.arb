@@ -690,6 +690,17 @@
   "filterApply": "Apply",
   "filterClear": "Clear",
   "exportCsv": "Export CSV",
+  "searchClear": "Clear search",
+  "searchSummaryCount": "{count, plural, =1{1 result} other{{count} results}}",
+  "@searchSummaryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchSummaryExpense": "Expense {amount}",
+  "searchSummaryIncome": "Income {amount}",
   "noSearchResults": "No matching transactions",
   "pendingBill": "Pending",
   "repeat": "Repeat",

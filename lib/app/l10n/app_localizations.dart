@@ -1427,6 +1427,30 @@ abstract class AppLocalizations {
   /// **'Export CSV'**
   String get exportCsv;
 
+  /// No description provided for @searchClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get searchClear;
+
+  /// No description provided for @searchSummaryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 result} other{{count} results}}'**
+  String searchSummaryCount(int count);
+
+  /// No description provided for @searchSummaryExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense {amount}'**
+  String searchSummaryExpense(Object amount);
+
+  /// No description provided for @searchSummaryIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Income {amount}'**
+  String searchSummaryIncome(Object amount);
+
   /// No description provided for @noSearchResults.
   ///
   /// In en, this message translates to:

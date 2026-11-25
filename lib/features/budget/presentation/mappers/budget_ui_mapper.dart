@@ -21,7 +21,7 @@ class BudgetUiMapper {
     DateTime? today,
   }) {
     final monthFormat = DateFormat.MMM(locale);
-    final dayFormat = DateFormat.yMd(locale).add_Hm();
+    final dayFormat = DateFormat.Md(locale).add_Hm();
     final monthDisplay =
         DateFormat.yMMMM(locale).format(summary.month.toDateTime());
     final todayMonth = today == null ? null : YearMonth.fromDate(today);

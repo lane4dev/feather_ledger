@@ -344,7 +344,9 @@ void main() {
     await tester.tap(espressoRow);
     await tester.pumpAndSettle();
     expect(find.byType(TransactionDetailSheet), findsOneWidget);
-    await tester.tap(find.byIcon(LucideIcons.x));
+    await tester.tap(find.descendant(
+        of: find.byType(TransactionDetailSheet),
+        matching: find.byIcon(LucideIcons.x)));
     await tester.pumpAndSettle();
 
     // 4. Scroll timeline forward & backward; navigate to Search (/ledger/search) and inspect -¥10.00.
@@ -368,7 +370,9 @@ void main() {
     await tester.tap(find.text('-¥10.00'));
     await tester.pumpAndSettle();
     expect(find.byType(TransactionDetailSheet), findsOneWidget);
-    await tester.tap(find.byIcon(LucideIcons.x));
+    await tester.tap(find.descendant(
+        of: find.byType(TransactionDetailSheet),
+        matching: find.byIcon(LucideIcons.x)));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.arrowLeft));
     await tester.pumpAndSettle();
@@ -428,7 +432,8 @@ void main() {
     // and SliverAppBar adopts M3 scrolledUnder surfaceContainer backing.
     controller.jumpTo(260);
     await tester.pumpAndSettle();
-    final scrolledAppBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
+    final scrolledAppBar =
+        tester.widget<SliverAppBar>(find.byType(SliverAppBar));
     final ledgerScheme =
         Theme.of(tester.element(find.byType(SliverAppBar))).colorScheme;
     expect(scrolledAppBar.backgroundColor, ledgerScheme.surfaceContainer);
@@ -695,7 +700,8 @@ void main() {
           matching: find.byType(AppBadge),
         );
         expect(pendingBadgeFinder, findsOneWidget);
-        final pendingLabelText = tester.widget<Text>(find.text(l10n.pendingBill));
+        final pendingLabelText =
+            tester.widget<Text>(find.text(l10n.pendingBill));
         expect(
           _contrast(
             pendingLabelText.style!.color!,
@@ -732,10 +738,10 @@ void main() {
         final fab = tester.widget<FloatingActionButton>(
           find.byType(FloatingActionButton),
         );
-        final fabBg =
-            fab.backgroundColor ?? theme.floatingActionButtonTheme.backgroundColor!;
-        final fabFg =
-            fab.foregroundColor ?? theme.floatingActionButtonTheme.foregroundColor!;
+        final fabBg = fab.backgroundColor ??
+            theme.floatingActionButtonTheme.backgroundColor!;
+        final fabFg = fab.foregroundColor ??
+            theme.floatingActionButtonTheme.foregroundColor!;
         expect(
           _contrast(fabFg, fabBg),
           greaterThanOrEqualTo(4.5),
@@ -858,7 +864,8 @@ void main() {
           .overrideWith(_MutableBalanceVisibility.new),
       accountUiListProvider
           .overrideWith((ref) => AsyncData([AccountUiModel.of(account)])),
-      categoryListProvider.overrideWith((ref, type) => Stream.value([category])),
+      categoryListProvider
+          .overrideWith((ref, type) => Stream.value([category])),
       ledgerMonthlyTransactionsProvider.overrideWith(
         (ref, month) => Stream.value([
           LedgerDayGroup(date: date, transactions: [billTile]),
@@ -942,12 +949,15 @@ void main() {
     expect(sheetAccountText.overflow, isNot(TextOverflow.ellipsis));
     expect(sheetAccountText.maxLines, isNull);
     expect(
-      tester.renderObject<RenderParagraph>(sheetAccountFinder).didExceedMaxLines,
+      tester
+          .renderObject<RenderParagraph>(sheetAccountFinder)
+          .didExceedMaxLines,
       isFalse,
     );
   });
 
-  testWidgets('ledger skeleton uses day cards and avatar placeholders without overflow',
+  testWidgets(
+      'ledger skeleton uses day cards and avatar placeholders without overflow',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1.0;

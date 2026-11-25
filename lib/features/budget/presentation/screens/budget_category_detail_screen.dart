@@ -14,7 +14,8 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
-import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
+import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/widgets/transaction_list_tile.dart';
 
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../models/budget_ui_models.dart';
@@ -344,10 +345,34 @@ class _BudgetCategoryDetailScreenState
                   ),
                 ],
                 SizedBox(height: context.metrics.sectionGap),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                  child: Text(l10n.budgetTopTransactionsTitle,
-                      style: AppTypography.sectionTitle(context)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: spacing.xs),
+                        child: Text(l10n.budgetTopTransactionsTitle,
+                            style: AppTypography.sectionTitle(context)),
+                      ),
+                    ),
+                    if (row.allContributions.length > 3)
+                      AppButton.text(
+                        onPressed: () =>
+                            Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute<void>(
+                                    builder: (_) => _BudgetContributionsPage(
+                                        month: widget.month,
+                                        categoryId: widget.categoryId))),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(l10n.budgetViewAll),
+                            SizedBox(width: spacing.xs),
+                            Icon(LucideIcons.chevronRight,
+                                size: context.metrics.iconSize),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
                 SizedBox(height: spacing.sm),
                 if (row.topContributions.isEmpty)
@@ -358,33 +383,25 @@ class _BudgetCategoryDetailScreenState
                     ),
                   )
                 else
-                  Column(children: [
-                    for (var i = 0; i < row.topContributions.length; i++) ...[
-                      if (i > 0) SizedBox(height: spacing.sm),
-                      _ContributionCard(
-                          transaction: row.topContributions[i],
-                          categoryName: row.name),
-                    ],
-                  ]),
-                if (row.allContributions.length > 3)
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: AppButton.text(
-                      onPressed: () =>
-                          Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute<void>(
-                                  builder: (_) => _BudgetContributionsPage(
-                                      month: widget.month,
-                                      categoryId: widget.categoryId))),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(l10n.budgetViewAll),
-                          SizedBox(width: spacing.xs),
-                          Icon(LucideIcons.chevronRight,
-                              size: context.metrics.iconSize),
+                  AppCard.day(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        for (var i = 0;
+                            i < row.topContributions.length;
+                            i++) ...[
+                          if (i > 0)
+                            FeatherDivider(
+                              indent: context.metrics.compactGutter,
+                              endIndent: context.metrics.compactGutter,
+                              color:
+                                  scheme.outlineVariant.withValues(alpha: 0.4),
+                            ),
+                          _ContributionCard(
+                              transaction: row.topContributions[i],
+                              categoryName: row.name),
                         ],
-                      ),
+                      ],
                     ),
                   ),
                 SizedBox(height: context.metrics.sectionGap),
@@ -431,25 +448,28 @@ class _ContributionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    return TransactionResultCard(
+    return TransactionListTile(
       title:
           transaction.title.trim().isEmpty ? categoryName : transaction.title,
-      metadata: [
-        l10n.expense,
-        categoryName,
-        if (transaction.accountName.isNotEmpty) transaction.accountName
-      ].join(' · '),
-      date: transaction.dateDisplay,
+      accountLabel:
+          transaction.accountName.isEmpty ? null : transaction.accountName,
+      dateText: transaction.dateDisplay,
+      dateFirst: true,
       amount: transaction.amountDisplay,
       amountColor: context.colors.expense,
-      badges: [
+      showCategoryIcon: false,
+      showCategoryName: false,
+      trailingTags: [
         AppBadge(
+            compact: true,
             label: transaction.isCommitted
                 ? l10n.budgetCommitted
                 : l10n.budgetDiscretionary),
         if (transaction.isPending)
           AppBadge(
-              label: l10n.budgetPendingShort, color: context.colors.frequency),
+              compact: true,
+              label: l10n.budgetPendingShort,
+              color: context.colors.frequency),
       ],
       onTap: () async {
         final notifier = ref.read(budgetViewModelProvider.notifier);

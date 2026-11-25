@@ -681,6 +681,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportCsv => '导出 CSV';
 
   @override
+  String get searchClear => '清除搜索';
+
+  @override
+  String searchSummaryCount(int count) {
+    return '共 $count 笔';
+  }
+
+  @override
+  String searchSummaryExpense(Object amount) {
+    return '支出 $amount';
+  }
+
+  @override
+  String searchSummaryIncome(Object amount) {
+    return '收入 $amount';
+  }
+
+  @override
   String get noSearchResults => '没有匹配的交易';
 
   @override
@@ -2104,6 +2122,24 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get exportCsv => '导出 CSV';
 
   @override
+  String get searchClear => '清除搜索';
+
+  @override
+  String searchSummaryCount(int count) {
+    return '共 $count 笔';
+  }
+
+  @override
+  String searchSummaryExpense(Object amount) {
+    return '支出 $amount';
+  }
+
+  @override
+  String searchSummaryIncome(Object amount) {
+    return '收入 $amount';
+  }
+
+  @override
   String get noSearchResults => '没有匹配的交易';
 
   @override
@@ -3525,6 +3561,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get exportCsv => '匯出 CSV';
+
+  @override
+  String get searchClear => '清除搜尋';
+
+  @override
+  String searchSummaryCount(int count) {
+    return '共 $count 筆';
+  }
+
+  @override
+  String searchSummaryExpense(Object amount) {
+    return '支出 $amount';
+  }
+
+  @override
+  String searchSummaryIncome(Object amount) {
+    return '收入 $amount';
+  }
 
   @override
   String get noSearchResults => '沒有符合的交易';

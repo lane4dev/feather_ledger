@@ -111,7 +111,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     if (query != null) {
-      await tester.enterText(find.byType(TextFormField), query);
+      await tester.enterText(find.byType(TextField), query);
       await tester.pumpAndSettle();
     }
   }
@@ -143,11 +143,13 @@ void main() {
           matching: find.text('note'),
         ),
         findsOneWidget);
-    expect(find.textContaining('Expense · Food · Cash'), findsOneWidget);
+    final now = DateTime.now();
     expect(
-        find.textContaining(DateFormat.yMd('en').add_Hm().format(
-              DateTime(2026, 1, 5, 9, 30),
-            )),
+        find.text('Food · Cash · '
+            '${DateFormat.Md('en').add_Hm().format(DateTime(now.year, 1, 5, 9, 30))}'),
+        findsOneWidget);
+    expect(find.text('1 result · Expense \$12.34'), findsOneWidget);
+    expect(find.text(DateFormat.yMMMM('en').format(DateTime(now.year, 1))),
         findsOneWidget);
     expect(find.text('No matching transactions'), findsNothing);
   });
@@ -167,7 +169,7 @@ void main() {
     expect(find.byType(SearchTransactionTile), findsOneWidget);
 
     for (final query in ['', '   ']) {
-      await tester.enterText(find.byType(TextFormField), query);
+      await tester.enterText(find.byType(TextField), query);
       await tester.pumpAndSettle();
       expect(find.byType(SearchTransactionTile), findsNothing);
       expect(find.text('No matching transactions'), findsNothing);
@@ -214,11 +216,7 @@ void main() {
     expect(find.byType(TransactionDetailSheet), findsNothing);
     await tester.tap(find.text('Return to search'));
     await tester.pumpAndSettle();
-    expect(
-        tester
-            .widget<TextFormField>(find.byType(TextFormField))
-            .controller!
-            .text,
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'Bank');
     expect(find.byType(SearchTransactionTile), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -250,7 +248,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TransactionDetailSheet), findsOneWidget);
     expect(edited, isNull);
-    await tester.tap(find.byIcon(LucideIcons.x));
+    await tester.tap(find.descendant(
+      of: find.byType(TransactionDetailSheet),
+      matching: find.byIcon(LucideIcons.x),
+    ));
     await tester.pumpAndSettle();
     expect(position.pixels, closeTo(offset, 0.01));
     expect(viewModel.state, filter);
@@ -264,11 +265,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(position.pixels, closeTo(offset, 0.01));
     expect(viewModel.state, filter);
-    expect(
-        tester
-            .widget<TextFormField>(find.byType(TextFormField))
-            .controller!
-            .text,
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'note');
     expect(tester.takeException(), isNull);
   });
@@ -307,11 +304,7 @@ void main() {
     expect(find.byType(TransactionDetailSheet), findsNothing);
     expect(find.byType(SearchTransactionTile), findsNothing);
     expect(find.text('No matching transactions'), findsOneWidget);
-    expect(
-        tester
-            .widget<TextFormField>(find.byType(TextFormField))
-            .controller!
-            .text,
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'note');
     expect(tester.takeException(), isNull);
   });
@@ -333,6 +326,64 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('the search field is a pill with a one-tap clear',
+      (tester) async {
+    viewModel.results = Stream.value(resultsOf([_tile(amount: -1234)]));
+    await pumpScreen(tester);
+
+    expect(find.byKey(const ValueKey('search-clear')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('search-clear')));
+    await tester.pumpAndSettle();
+
+    expect(viewModel.queries.last, '');
+    expect(find.byType(SearchTransactionTile), findsNothing);
+    expect(find.byKey(const ValueKey('search-clear')), findsNothing);
+  });
+
+  testWidgets('hits group by month, each month in its own card',
+      (tester) async {
+    final now = DateTime.now();
+    viewModel.results = Stream.value(resultsOf([
+      _tile(amount: -1234, note: 'Coffee'),
+      _tile(
+          amount: -500,
+          id: 'tx_2',
+          note: 'Train',
+          date: DateTime(now.year - 1, 11, 24, 18, 30)),
+    ]));
+    await pumpScreen(tester, query: 'note');
+
+    expect(find.text(DateFormat.yMMMM('en').format(DateTime(now.year, 1))),
+        findsOneWidget);
+    expect(find.text(DateFormat.yMMMM('en').format(DateTime(now.year - 1, 11))),
+        findsOneWidget);
+    // The older hit keeps its year; this year's hit drops it.
+    expect(
+        find.textContaining(DateFormat.yMd('en').format(
+          DateTime(now.year - 1, 11, 24),
+        )),
+        findsOneWidget);
+  });
+
+  testWidgets('a matched keyword is tinted in the title', (tester) async {
+    viewModel.results = Stream.value(
+      resultsOf([_tile(amount: -1234, note: 'Coffee note')]),
+    );
+    await pumpScreen(tester, query: 'note');
+
+    final primary =
+        Theme.of(tester.element(find.byType(SearchScreen))).colorScheme.primary;
+    final spans = tester
+        .widgetList<Text>(find.byType(Text))
+        .where((text) => text.textSpan != null)
+        .expand((text) => (text.textSpan as TextSpan).children ?? const [])
+        .whereType<TextSpan>()
+        .where((span) =>
+            span.text?.toLowerCase() == 'note' &&
+            span.style?.color == primary &&
+            span.style?.fontWeight == FontWeight.w600);
+    expect(spans, isNotEmpty);
+  });
   testWidgets('an empty result says so', (tester) async {
     viewModel.results = Stream.value(
       resultsOf(const []),
@@ -347,7 +398,7 @@ void main() {
     await pumpScreen(tester, query: null);
 
     await tester.enterText(
-      find.byType(TextFormField),
+      find.byType(TextField),
       'rent',
     );
     await tester.pumpAndSettle();
@@ -362,13 +413,14 @@ TransactionTileUiModel _tile({
   TransactionKind? kind,
   String? note = 'note',
   AccountEntity? toAccount,
+  DateTime? date,
 }) =>
     TransactionTileUiModel(
       id: id,
       amount: amount.abs(),
       type: kind ??
           (amount < 0 ? TransactionKind.expense : TransactionKind.income),
-      date: DateTime(2026, 1, 5, 9, 30),
+      date: date ?? DateTime(DateTime.now().year, 1, 5, 9, 30),
       note: note,
       toAccount: toAccount,
       category: kind == TransactionKind.transfer

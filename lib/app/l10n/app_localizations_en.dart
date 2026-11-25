@@ -704,6 +704,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportCsv => 'Export CSV';
 
   @override
+  String get searchClear => 'Clear search';
+
+  @override
+  String searchSummaryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String searchSummaryExpense(Object amount) {
+    return 'Expense $amount';
+  }
+
+  @override
+  String searchSummaryIncome(Object amount) {
+    return 'Income $amount';
+  }
+
+  @override
   String get noSearchResults => 'No matching transactions';
 
   @override

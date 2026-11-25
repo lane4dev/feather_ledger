@@ -194,3 +194,35 @@ the month picker.
 - Clearing the budget removes the note without leaving a stale card: the prompt
   replaces the saved card and the chart marker disappears in the same frame.
 - [ ] pass  [ ] fail — notes:
+
+## 15. Search page and L3 contribution rows share one tile
+
+- Pages: 搜索 (`/ledger/search`) and L3 分类详情 → 主要贡献支出. Check light and
+  dark at 400 dp, plus 320 dp at 1.6x text.
+- Search field: a full-radius (28 dp) filled pill on `surfaceContainerHigh`
+  with no hard outline, the magnifier on the left, and a `×` inside the field
+  once the query is non-empty. Tapping `×` clears the query and the results in
+  one frame.
+- Search summary: one line under the field reading `共 N 笔 · 支出 ¥X`
+  (and `· 收入 ¥Y` when the hits include income). The numbers are the sum of
+  the listed hits, not the whole month.
+- Search grouping: hits sit in one `surfaceContainerLow` card per month, the
+  month label (`2026年11月`) above each card, rows separated by a hairline
+  divider. Row subtitle reads `餐饮 · 现金 · 11/24 12:30` — no `支出 ·` prefix.
+  A hit whose date is in another year shows `2025/11/24`.
+- Highlight: the matched keyword in the row title is tinted `primary` and
+  semibold; the rest of the title keeps the normal text colour. Clearing the
+  query removes the tint.
+- Category avatar: a 40 dp tonal circle whose fill is the category colour at
+  ~14 % over the group surface, with the category's own icon at 20 dp.
+- L3 contributions: TOP 3 rows live in ONE card that matches the budgeted list
+  card. The `查看全部 >` action sits at the right end of the `主要贡献支出`
+  header (same baseline as the title), not at the bottom of the list.
+- L3 rows: no category avatar and no category name — the page already names
+  the category. Subtitle reads `11/29 18:30 · 现金`, followed by the compact
+  `固定`/`待入账` pills on the same line at 400 dp. The card is two lines tall,
+  not three.
+- Accessibility: at 320 dp with 1.6x text the row may push its pills onto a
+  second metadata line, but no yellow overflow stripes appear and no amount is
+  clipped.
+- [ ] pass  [ ] fail — notes:

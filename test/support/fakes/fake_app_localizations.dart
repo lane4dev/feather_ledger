@@ -816,6 +816,19 @@ class FakeAppLocalizations implements AppLocalizations {
   String get searchHint => 'Search notes, categories, accounts';
 
   @override
+  String get searchClear => 'Clear search';
+
+  @override
+  String searchSummaryCount(int count) =>
+      count == 1 ? '1 result' : '$count results';
+
+  @override
+  String searchSummaryExpense(Object amount) => 'Expense $amount';
+
+  @override
+  String searchSummaryIncome(Object amount) => 'Income $amount';
+
+  @override
   String get filterTitle => 'Filter';
 
   @override

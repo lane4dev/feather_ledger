@@ -1,4 +1,4 @@
-import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
+import 'package:feather_ledger/shared/presentation/widgets/transaction_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,18 +8,25 @@ import 'package:feather_ledger/core/domain/enums.dart';
 
 import '../models/transaction_tile_ui_model.dart';
 
-/// A standalone search result, including its date and both transfer accounts.
+/// A search hit, adapted into the shared transaction row.
+///
+/// The row itself carries no card: search groups hits by month and wraps each
+/// month in one surface. This adapter only decides what the row says — the
+/// note (or category, or kind) as the title, the category and account as the
+/// metadata, and a date that drops the year while it is still the current one.
 class SearchTransactionTile extends StatelessWidget {
   const SearchTransactionTile({
     super.key,
     required this.transaction,
     required this.currencySymbol,
     required this.onTap,
+    this.highlightQuery,
   });
 
   final TransactionTileUiModel transaction;
   final String currencySymbol;
   final VoidCallback onTap;
+  final String? highlightQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -35,29 +42,41 @@ class SearchTransactionTile extends StatelessWidget {
     final title = transaction.note?.trim().isNotEmpty == true
         ? transaction.note!
         : transaction.category?.name ?? kindLabel;
-    final accounts = transaction.toAccount == null
+    final accountLabel = transaction.toAccount == null
         ? transaction.account.name
         : '${transaction.account.name} → ${transaction.toAccount!.name}';
-    final metadata = [
-      kindLabel,
-      if (transaction.category != null) transaction.category!.name,
-      accounts,
-    ].join(' · ');
-    final locale = Localizations.localeOf(context).toString();
-    final date = DateFormat.yMd(locale).add_Hm().format(transaction.date);
     final amountColor = switch (transaction.type) {
       TransactionKind.income => context.colors.income,
       TransactionKind.expense => context.colors.expense,
       _ => Theme.of(context).colorScheme.onSurface,
     };
 
-    return TransactionResultCard(
+    return TransactionListTile(
       onTap: onTap,
       title: title,
-      metadata: metadata,
-      date: date,
       amount: transaction.formattedAmount(currencySymbol),
       amountColor: amountColor,
+      categoryName: transaction.category?.name,
+      categoryIconKey: transaction.category?.iconKey,
+      categoryColor: transaction.category == null
+          ? null
+          : Color(transaction.category!.colorInt),
+      accountLabel: accountLabel,
+      dateText: formatSearchDate(context, transaction.date),
+      showCategoryIcon: true,
+      showCategoryName: transaction.category != null,
+      highlightQuery: highlightQuery,
     );
+  }
+
+  /// `11/24 12:30` while the hit is in the current year, `2025/11/24` once it
+  /// is not — the year only earns its space when it distinguishes something.
+  static String formatSearchDate(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    final now = DateTime.now();
+    final format = date.year == now.year
+        ? DateFormat.Md(locale).add_Hm()
+        : DateFormat.yMd(locale);
+    return format.format(date);
   }
 }

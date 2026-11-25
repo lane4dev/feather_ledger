@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_button.dart';
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -577,6 +578,46 @@ void main() {
     expect(find.text('Editing bill bill-4'), findsOneWidget);
   });
 
+  testWidgets('contributions share one card with a meta-only subtitle',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(contributions: [
+      BudgetContributionTx(
+        transactionId: 'tx-1',
+        sourceScheduledBillId: null,
+        scheduledBillId: null,
+        description: 'Lunch',
+        occurredAt: DateTime(2026, 5, 10),
+        amountMinor: 45000,
+        isPending: false,
+        accountName: 'Cash',
+      ),
+      BudgetContributionTx(
+        transactionId: 'bill-4',
+        sourceScheduledBillId: 'bill-4',
+        scheduledBillId: 'bill-4',
+        description: 'Gym',
+        occurredAt: DateTime(2026, 5, 10),
+        amountMinor: 20000,
+        isPending: true,
+        accountName: 'Bank',
+      ),
+    ]));
+    await pumpDetail(tester, service: service, size: const Size(900, 1200));
+
+    // Both rows live inside one grouped card, not one card per transaction.
+    final card =
+        find.ancestor(of: find.text('Lunch'), matching: find.byType(AppCard));
+    expect(card, findsOneWidget);
+    expect(
+        find.descendant(of: card, matching: find.text('Gym')), findsOneWidget);
+
+    // The subtitle is meta only: the kind prefix lives in the amount's sign.
+    expect(find.textContaining('Expense ·'), findsNothing);
+    expect(find.text('5/10 00:00 · Cash'), findsOneWidget);
+    expect(find.text('5/10 00:00 · Bank'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
+  });
+
   testWidgets('the note card opens the shared sheet and cancel keeps the note',
       (tester) async {
     final service = _StubBudgetService(buildSummary());
@@ -670,9 +711,7 @@ void main() {
       (tester) async {
     final service = _StubBudgetService(buildSummary(note: null));
     await pumpDetail(tester,
-        service: service,
-        size: const Size(320, 740),
-        textScale: 1.6);
+        service: service, size: const Size(320, 740), textScale: 1.6);
 
     await tester.scrollUntilVisible(find.byType(BudgetNoteCard), 200,
         scrollable: find.byType(Scrollable).first);
