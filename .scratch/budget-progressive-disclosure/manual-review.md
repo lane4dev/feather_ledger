@@ -1,0 +1,108 @@
+# Budget progressive disclosure — manual review
+
+Run this on a real device (or a simulator with real fonts) before merge. The
+automated suite in `test/ui/features/budget/` covers layout, copy wiring and
+navigation, but it runs on the test font (every glyph is a square) and cannot
+judge gradients, hairlines, motion feel or how the shipped typeface wraps.
+
+Budget pages: **L1** = `/budget` home, **L2** = monthly review, **L3** = category
+detail. The clock used by every check is the device clock; to pin a mode move
+between the current month, a past month and a future month with the arrows or
+the month picker.
+
+## 1. Smallest target + large text
+
+- Page: L1 (track month, and a plan month)
+- Viewport: 320 dp wide, system text 1.6x (accessibility "Largest")
+- Look at: overview card, row names/amounts, "+" button, review entry
+- Expected: no clipping or overlapping text, nothing scrolls horizontally,
+  every row still tappable, overview amount scales down instead of overflowing.
+  Density is deliberately lower here: the rows stack their amount under the name
+  and only ~1 row fits beside the overview. Confirm that reading order still
+  makes sense.
+- [ ] pass  [ ] fail — notes:
+
+## 2. Traditional Chinese copy length
+
+- Page: L1, L2, L3
+- Viewport: 400x700 and 320x700, language 繁體中文 (zh_Hant)
+- Look at: month label, overview labels and footer metrics, review entry line,
+  trend legend, note editor counter, clear-dialog body
+- Expected: no ellipsized label except the deliberate single-line note preview;
+  dialog copy fits without a scrollbar; no English leaks.
+- [ ] pass  [ ] fail — notes:
+
+## 3. Rendering at 1x and 3x DPR
+
+- Page: L1 overview (track, plan, review months) and one category row with an
+  anomaly marker
+- Viewport: same device, compare DPR 1 (or emulator) against the real 3x screen
+- Look at: the overview gradient and hairline border, the 1 dp dashed baseline
+  in plan mode, the 2 dp today tick, the 6 dp anomaly dot
+- Expected: gradient is smooth with no banding, the dashed outline has even
+  5/4 dashes and rounded corners, tick and dot are crisp (not blurry or
+  invisible), anomaly dot is the expense colour rather than the primary colour.
+- [ ] pass  [ ] fail — notes:
+
+## 4. Motion and reduce-motion
+
+- Page: L1 → L2 → L3 and back
+- Viewport: 400x700
+- Look at: the 250 ms overview surface cross-fade when switching modes, the L2
+  enter/exit transition
+- Expected: ~250 ms, no jank on a mid-range device, back gesture reverses
+  smoothly. With the system "remove animations" setting on, both transitions
+  become instant (no half-faded frame, no slide).
+- [ ] pass  [ ] fail — notes:
+
+## 5. Assertion suite vs. device eyeball
+
+- Page: L1 track, L1 plan, L2, L3
+- Viewport: 400x700, light and dark
+- Look at: the same properties the automated visual-regression test asserts
+  (three-tier amount, dashed baseline, today tick, anomaly colour, legend)
+- Expected: device matches what the assertions describe. There are no image
+  goldens in this repository (the test font would make them meaningless), so
+  this pass is the only pixel-level comparison.
+- [ ] pass  [ ] fail — notes:
+
+## 6. Review-bar density in a historical month
+
+- Page: L1 in a past month (review mode), and the tracked month
+- Viewport: 400x700
+- Look at: the compact review bar directly under the overview, then the
+  budgeted/unbudgeted groups below it
+- Expected: the bar reads as one line with the worst overrun (or surplus/quiet
+  copy), a note preview when one exists, and it does not push the first
+  category row off the screen. Tapping it opens L2 for that same month.
+- [ ] pass  [ ] fail — notes:
+
+## 7. Note-preview truncation
+
+- Page: L1 review bar with a long month note (L2 editor, >40 characters)
+- Viewport: 400x700 and 320x700
+- Look at: the note preview line
+- Expected: one line, ends with an ellipsis at a word boundary, never clips
+  mid-glyph, and the full note remains readable in L2.
+- [ ] pass  [ ] fail — notes:
+
+## 8. Bottom gap above the navigation bar
+
+- Page: L1 any mode, scrolled to the end
+- Viewport: device with a gesture bar (and one with 3-button nav)
+- Look at: the last action (review entry / plan hint / unbudgeted action)
+- Expected: at least 88 dp of clearance; the last row is fully above the bar
+  and still tappable, including with the gesture bar inset applied.
+- [ ] pass  [ ] fail — notes:
+
+## 9. Known deliberate deviations (do not report as bugs)
+
+- No chevron on category rows: the month arrows own the chevron glyph, so rows
+  are recognised by their amounts and tap behaviour.
+- Plan-mode baseline wording reuses the committed-baseline copy
+  ("Committed…") instead of inventing a second "baseline" term.
+- `test/ui/app/floating_choice_test.dart` fails before and after this ticket
+  (`Expected: <48> Actual: <56.0>`); it is unrelated to the budget work and was
+  left untouched.
+- 320 dp @1.6x shows one full row next to the overview; density is traded for
+  legibility at that size on purpose.
