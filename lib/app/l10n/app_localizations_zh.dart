@@ -1304,6 +1304,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String budgetAnomalyDetail(int percent, String average) {
+    return '支出较近 3 个月均值（$average）高 $percent%。';
+  }
+
+  @override
+  String get budgetCompositionTitle => '支出构成';
+
+  @override
   String get budgetArchivedReadOnly => '已归档';
 
   @override
@@ -2683,6 +2691,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String budgetAnomalyDetail(int percent, String average) {
+    return '支出较近 3 个月均值（$average）高 $percent%。';
+  }
+
+  @override
+  String get budgetCompositionTitle => '支出构成';
+
+  @override
   String get budgetArchivedReadOnly => '已归档';
 
   @override
@@ -4060,6 +4076,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String budgetAnomalyBadge(int percent) {
     return '較均值 +$percent%';
   }
+
+  @override
+  String budgetAnomalyDetail(int percent, String average) {
+    return '支出較近 3 個月平均（$average）高 $percent%。';
+  }
+
+  @override
+  String get budgetCompositionTitle => '支出構成';
 
   @override
   String get budgetArchivedReadOnly => '已封存';

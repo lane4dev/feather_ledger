@@ -2530,6 +2530,18 @@ abstract class AppLocalizations {
   /// **'+{percent}% vs 3m avg'**
   String budgetAnomalyBadge(int percent);
 
+  /// No description provided for @budgetAnomalyDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending is {percent}% above the 3-month average of {average}.'**
+  String budgetAnomalyDetail(int percent, String average);
+
+  /// No description provided for @budgetCompositionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending composition'**
+  String get budgetCompositionTitle;
+
   /// No description provided for @budgetArchivedReadOnly.
   ///
   /// In en, this message translates to:

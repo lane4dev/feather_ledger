@@ -844,6 +844,8 @@
   "budgetStatusAtRisk": "預警",
   "budgetStatusOver": "超支",
   "budgetAnomalyBadge": "較均值 +{percent}%",
+  "budgetAnomalyDetail": "支出較近 3 個月平均（{average}）高 {percent}%。",
+  "budgetCompositionTitle": "支出構成",
   "budgetArchivedReadOnly": "已封存",
   "budgetArchivedNoteHint": "該分類已封存，歷史預算與複盤備忘僅供唯讀檢視。",
   "budgetTopTransactionsTitle": "主要貢獻支出",

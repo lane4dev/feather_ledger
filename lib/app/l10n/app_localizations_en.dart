@@ -1368,6 +1368,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String budgetAnomalyDetail(int percent, String average) {
+    return 'Spending is $percent% above the 3-month average of $average.';
+  }
+
+  @override
+  String get budgetCompositionTitle => 'Spending composition';
+
+  @override
   String get budgetArchivedReadOnly => 'Archived';
 
   @override

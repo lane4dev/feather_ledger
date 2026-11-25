@@ -16,7 +16,6 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/transaction_result_card.dart';
 
 import '../../domain/services/budget_service.dart';
@@ -24,6 +23,7 @@ import '../../domain/value_objects/budget_value_objects.dart';
 import '../mappers/budget_ui_mapper.dart';
 import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
+import '../widgets/budget_category_detail_sections.dart';
 import '../widgets/budget_edit_sheet.dart';
 import '../widgets/budget_trend_chart.dart';
 
@@ -79,6 +79,7 @@ class _BudgetCategoryDetailScreenState
     extends ConsumerState<BudgetCategoryDetailScreen> {
   final TextEditingController _noteController = TextEditingController();
   bool _noteInitialized = false;
+  String _lastSyncedNote = '';
   bool _savingNote = false;
   bool _clearingBudget = false;
 
@@ -194,7 +195,25 @@ class _BudgetCategoryDetailScreenState
     super.dispose();
   }
 
+  /// Adopts a note that changed underneath us (removing the budget deletes the
+  /// month's note) unless the field holds an unsaved draft.
+  void _syncNoteFromStream(String note) {
+    if (!_noteInitialized || note == _lastSyncedNote) return;
+    final hasDraft = _noteController.text != _lastSyncedNote;
+    _lastSyncedNote = note;
+    if (hasDraft) return;
+    setState(() => _noteController.text = note);
+  }
+
   Future<void> _saveNote(String currencyCode) async {
+    final l10n = AppLocalizations.of(context)!;
+    // The writer caps the note at 500 characters; reject locally so the draft
+    // the user is still editing survives instead of bouncing off the service.
+    if (_noteController.text.runes.length > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(LedgerErrorCode.budgetNoteTooLong.message(l10n))));
+      return;
+    }
     setState(() => _savingNote = true);
     final result =
         await ref.read(budgetViewModelProvider.notifier).saveReviewNote(
@@ -206,7 +225,6 @@ class _BudgetCategoryDetailScreenState
     if (!mounted) return;
     setState(() => _savingNote = false);
 
-    final l10n = AppLocalizations.of(context)!;
     switch (result) {
       case Success():
         ScaffoldMessenger.of(context)
@@ -224,326 +242,278 @@ class _BudgetCategoryDetailScreenState
     final currencyCode = ref.watch(ledgerCurrencyProvider);
     final currencySymbol = ref.watch(displayCurrencySymbolProvider);
     final summaryAsync = ref.watch(budgetMonthSummaryProvider(widget.month));
+    // A budget change also rewrites this category's note (removing a budget
+    // clears it), so follow the stream instead of caching the first value.
+    ref.listen(budgetMonthSummaryProvider(widget.month), (_, next) {
+      final category = next.value?.findCategory(widget.categoryId);
+      if (category != null) _syncNoteFromStream(category.reviewNote ?? '');
+    });
     final nowYm = YearMonth.fromDate(ref.read(budgetClockProvider).now());
-    final spacing = context.spacing;
-    final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: SafeArea(
-          child: summaryAsync.when(
-        loading: () => _statusPage(const CircularProgressIndicator()),
-        error: (err, _) => _statusPage(Text(l10n.errorPrefix(err.toString()))),
-        data: (summary) {
-          final screenModel = const BudgetUiMapper().mapScreen(
-            summary,
-            currencySymbol: currencySymbol,
-            locale: locale,
-          );
-          final allRows = [
-            ...screenModel.budgetedRows,
-            ...screenModel.unbudgetedActiveRows,
-            ...screenModel.remainingActiveRows,
-          ];
-          final row = allRows
-              .where((r) => r.categoryId == widget.categoryId)
-              .firstOrNull;
-          if (row == null) {
-            return _statusPage(const SizedBox.shrink());
-          }
+    return summaryAsync.when(
+      loading: () => Scaffold(
+          body: SafeArea(child: _statusPage(const CircularProgressIndicator()))),
+      error: (err, _) => Scaffold(
+          body: SafeArea(
+              child: _statusPage(Text(l10n.errorPrefix(err.toString()))))),
+      data: (summary) {
+        final screenModel = const BudgetUiMapper().mapScreen(
+          summary,
+          currencySymbol: currencySymbol,
+          locale: locale,
+        );
+        final allRows = [
+          ...screenModel.budgetedRows,
+          ...screenModel.unbudgetedActiveRows,
+          ...screenModel.remainingActiveRows,
+        ];
+        final row =
+            allRows.where((r) => r.categoryId == widget.categoryId).firstOrNull;
+        if (row == null) {
+          return Scaffold(
+              body: SafeArea(child: _statusPage(const SizedBox.shrink())));
+        }
 
-          if (!_noteInitialized) {
-            _noteController.text = row.reviewNote ?? '';
-            _noteInitialized = true;
-          }
+        if (!_noteInitialized) {
+          _noteController.text = row.reviewNote ?? '';
+          _lastSyncedNote = _noteController.text;
+          _noteInitialized = true;
+        }
 
-          return Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: spacing.md),
-                child: Row(
-                  children: [
-                    AppIconButton(
-                      icon: const Icon(LucideIcons.arrowLeft),
-                      tooltip:
-                          MaterialLocalizations.of(context).backButtonTooltip,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    SizedBox(width: spacing.xs),
-                    AppIconBadge(
-                      color: Color(row.colorInt),
-                      child: CategoryIcon(
-                        iconKey: row.iconKey,
-                        size: context.metrics.iconSize,
-                        color: Color(row.colorInt),
-                      ),
-                    ),
-                    SizedBox(width: spacing.sm),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              row.name,
-                              style: AppTypography.sectionTitle(context),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (row.archived) ...[
-                            SizedBox(width: spacing.xs),
-                            AppBadge(label: l10n.budgetArchivedReadOnly),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (row.isBudgetEditable)
-                      PopupMenuButton<_BudgetAction>(
-                        enabled: !_clearingBudget,
-                        icon: const Icon(LucideIcons.ellipsisVertical),
-                        onSelected: (action) {
-                          switch (action) {
-                            case _BudgetAction.edit:
-                              showBudgetEditSheet(context,
-                                  row: row,
-                                  currencyCode: currencyCode,
-                                  currencySymbol: currencySymbol,
-                                  month: widget.month,
-                                  isHistoricalMonth: widget.month < nowYm);
-                            case _BudgetAction.clear:
-                              _clearBudget(
-                                currencyCode: currencyCode,
-                                row: row,
-                                locale: locale,
-                              );
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                              value: _BudgetAction.edit,
-                              child: Text(l10n.edit)),
-                          PopupMenuItem(
-                              value: _BudgetAction.clear,
-                              enabled: row.budgetMinor != null,
-                              child: Text(l10n.budgetClearAction,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.copyWith(
-                                          color: row.budgetMinor == null
-                                              ? scheme.onSurfaceVariant
-                                              : scheme.error))),
-                        ],
-                      ),
+        final isHistoricalMonth = widget.month < nowYm;
+        // A closed month has no bills left to arrive: actual only.
+        final showPending = !isHistoricalMonth && row.pendingDisplay != null;
+        final showMaterializationHint =
+            summary.hasHighFrequencyPending || summary.isFarFutureMaterializedOnly;
+        final spacing = context.spacing;
+        final scheme = Theme.of(context).colorScheme;
+
+        return Scaffold(
+          appBar: AppBar(
+            leading: AppIconButton(
+              icon: const Icon(LucideIcons.arrowLeft),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Row(
+              children: [
+                AppIconBadge(
+                  color: Color(row.colorInt),
+                  child: CategoryIcon(
+                    iconKey: row.iconKey,
+                    size: context.metrics.iconSize,
+                    color: Color(row.colorInt),
+                  ),
+                ),
+                SizedBox(width: spacing.sm),
+                Flexible(
+                  child: Text(
+                    row.name,
+                    style: AppTypography.sectionTitle(context),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (row.archived) ...[
+                  SizedBox(width: spacing.xs),
+                  AppBadge(label: l10n.budgetArchivedReadOnly),
+                ],
+              ],
+            ),
+            actions: [
+              if (row.isBudgetEditable)
+                PopupMenuButton<_BudgetAction>(
+                  enabled: !_clearingBudget,
+                  icon: const Icon(LucideIcons.ellipsisVertical),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _BudgetAction.edit:
+                        showBudgetEditSheet(context,
+                            row: row,
+                            currencyCode: currencyCode,
+                            currencySymbol: currencySymbol,
+                            month: widget.month,
+                            isHistoricalMonth: widget.month < nowYm);
+                      case _BudgetAction.clear:
+                        _clearBudget(
+                          currencyCode: currencyCode,
+                          row: row,
+                          locale: locale,
+                        );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                        value: _BudgetAction.edit, child: Text(l10n.edit)),
+                    PopupMenuItem(
+                        value: _BudgetAction.clear,
+                        enabled: row.budgetMinor != null,
+                        child: Text(l10n.budgetClearAction,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(
+                                    color: row.budgetMinor == null
+                                        ? scheme.onSurfaceVariant
+                                        : scheme.error))),
                   ],
                 ),
+            ],
+          ),
+          body: SafeArea(
+            top: false,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                spacing.md,
+                spacing.md,
+                spacing.md,
+                spacing.xl,
               ),
-              SizedBox(height: spacing.sm),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.md,
-                    spacing.xs,
-                    spacing.md,
-                    spacing.xl,
+              children: [
+                BudgetCategoryProgressCard(
+                  row: row,
+                  showPending: showPending,
+                ),
+                SizedBox(height: spacing.md),
+                BudgetCategoryCompositionCard(
+                  row: row,
+                  showPending: showPending,
+                  showMaterializationHint: showMaterializationHint,
+                ),
+                if (BudgetTrendChart.shouldShow(row.trend6Months)) ...[
+                  SizedBox(height: spacing.md),
+                  BudgetTrendChart(
+                    points: row.trend6Months,
+                    mode: BudgetTrendChartMode.category,
+                    threeMonthAvgChartValue:
+                        row.threeMonthAvgMinor != null &&
+                                row.threeMonthAvgMinor! > 0
+                            ? row.threeMonthAvgMinor! / 100.0
+                            : null,
+                    budgetLineChartValue:
+                        row.budgetMinor != null && row.budgetMinor! > 0
+                            ? row.budgetMinor! / 100.0
+                            : null,
                   ),
-                  children: [
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _KvMetric(
-                                  label: l10n.budgetTotal,
-                                  value: row.budgetDisplay ?? '—',
-                                ),
-                              ),
-                              Expanded(
-                                child: _KvMetric(
-                                  label: l10n.budgetActualSpent,
-                                  value: row.actualDisplay,
-                                ),
-                              ),
-                              if (row.pendingDisplay != null)
-                                Expanded(
-                                  child: _KvMetric(
-                                    label: l10n.budgetPendingShort,
-                                    value: row.pendingDisplay!,
-                                    color: context.colors.frequency,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          if (row.lastMonthActualDisplay != null ||
-                              row.threeMonthAvgDisplay != null) ...[
-                            SizedBox(height: spacing.md),
-                            const FeatherDivider(),
-                            SizedBox(height: spacing.sm),
-                            Wrap(
-                              spacing: spacing.md,
-                              runSpacing: spacing.xs,
-                              children: [
-                                if (row.lastMonthActualDisplay != null)
-                                  Text(
-                                    l10n.budgetLastMonthRef(
-                                        row.lastMonthActualDisplay!),
-                                    style: AppTypography.meta(context),
-                                  ),
-                                if (row.threeMonthAvgDisplay != null)
-                                  Text(
-                                    l10n.budgetThreeMoAvgRef(
-                                        row.threeMonthAvgDisplay!),
-                                    style: AppTypography.meta(context),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
+                ],
+                SizedBox(height: context.metrics.sectionGap),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: spacing.xs),
+                  child: Text(l10n.budgetTopTransactionsTitle,
+                      style: AppTypography.sectionTitle(context)),
+                ),
+                SizedBox(height: spacing.sm),
+                if (row.topContributions.isEmpty)
+                  AppCard(
+                    child: Text(
+                      l10n.budgetNoTransactionsInMonth,
+                      style: AppTypography.meta(context),
                     ),
-                    SizedBox(height: spacing.md),
-                    BudgetTrendChart(
-                      points: row.trend6Months,
-                      threeMonthAvgChartValue: row.threeMonthAvgMinor != null
-                          ? row.threeMonthAvgMinor! / 100.0
-                          : null,
-                    ),
-                    SizedBox(height: spacing.md),
-                    AppCard(
+                  )
+                else
+                  Column(children: [
+                    for (var i = 0; i < row.topContributions.length; i++) ...[
+                      if (i > 0) SizedBox(height: spacing.sm),
+                      _ContributionCard(
+                          transaction: row.topContributions[i],
+                          categoryName: row.name),
+                    ],
+                  ]),
+                if (row.allContributions.length > 3)
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: AppButton.text(
+                      onPressed: () =>
+                          Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute<void>(
+                                  builder: (_) => _BudgetContributionsPage(
+                                      month: widget.month,
+                                      categoryId: widget.categoryId))),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: _KvMetric(
-                              label: l10n.budgetCommitted,
-                              value: row.committedActualDisplay,
-                            ),
-                          ),
-                          Expanded(
-                            child: _KvMetric(
-                              label: l10n.budgetDiscretionary,
-                              value: row.discretionaryActualDisplay,
-                            ),
-                          ),
-                          Expanded(
-                            child: _KvMetric(
-                              label: l10n.budgetCommittedBaseline,
-                              value: row.committedBaselineDisplay,
-                            ),
-                          ),
+                          Text(l10n.budgetViewAll),
+                          SizedBox(width: spacing.xs),
+                          Icon(LucideIcons.chevronRight,
+                              size: context.metrics.iconSize),
                         ],
                       ),
                     ),
-                    SizedBox(height: spacing.md),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                      child: Text(l10n.budgetTopTransactionsTitle,
-                          style: AppTypography.sectionTitle(context)),
-                    ),
-                    SizedBox(height: spacing.sm),
-                    if (row.topContributions.isEmpty)
-                      AppCard(
-                        child: Text(
-                          l10n.budgetNoTransactionsInMonth,
+                  ),
+                SizedBox(height: context.metrics.sectionGap),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.budgetCategoryNoteLabel,
+                        style: AppTypography.sectionTitle(context),
+                      ),
+                      SizedBox(height: spacing.sm),
+                      if (row.archived) ...[
+                        Text(
+                          l10n.budgetArchivedNoteHint,
                           style: AppTypography.meta(context),
                         ),
-                      )
-                    else
-                      Column(children: [
-                        for (var i = 0;
-                            i < row.topContributions.length;
-                            i++) ...[
-                          if (i > 0) SizedBox(height: spacing.sm),
-                          _ContributionCard(
-                              transaction: row.topContributions[i],
-                              categoryName: row.name),
-                        ],
-                      ]),
-                    if (row.allContributions.length > 3)
-                      Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: AppButton.text(
-                          onPressed: () =>
-                              Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute<void>(
-                                      builder: (_) => _BudgetContributionsPage(
-                                          month: widget.month,
-                                          categoryId: widget.categoryId))),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(l10n.budgetViewAll),
-                              SizedBox(width: spacing.xs),
-                              Icon(LucideIcons.chevronRight,
-                                  size: context.metrics.iconSize),
-                            ],
-                          ),
-                        ),
-                      ),
-                    SizedBox(height: context.metrics.sectionGap),
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.budgetCategoryNoteLabel,
-                            style: AppTypography.sectionTitle(context),
-                          ),
+                        if (row.reviewNote != null) ...[
                           SizedBox(height: spacing.sm),
-                          if (row.archived) ...[
-                            Text(
-                              l10n.budgetArchivedNoteHint,
-                              style: AppTypography.meta(context),
-                            ),
-                            if (row.reviewNote != null) ...[
-                              SizedBox(height: spacing.sm),
-                              Text(
-                                row.reviewNote!,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                          Text(
+                            row.reviewNote!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ] else ...[
+                        AppTextField(
+                          controller: _noteController,
+                          maxLines: 3,
+                          minLines: 2,
+                          hintText: l10n.budgetNotePlaceholder,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        SizedBox(height: spacing.xs),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.budgetReviewNoteEmptyDeletes,
+                                style:
+                                    AppTypography.compactLabel(context).copyWith(
+                                        color: scheme.onSurfaceVariant),
                               ),
-                            ],
-                          ] else ...[
-                            AppTextField(
-                              controller: _noteController,
-                              maxLines: 3,
-                              minLines: 2,
-                              hintText: l10n.budgetNotePlaceholder,
-                              onChanged: (_) => setState(() {}),
                             ),
-                            SizedBox(height: spacing.xs),
-                            Row(
-                              children: [
-                                Text(
-                                  l10n.budgetNoteCharCount(
-                                    _noteController.text.runes.length,
-                                  ),
-                                  style: AppTypography.compactLabel(context)
-                                      .copyWith(
-                                    color:
-                                        _noteController.text.runes.length > 500
-                                            ? scheme.error
-                                            : scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                const Spacer(),
-                                AppButton.outlined(
-                                  onPressed: _savingNote
-                                      ? null
-                                      : () => _saveNote(currencyCode),
-                                  child: Text(l10n.budgetSaveNote),
-                                ),
-                              ],
+                            SizedBox(width: spacing.sm),
+                            Text(
+                              l10n.budgetNoteCharCount(
+                                _noteController.text.runes.length,
+                              ),
+                              style: AppTypography.compactLabel(context)
+                                  .copyWith(
+                                color: _noteController.text.runes.length > 500
+                                    ? scheme.error
+                                    : scheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                        SizedBox(height: spacing.sm),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: AppButton.outlined(
+                            onPressed: _savingNote
+                                ? null
+                                : () => _saveNote(currencyCode),
+                            child: Text(l10n.budgetSaveNote),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
-      )),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -661,36 +631,6 @@ class _BudgetContributionsPage extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _KvMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? color;
-
-  const _KvMetric({
-    required this.label,
-    required this.value,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTypography.meta(context)),
-        const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            value,
-            style: AppTypography.amount(context).copyWith(color: color),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1027,6 +1027,14 @@
   "@budgetAnomalyBadge": {
     "placeholders": { "percent": { "type": "int" } }
   },
+  "budgetAnomalyDetail": "Spending is {percent}% above the 3-month average of {average}.",
+  "@budgetAnomalyDetail": {
+    "placeholders": {
+      "percent": { "type": "int" },
+      "average": { "type": "String" }
+    }
+  },
+  "budgetCompositionTitle": "Spending composition",
   "budgetArchivedReadOnly": "Archived",
   "budgetArchivedNoteHint": "Archived category — historical budgets and notes are read-only.",
   "budgetTopTransactionsTitle": "Top contributing expenses",

@@ -1231,6 +1231,13 @@ class FakeAppLocalizations implements AppLocalizations {
   String budgetAnomalyBadge(int percent) => '+$percent% vs 3m avg';
 
   @override
+  String budgetAnomalyDetail(int percent, String average) =>
+      'Spending is $percent% above the 3-month average of $average.';
+
+  @override
+  String get budgetCompositionTitle => 'Spending composition';
+
+  @override
   String get budgetArchivedReadOnly => 'Archived';
 
   @override
