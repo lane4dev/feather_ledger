@@ -16,7 +16,7 @@ class TimeAnchor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
-    final dayStr = DateFormat('d', locale).format(date);
+    final dayStr = '${date.day}';
     final wdayStr = DateFormat('E', locale).format(date);
     final scheme = Theme.of(context).colorScheme;
     final now = today ?? DateTime.now();

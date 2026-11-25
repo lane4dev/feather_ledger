@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -450,6 +451,34 @@ void main() {
       tester.getSize(find.byType(TimeAnchor).first).width,
       LedgerTheme.colAnchorWidth,
     );
+  });
+
+  testWidgets('TimeAnchor renders numeric day without 日 suffix in Chinese locales',
+      (tester) async {
+    final targetDate = DateTime(2026, 11, 24);
+    for (final locale in const [
+      Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+      Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      Locale('zh'),
+    ]) {
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TimeAnchor(date: targetDate, today: DateTime(2026, 11, 1)),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('24'), findsOneWidget);
+      expect(find.text('24日'), findsNothing);
+      expect(
+        find.text(DateFormat('E', locale.toString()).format(targetDate)),
+        findsOneWidget,
+      );
+    }
   });
 
   testWidgets('renders cleanly across light/dark/dynamic themes at 360dp and 800dp and large textScale',
