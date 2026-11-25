@@ -492,12 +492,14 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
             final action = row.isBudgetEditable
                 ? _SetBudgetAction(onPressed: onSetBudgetTap)
                 : null;
-            // A trailing action needs room the bare amount block does not:
-            // below this width the button moves under the amount instead of
-            // squeezing the name.
-            final stacked = constraints.maxWidth <
-                    (action == null ? _stackedLayoutWidth : 360) ||
+            final stacked = constraints.maxWidth < _stackedLayoutWidth ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.3;
+            // The action keeps its place at the end of the row; on a narrow
+            // card the amount block gives up width first and lets its
+            // FittedBox shrink, rather than pushing the button underneath.
+            final amountMaxWidth = action != null && constraints.maxWidth < 340
+                ? 104.0
+                : _amountBlockMaxWidth;
 
             final header = stacked
                 ? Column(
@@ -532,9 +534,7 @@ class _UnbudgetedCategoryRow extends StatelessWidget {
                       Expanded(child: _CategoryText(row: row)),
                       SizedBox(width: spacing.sm),
                       ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: _amountBlockMaxWidth,
-                        ),
+                        constraints: BoxConstraints(maxWidth: amountMaxWidth),
                         child: _RowAmounts(row: row, textAlign: TextAlign.end),
                       ),
                       if (action != null) ...[
@@ -566,7 +566,7 @@ class _SetBudgetAction extends StatelessWidget {
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 32),
-        padding: EdgeInsets.symmetric(horizontal: context.spacing.md),
+        padding: EdgeInsets.symmetric(horizontal: context.spacing.sm),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: AppTypography.compactAmount(context),
       ),

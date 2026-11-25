@@ -458,6 +458,30 @@ void main() {
     );
   });
 
+  testWidgets('320dp keeps Set budget at the end of the row', (tester) async {
+    final screen = _map(
+      _summary(
+        mode: BudgetMode.track,
+        unbudgetedActualMinor: 6000,
+        unbudgetedActiveCategories: [
+          _cat(
+            id: 'hobby',
+            name: 'Hobby',
+            budgetMinor: null,
+            actualMinor: 6000,
+          ),
+        ],
+      ),
+    );
+    await _pump(tester, screen, size: const Size(320, 700));
+
+    final amount = tester.getRect(find.text('¥60.00'));
+    final action = tester.getRect(find.text('Set budget'));
+    expect(action.left, greaterThan(amount.left));
+    expect(action.right, lessThanOrEqualTo(320 - 16));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('320dp at 1.6x text stacks the amount under the name',
       (tester) async {
     const name = 'Household supplies and cleaning';
