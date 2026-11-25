@@ -1,348 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
-import 'package:feather_ledger/core/domain/clock/clock.dart';
-import 'package:feather_ledger/core/domain/result/result.dart';
-import 'package:feather_ledger/features/budget/domain/entities/budget_entities.dart';
-import 'package:feather_ledger/features/budget/domain/services/budget_service.dart';
 import 'package:feather_ledger/features/budget/domain/value_objects/budget_value_objects.dart';
 import 'package:feather_ledger/features/budget/presentation/screens/budget_category_detail_screen.dart';
 import 'package:feather_ledger/features/budget/presentation/screens/budget_review_screen.dart';
-import 'package:feather_ledger/features/budget/presentation/screens/budget_screen.dart';
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_overview_card.dart';
-import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_month_picker.dart';
 
-/// The clock the screen runs on: May 2026 is the current (track) month, so
-/// April is closed and June is still a plan.
-final _today = DateTime(2026, 5, 10);
-
-const _apr = YearMonth(2026, 4);
-const _may = YearMonth(2026, 5);
-const _jun = YearMonth(2026, 6);
-
-/// The single review entry of a month: compact bar under the hero for a closed
-/// month, full-width card at the end of the page for the current one.
-const _reviewBarKey = ValueKey('budget-review-bar');
-const _reviewEntryKey = ValueKey('budget-review-entry');
-const _planHintKey = ValueKey('budget-plan-hint');
-
-BudgetMode _modeOf(YearMonth month) {
-  final nowYm = YearMonth.fromDate(_today);
-  if (month > nowYm) return BudgetMode.plan;
-  if (month < nowYm) return BudgetMode.review;
-  return BudgetMode.track;
-}
-
-class _FakeBudgetService implements BudgetService {
-  final Map<YearMonth, MonthBudgetSummary> overrides;
-
-  _FakeBudgetService({this.overrides = const {}});
-
-  /// Months the PageView pages past get the default fixture for their mode.
-  MonthBudgetSummary _summaryFor(YearMonth month) =>
-      overrides[month] ?? _summary(month);
-
-  @override
-  Stream<MonthBudgetSummary> watchMonthBudget({
-    required String currencyCode,
-    required YearMonth month,
-  }) =>
-      Stream.value(_summaryFor(month));
-
-  @override
-  Stream<CategoryBudgetHint> watchTransactionBudgetHint({
-    required String currencyCode,
-    required YearMonth month,
-    required String categoryId,
-  }) =>
-      const Stream.empty();
-
-  @override
-  Future<bool> hasFutureRulesAfter({
-    required String currencyCode,
-    required String categoryId,
-    required YearMonth month,
-  }) async =>
-      false;
-
-  @override
-  Future<Result<void>> setCategoryBudget({
-    required String currencyCode,
-    required String categoryId,
-    required YearMonth month,
-    required int amountMinor,
-    required BudgetEditScope scope,
-  }) async =>
-      unitResult;
-
-  @override
-  Future<Result<void>> clearCategoryBudget({
-    required String currencyCode,
-    required String categoryId,
-    required YearMonth month,
-    required BudgetEditScope scope,
-  }) async =>
-      unitResult;
-
-  @override
-  Future<Result<void>> saveReviewNote({
-    required String currencyCode,
-    required YearMonth month,
-    String? categoryId,
-    required String note,
-  }) async =>
-      unitResult;
-}
-
-CategoryBudgetSummary _cat({
-  required String id,
-  required String name,
-  required YearMonth month,
-  int? budgetMinor,
-  int actualMinor = 0,
-  int pendingMinor = 0,
-  int committedMinor = 0,
-  int? prevBudgetMinor,
-}) {
-  // The plan hint's carry-forward claim reads this category's own trend: a
-  // point for the target month's predecessor holding the same limit means the
-  // rule carried over unchanged.
-  final prevBudget = prevBudgetMinor ?? budgetMinor;
-  return CategoryBudgetSummary(
-    categoryId: id,
-    categoryName: name,
-    iconKey: 'utensils',
-    colorInt: 0xFFE65100,
-    isArchived: false,
-    archiveYm: null,
-    budgetMinor: budgetMinor,
-    hasFutureRulesAfter: false,
-    committedActualMinor: committedMinor,
-    discretionaryActualMinor: actualMinor - committedMinor,
-    actualMinor: actualMinor,
-    pendingMinor: pendingMinor,
-    projectedRemainingMinor: budgetMinor != null
-        ? budgetMinor - actualMinor - pendingMinor
-        : null,
-    lastMonthActualMinor: 50000,
-    threeMonthAvgMinor: 60000,
-    committedBaselineMinor: committedMinor,
-    isAnomaly: false,
-    anomalyDeltaRatio: null,
-    riskLevel: BudgetRiskLevel.inBudget,
-    sixMonthTrend: [
-      for (var back = 5; back >= 0; back--)
-        BudgetTrendPoint(
-          month: month.addMonths(-back),
-          budgetMinor: back == 1 ? prevBudget : budgetMinor,
-          actualMinor: actualMinor,
-          pendingMinor: 0,
-          hasReviewNote: false,
-        ),
-    ],
-    topTransactions: const [],
-    reviewNote: null,
-  );
-}
-
-/// Four normally-named budgeted categories, one unbudgeted spend and one
-/// untouched category, with totals derived from the rows so the fixtures can
-/// never disagree with the numbers the page shows.
-MonthBudgetSummary _summary(
-  YearMonth month, {
-  bool hasAnyActiveAccount = true,
-  List<CategoryBudgetSummary>? budgeted,
-  List<CategoryBudgetSummary>? unbudgeted,
-  List<CategoryBudgetSummary>? remaining,
-  List<BudgetAttributionItem> overBudget = const [],
-  List<BudgetAttributionItem> underBudget = const [],
-  String? note,
-  bool hasHighFrequencyPending = false,
-}) {
-  final resolvedMode = _modeOf(month);
-  final closed = resolvedMode == BudgetMode.review;
-  final budgetedRows = budgeted ??
-      [
-        _cat(
-          id: 'dining',
-          name: 'Dining',
-          month: month,
-          budgetMinor: 100000,
-          actualMinor: 40000,
-          pendingMinor: closed ? 0 : 10000,
-        ),
-        _cat(
-          id: 'groceries',
-          name: 'Groceries',
-          month: month,
-          budgetMinor: 50000,
-          actualMinor: 20000,
-        ),
-        _cat(
-          id: 'transport',
-          name: 'Transport',
-          month: month,
-          budgetMinor: 30000,
-          actualMinor: 30000,
-        ),
-        _cat(
-          id: 'housing',
-          name: 'Housing',
-          month: month,
-          budgetMinor: 200000,
-          actualMinor: 200000,
-        ),
-      ];
-  final unbudgetedRows = unbudgeted ??
-      [
-        _cat(id: 'travel', name: 'Travel', month: month, actualMinor: 25000),
-      ];
-  final remainingRows = remaining ??
-      [_cat(id: 'utils', name: 'Utilities', month: month)];
-
-  int total(Iterable<int> values) => values.fold(0, (a, b) => a + b);
-  int actualOf(List<CategoryBudgetSummary> rows) =>
-      total(rows.map((c) => c.actualMinor));
-  int pendingOf(List<CategoryBudgetSummary> rows) =>
-      total(rows.map((c) => c.pendingMinor));
-
-  final totalBudget =
-      total(budgetedRows.map((c) => c.budgetMinor).whereType<int>());
-  final budgetedActual = actualOf(budgetedRows);
-  final budgetedPending = pendingOf(budgetedRows);
-  final unbudgetedActual = actualOf(unbudgetedRows);
-  final unbudgetedPending = pendingOf(unbudgetedRows);
-  final budgetedCount =
-      budgetedRows.where((c) => c.budgetMinor != null).length;
-  final inBudget = budgetedRows
-      .where((c) =>
-          c.budgetMinor != null &&
-          c.actualMinor + c.pendingMinor <= c.budgetMinor!)
-      .length;
-  final allActual = budgetedActual + unbudgetedActual;
-
-  return MonthBudgetSummary(
-    currencyCode: 'USD',
-    month: month,
-    mode: resolvedMode,
-    hasAnyActiveAccount: hasAnyActiveAccount,
-    totalBudgetMinor: totalBudget,
-    budgetedActualMinor: budgetedActual,
-    budgetedPendingMinor: budgetedPending,
-    projectedRemainingMinor: totalBudget - budgetedActual - budgetedPending,
-    budgetedRemainingActualMinor: totalBudget - budgetedActual,
-    allExpenseActualMinor: allActual,
-    allExpensePendingMinor: budgetedPending + unbudgetedPending,
-    unbudgetedActualMinor: unbudgetedActual,
-    unbudgetedPendingMinor: unbudgetedPending,
-    inBudgetCount: inBudget,
-    budgetedCategoryCount: budgetedCount,
-    complianceRate: budgetedCount == 0 ? 0 : inBudget / budgetedCount,
-    hasAnyBudget: budgetedCount > 0,
-    hasUnbudgetedActivity: unbudgetedActual + unbudgetedPending > 0,
-    hasLeftoverPendingInReview: closed && budgetedPending > 0,
-    hasHighFrequencyPending: hasHighFrequencyPending,
-    isFarFutureMaterializedOnly: false,
-    budgetedCategories: budgetedRows,
-    unbudgetedActiveCategories: unbudgetedRows,
-    remainingActiveCategories: remainingRows,
-    overBudgetTop3: overBudget,
-    underBudgetTop3: underBudget,
-    unbudgetedAlertsTop3: [
-      if (unbudgetedActual + unbudgetedPending > 0)
-        UnbudgetedSpendAlert(
-          categoryId: 'travel',
-          categoryName: 'Travel',
-          iconKey: 'utensils',
-          colorInt: 0xFFE65100,
-          actualMinor: unbudgetedActual,
-          pendingMinor: unbudgetedPending,
-          shareOfTotalActual:
-              allActual == 0 ? 0 : unbudgetedActual / allActual,
-        ),
-    ],
-    monthTrend6Months: [
-      for (var back = 5; back >= 0; back--)
-        BudgetTrendPoint(
-          month: month.addMonths(-back),
-          budgetMinor: totalBudget,
-          actualMinor: allActual,
-          pendingMinor: 0,
-          hasReviewNote: false,
-        ),
-    ],
-    monthReviewNote: note,
-  );
-}
-
-BudgetAttributionItem _attribution({
-  required String id,
-  required String name,
-  required int varianceMinor,
-}) =>
-    BudgetAttributionItem(
-      categoryId: id,
-      categoryName: name,
-      iconKey: 'utensils',
-      colorInt: 0xFFE65100,
-      budgetMinor: 100000,
-      actualMinor: 100000 + varianceMinor,
-      varianceMinor: varianceMinor,
-      shareOfTotalActual: 0.5,
-    );
+import '../../../support/budget_screen_harness.dart';
 
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('en');
   });
-
-  Future<void> pumpBudgetScreen(
-    WidgetTester tester, {
-    required _FakeBudgetService service,
-    Size size = const Size(400, 700),
-    ThemeData? theme,
-    double textScale = 1,
-  }) async {
-    tester.view.physicalSize = size;
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          budgetClockProvider.overrideWithValue(FixedClock(_today)),
-          budgetServiceProvider.overrideWithValue(service),
-          ledgerCurrencyProvider.overrideWithValue('USD'),
-          displayCurrencySymbolProvider.overrideWithValue('\$'),
-        ],
-        child: MaterialApp(
-          theme: theme ?? AppTheme.lightTheme,
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(textScale),
-            ),
-            child: child!,
-          ),
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [Locale('en')],
-          home: const BudgetScreen(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
 
   double topOf(WidgetTester tester, Finder finder) =>
       tester.getTopLeft(finder).dy;
@@ -351,21 +24,21 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(400, 1600),
     );
 
     expect(find.byType(BudgetOverviewCard), findsOneWidget);
     expect(find.text('Budgeted categories'), findsOneWidget);
     expect(find.text('Unbudgeted spending'), findsOneWidget);
-    expect(find.byKey(_reviewEntryKey), findsOneWidget);
-    expect(find.byKey(_reviewBarKey), findsNothing);
-    expect(find.byKey(_planHintKey), findsNothing);
+    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
+    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetPlanHintKey), findsNothing);
     // Exactly one review entry: the card's title appears once.
     expect(find.text('Monthly Review & Trends'), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(_reviewEntryKey),
+        of: find.byKey(budgetReviewEntryKey),
         matching: find.byIcon(LucideIcons.barChart2),
       ),
       findsOneWidget,
@@ -385,7 +58,7 @@ void main() {
     );
     expect(
       topOf(tester, find.text('Travel')),
-      lessThan(topOf(tester, find.byKey(_reviewEntryKey))),
+      lessThan(topOf(tester, find.byKey(budgetReviewEntryKey))),
     );
   });
 
@@ -393,15 +66,15 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(
-          _may,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
           overBudget: [
-            _attribution(
+            budgetAttribution(
                 id: 'dining', name: 'Dining', varianceMinor: -40000),
           ],
           underBudget: [
-            _attribution(
+            budgetAttribution(
                 id: 'groceries', name: 'Groceries', varianceMinor: 30000),
           ],
         ),
@@ -416,11 +89,11 @@ void main() {
   testWidgets('track entry falls back to the biggest surplus', (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(
-          _may,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
           underBudget: [
-            _attribution(
+            budgetAttribution(
                 id: 'groceries', name: 'Groceries', varianceMinor: 30000),
           ],
         ),
@@ -435,7 +108,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(400, 1600),
     );
 
@@ -449,12 +122,12 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(_may),
-        _apr: _summary(
-          _apr,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay),
+        budgetTestApril: monthBudgetSummary(
+          budgetTestApril,
           overBudget: [
-            _attribution(
+            budgetAttribution(
                 id: 'dining', name: 'Dining', varianceMinor: -40000),
           ],
           note: 'Travel spiked on the spring trip and never came back down',
@@ -467,8 +140,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
 
-    expect(find.byKey(_reviewBarKey), findsOneWidget);
-    expect(find.byKey(_reviewEntryKey), findsNothing);
+    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsNothing);
     expect(find.text('Monthly Review & Trends'), findsOneWidget);
     expect(find.text('Dining over by \$400.00'), findsOneWidget);
 
@@ -482,14 +155,14 @@ void main() {
     // Directly under the hero, above the category list.
     expect(
       topOf(tester, find.byType(BudgetOverviewCard)),
-      lessThan(topOf(tester, find.byKey(_reviewBarKey))),
+      lessThan(topOf(tester, find.byKey(budgetReviewBarKey))),
     );
     expect(
-      topOf(tester, find.byKey(_reviewBarKey)),
+      topOf(tester, find.byKey(budgetReviewBarKey)),
       lessThan(topOf(tester, find.text('Budgeted categories'))),
     );
 
-    await tester.tap(find.byKey(_reviewBarKey));
+    await tester.tap(find.byKey(budgetReviewBarKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
     expect(find.text('April 2026'), findsOneWidget);
@@ -499,9 +172,9 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(_may),
-        _apr: _summary(_apr),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay),
+        budgetTestApril: monthBudgetSummary(budgetTestApril),
       }),
       size: const Size(400, 1600),
     );
@@ -513,47 +186,47 @@ void main() {
       find.text('Every budgeted category is still inside its limit'),
       findsOneWidget,
     );
-    await tester.tap(find.byKey(_reviewBarKey));
+    await tester.tap(find.byKey(budgetReviewBarKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
   });
 
   testWidgets('future month ends in a planning hint, not a review entry',
       (tester) async {
-    final plan = _summary(
-      _jun,
+    final plan = monthBudgetSummary(
+      budgetTestJune,
       budgeted: [
-        _cat(
+        budgetCategory(
           id: 'dining',
           name: 'Dining',
-          month: _jun,
+          month: budgetTestJune,
           budgetMinor: 100000,
           committedMinor: 60000,
           pendingMinor: 60000,
         ),
-        _cat(
+        budgetCategory(
           id: 'groceries',
           name: 'Groceries',
-          month: _jun,
+          month: budgetTestJune,
           budgetMinor: 50000,
         ),
-        _cat(
+        budgetCategory(
           id: 'housing',
           name: 'Housing',
-          month: _jun,
+          month: budgetTestJune,
           budgetMinor: 200000,
           committedMinor: 150000,
           pendingMinor: 150000,
         ),
       ],
-      unbudgeted: [_cat(id: 'travel', name: 'Travel', month: _jun)],
-      remaining: [_cat(id: 'utils', name: 'Utilities', month: _jun)],
+      unbudgeted: [budgetCategory(id: 'travel', name: 'Travel', month: budgetTestJune)],
+      remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)],
       hasHighFrequencyPending: true,
     );
 
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may), _jun: plan}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay), budgetTestJune: plan}),
       size: const Size(400, 1600),
     );
 
@@ -561,9 +234,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('June 2026'), findsOneWidget);
 
-    expect(find.byKey(_planHintKey), findsOneWidget);
-    expect(find.byKey(_reviewEntryKey), findsNothing);
-    expect(find.byKey(_reviewBarKey), findsNothing);
+    expect(find.byKey(budgetPlanHintKey), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    expect(find.byKey(budgetReviewBarKey), findsNothing);
     expect(find.text('Monthly Review & Trends'), findsNothing);
     // The rules the rows show *are* last month's, so the page may say so.
     expect(
@@ -579,25 +252,25 @@ void main() {
 
   testWidgets('future month drops the carry-forward claim once a limit differs',
       (tester) async {
-    final replanned = _summary(
-      _jun,
+    final replanned = monthBudgetSummary(
+      budgetTestJune,
       budgeted: [
-        _cat(
+        budgetCategory(
           id: 'dining',
           name: 'Dining',
-          month: _jun,
+          month: budgetTestJune,
           budgetMinor: 120000,
           prevBudgetMinor: 100000,
         ),
       ],
       unbudgeted: const [],
-      remaining: [_cat(id: 'utils', name: 'Utilities', month: _jun)],
+      remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)],
     );
 
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(
-        overrides: {_may: _summary(_may), _jun: replanned},
+      service: FakeBudgetService(
+        overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay), budgetTestJune: replanned},
       ),
       size: const Size(400, 1600),
     );
@@ -605,7 +278,7 @@ void main() {
     await tester.tap(find.byTooltip('Next month'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(_planHintKey), findsOneWidget);
+    expect(find.byKey(budgetPlanHintKey), findsOneWidget);
     expect(find.textContaining('carry forward'), findsNothing);
     expect(
       find.textContaining('Nothing scheduled for this month yet'),
@@ -617,7 +290,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     await tester.tap(find.text('Dining'));
@@ -641,7 +314,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     expect(find.text('Utilities'), findsNothing);
@@ -674,8 +347,8 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(_may, remaining: const []),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay, remaining: const []),
       }),
     );
 
@@ -686,7 +359,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     expect(find.text('May 2026'), findsOneWidget);
@@ -719,9 +392,9 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(_may),
-        _apr: _summary(_apr),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay),
+        budgetTestApril: monthBudgetSummary(budgetTestApril),
       }),
     );
 
@@ -741,7 +414,7 @@ void main() {
 
     await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(_reviewEntryKey));
+    await tester.tap(find.byKey(budgetReviewEntryKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
 
@@ -750,34 +423,34 @@ void main() {
     expect(find.byType(BudgetReviewScreen), findsNothing);
     // Back on the same month, still scrolled where the entry was tapped.
     expect(find.text('May 2026'), findsOneWidget);
-    expect(find.byKey(_reviewEntryKey), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
 
     // A closed month entered from its bar returns to that month too.
     await tester.tap(find.byTooltip('Previous month'));
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
-    await tester.tap(find.byKey(_reviewBarKey));
+    await tester.tap(find.byKey(budgetReviewBarKey));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
-    expect(find.byKey(_reviewBarKey), findsOneWidget);
+    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
   });
 
   testWidgets('the last action on the page clears the bottom bar',
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
     );
 
     await tester.drag(find.byType(ListView), const Offset(0, -2000));
     await tester.pumpAndSettle();
 
     final viewport = tester.getRect(find.byType(ListView));
-    final entry = tester.getRect(find.byKey(_reviewEntryKey));
+    final entry = tester.getRect(find.byKey(budgetReviewEntryKey));
     expect(viewport.bottom - entry.bottom, greaterThanOrEqualTo(88));
-    expect(find.byKey(_reviewEntryKey).hitTestable(), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey).hitTestable(), findsOneWidget);
   });
 
   for (final (label, theme) in [
@@ -788,7 +461,7 @@ void main() {
         (tester) async {
       await pumpBudgetScreen(
         tester,
-        service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+        service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
         theme: theme,
       );
 
@@ -813,7 +486,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(320, 700),
       textScale: 1.5,
     );
@@ -836,7 +509,7 @@ void main() {
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {_may: _summary(_may)}),
+      service: FakeBudgetService(overrides: {budgetTestMay: monthBudgetSummary(budgetTestMay)}),
       size: const Size(900, 700),
     );
 
@@ -853,8 +526,8 @@ void main() {
   testWidgets('no accounts leads to account management', (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(_may, hasAnyActiveAccount: false, budgeted: const []),
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay, hasAnyActiveAccount: false, budgeted: const []),
       }),
     );
 
@@ -865,21 +538,21 @@ void main() {
     );
     expect(find.text('Manage Accounts'), findsOneWidget);
     expect(find.byType(BudgetOverviewCard), findsNothing);
-    expect(find.byKey(_reviewEntryKey), findsNothing);
+    expect(find.byKey(budgetReviewEntryKey), findsNothing);
   });
 
   testWidgets('a month with no budget offers the first-budget entry',
       (tester) async {
     await pumpBudgetScreen(
       tester,
-      service: _FakeBudgetService(overrides: {
-        _may: _summary(
-          _may,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
           budgeted: const [],
           unbudgeted: [
-            _cat(id: 'travel', name: 'Travel', month: _may, actualMinor: 25000),
+            budgetCategory(id: 'travel', name: 'Travel', month: budgetTestMay, actualMinor: 25000),
           ],
-          remaining: [_cat(id: 'utils', name: 'Utilities', month: _may)],
+          remaining: [budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestMay)],
         ),
       }),
       size: const Size(400, 1600),
@@ -893,5 +566,151 @@ void main() {
     // Activity still has a home, and untouched categories still have "+".
     expect(find.text('Travel'), findsOneWidget);
     expect(find.byIcon(LucideIcons.plus), findsOneWidget);
+  });
+
+  testWidgets('a year boundary keeps review, track and plan apart',
+      (tester) async {
+    // January 2026 is the tracked month, so December 2025 is closed and
+    // February 2026 is planned. The three-mode comparison must cross the year
+    // the same way it crosses any other month boundary.
+    final january = DateTime(2026, 1, 15);
+    const dec = YearMonth(2025, 12);
+    const jan = YearMonth(2026, 1);
+    const feb = YearMonth(2026, 2);
+    await pumpBudgetScreen(
+      tester,
+      now: january,
+      service: FakeBudgetService(overrides: {
+        dec: monthBudgetSummary(dec, now: january),
+        jan: monthBudgetSummary(jan, now: january),
+        feb: monthBudgetSummary(feb, now: january),
+      }),
+      size: const Size(400, 1600),
+    );
+
+    expect(find.text('January 2026'), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
+    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetPlanHintKey), findsNothing);
+
+    await tester.tap(find.byTooltip('Previous month'));
+    await tester.pumpAndSettle();
+    expect(find.text('December 2025'), findsOneWidget);
+    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    expect(find.byKey(budgetPlanHintKey), findsNothing);
+
+    await tester.tap(find.byTooltip('Next month'));
+    await tester.pumpAndSettle();
+    expect(find.text('January 2026'), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
+    expect(find.byKey(budgetReviewBarKey), findsNothing);
+
+    await tester.tap(find.byTooltip('Next month'));
+    await tester.pumpAndSettle();
+    expect(find.text('February 2026'), findsOneWidget);
+    expect(find.byKey(budgetPlanHintKey), findsOneWidget);
+    expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('L1 to L2 to L3 and back keeps the month and the scroll offset',
+      (tester) async {
+    await pumpBudgetScreen(
+      tester,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
+          overBudget: [
+            budgetAttribution(id: 'dining', name: 'Dining', varianceMinor: -40000),
+          ],
+        ),
+      }),
+    );
+
+    double homeScrollOffset() => tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byType(ListView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position
+        .pixels;
+
+    await tester.drag(find.byType(ListView), const Offset(0, -900));
+    await tester.pumpAndSettle();
+    final homeOffset = homeScrollOffset();
+    expect(homeOffset, greaterThan(0));
+
+    await tester.tap(find.byKey(budgetReviewEntryKey));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetReviewScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('budget-attribution-dining')));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetCategoryDetailScreen), findsOneWidget);
+
+    // Back through L2 lands on L2, not on the home.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetCategoryDetailScreen), findsNothing);
+    expect(find.byType(BudgetReviewScreen), findsOneWidget);
+    expect(find.text('May 2026'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetReviewScreen), findsNothing);
+    expect(find.text('May 2026'), findsOneWidget);
+    expect(homeScrollOffset(), closeTo(homeOffset, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an archived row in a closed month stays read-only',
+      (tester) async {
+    await pumpBudgetScreen(
+      tester,
+      service: FakeBudgetService(overrides: {
+        budgetTestMay: monthBudgetSummary(budgetTestMay),
+        budgetTestApril: monthBudgetSummary(
+          budgetTestApril,
+          budgeted: [
+            budgetCategory(
+              id: 'dining',
+              name: 'Dining',
+              month: budgetTestApril,
+              budgetMinor: 100000,
+              actualMinor: 40000,
+              isArchived: true,
+            ),
+            budgetCategory(
+              id: 'groceries',
+              name: 'Groceries',
+              month: budgetTestApril,
+              budgetMinor: 50000,
+              actualMinor: 20000,
+            ),
+          ],
+          unbudgeted: const [],
+        ),
+      }),
+      size: const Size(400, 1600),
+    );
+
+    await tester.tap(find.byTooltip('Previous month'));
+    await tester.pumpAndSettle();
+    expect(find.text('April 2026'), findsOneWidget);
+
+    await tester.tap(find.text('Dining'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetCategoryDetailScreen), findsOneWidget);
+    // The row keeps its history but offers neither an edit nor a delete.
+    expect(find.text('Archived'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

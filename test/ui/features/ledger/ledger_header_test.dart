@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/theme/app_typography.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_balance_sparkline.dart';
@@ -558,6 +559,72 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+  });
+
+  testWidgets('the expanded balance keeps the shared three-tier scale',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        balanceVisibilityControllerProvider
+            .overrideWith(() => _FixedVisibility(true)),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
+        home: Scaffold(
+          body: LedgerHeader(
+            summaryAsync: const AsyncData(summary),
+            onTap: () {},
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final balance = tester.widget<Text>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.textSpan != null &&
+            widget.textSpan!.toPlainText() == r'$1,234.56',
+      ),
+    );
+    final spans = (balance.textSpan! as TextSpan).children!.cast<TextSpan>();
+
+    // Symbol, whole units, decimals — the same three roles the budget overview
+    // reads, which is why the sizes moved to the shared typography.
+    expect(spans, hasLength(3));
+    expect(spans[0].text, r'$');
+    expect(spans[0].style!.fontSize, AppTypography.overviewSymbolSize);
+    expect(spans[1].text, '1,234');
+    expect(spans[1].style!.fontSize, AppTypography.overviewWholeSize);
+    expect(spans[1].style!.letterSpacing, AppTypography.overviewWholeTracking);
+    expect(
+      spans[1].style!.fontFeatures,
+      contains(const FontFeature.tabularFigures()),
+    );
+    expect(spans[2].text, '.56');
+    expect(spans[2].style!.fontSize, AppTypography.overviewFractionSize);
+
+    // LedgerTheme's names are aliases of the shared scale, not copies.
+    expect(LedgerTheme.balanceSymbolSize, AppTypography.overviewSymbolSize);
+    expect(LedgerTheme.balanceWholeSize, AppTypography.overviewWholeSize);
+    expect(LedgerTheme.balanceFractionSize, AppTypography.overviewFractionSize);
+    expect(
+      LedgerTheme.balanceWholeTracking,
+      AppTypography.overviewWholeTracking,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('collapsed app bar renders month title hierarchy and tonal balance capsule',

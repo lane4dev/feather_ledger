@@ -397,6 +397,24 @@ void main() {
     );
   });
 
+  testWidgets('accepts a note of exactly 500 characters', (tester) async {
+    final service = await pumpReview(tester);
+    final atLimit = 'a' * 500;
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), atLimit);
+    await tester.pump();
+    expect(find.text('500/500'), findsOneWidget);
+
+    await tester.tap(find.text('Save note'));
+    await tester.pumpAndSettle();
+
+    expect(service.saveCalls, 1);
+    expect(service.savedNote, atLimit);
+    expect(find.byType(TextField), findsNothing);
+  });
+
   testWidgets('saves a valid note and shows it read-only', (tester) async {
     final service = await pumpReview(tester);
 
