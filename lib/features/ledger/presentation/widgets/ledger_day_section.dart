@@ -143,12 +143,31 @@ class _RenderDaySection extends RenderSliver
     SliverHitTestResult result, {
     required double mainAxisPosition,
     required double crossAxisPosition,
-  }) =>
-      _content.hitTest(
+  }) {
+    if (_content.hitTest(
+      result,
+      mainAxisPosition: mainAxisPosition,
+      crossAxisPosition: crossAxisPosition,
+    )) {
+      return true;
+    }
+    // Keep the left date rail beside a row part of that row's tap target
+    // even though the day card starts after [_headerWidth].
+    if (crossAxisPosition >= 0 &&
+        crossAxisPosition < _headerWidth &&
+        constraints.crossAxisExtent > _headerWidth) {
+      final probeX = math.min(
+        _headerWidth + 16.0,
+        (_headerWidth + constraints.crossAxisExtent) / 2,
+      );
+      return _content.hitTest(
         result,
         mainAxisPosition: mainAxisPosition,
-        crossAxisPosition: crossAxisPosition,
+        crossAxisPosition: probeX,
       );
+    }
+    return false;
+  }
 
   @override
   void applyPaintTransform(RenderObject child, Matrix4 transform) {

@@ -30,6 +30,12 @@ class LedgerDayGroup {
 
   bool get isEmpty => transactions.isEmpty;
 
+  /// Only show the card's footer divider and subtotal when the day has at
+  /// least two visible rows and at least one countable posted income/expense.
+  bool get hasSubtotal =>
+      transactions.length >= 2 &&
+      (displayIncome != null || displayExpense != null);
+
   /// Sorts all rows newest first and groups them by calendar day, totalling
   /// each day's posted income and expense as it goes. Pending bills keep
   /// their place by date but do not contribute to the totals.

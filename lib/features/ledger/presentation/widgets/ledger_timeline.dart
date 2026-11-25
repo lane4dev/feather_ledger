@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
+import 'package:feather_ledger/app/design_system/app_card.dart';
+import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
@@ -73,30 +74,38 @@ class _DayGroup extends StatelessWidget {
       headerWidth: LedgerTheme.colAnchorWidth,
       header: IgnorePointer(
         child: SizedBox(
-          height: 56,
+          height: LedgerTheme.rowMinHeight,
           child: TimeAnchor(date: date),
         ),
       ),
-      sliver: SliverList.builder(
-        // +1 for the summary row
-        itemCount: transactions.length + 1,
-        itemBuilder: (context, index) {
-          if (index == transactions.length) {
-            return _DailySummary(
-              displayIncome: day.displayIncome,
-              displayExpense: day.displayExpense,
-              showDivider: transactions.any((tx) => !tx.isPending),
-            );
-          }
-
-          final tx = transactions[index];
-
-          return TransactionTile(
-            transaction: tx,
-            currencySymbol: currencySymbol,
-            onTap: () => onTransactionTap?.call(tx),
-          );
-        },
+      sliver: SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: LedgerTheme.colAnchorWidth,
+            right: context.spacing.md,
+            bottom: LedgerTheme.dayCardGap,
+          ),
+          child: AppCard.day(
+            padding: EdgeInsets.zero,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final tx in transactions)
+                  TransactionTile(
+                    transaction: tx,
+                    currencySymbol: currencySymbol,
+                    onTap: () => onTransactionTap?.call(tx),
+                  ),
+                if (day.hasSubtotal)
+                  _DailySummary(
+                    displayIncome: day.displayIncome,
+                    displayExpense: day.displayExpense,
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -106,66 +115,81 @@ class _DayGroup extends StatelessWidget {
 class _DailySummary extends StatelessWidget {
   final String? displayIncome;
   final String? displayExpense;
-  final bool showDivider;
 
   const _DailySummary({
     this.displayIncome,
     this.displayExpense,
-    required this.showDivider,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: LedgerTheme.colAnchorWidth + context.spacing.md,
-        right: context.spacing.md,
-        bottom: context
-            .spacing.lg, // Increased bottom spacing for better group separation
-        top: context.spacing.sm, // Increased top spacing
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showDivider) const FeatherDivider(),
-          Padding(
-            padding: EdgeInsets.only(top: context.spacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Income
-                if (displayIncome != null) ...[
-                  Text(
-                    '${l10n.income}: ',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  Text(
-                    displayIncome!,
-                    style: AppTypography.meta(context).copyWith(
-                      color: context.colors.income,
-                    ),
-                  ),
-                ],
-                // Expense
-                if (displayExpense != null) ...[
-                  SizedBox(width: context.spacing.md),
-                  Text(
-                    '${l10n.expense}: ',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  Text(
-                    displayExpense!,
-                    style: AppTypography.meta(context).copyWith(
-                      color: context.colors.expense,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FeatherDivider(
+          indent: context.spacing.md,
+          endIndent: context.spacing.md,
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            context.spacing.md,
+            context.spacing.sm,
+            context.spacing.md,
+            context.spacing.sm + 2,
           ),
-        ],
-      ),
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: context.spacing.md,
+            runSpacing: context.spacing.xs,
+            children: [
+              if (displayIncome != null)
+                _SubtotalItem(
+                  label: '${l10n.income}: ',
+                  amount: displayIncome!,
+                  color: context.colors.income,
+                ),
+              if (displayExpense != null)
+                _SubtotalItem(
+                  label: '${l10n.expense}: ',
+                  amount: displayExpense!,
+                  color: context.colors.expense,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SubtotalItem extends StatelessWidget {
+  final String label;
+  final String amount;
+  final Color color;
+
+  const _SubtotalItem({
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          label,
+          style: LedgerTheme.transactionMeta(context),
+        ),
+        Text(
+          amount,
+          style: AppTypography.compactAmount(context).copyWith(color: color),
+        ),
+      ],
     );
   }
 }

@@ -281,4 +281,131 @@ void main() {
     expect(days.single.displayIncome, isNull);
     expect(days.single.displayExpense, isNull);
   });
+
+  test('hasSubtotal is false for a single posted row even when displayExpense is present',
+      () {
+    final days = group([
+      tile(
+        amount: 1000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 10),
+      ),
+    ]);
+
+    expect(days.single.displayExpense, r'$10.00');
+    expect(days.single.hasSubtotal, isFalse);
+  });
+
+  test('hasSubtotal is false when all visible rows are pending', () {
+    final days = group([
+      tile(
+        amount: 1000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 10),
+        isPending: true,
+      ),
+      tile(
+        amount: 2000,
+        type: TransactionKind.income,
+        date: DateTime(2026, 11, 10),
+        isPending: true,
+      ),
+    ]);
+
+    expect(days.single.transactions, hasLength(2));
+    expect(days.single.hasSubtotal, isFalse);
+  });
+
+  test('hasSubtotal is true for mixed posted + pending rows and excludes pending amount',
+      () {
+    final days = group([
+      tile(
+        amount: 1000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 10),
+      ),
+      tile(
+        amount: 2000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 10),
+        isPending: true,
+      ),
+    ]);
+
+    expect(days.single.transactions, hasLength(2));
+    expect(days.single.displayExpense, r'$10.00');
+    expect(days.single.hasSubtotal, isTrue);
+  });
+
+  test('hasSubtotal is false for transfer-only and balance-purpose-only days',
+      () {
+    final days = group([
+      tile(
+        amount: 1000,
+        type: TransactionKind.transfer,
+        date: DateTime(2026, 11, 11),
+      ),
+      tile(
+        amount: 2000,
+        type: TransactionKind.transfer,
+        date: DateTime(2026, 11, 11),
+      ),
+      tile(
+        amount: 3000,
+        type: TransactionKind.openingBalance,
+        date: DateTime(2026, 11, 12),
+      ),
+      tile(
+        amount: 4000,
+        type: TransactionKind.balanceAdjustment,
+        date: DateTime(2026, 11, 12),
+      ),
+    ]);
+
+    expect(days[0].hasSubtotal, isFalse);
+    expect(days[1].hasSubtotal, isFalse);
+  });
+
+  test('hasSubtotal is false when all rows belong to excluded-from-totals accounts',
+      () {
+    const excluded = AccountEntity(
+      id: 'acc_held',
+      name: 'Held',
+      type: AccountType.bank,
+      currencyCode: 'USD',
+      balanceMinor: 0,
+      archived: false,
+      includeInTotals: false,
+      lastUpdatedEventId: 0,
+    );
+    final days = group([
+      TransactionTileUiModel(
+        id: 'tx_1',
+        amount: 1000,
+        type: TransactionKind.expense,
+        date: DateTime(2026, 11, 13),
+        note: null,
+        category: rent,
+        account: excluded,
+        displayAmount: '10.00',
+        displaySign: '-',
+      ),
+      TransactionTileUiModel(
+        id: 'tx_2',
+        amount: 2000,
+        type: TransactionKind.income,
+        date: DateTime(2026, 11, 13),
+        note: null,
+        category: rent,
+        account: excluded,
+        displayAmount: '20.00',
+        displaySign: '+',
+      ),
+    ]);
+
+    expect(days.single.transactions, hasLength(2));
+    expect(days.single.displayIncome, isNull);
+    expect(days.single.displayExpense, isNull);
+    expect(days.single.hasSubtotal, isFalse);
+  });
 }
