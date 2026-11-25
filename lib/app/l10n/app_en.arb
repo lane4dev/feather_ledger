@@ -1061,6 +1061,25 @@
   },
   "budgetHintExcludedAccount": "Excluded from budget totals",
   "budgetHintPastPlanned": "Past-month planned bills are excluded from closed reviews",
+  "budgetReviewEntryOverrun": "{category} over by {amount}",
+  "@budgetReviewEntryOverrun": {
+    "placeholders": { "category": { "type": "String" }, "amount": { "type": "String" } }
+  },
+  "budgetReviewEntrySurplus": "{category} unspent {amount}",
+  "@budgetReviewEntrySurplus": {
+    "placeholders": { "category": { "type": "String" }, "amount": { "type": "String" } }
+  },
+  "budgetReviewEntryQuiet": "Every budgeted category is still inside its limit",
+  "budgetReviewNotePreview": "Note: {note}",
+  "@budgetReviewNotePreview": {
+    "placeholders": { "note": { "type": "String" } }
+  },
+  "budgetPlanHintCarryForward": "Last month's rules carry forward",
+  "budgetPlanHintFixedBills": "Fixed bills {amount} already scheduled",
+  "@budgetPlanHintFixedBills": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetPlanHintNoBills": "Nothing scheduled for this month yet",
   "hideOverviewAmounts": "Hide overview amounts",
   "showOverviewAmounts": "Show overview amounts",
   "monthIncome": "{month} income",

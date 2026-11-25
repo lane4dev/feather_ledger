@@ -1283,6 +1283,32 @@ class FakeAppLocalizations implements AppLocalizations {
       'Past-month planned bills are excluded from closed reviews';
 
   @override
+  String budgetReviewEntryOverrun(String category, String amount) =>
+      '$category over by $amount';
+
+  @override
+  String budgetReviewEntrySurplus(String category, String amount) =>
+      '$category unspent $amount';
+
+  @override
+  String get budgetReviewEntryQuiet =>
+      'Every budgeted category is still inside its limit';
+
+  @override
+  String budgetReviewNotePreview(String note) => 'Note: $note';
+
+  @override
+  String get budgetPlanHintCarryForward =>
+      "Last month's rules carry forward";
+
+  @override
+  String budgetPlanHintFixedBills(String amount) =>
+      'Fixed bills $amount already scheduled';
+
+  @override
+  String get budgetPlanHintNoBills => 'Nothing scheduled for this month yet';
+
+  @override
   String get hideOverviewAmounts => 'Hide overview amounts';
 
   @override

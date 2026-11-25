@@ -1362,6 +1362,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
 
   @override
+  String budgetReviewEntryOverrun(String category, String amount) {
+    return '$category超支 $amount';
+  }
+
+  @override
+  String budgetReviewEntrySurplus(String category, String amount) {
+    return '$category结余 $amount';
+  }
+
+  @override
+  String get budgetReviewEntryQuiet => '已设预算分类都还在额度内';
+
+  @override
+  String budgetReviewNotePreview(String note) {
+    return '备忘：$note';
+  }
+
+  @override
+  String get budgetPlanHintCarryForward => '沿用上月规则';
+
+  @override
+  String budgetPlanHintFixedBills(String amount) {
+    return '已排定固定账单 $amount';
+  }
+
+  @override
+  String get budgetPlanHintNoBills => '本月还没有已排定账单';
+
+  @override
   String get hideOverviewAmounts => '隐藏概览金额';
 
   @override
@@ -2741,6 +2770,35 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetHintPastPlanned => '历史月计划账单不计入已完结复盘';
 
   @override
+  String budgetReviewEntryOverrun(String category, String amount) {
+    return '$category超支 $amount';
+  }
+
+  @override
+  String budgetReviewEntrySurplus(String category, String amount) {
+    return '$category结余 $amount';
+  }
+
+  @override
+  String get budgetReviewEntryQuiet => '已设预算分类都还在额度内';
+
+  @override
+  String budgetReviewNotePreview(String note) {
+    return '备忘：$note';
+  }
+
+  @override
+  String get budgetPlanHintCarryForward => '沿用上月规则';
+
+  @override
+  String budgetPlanHintFixedBills(String amount) {
+    return '已排定固定账单 $amount';
+  }
+
+  @override
+  String get budgetPlanHintNoBills => '本月还没有已排定账单';
+
+  @override
   String get hideOverviewAmounts => '隐藏概览金额';
 
   @override
@@ -4118,6 +4176,35 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetHintPastPlanned => '歷史月計劃帳單不計入已完結複盤';
+
+  @override
+  String budgetReviewEntryOverrun(String category, String amount) {
+    return '$category超支 $amount';
+  }
+
+  @override
+  String budgetReviewEntrySurplus(String category, String amount) {
+    return '$category結餘 $amount';
+  }
+
+  @override
+  String get budgetReviewEntryQuiet => '已設預算分類都還在額度內';
+
+  @override
+  String budgetReviewNotePreview(String note) {
+    return '備忘：$note';
+  }
+
+  @override
+  String get budgetPlanHintCarryForward => '沿用上月規則';
+
+  @override
+  String budgetPlanHintFixedBills(String amount) {
+    return '已排定固定帳單 $amount';
+  }
+
+  @override
+  String get budgetPlanHintNoBills => '本月還沒有已排定帳單';
 
   @override
   String get hideOverviewAmounts => '隱藏概覽金額';

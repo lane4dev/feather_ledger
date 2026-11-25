@@ -2626,6 +2626,48 @@ abstract class AppLocalizations {
   /// **'Past-month planned bills are excluded from closed reviews'**
   String get budgetHintPastPlanned;
 
+  /// No description provided for @budgetReviewEntryOverrun.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} over by {amount}'**
+  String budgetReviewEntryOverrun(String category, String amount);
+
+  /// No description provided for @budgetReviewEntrySurplus.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} unspent {amount}'**
+  String budgetReviewEntrySurplus(String category, String amount);
+
+  /// No description provided for @budgetReviewEntryQuiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Every budgeted category is still inside its limit'**
+  String get budgetReviewEntryQuiet;
+
+  /// No description provided for @budgetReviewNotePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: {note}'**
+  String budgetReviewNotePreview(String note);
+
+  /// No description provided for @budgetPlanHintCarryForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Last month\'s rules carry forward'**
+  String get budgetPlanHintCarryForward;
+
+  /// No description provided for @budgetPlanHintFixedBills.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed bills {amount} already scheduled'**
+  String budgetPlanHintFixedBills(String amount);
+
+  /// No description provided for @budgetPlanHintNoBills.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scheduled for this month yet'**
+  String get budgetPlanHintNoBills;
+
   /// No description provided for @hideOverviewAmounts.
   ///
   /// In en, this message translates to:
