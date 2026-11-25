@@ -21,6 +21,7 @@ import 'package:feather_ledger/features/ledger/domain/services/ledger_service.da
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/budget/presentation/widgets/transaction_budget_hint_banner.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 
@@ -235,6 +236,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(ledger.addedTransactions, hasLength(1));
     expect(ledger.addedTransactions.single['amountMinor'], 6000);
+  });
+
+  testWidgets('the budget hint is read-only and never takes a tap',
+      (tester) async {
+    final now = DateTime.now();
+    final ym = YearMonth.fromDate(now);
+    await pumpForm(
+      tester,
+      now: now,
+      hints: {
+        ('USD', ym, 'cat_dining'): CategoryBudgetHint(
+          currencyCode: 'USD',
+          month: ym,
+          categoryId: 'cat_dining',
+          isCategoryArchived: false,
+          effectiveBudgetMinor: 10000,
+          actualMinor: 6000,
+          pendingMinor: 0,
+        ),
+      },
+    );
+
+    await tester.tap(find.text('Category'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dining').last);
+    await tester.pumpAndSettle();
+
+    final banner = find.byType(TransactionBudgetHintBanner);
+    expect(banner, findsOneWidget);
+    expect(find.textContaining('\$40.00'), findsWidgets);
+    // Reading the hint is the whole interaction: no ink, no buttons, nothing
+    // that can hide the form behind a sheet or navigate away.
+    expect(
+      find.descendant(of: banner, matching: find.byType(InkWell)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: banner, matching: find.byType(TextButton)),
+      findsNothing,
+    );
+    await tester.tap(banner, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('\$40.00'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

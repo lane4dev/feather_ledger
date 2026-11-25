@@ -36,6 +36,7 @@ class _StubBudgetService implements BudgetService {
   String? savedNote;
   BudgetEditScope? lastScope;
   int? lastAmountMinor;
+  int clearCalls = 0;
 
   _StubBudgetService(this.summary, {this.updates});
 
@@ -85,6 +86,7 @@ class _StubBudgetService implements BudgetService {
     required BudgetEditScope scope,
   }) async {
     lastScope = scope;
+    clearCalls++;
     return clearResult ?? unitResult;
   }
 
@@ -317,6 +319,24 @@ void main() {
 
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
     expect(find.text('Category is archived'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the clear dialog keeps the budget and its note',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary());
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+
+    await openClearDialog(tester);
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(service.clearCalls, 0);
+    expect(service.lastScope, isNull);
+    // The category note is still the one the (undone) clear would have deleted.
+    expect(find.text('Old note'), findsOneWidget);
+    expect(find.text('Budget removed'), findsNothing);
   });
 
   testWidgets('archived category is read only and has no overflow menu',

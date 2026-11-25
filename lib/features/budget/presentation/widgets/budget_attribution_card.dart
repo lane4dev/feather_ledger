@@ -1,90 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:feather_ledger/app/design_system/app_badge.dart';
-import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
-import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 
 import '../models/budget_ui_models.dart';
 
-/// Month review attribution: over/under budget TOP 3 and the month note.
+/// Month review attribution: over/under budget TOP 3.
 ///
 /// The over and under lists sit side by side when the card is wide enough and
 /// stack when it is not, so a narrow screen or large text never forces the
 /// category names into a sliver. Order comes from the domain lists unchanged.
-///
-/// The note editor only renders when [onSaveMonthNote] is provided. The L2
-/// review page owns its own editor (it needs the save result to keep the draft
-/// on failure), so it passes no callback here.
-class BudgetAttributionCard extends StatefulWidget {
+class BudgetAttributionCard extends StatelessWidget {
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
-  final List<BudgetUnbudgetedAlertUiModel> unbudgetedAlertsTop3;
-  final String? monthReviewNote;
   final ValueChanged<String> onCategoryTap;
-  final Future<void> Function(String note)? onSaveMonthNote;
 
   const BudgetAttributionCard({
     super.key,
     required this.overBudgetTop3,
     required this.underBudgetTop3,
-    this.unbudgetedAlertsTop3 = const [],
-    this.monthReviewNote,
     required this.onCategoryTap,
-    this.onSaveMonthNote,
   });
-
-  @override
-  State<BudgetAttributionCard> createState() => _BudgetAttributionCardState();
-}
-
-class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
-  bool _editingNote = false;
-  late final TextEditingController _noteController;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _noteController = TextEditingController(text: widget.monthReviewNote ?? '');
-  }
-
-  @override
-  void didUpdateWidget(covariant BudgetAttributionCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_editingNote && oldWidget.monthReviewNote != widget.monthReviewNote) {
-      _noteController.text = widget.monthReviewNote ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submitNote() async {
-    setState(() => _saving = true);
-    await widget.onSaveMonthNote!(_noteController.text);
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _editingNote = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
     final scheme = Theme.of(context).colorScheme;
-    final showOver = widget.overBudgetTop3.isNotEmpty;
-    final showUnder = widget.underBudgetTop3.isNotEmpty;
+    final showOver = overBudgetTop3.isNotEmpty;
+    final showUnder = underBudgetTop3.isNotEmpty;
 
     return AppCard(
       child: Column(
@@ -115,18 +62,18 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
                   if (showOver)
                     _AttributionColumn(
                       title: l10n.budgetOverTopTitle,
-                      items: widget.overBudgetTop3,
+                      items: overBudgetTop3,
                       trailingText: (item) => '+${item.deltaDisplay}',
                       trailingColor: context.colors.expense,
-                      onCategoryTap: widget.onCategoryTap,
+                      onCategoryTap: onCategoryTap,
                     ),
                   if (showUnder)
                     _AttributionColumn(
                       title: l10n.budgetUnderTopTitle,
-                      items: widget.underBudgetTop3,
+                      items: underBudgetTop3,
                       trailingText: (item) => item.deltaDisplay,
                       trailingColor: context.colors.income,
-                      onCategoryTap: widget.onCategoryTap,
+                      onCategoryTap: onCategoryTap,
                     ),
                 ];
                 if (!sideBySide) {
@@ -150,114 +97,6 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
                 );
               },
             ),
-          ],
-          if (widget.unbudgetedAlertsTop3.isNotEmpty) ...[
-            SizedBox(height: spacing.sm),
-            Text(
-              l10n.budgetUnbudgetedAlertsTitle,
-              style: AppTypography.meta(context),
-            ),
-            SizedBox(height: spacing.xs),
-            for (final alert in widget.unbudgetedAlertsTop3)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: spacing.xs),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        alert.name,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    AppBadge(label: alert.shareDisplay),
-                    SizedBox(width: spacing.sm),
-                    Text(
-                      alert.actualDisplay,
-                      style: AppTypography.amount(context)
-                          .copyWith(color: scheme.onSurface),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-          if (widget.onSaveMonthNote != null) ...[
-            SizedBox(height: spacing.md),
-            const FeatherDivider(),
-            SizedBox(height: spacing.sm),
-            Row(
-              children: [
-                Text(
-                  l10n.budgetMonthNoteLabel,
-                  style: AppTypography.meta(context),
-                ),
-                const Spacer(),
-                if (!_editingNote)
-                  TextButton.icon(
-                    onPressed: () {
-                      _noteController.text = widget.monthReviewNote ?? '';
-                      setState(() => _editingNote = true);
-                    },
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-                    ),
-                    icon: const Icon(LucideIcons.pencil, size: 14),
-                    label: Text(
-                      l10n.edit,
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ),
-              ],
-            ),
-            if (_editingNote) ...[
-              SizedBox(height: spacing.xs),
-              AppTextField(
-                controller: _noteController,
-                maxLines: 3,
-                minLines: 2,
-                hintText: l10n.budgetNotePlaceholder,
-                onChanged: (_) => setState(() {}),
-              ),
-              SizedBox(height: spacing.xs),
-              Row(
-                children: [
-                  Text(
-                    l10n.budgetNoteCharCount(_noteController.text.runes.length),
-                    style: AppTypography.compactLabel(context).copyWith(
-                      color: _noteController.text.runes.length > 500
-                          ? scheme.error
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  AppButton.text(
-                    onPressed: _saving
-                        ? null
-                        : () => setState(() => _editingNote = false),
-                    child: Text(l10n.cancel),
-                  ),
-                  SizedBox(width: spacing.xs),
-                  AppButton.outlined(
-                    onPressed: _saving ? null : _submitNote,
-                    child: Text(l10n.budgetSaveNote),
-                  ),
-                ],
-              ),
-            ] else if (widget.monthReviewNote != null) ...[
-              SizedBox(height: spacing.xs),
-              Text(
-                widget.monthReviewNote!,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ] else ...[
-              SizedBox(height: spacing.xs),
-              Text(
-                l10n.budgetNotePlaceholder,
-                style: AppTypography.meta(context),
-              ),
-            ],
           ],
         ],
       ),

@@ -1002,16 +1002,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetModePlan => '规划';
 
   @override
-  String get budgetModeTrack => '跟踪';
-
-  @override
   String get budgetModeReview => '复盘';
-
-  @override
-  String get budgetReviewPreviewToggle => '复盘预览';
-
-  @override
-  String get budgetTracking => '预算跟踪';
 
   @override
   String get budgetTotal => '本月总预算';
@@ -1035,12 +1026,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetCommitted => '固定';
 
   @override
-  String get budgetCommittedSpending => '固定消费';
-
-  @override
-  String get budgetDiscretionarySpending => '弹性消费';
-
-  @override
   String get budgetDiscretionary => '弹性';
 
   @override
@@ -1060,16 +1045,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetOverviewBaselineShare => '基线占比';
-
-  @override
-  String budgetAllExpensesLine(String total, String unbudgeted) {
-    return '本月全部实耗 $total（含未设预算 $unbudgeted）';
-  }
-
-  @override
-  String budgetAllExpensesOnly(String total) {
-    return '本月全部实耗 $total';
-  }
 
   @override
   String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
@@ -1117,9 +1092,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
-  String get budgetUnbudgetedAlertsTitle => '未设预算大额预警';
-
-  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
 
   @override
@@ -1144,9 +1116,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetSectionUnbudgetedActive => '计划外支出';
-
-  @override
-  String get budgetSectionRemaining => '其余分类（点击设预算）';
 
   @override
   String get budgetSetButton => '设预算';
@@ -1288,20 +1257,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetCleared => '预算已取消';
-
-  @override
-  String get budgetStatusInBudget => '达标';
-
-  @override
-  String get budgetStatusAtRisk => '预警';
-
-  @override
-  String get budgetStatusOver => '超支';
-
-  @override
-  String budgetAnomalyBadge(int percent) {
-    return '较均值 +$percent%';
-  }
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -2418,16 +2373,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetModePlan => '规划';
 
   @override
-  String get budgetModeTrack => '跟踪';
-
-  @override
   String get budgetModeReview => '复盘';
-
-  @override
-  String get budgetReviewPreviewToggle => '复盘预览';
-
-  @override
-  String get budgetTracking => '预算跟踪';
 
   @override
   String get budgetTotal => '本月总预算';
@@ -2451,12 +2397,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetCommitted => '固定';
 
   @override
-  String get budgetCommittedSpending => '固定消费';
-
-  @override
-  String get budgetDiscretionarySpending => '弹性消费';
-
-  @override
   String get budgetDiscretionary => '弹性';
 
   @override
@@ -2476,16 +2416,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetOverviewBaselineShare => '基线占比';
-
-  @override
-  String budgetAllExpensesLine(String total, String unbudgeted) {
-    return '本月全部实耗 $total（含未设预算 $unbudgeted）';
-  }
-
-  @override
-  String budgetAllExpensesOnly(String total) {
-    return '本月全部实耗 $total';
-  }
 
   @override
   String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
@@ -2533,9 +2463,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
-  String get budgetUnbudgetedAlertsTitle => '未设预算大额预警';
-
-  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
 
   @override
@@ -2560,9 +2487,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetSectionUnbudgetedActive => '计划外支出';
-
-  @override
-  String get budgetSectionRemaining => '其余分类（点击设预算）';
 
   @override
   String get budgetSetButton => '设预算';
@@ -2704,20 +2628,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetCleared => '预算已取消';
-
-  @override
-  String get budgetStatusInBudget => '达标';
-
-  @override
-  String get budgetStatusAtRisk => '预警';
-
-  @override
-  String get budgetStatusOver => '超支';
-
-  @override
-  String budgetAnomalyBadge(int percent) {
-    return '较均值 +$percent%';
-  }
 
   @override
   String budgetAnomalyDetail(int percent, String average) {
@@ -3834,16 +3744,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetModePlan => '規劃';
 
   @override
-  String get budgetModeTrack => '追蹤';
-
-  @override
   String get budgetModeReview => '複盤';
-
-  @override
-  String get budgetReviewPreviewToggle => '複盤預覽';
-
-  @override
-  String get budgetTracking => '預算追蹤';
 
   @override
   String get budgetTotal => '本月總預算';
@@ -3867,12 +3768,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetCommitted => '固定';
 
   @override
-  String get budgetCommittedSpending => '固定消費';
-
-  @override
-  String get budgetDiscretionarySpending => '彈性消費';
-
-  @override
   String get budgetDiscretionary => '彈性';
 
   @override
@@ -3892,16 +3787,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetOverviewBaselineShare => '基線佔比';
-
-  @override
-  String budgetAllExpensesLine(String total, String unbudgeted) {
-    return '本月全部實耗 $total（含未設預算 $unbudgeted）';
-  }
-
-  @override
-  String budgetAllExpensesOnly(String total) {
-    return '本月全部實耗 $total';
-  }
 
   @override
   String get budgetLeftoverPendingHint => '該歷史月仍有未入帳週期帳單，複盤統計已忽略。';
@@ -3949,9 +3834,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '結餘 TOP';
 
   @override
-  String get budgetUnbudgetedAlertsTitle => '未設預算大額預警';
-
-  @override
   String get budgetMonthNoteLabel => '月度複盤備忘';
 
   @override
@@ -3976,9 +3858,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetSectionUnbudgetedActive => '計劃外支出';
-
-  @override
-  String get budgetSectionRemaining => '其餘分類（點擊設預算）';
 
   @override
   String get budgetSetButton => '設預算';
@@ -4120,20 +3999,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetCleared => '預算已取消';
-
-  @override
-  String get budgetStatusInBudget => '達標';
-
-  @override
-  String get budgetStatusAtRisk => '預警';
-
-  @override
-  String get budgetStatusOver => '超支';
-
-  @override
-  String budgetAnomalyBadge(int percent) {
-    return '較均值 +$percent%';
-  }
 
   @override
   String budgetAnomalyDetail(int percent, String average) {

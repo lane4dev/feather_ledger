@@ -2024,29 +2024,11 @@ abstract class AppLocalizations {
   /// **'Plan'**
   String get budgetModePlan;
 
-  /// No description provided for @budgetModeTrack.
-  ///
-  /// In en, this message translates to:
-  /// **'Track'**
-  String get budgetModeTrack;
-
   /// No description provided for @budgetModeReview.
   ///
   /// In en, this message translates to:
   /// **'Review'**
   String get budgetModeReview;
-
-  /// No description provided for @budgetReviewPreviewToggle.
-  ///
-  /// In en, this message translates to:
-  /// **'Review preview'**
-  String get budgetReviewPreviewToggle;
-
-  /// No description provided for @budgetTracking.
-  ///
-  /// In en, this message translates to:
-  /// **'Budget tracking'**
-  String get budgetTracking;
 
   /// No description provided for @budgetTotal.
   ///
@@ -2090,18 +2072,6 @@ abstract class AppLocalizations {
   /// **'Committed'**
   String get budgetCommitted;
 
-  /// No description provided for @budgetCommittedSpending.
-  ///
-  /// In en, this message translates to:
-  /// **'Committed spending'**
-  String get budgetCommittedSpending;
-
-  /// No description provided for @budgetDiscretionarySpending.
-  ///
-  /// In en, this message translates to:
-  /// **'Discretionary spending'**
-  String get budgetDiscretionarySpending;
-
   /// No description provided for @budgetDiscretionary.
   ///
   /// In en, this message translates to:
@@ -2143,18 +2113,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Baseline share'**
   String get budgetOverviewBaselineShare;
-
-  /// No description provided for @budgetAllExpensesLine.
-  ///
-  /// In en, this message translates to:
-  /// **'All expenses {total} (unbudgeted {unbudgeted})'**
-  String budgetAllExpensesLine(String total, String unbudgeted);
-
-  /// No description provided for @budgetAllExpensesOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'All expenses {total}'**
-  String budgetAllExpensesOnly(String total);
 
   /// No description provided for @budgetLeftoverPendingHint.
   ///
@@ -2246,12 +2204,6 @@ abstract class AppLocalizations {
   /// **'Top Under Budget'**
   String get budgetUnderTopTitle;
 
-  /// No description provided for @budgetUnbudgetedAlertsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Unbudgeted Spend Alerts'**
-  String get budgetUnbudgetedAlertsTitle;
-
   /// No description provided for @budgetMonthNoteLabel.
   ///
   /// In en, this message translates to:
@@ -2299,12 +2251,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unbudgeted spending'**
   String get budgetSectionUnbudgetedActive;
-
-  /// No description provided for @budgetSectionRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'Other categories (tap to set budget)'**
-  String get budgetSectionRemaining;
 
   /// No description provided for @budgetSetButton.
   ///
@@ -2505,30 +2451,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Budget removed'**
   String get budgetCleared;
-
-  /// No description provided for @budgetStatusInBudget.
-  ///
-  /// In en, this message translates to:
-  /// **'In budget'**
-  String get budgetStatusInBudget;
-
-  /// No description provided for @budgetStatusAtRisk.
-  ///
-  /// In en, this message translates to:
-  /// **'At risk'**
-  String get budgetStatusAtRisk;
-
-  /// No description provided for @budgetStatusOver.
-  ///
-  /// In en, this message translates to:
-  /// **'Over'**
-  String get budgetStatusOver;
-
-  /// No description provided for @budgetAnomalyBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'+{percent}% vs 3m avg'**
-  String budgetAnomalyBadge(int percent);
 
   /// No description provided for @budgetAnomalyDetail.
   ///

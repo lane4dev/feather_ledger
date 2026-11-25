@@ -471,9 +471,6 @@ Future<_Taps> _pump(
           child: BudgetCategorySection(
             budgetedRows: screen.budgetedRows,
             unbudgetedActiveRows: screen.unbudgetedActiveRows,
-            remainingActiveRows: const [],
-            showRemaining: false,
-            onToggleRemaining: () {},
             onRowTap: (row) => taps.opened.add(row.categoryId),
             onSetBudgetTap: (row) => taps.edited.add(row.categoryId),
           ),

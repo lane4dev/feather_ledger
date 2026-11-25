@@ -185,7 +185,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     required String locale,
     required DateTime now,
   }) {
-    final notifier = ref.read(budgetViewModelProvider.notifier);
     final isHistoricalMonth = month < YearMonth.fromDate(now);
     return summaryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -237,11 +236,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             BudgetCategorySection(
               budgetedRows: model.budgetedRows,
               unbudgetedActiveRows: model.unbudgetedActiveRows,
-              // Untouched categories live in the "+" drawer now; handing the
-              // section none keeps a single entry point for them.
-              remainingActiveRows: const [],
-              showRemaining: false,
-              onToggleRemaining: notifier.toggleRemainingCategories,
               onRowTap: (row) => showBudgetCategoryDetail(
                 context,
                 month: month,
