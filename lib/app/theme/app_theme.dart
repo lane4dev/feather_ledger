@@ -1,5 +1,6 @@
 import 'dart:ui' show lerpDouble;
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
 import 'account_card_theme.dart';
@@ -169,6 +170,82 @@ class AppTheme {
 
   static final lightTheme = buildLight();
   static final darkTheme = buildDark();
+
+  static Future<({ColorScheme? light, ColorScheme? dark})>
+      loadDynamicSchemes() async {
+    try {
+      final corePalette = await DynamicColorPlugin.getCorePalette();
+      if (corePalette != null) {
+        ColorScheme convertPalette(Brightness brightness) {
+          final src = corePalette.toColorScheme(brightness: brightness);
+          return ColorScheme.fromSeed(
+            seedColor: src.primary,
+            brightness: brightness,
+          ).copyWith(
+            primary: src.primary,
+            onPrimary: src.onPrimary,
+            primaryContainer: src.primaryContainer,
+            onPrimaryContainer: src.onPrimaryContainer,
+            secondary: src.secondary,
+            onSecondary: src.onSecondary,
+            secondaryContainer: src.secondaryContainer,
+            onSecondaryContainer: src.onSecondaryContainer,
+            tertiary: src.tertiary,
+            onTertiary: src.onTertiary,
+            tertiaryContainer: src.tertiaryContainer,
+            onTertiaryContainer: src.onTertiaryContainer,
+            error: src.error,
+            onError: src.onError,
+            errorContainer: src.errorContainer,
+            onErrorContainer: src.onErrorContainer,
+            outline: src.outline,
+            outlineVariant: src.outlineVariant,
+            surface: src.surface,
+            onSurface: src.onSurface,
+            surfaceContainerLowest: src.surfaceContainerLowest,
+            surfaceContainerLow: src.surfaceContainerLow,
+            surfaceContainer: src.surfaceContainer,
+            surfaceContainerHigh: src.surfaceContainerHigh,
+            surfaceContainerHighest: src.surfaceContainerHighest,
+            onSurfaceVariant: src.onSurfaceVariant,
+            inverseSurface: src.inverseSurface,
+            onInverseSurface: src.onInverseSurface,
+            inversePrimary: src.inversePrimary,
+            shadow: src.shadow,
+            surfaceTint: src.surfaceTint,
+            scrim: src.scrim,
+          );
+        }
+
+        return (
+          light: convertPalette(Brightness.light),
+          dark: convertPalette(Brightness.dark),
+        );
+      }
+    } catch (e) {
+      debugPrint('dynamic_color: Failed to obtain core palette: $e');
+    }
+
+    try {
+      final accentColor = await DynamicColorPlugin.getAccentColor();
+      if (accentColor != null) {
+        return (
+          light: ColorScheme.fromSeed(
+            seedColor: accentColor,
+            brightness: Brightness.light,
+          ),
+          dark: ColorScheme.fromSeed(
+            seedColor: accentColor,
+            brightness: Brightness.dark,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('dynamic_color: Failed to obtain accent color: $e');
+    }
+
+    return (light: null, dark: null);
+  }
 
   static ThemeData buildLight([ColorScheme? dynamicScheme]) =>
       _build(Brightness.light, dynamicScheme: dynamicScheme);

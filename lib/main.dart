@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -231,78 +230,13 @@ class _FeatherLedgerAppState extends ConsumerState<FeatherLedgerApp> {
   }
 
   Future<void> _loadDynamicColors() async {
-    try {
-      final corePalette = await DynamicColorPlugin.getCorePalette();
-      if (!mounted) return;
-      if (corePalette != null) {
-        ColorScheme convertPalette(Brightness brightness) {
-          final src = corePalette.toColorScheme(brightness: brightness);
-          return ColorScheme.fromSeed(
-            seedColor: src.primary,
-            brightness: brightness,
-          ).copyWith(
-            primary: src.primary,
-            onPrimary: src.onPrimary,
-            primaryContainer: src.primaryContainer,
-            onPrimaryContainer: src.onPrimaryContainer,
-            secondary: src.secondary,
-            onSecondary: src.onSecondary,
-            secondaryContainer: src.secondaryContainer,
-            onSecondaryContainer: src.onSecondaryContainer,
-            tertiary: src.tertiary,
-            onTertiary: src.onTertiary,
-            tertiaryContainer: src.tertiaryContainer,
-            onTertiaryContainer: src.onTertiaryContainer,
-            error: src.error,
-            onError: src.onError,
-            errorContainer: src.errorContainer,
-            onErrorContainer: src.onErrorContainer,
-            outline: src.outline,
-            outlineVariant: src.outlineVariant,
-            surface: src.surface,
-            onSurface: src.onSurface,
-            surfaceContainerLowest: src.surfaceContainerLowest,
-            surfaceContainerLow: src.surfaceContainerLow,
-            surfaceContainer: src.surfaceContainer,
-            surfaceContainerHigh: src.surfaceContainerHigh,
-            surfaceContainerHighest: src.surfaceContainerHighest,
-            onSurfaceVariant: src.onSurfaceVariant,
-            inverseSurface: src.inverseSurface,
-            onInverseSurface: src.onInverseSurface,
-            inversePrimary: src.inversePrimary,
-            shadow: src.shadow,
-            surfaceTint: src.surfaceTint,
-            scrim: src.scrim,
-          );
-        }
-
-        setState(() {
-          _lightDynamic = convertPalette(Brightness.light);
-          _darkDynamic = convertPalette(Brightness.dark);
-        });
-        return;
-      }
-    } catch (e) {
-      debugPrint('dynamic_color: Failed to obtain core palette: $e');
-    }
-
-    try {
-      final accentColor = await DynamicColorPlugin.getAccentColor();
-      if (!mounted) return;
-      if (accentColor != null) {
-        setState(() {
-          _lightDynamic = ColorScheme.fromSeed(
-            seedColor: accentColor,
-            brightness: Brightness.light,
-          );
-          _darkDynamic = ColorScheme.fromSeed(
-            seedColor: accentColor,
-            brightness: Brightness.dark,
-          );
-        });
-      }
-    } catch (e) {
-      debugPrint('dynamic_color: Failed to obtain accent color: $e');
+    final schemes = await AppTheme.loadDynamicSchemes();
+    if (!mounted) return;
+    if (schemes.light != null || schemes.dark != null) {
+      setState(() {
+        _lightDynamic = schemes.light;
+        _darkDynamic = schemes.dark;
+      });
     }
   }
 

@@ -183,8 +183,10 @@ class LedgerMonthSwitcher extends StatelessWidget {
             onTap: onTap,
             borderRadius: context.metrics.chipBorderRadius,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.spacing.xs,
+                vertical: context.spacing.sm,
+              ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -274,10 +276,7 @@ class _BalanceSummary extends ConsumerWidget {
               alignment: AlignmentDirectional.centerStart,
               child: Text(
                 showBalance ? summary?.displayBalance ?? '—' : '******',
-                style: AppTypography.balance(context).copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+                style: LedgerTheme.overviewBalance(context),
               ),
             ),
             SizedBox(height: context.spacing.md),

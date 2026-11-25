@@ -89,11 +89,13 @@ class TransactionTile extends StatelessWidget {
                 style: amountStyle,
               );
 
+              final iconGap = context.spacing.sm + context.spacing.xs;
               final stackedAmount = _shouldStackAmount(
                 context,
                 maxWidth: constraints.maxWidth,
                 amountText: amountText,
                 amountStyle: amountStyle,
+                avatarGap: iconGap,
                 leadingGap: context.spacing.md,
               );
 
@@ -106,7 +108,7 @@ class TransactionTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       _buildLeadingIcon(context),
-                      const SizedBox(width: 12.0),
+                      SizedBox(width: iconGap),
                       Expanded(child: textColumn),
                       if (!stackedAmount) ...[
                         SizedBox(width: context.spacing.md),
@@ -116,9 +118,9 @@ class TransactionTile extends StatelessWidget {
                   ),
                   if (stackedAmount)
                     Padding(
-                      padding: const EdgeInsets.only(
-                        left: LedgerTheme.categoryAvatarSize + 12.0,
-                        top: 4.0,
+                      padding: EdgeInsets.only(
+                        left: LedgerTheme.categoryAvatarSize + iconGap,
+                        top: context.spacing.xs,
                       ),
                       child: Align(
                         alignment: Alignment.centerRight,
@@ -127,13 +129,13 @@ class TransactionTile extends StatelessWidget {
                     ),
                   if (transaction.isPending)
                     Padding(
-                      padding: const EdgeInsets.only(
-                        left: LedgerTheme.categoryAvatarSize + 12.0,
-                        top: 6.0,
+                      padding: EdgeInsets.only(
+                        left: LedgerTheme.categoryAvatarSize + iconGap,
+                        top: context.spacing.xs,
                       ),
                       child: Wrap(
-                        spacing: 6.0,
-                        runSpacing: 4.0,
+                        spacing: context.spacing.xs,
+                        runSpacing: context.spacing.xs,
                         children: [
                           _statusBadge(l10n),
                         ],
@@ -153,6 +155,7 @@ class TransactionTile extends StatelessWidget {
     required double maxWidth,
     required String amountText,
     required TextStyle amountStyle,
+    required double avatarGap,
     required double leadingGap,
   }) {
     if (!maxWidth.isFinite) return false;
@@ -167,7 +170,7 @@ class TransactionTile extends StatelessWidget {
 
     const minTextColumnWidth = 72.0;
     final neededForInline = LedgerTheme.categoryAvatarSize +
-        12.0 +
+        avatarGap +
         minTextColumnWidth +
         leadingGap +
         amountWidth;

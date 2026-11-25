@@ -102,4 +102,9 @@ class LedgerTheme {
       AppTypography.meta(context);
   static TextStyle denseLabel(BuildContext context) =>
       AppTypography.compactLabel(context);
+  static TextStyle overviewBalance(BuildContext context) =>
+      AppTypography.balance(context).copyWith(
+        fontWeight: FontWeight.w700,
+        color: Theme.of(context).colorScheme.onSurface,
+      );
 }
