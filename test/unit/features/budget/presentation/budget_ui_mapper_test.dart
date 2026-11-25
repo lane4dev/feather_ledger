@@ -301,6 +301,323 @@ void main() {
       expect(unknown.todayTickRatio, isNull);
     });
   });
+
+  group('BudgetUiMapper category rows — track', () {
+    test('pending that carries a category over is named before it happens', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 18000,
+          budgetedPendingMinor: 4000,
+          budgetedCategories: [
+            _cat(actualMinor: 18000, pendingMinor: 4000),
+          ],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.mode, BudgetMode.track);
+      expect(row.amountLabel, BudgetCategoryAmountLabel.projectedOver);
+      expect(row.mainAmountDisplay, '¥20.00');
+      expect(row.isMainAmountNegative, isTrue);
+      expect(row.subtitleKind, BudgetCategorySubtitle.pendingIncluded);
+      expect(row.subtitleAmountDisplay, '¥40.00');
+      expect(row.secondaryAmountDisplay, '¥180.00 / ¥200.00');
+      expect(row.actualProgress, closeTo(0.9, 1e-9));
+      // The segments never exceed the track: 90% + 20% would overflow it.
+      expect(row.pendingProgress, closeTo(0.1, 1e-9));
+    });
+
+    test('money already spent over the limit reports the overrun', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 22000,
+          budgetedPendingMinor: 0,
+          budgetedCategories: [_cat(actualMinor: 22000)],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.amountLabel, BudgetCategoryAmountLabel.over);
+      expect(row.mainAmountDisplay, '¥20.00');
+      expect(row.isMainAmountNegative, isTrue);
+      expect(row.subtitleKind, BudgetCategorySubtitle.usage);
+      expect(row.subtitlePercentDisplay, '110%');
+      expect(row.actualProgress, 1);
+      expect(row.pendingProgress, 0);
+    });
+
+    test('a category inside its limit reports what is left after pending', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 4000,
+          budgetedPendingMinor: 3000,
+          budgetedCategories: [_cat(actualMinor: 4000, pendingMinor: 3000)],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.amountLabel, BudgetCategoryAmountLabel.remaining);
+      expect(row.mainAmountDisplay, '¥130.00');
+      expect(row.isMainAmountNegative, isFalse);
+      expect(row.subtitleKind, BudgetCategorySubtitle.pendingIncluded);
+      expect(row.subtitleAmountDisplay, '¥30.00');
+    });
+
+    test('a category with nothing billed reads as a share of its limit', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 4000,
+          budgetedPendingMinor: 0,
+        ),
+      ).budgetedRows.single;
+
+      expect(row.subtitleKind, BudgetCategorySubtitle.usage);
+      expect(row.subtitlePercentDisplay, '20%');
+      expect(row.subtitleAmountDisplay, isNull);
+    });
+  });
+
+  group('BudgetUiMapper category rows — review', () {
+    test('a closed month reports what it did not spend', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.review,
+          budgetedActualMinor: 4000,
+          budgetedPendingMinor: 0,
+        ),
+      ).budgetedRows.single;
+
+      expect(row.mode, BudgetMode.review);
+      expect(row.amountLabel, BudgetCategoryAmountLabel.reviewRemaining);
+      expect(row.mainAmountDisplay, '¥160.00');
+      expect(row.isMainAmountNegative, isFalse);
+      expect(row.subtitleKind, BudgetCategorySubtitle.usage);
+      expect(row.subtitlePercentDisplay, '20%');
+      expect(row.secondaryAmountDisplay, '¥40.00 / ¥200.00');
+    });
+
+    test('a closed month over its limit reports the overrun', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.review,
+          budgetedActualMinor: 22000,
+          budgetedPendingMinor: 0,
+          budgetedCategories: [_cat(actualMinor: 22000)],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.amountLabel, BudgetCategoryAmountLabel.reviewOver);
+      expect(row.mainAmountDisplay, '¥20.00');
+      expect(row.isMainAmountNegative, isTrue);
+      expect(row.subtitlePercentDisplay, '110%');
+    });
+
+    test('a closed month never carries a pending amount into the row', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.review,
+          budgetedActualMinor: 4000,
+          budgetedPendingMinor: 3000,
+          budgetedCategories: [_cat(actualMinor: 4000, pendingMinor: 3000)],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.subtitleKind, BudgetCategorySubtitle.usage);
+      expect(row.pendingProgress, 0);
+      expect(row.subtitleAmountDisplay, isNull);
+    });
+  });
+
+  group('BudgetUiMapper category rows — plan', () {
+    test('a plan row leads with its limit and its fixed baseline', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.plan,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 0,
+          budgetedCategories: [
+            _cat(
+              actualMinor: 0,
+              committedBaselineMinor: 6000,
+              threeMonthAvgMinor: 9000,
+            ),
+          ],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.mode, BudgetMode.plan);
+      expect(row.amountLabel, BudgetCategoryAmountLabel.planBudget);
+      expect(row.mainAmountDisplay, '¥200.00');
+      expect(row.secondaryAmountDisplay, isNull);
+      expect(row.subtitleKind, BudgetCategorySubtitle.baseline);
+      expect(row.subtitleAmountDisplay, '¥60.00');
+      expect(row.subtitleReferenceDisplay, '¥90.00');
+      expect(row.baselineProgress, closeTo(0.3, 1e-9));
+    });
+
+    test('an average of zero is not worth showing', () {
+      final row = _map(
+        _summary(
+          mode: BudgetMode.plan,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 0,
+          budgetedCategories: [
+            _cat(actualMinor: 0, committedBaselineMinor: 0),
+          ],
+        ),
+      ).budgetedRows.single;
+
+      expect(row.subtitleReferenceDisplay, isNull);
+      expect(row.baselineProgress, 0);
+    });
+  });
+
+  group('BudgetUiMapper category rows — unbudgeted group', () {
+    test('a row without a limit shows its own spend and its share', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 0,
+          budgetedCategories: const [],
+          unbudgetedActualMinor: 100000,
+          unbudgetedActiveCategories: [
+            _cat(budgetMinor: null, actualMinor: 6000, categoryName: 'Hobby'),
+            _cat(
+              categoryId: 'fuel',
+              categoryName: 'Fuel',
+              budgetMinor: null,
+              actualMinor: 4000,
+            ),
+          ],
+        ),
+      );
+      final hobby = screen.unbudgetedActiveRows.first;
+
+      expect(hobby.amountLabel, BudgetCategoryAmountLabel.none);
+      expect(hobby.mainAmountDisplay, '¥60.00');
+      expect(hobby.secondaryAmountDisplay, isNull);
+      expect(hobby.sharePercentDisplay, '6%');
+      expect(hobby.subtitleKind, BudgetCategorySubtitle.none);
+      expect(hobby.unbudgetedGroup, isNotNull);
+      expect(hobby.unbudgetedGroup!.isPendingOnly, isFalse);
+      // The header sums the rows it heads, not the screen's own totals.
+      expect(hobby.unbudgetedGroup!.amountDisplay, '¥100.00');
+      // 4% of the month is not worth a sentence.
+      expect(screen.unbudgetedActiveRows.last.sharePercentDisplay, isNull);
+    });
+
+    test('the share survives rounding at the five percent gate', () {
+      BudgetCategoryRowUiModel atGate(int actualMinor) {
+        return _map(
+          _summary(
+            mode: BudgetMode.track,
+            budgetedActualMinor: 0,
+            budgetedPendingMinor: 0,
+            budgetedCategories: const [],
+            unbudgetedActualMinor: 100000,
+            unbudgetedActiveCategories: [
+              _cat(budgetMinor: null, actualMinor: actualMinor),
+            ],
+          ),
+        ).unbudgetedActiveRows.single;
+      }
+
+      expect(atGate(5000).sharePercentDisplay, '5%');
+      expect(atGate(4999).sharePercentDisplay, isNull);
+    });
+
+    test('the share is not capped at the first three rows', () {
+      final rows = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 0,
+          budgetedCategories: const [],
+          unbudgetedActualMinor: 50000,
+          unbudgetedActiveCategories: [
+            for (var i = 0; i < 5; i++)
+              _cat(
+                categoryId: 'cat$i',
+                categoryName: 'Category $i',
+                budgetMinor: null,
+                actualMinor: 10000,
+              ),
+          ],
+        ),
+      ).unbudgetedActiveRows;
+
+      expect(rows, hasLength(5));
+      expect(
+        rows.map((r) => r.sharePercentDisplay),
+        everyElement('20%'),
+      );
+    });
+
+    test('a pending-only group says pending in its header', () {
+      final rows = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 6000,
+          budgetedCategories: const [],
+          unbudgetedActiveCategories: [
+            _cat(budgetMinor: null, actualMinor: 0, pendingMinor: 6000),
+          ],
+        ),
+      ).unbudgetedActiveRows;
+
+      expect(rows.single.unbudgetedGroup!.isPendingOnly, isTrue);
+      expect(rows.single.unbudgetedGroup!.amountDisplay, '¥60.00');
+      expect(rows.single.mainAmountDisplay, '¥60.00');
+      expect(rows.single.subtitleKind, BudgetCategorySubtitle.pending);
+      expect(rows.single.subtitleAmountDisplay, '¥60.00');
+      expect(rows.single.sharePercentDisplay, isNull);
+    });
+
+    test('a mixed group is headed by its spend and still names each pending', () {
+      final rows = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 500,
+          budgetedCategories: const [],
+          unbudgetedActualMinor: 10000,
+          unbudgetedActiveCategories: [
+            _cat(budgetMinor: null, actualMinor: 1000, pendingMinor: 500),
+          ],
+        ),
+      ).unbudgetedActiveRows;
+
+      expect(rows.single.unbudgetedGroup!.isPendingOnly, isFalse);
+      expect(rows.single.unbudgetedGroup!.amountDisplay, '¥10.00');
+      expect(rows.single.mainAmountDisplay, '¥10.00');
+      expect(rows.single.subtitleKind, BudgetCategorySubtitle.pending);
+      expect(rows.single.subtitleAmountDisplay, '¥5.00');
+      expect(rows.single.sharePercentDisplay, '10%');
+    });
+
+    test('no month spending means no share to state', () {
+      final row = _plan(budgetedBaselineMinor: 0).unbudgetedActiveRows.single;
+
+      expect(row.sharePercentDisplay, isNull);
+    });
+
+    test('only the unbudgeted group carries a header model', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.track,
+          unbudgetedActiveCategories: [
+            _cat(categoryId: 'hobby', budgetMinor: null),
+          ],
+        ),
+      );
+
+      expect(screen.budgetedRows.single.unbudgetedGroup, isNull);
+      expect(screen.unbudgetedActiveRows.single.unbudgetedGroup, isNotNull);
+    });
+  });
 }
 
 BudgetScreenUiModel _map(MonthBudgetSummary summary, {DateTime? today}) =>
@@ -430,14 +747,17 @@ MonthBudgetSummary _summary({
 
 CategoryBudgetSummary _cat({
   String categoryId = 'dining',
+  String categoryName = 'Dining',
   int? budgetMinor = 20000,
   int actualMinor = 4000,
   int pendingMinor = 0,
   int committedBaselineMinor = 0,
+  int threeMonthAvgMinor = 0,
+  bool isAnomaly = false,
 }) {
   return CategoryBudgetSummary(
     categoryId: categoryId,
-    categoryName: 'Dining',
+    categoryName: categoryName,
     iconKey: 'utensils',
     colorInt: 0xFFE65100,
     isArchived: false,
@@ -450,9 +770,9 @@ CategoryBudgetSummary _cat({
     pendingMinor: pendingMinor,
     projectedRemainingMinor: budgetMinor == null ? null : 10000,
     lastMonthActualMinor: 0,
-    threeMonthAvgMinor: 0,
+    threeMonthAvgMinor: threeMonthAvgMinor,
     committedBaselineMinor: committedBaselineMinor,
-    isAnomaly: false,
+    isAnomaly: isAnomaly,
     anomalyDeltaRatio: null,
     riskLevel: BudgetRiskLevel.inBudget,
     sixMonthTrend: const [],

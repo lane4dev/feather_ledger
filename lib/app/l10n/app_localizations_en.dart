@@ -1173,13 +1173,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetSectionBudgeted => 'Budgeted categories';
 
   @override
-  String get budgetSectionUnbudgetedActive => 'Unbudgeted with activity';
+  String get budgetSectionUnbudgetedActive => 'Unbudgeted spending';
 
   @override
   String get budgetSectionRemaining => 'Other categories (tap to set budget)';
 
   @override
   String get budgetSetButton => 'Set budget';
+
+  @override
+  String budgetRowProjectedOver(String amount) {
+    return 'Projected over $amount';
+  }
+
+  @override
+  String budgetRowOver(String amount) {
+    return 'Over by $amount';
+  }
+
+  @override
+  String budgetRowRemaining(String amount) {
+    return 'Left $amount';
+  }
+
+  @override
+  String budgetRowReviewRemaining(String amount) {
+    return 'Unspent $amount';
+  }
+
+  @override
+  String budgetRowReviewOver(String amount) {
+    return 'Overspent $amount';
+  }
+
+  @override
+  String budgetRowPlanBudget(String amount) {
+    return 'Budget $amount';
+  }
+
+  @override
+  String budgetRowPendingIncluded(String amount) {
+    return 'Includes $amount pending';
+  }
+
+  @override
+  String budgetRowPending(String amount) {
+    return 'Pending $amount';
+  }
+
+  @override
+  String budgetRowUsage(String percent) {
+    return 'Used $percent';
+  }
+
+  @override
+  String budgetRowBaseline(String amount) {
+    return 'Fixed baseline $amount';
+  }
+
+  @override
+  String budgetRowShare(String percent) {
+    return '$percent of month\'s spend';
+  }
+
+  @override
+  String budgetRowGroupSpent(String amount) {
+    return 'Spent $amount';
+  }
+
+  @override
+  String get budgetRowAnomalySemantics =>
+      'Unusually high against its three-month average';
 
   @override
   String get budgetEditTitle => 'Set Category Budget';

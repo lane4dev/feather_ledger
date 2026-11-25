@@ -46,6 +46,74 @@ class BudgetContributionTxUiModel {
   });
 }
 
+/// What a category row's right-hand amount measures.
+///
+/// The words in front of the amount are a localizable resource, so the mapper
+/// names the meaning and the widget resolves it — the same split as
+/// [BudgetOverviewMainLabel]. The amounts themselves arrive preformatted.
+enum BudgetCategoryAmountLabel {
+  /// Nothing to name: the amount stands on its own (a category with no
+  /// limit, whose spend is the answer).
+  none,
+
+  /// Track: spent plus billed still sits inside the limit.
+  remaining,
+
+  /// Track: spent plus billed is over the limit.
+  projectedOver,
+
+  /// Track: money already spent is over the limit.
+  over,
+
+  /// Review: a closed month ended under its limit.
+  reviewRemaining,
+
+  /// Review: a closed month ended over its limit.
+  reviewOver,
+
+  /// Plan: the limit the category has been given.
+  planBudget,
+}
+
+/// What a category row's second line on the left says.
+enum BudgetCategorySubtitle {
+  /// Nothing to add beyond the name.
+  none,
+
+  /// Track: the bills included in the spend, as an amount.
+  pendingIncluded,
+
+  /// No limit: money billed here but not yet posted, as an amount.
+  pending,
+
+  /// Share of the limit already used, as a percent.
+  usage,
+
+  /// Plan: the fixed baseline, with the three-month average beside it when
+  /// the category has one.
+  baseline,
+}
+
+/// The header of the unbudgeted group.
+///
+/// Set on every row of that group: the section is handed rows, not the screen
+/// model, and a header derived from anything but those rows could disagree
+/// with the rows underneath it.
+@immutable
+class BudgetUnbudgetedGroupUiModel {
+  /// True when the group's only activity is billed-but-unposted money, which
+  /// makes [amountDisplay] pending rather than spent.
+  final bool isPendingOnly;
+
+  /// The group's total: spent when there is any, otherwise pending.
+  final String amountDisplay;
+
+  const BudgetUnbudgetedGroupUiModel({
+    required this.isPendingOnly,
+    required this.amountDisplay,
+  });
+}
+
 @immutable
 class BudgetCategoryRowUiModel {
   final String categoryId;
@@ -78,6 +146,49 @@ class BudgetCategoryRowUiModel {
   final List<BudgetContributionTxUiModel> topContributions;
   final List<BudgetContributionTxUiModel> allContributions;
 
+  /// Which month phase the row is drawn for. Track and review rows open the
+  /// category's detail; plan rows open the budget editor.
+  final BudgetMode mode;
+
+  /// What [mainAmountDisplay] measures.
+  final BudgetCategoryAmountLabel amountLabel;
+
+  /// The right-hand amount — what is left, what is over, or the row's own
+  /// spend when [amountLabel] is [BudgetCategoryAmountLabel.none].
+  final String? mainAmountDisplay;
+
+  /// Whether [mainAmountDisplay] is a shortfall, which paints it in the
+  /// expense colour.
+  final bool isMainAmountNegative;
+
+  /// The spent-against-limit line under [mainAmountDisplay], e.g.
+  /// `¥40.00 / ¥200.00`. Null when there is no limit to compare against.
+  final String? secondaryAmountDisplay;
+
+  /// What the row's second line on the left says.
+  final BudgetCategorySubtitle subtitleKind;
+
+  /// Amount for [subtitleKind] — the pending bills, or the fixed baseline.
+  final String? subtitleAmountDisplay;
+
+  /// The three-month average set after a [BudgetCategorySubtitle.baseline],
+  /// when the category has one worth comparing against.
+  final String? subtitleReferenceDisplay;
+
+  /// Percent for [BudgetCategorySubtitle.usage], e.g. `20%`.
+  final String? subtitlePercentDisplay;
+
+  /// The row's share of the month's spending, when it clears the 5% gate.
+  final String? sharePercentDisplay;
+
+  /// How much of the limit the plan bar's fixed baseline covers (0..1). Zero
+  /// means the row draws no bar.
+  final double baselineProgress;
+
+  /// The header of the unbudgeted group this row belongs to; null for rows
+  /// outside it.
+  final BudgetUnbudgetedGroupUiModel? unbudgetedGroup;
+
   const BudgetCategoryRowUiModel({
     required this.categoryId,
     required this.name,
@@ -108,6 +219,18 @@ class BudgetCategoryRowUiModel {
     required this.trend6Months,
     required this.topContributions,
     this.allContributions = const [],
+    this.mode = BudgetMode.track,
+    this.amountLabel = BudgetCategoryAmountLabel.none,
+    this.mainAmountDisplay,
+    this.isMainAmountNegative = false,
+    this.secondaryAmountDisplay,
+    this.subtitleKind = BudgetCategorySubtitle.none,
+    this.subtitleAmountDisplay,
+    this.subtitleReferenceDisplay,
+    this.subtitlePercentDisplay,
+    this.sharePercentDisplay,
+    this.baselineProgress = 0,
+    this.unbudgetedGroup,
   });
 }
 

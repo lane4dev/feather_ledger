@@ -210,16 +210,47 @@ class BudgetUiMapper {
       todayTickRatio: todayTickRatio,
     );
 
-    BudgetCategoryRowUiModel mapCategory(CategoryBudgetSummary c) {
+    // The unbudgeted group's header comes from the rows it sits above, so the
+    // total can never disagree with what it heads.
+    final unbudgetedActive = summary.unbudgetedActiveCategories;
+    final unbudgetedActual = unbudgetedActive.fold<int>(
+      0,
+      (sum, c) => sum + c.actualMinor,
+    );
+    final unbudgetedPending = unbudgetedActive.fold<int>(
+      0,
+      (sum, c) => sum + c.pendingMinor,
+    );
+    final unbudgetedGroup = unbudgetedActive.isEmpty
+        ? null
+        : BudgetUnbudgetedGroupUiModel(
+            isPendingOnly: unbudgetedActual == 0,
+            amountDisplay: formatMinorWithSymbol(
+              unbudgetedActual > 0 ? unbudgetedActual : unbudgetedPending,
+              currencySymbol,
+            ),
+          );
+
+    BudgetCategoryRowUiModel mapCategory(
+      CategoryBudgetSummary c,
+      _CategoryGroup group,
+    ) {
       final budget = c.budgetMinor;
-      final catActualRatio = budget != null && budget > 0
-          ? (c.actualMinor / budget).clamp(0.0, 1.0)
+      final hasLimit = budget != null && budget > 0;
+      final limit = budget ?? 0;
+      final mode = summary.mode;
+      final catActualRatio = hasLimit
+          ? (c.actualMinor / limit).clamp(0.0, 1.0)
           : 0.0;
-      final catWithPendingRatio = budget != null && budget > 0
-          ? ((c.actualMinor + c.pendingMinor) / budget).clamp(0.0, 1.0)
+      final catWithPendingRatio = hasLimit
+          ? ((c.actualMinor + c.pendingMinor) / limit).clamp(0.0, 1.0)
           : 0.0;
-      final catPendingRatio = (catWithPendingRatio - catActualRatio)
-          .clamp(0.0, 1.0 - catActualRatio);
+      // A closed month has nothing left to arrive, so review rows never carry
+      // a pending segment even if the summary still holds one.
+      final catPendingRatio = mode == BudgetMode.review
+          ? 0.0
+          : (catWithPendingRatio - catActualRatio)
+              .clamp(0.0, 1.0 - catActualRatio);
 
       final variance = c.variance;
       final varianceDisplay = variance == null
@@ -234,6 +265,96 @@ class BudgetUiMapper {
             (((c.actualMinor - c.threeMonthAvgMinor!) / c.threeMonthAvgMinor!) *
                     100)
                 .round();
+      }
+
+      var amountLabel = BudgetCategoryAmountLabel.none;
+      var isMainAmountNegative = false;
+      String? mainAmountDisplay;
+      var subtitleKind = BudgetCategorySubtitle.none;
+      String? subtitleAmountDisplay;
+      String? subtitleReferenceDisplay;
+      String? subtitlePercentDisplay;
+      String? sharePercentDisplay;
+      var baselineProgress = 0.0;
+
+      if (group == _CategoryGroup.unbudgetedActive) {
+        // No limit to measure against: the row's own spend is the answer, and
+        // a billed-but-unposted amount is named rather than coloured.
+        mainAmountDisplay = formatMinorWithSymbol(
+          c.actualMinor > 0 ? c.actualMinor : c.pendingMinor,
+          currencySymbol,
+        );
+        if (c.pendingMinor > 0) {
+          subtitleKind = BudgetCategorySubtitle.pending;
+          subtitleAmountDisplay =
+              formatMinorWithSymbol(c.pendingMinor, currencySymbol);
+        }
+        final monthTotal = summary.allExpenseActualMinor;
+        // Compared before any rounding: 5% exactly qualifies, 4.99% does not.
+        if (c.actualMinor > 0 &&
+            monthTotal > 0 &&
+            c.actualMinor * 100 >= monthTotal * 5) {
+          sharePercentDisplay =
+              '${(c.actualMinor * 100 / monthTotal).round()}%';
+        }
+      } else if (!hasLimit) {
+        mainAmountDisplay = formatMinorWithSymbol(c.actualMinor, currencySymbol);
+      } else if (mode == BudgetMode.plan) {
+        amountLabel = BudgetCategoryAmountLabel.planBudget;
+        mainAmountDisplay = formatMinorWithSymbol(limit, currencySymbol);
+        subtitleKind = BudgetCategorySubtitle.baseline;
+        subtitleAmountDisplay = formatMinorWithSymbol(
+          c.committedBaselineMinor,
+          currencySymbol,
+        );
+        final average = c.threeMonthAvgMinor;
+        if (average != null && average > 0) {
+          subtitleReferenceDisplay =
+              formatMinorWithSymbol(average, currencySymbol);
+        }
+        baselineProgress =
+            (c.committedBaselineMinor / limit).clamp(0.0, 1.0);
+      } else if (mode == BudgetMode.review) {
+        // A closed month has no bills left to arrive: pending is not its story.
+        if (c.actualMinor > limit) {
+          amountLabel = BudgetCategoryAmountLabel.reviewOver;
+          mainAmountDisplay =
+              formatMinorWithSymbol(c.actualMinor - limit, currencySymbol);
+          isMainAmountNegative = true;
+        } else {
+          amountLabel = BudgetCategoryAmountLabel.reviewRemaining;
+          mainAmountDisplay =
+              formatMinorWithSymbol(limit - c.actualMinor, currencySymbol);
+        }
+        subtitleKind = BudgetCategorySubtitle.usage;
+        subtitlePercentDisplay =
+            '${(c.actualMinor * 100 / limit).round()}%';
+      } else {
+        final committed = c.actualMinor + c.pendingMinor;
+        if (c.actualMinor > limit) {
+          amountLabel = BudgetCategoryAmountLabel.over;
+          mainAmountDisplay =
+              formatMinorWithSymbol(c.actualMinor - limit, currencySymbol);
+          isMainAmountNegative = true;
+        } else if (committed > limit) {
+          amountLabel = BudgetCategoryAmountLabel.projectedOver;
+          mainAmountDisplay =
+              formatMinorWithSymbol(committed - limit, currencySymbol);
+          isMainAmountNegative = true;
+        } else {
+          amountLabel = BudgetCategoryAmountLabel.remaining;
+          mainAmountDisplay =
+              formatMinorWithSymbol(limit - committed, currencySymbol);
+        }
+        if (c.pendingMinor > 0) {
+          subtitleKind = BudgetCategorySubtitle.pendingIncluded;
+          subtitleAmountDisplay =
+              formatMinorWithSymbol(c.pendingMinor, currencySymbol);
+        } else {
+          subtitleKind = BudgetCategorySubtitle.usage;
+          subtitlePercentDisplay =
+              '${(c.actualMinor * 100 / limit).round()}%';
+        }
       }
 
       return BudgetCategoryRowUiModel(
@@ -282,16 +403,36 @@ class BudgetUiMapper {
         allContributions: c.contributions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
             .toList(),
+        mode: mode,
+        amountLabel: amountLabel,
+        mainAmountDisplay: mainAmountDisplay,
+        isMainAmountNegative: isMainAmountNegative,
+        secondaryAmountDisplay: hasLimit && mode != BudgetMode.plan
+            ? '${formatMinorWithSymbol(c.actualMinor, currencySymbol)} / '
+                '${formatMinorWithSymbol(limit, currencySymbol)}'
+            : null,
+        subtitleKind: subtitleKind,
+        subtitleAmountDisplay: subtitleAmountDisplay,
+        subtitleReferenceDisplay: subtitleReferenceDisplay,
+        subtitlePercentDisplay: subtitlePercentDisplay,
+        sharePercentDisplay: sharePercentDisplay,
+        baselineProgress: baselineProgress,
+        unbudgetedGroup:
+            group == _CategoryGroup.unbudgetedActive ? unbudgetedGroup : null,
       );
     }
 
     return BudgetScreenUiModel(
       overview: overview,
-      budgetedRows: summary.budgetedCategories.map(mapCategory).toList(),
-      unbudgetedActiveRows:
-          summary.unbudgetedActiveCategories.map(mapCategory).toList(),
-      remainingActiveRows:
-          summary.remainingActiveCategories.map(mapCategory).toList(),
+      budgetedRows: summary.budgetedCategories
+          .map((c) => mapCategory(c, _CategoryGroup.budgeted))
+          .toList(),
+      unbudgetedActiveRows: unbudgetedActive
+          .map((c) => mapCategory(c, _CategoryGroup.unbudgetedActive))
+          .toList(),
+      remainingActiveRows: summary.remainingActiveCategories
+          .map((c) => mapCategory(c, _CategoryGroup.remaining))
+          .toList(),
       overBudgetTop3: summary.overBudgetTop3
           .map((item) => BudgetAttributionItemUiModel(
                 categoryId: item.categoryId,
@@ -368,3 +509,10 @@ class BudgetUiMapper {
     );
   }
 }
+
+/// Which of the screen's three category lists a row was mapped for.
+///
+/// The lists answer different questions — budgeted, active without a limit,
+/// and untouched — so the same category summary turns into a different row
+/// depending on which one it lands in.
+enum _CategoryGroup { budgeted, unbudgetedActive, remaining }

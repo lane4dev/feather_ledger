@@ -2243,7 +2243,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetSectionUnbudgetedActive.
   ///
   /// In en, this message translates to:
-  /// **'Unbudgeted with activity'**
+  /// **'Unbudgeted spending'**
   String get budgetSectionUnbudgetedActive;
 
   /// No description provided for @budgetSectionRemaining.
@@ -2257,6 +2257,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set budget'**
   String get budgetSetButton;
+
+  /// No description provided for @budgetRowProjectedOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected over {amount}'**
+  String budgetRowProjectedOver(String amount);
+
+  /// No description provided for @budgetRowOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Over by {amount}'**
+  String budgetRowOver(String amount);
+
+  /// No description provided for @budgetRowRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Left {amount}'**
+  String budgetRowRemaining(String amount);
+
+  /// No description provided for @budgetRowReviewRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Unspent {amount}'**
+  String budgetRowReviewRemaining(String amount);
+
+  /// No description provided for @budgetRowReviewOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Overspent {amount}'**
+  String budgetRowReviewOver(String amount);
+
+  /// No description provided for @budgetRowPlanBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget {amount}'**
+  String budgetRowPlanBudget(String amount);
+
+  /// No description provided for @budgetRowPendingIncluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes {amount} pending'**
+  String budgetRowPendingIncluded(String amount);
+
+  /// No description provided for @budgetRowPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending {amount}'**
+  String budgetRowPending(String amount);
+
+  /// No description provided for @budgetRowUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Used {percent}'**
+  String budgetRowUsage(String percent);
+
+  /// No description provided for @budgetRowBaseline.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed baseline {amount}'**
+  String budgetRowBaseline(String amount);
+
+  /// No description provided for @budgetRowShare.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent} of month\'s spend'**
+  String budgetRowShare(String percent);
+
+  /// No description provided for @budgetRowGroupSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent {amount}'**
+  String budgetRowGroupSpent(String amount);
+
+  /// No description provided for @budgetRowAnomalySemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Unusually high against its three-month average'**
+  String get budgetRowAnomalySemantics;
 
   /// No description provided for @budgetEditTitle.
   ///
