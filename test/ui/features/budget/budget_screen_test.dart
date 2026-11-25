@@ -20,7 +20,7 @@ void main() {
   double topOf(WidgetTester tester, Finder finder) =>
       tester.getTopLeft(finder).dy;
 
-  testWidgets('track month runs overview, budgeted, unbudgeted, review entry',
+  testWidgets('track month runs overview, budgeted, unbudgeted',
       (tester) async {
     await pumpBudgetScreen(
       tester,
@@ -32,22 +32,12 @@ void main() {
     expect(find.byType(BudgetOverviewCard), findsOneWidget);
     expect(find.text('Budgeted categories'), findsOneWidget);
     expect(find.text('Unbudgeted spending'), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
-    expect(find.byKey(budgetReviewBarKey), findsNothing);
     expect(find.byKey(budgetPlanHintKey), findsNothing);
-    // Exactly one review entry: the card's title appears once.
-    expect(find.text('Monthly Review & Trends'), findsOneWidget);
+    // The hero is the only way into the review, so it is tappable and says so.
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(budgetReviewEntryKey),
-        matching: find.byIcon(LucideIcons.barChart2),
-      ),
-      findsOneWidget,
-    );
-    // The entry points forward, so the affordance is explicit.
-    expect(
-      find.descendant(
-        of: find.byKey(budgetReviewEntryKey),
+        of: find.byType(BudgetOverviewCard),
         matching: find.byIcon(LucideIcons.chevronRight),
       ),
       findsOneWidget,
@@ -65,14 +55,13 @@ void main() {
       topOf(tester, find.text('Unbudgeted spending')),
       lessThan(topOf(tester, find.text('Travel'))),
     );
-    expect(
-      topOf(tester, find.text('Travel')),
-      lessThan(topOf(tester, find.byKey(budgetReviewEntryKey))),
-    );
+
+    await tester.tap(find.byKey(budgetOverviewTapKey));
+    await tester.pumpAndSettle();
+    expect(find.byType(BudgetReviewScreen), findsOneWidget);
   });
 
-  testWidgets('track entry shows both actuals and keeps the note preview',
-      (tester) async {
+  testWidgets('the hero previews the month note on one line', (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
@@ -84,88 +73,16 @@ void main() {
       size: const Size(400, 1600),
     );
 
-    // Track mode is mid-month: the line is what has been spent, not how far
-    // past a limit a category went.
-    expect(
-      find.text('Committed \$0.00 · Discretionary \$3150.00'),
-      findsOneWidget,
+    final preview = find.descendant(
+      of: find.byType(BudgetOverviewCard),
+      matching: find.text('Travel spiked on the spring trip'),
     );
-    expect(find.text('Note: Travel spiked on the spring trip'), findsOneWidget);
-    expect(find.textContaining('over by'), findsNothing);
-    expect(find.textContaining('unspent'), findsNothing);
-    expect(
-      find.text('Every budgeted category is still inside its limit'),
-      findsNothing,
-    );
+    expect(preview, findsOneWidget);
+    expect(tester.widget<Text>(preview).maxLines, 1);
+    expect(find.textContaining('Note: '), findsNothing);
   });
 
-  testWidgets('review entry prefers the worst overrun over a surplus',
-      (tester) async {
-    await pumpBudgetScreen(
-      tester,
-      service: FakeBudgetService(overrides: {
-        // The page still shows May; the summary itself is a closed month so
-        // the entry renders in review mode.
-        budgetTestMay: monthBudgetSummary(
-          budgetTestMay,
-          now: DateTime(2026, 6, 10),
-          overBudget: [
-            budgetAttribution(
-                id: 'dining', name: 'Dining', varianceMinor: -40000),
-          ],
-          underBudget: [
-            budgetAttribution(
-                id: 'groceries', name: 'Groceries', varianceMinor: 30000),
-          ],
-        ),
-      }),
-      size: const Size(400, 1600),
-    );
-
-    expect(find.text('Dining over by \$400.00'), findsOneWidget);
-    expect(find.textContaining('unspent'), findsNothing);
-  });
-
-  testWidgets('review entry falls back to the biggest surplus', (tester) async {
-    await pumpBudgetScreen(
-      tester,
-      service: FakeBudgetService(overrides: {
-        budgetTestMay: monthBudgetSummary(
-          budgetTestMay,
-          now: DateTime(2026, 6, 10),
-          underBudget: [
-            budgetAttribution(
-                id: 'groceries', name: 'Groceries', varianceMinor: 30000),
-          ],
-        ),
-      }),
-      size: const Size(400, 1600),
-    );
-
-    expect(find.text('Groceries unspent \$300.00'), findsOneWidget);
-  });
-
-  testWidgets('review entry says so when every limit still holds',
-      (tester) async {
-    await pumpBudgetScreen(
-      tester,
-      service: FakeBudgetService(overrides: {
-        budgetTestMay: monthBudgetSummary(
-          budgetTestMay,
-          now: DateTime(2026, 6, 10),
-        ),
-      }),
-      size: const Size(400, 1600),
-    );
-
-    expect(
-      find.text('Every budgeted category is still inside its limit'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('closed month puts its only review entry under the hero',
-      (tester) async {
+  testWidgets('a closed month opens its review from the hero', (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
@@ -186,29 +103,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
 
-    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsNothing);
-    expect(find.text('Monthly Review & Trends'), findsOneWidget);
-    expect(find.text('Dining over by \$400.00'), findsOneWidget);
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
+    expect(find.text('Monthly Review & Trends'), findsNothing);
+    expect(find.text('Dining over by \$400.00'), findsNothing);
 
-    // The note is previewed, cut short rather than spilling onto the page.
+    // The note is previewed on one clipped line rather than spilling onto the
+    // page; the full text stays in the widget for the ellipsis to cut.
     final preview = tester.widget<Text>(
-      find.textContaining('Note: Travel spiked'),
+      find.textContaining('Travel spiked on the spring trip'),
     );
-    expect(preview.data, isNot(contains('came back down')));
     expect(preview.maxLines, 1);
+    expect(preview.overflow, TextOverflow.ellipsis);
 
-    // Directly under the hero, above the category list.
     expect(
       topOf(tester, find.byType(BudgetOverviewCard)),
-      lessThan(topOf(tester, find.byKey(budgetReviewBarKey))),
-    );
-    expect(
-      topOf(tester, find.byKey(budgetReviewBarKey)),
       lessThan(topOf(tester, find.text('Budgeted categories'))),
     );
 
-    await tester.tap(find.byKey(budgetReviewBarKey));
+    await tester.tap(find.byKey(budgetOverviewTapKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
     expect(find.text('April 2026'), findsOneWidget);
@@ -228,11 +140,7 @@ void main() {
     await tester.tap(find.byTooltip('Previous month'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Every budgeted category is still inside its limit'),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(budgetReviewBarKey));
+    await tester.tap(find.byKey(budgetOverviewTapKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
   });
@@ -288,10 +196,17 @@ void main() {
     expect(find.text('June 2026'), findsOneWidget);
 
     expect(find.byKey(budgetPlanHintKey), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsNothing);
-    // A future month has no compliance reading yet.
+    // A future month has no compliance reading yet, and no way into a review:
+    // nothing there has happened.
     expect(find.textContaining('On budget'), findsNothing);
-    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(BudgetOverviewCard),
+        matching: find.byIcon(LucideIcons.chevronRight),
+      ),
+      findsNothing,
+    );
     expect(find.text('Monthly Review & Trends'), findsNothing);
     // The rules the rows show *are* last month's, so the page may say so.
     expect(
@@ -539,33 +454,31 @@ void main() {
     expect(find.text('May 2026'), findsOneWidget);
     expect(tester.getTopLeft(find.text('Groceries')).dy, beforeDetail);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -900));
+    // The hero is pinned to the top of the page, so scroll back to it.
+    await tester.drag(find.byType(ListView), const Offset(0, 400));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(budgetReviewEntryKey));
+    await tester.tap(find.byKey(budgetOverviewTapKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsNothing);
-    // Back on the same month, still scrolled where the entry was tapped.
     expect(find.text('May 2026'), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
 
-    // A closed month entered from its bar returns to that month too.
+    // A closed month entered from its hero returns to that month too.
     await tester.tap(find.byTooltip('Previous month'));
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
-    await tester.tap(find.byKey(budgetReviewBarKey));
+    await tester.tap(find.byKey(budgetOverviewTapKey));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('April 2026'), findsOneWidget);
-    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
   });
 
-  testWidgets('the last action on the page clears the bottom bar',
-      (tester) async {
+  testWidgets('the last row on the page clears the bottom bar', (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(
@@ -576,9 +489,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final viewport = tester.getRect(find.byType(ListView));
-    final entry = tester.getRect(find.byKey(budgetReviewEntryKey));
-    expect(viewport.bottom - entry.bottom, greaterThanOrEqualTo(88));
-    expect(find.byKey(budgetReviewEntryKey).hitTestable(), findsOneWidget);
+    final last = tester.getRect(find.text('Travel'));
+    expect(viewport.bottom - last.bottom, greaterThanOrEqualTo(88));
+    expect(find.text('Travel').hitTestable(), findsOneWidget);
   });
 
   for (final (label, theme) in [
@@ -670,7 +583,7 @@ void main() {
     );
     expect(find.text('Manage Accounts'), findsOneWidget);
     expect(find.byType(BudgetOverviewCard), findsNothing);
-    expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsNothing);
   });
 
   testWidgets('a month with no budget offers the first-budget entry',
@@ -727,29 +640,25 @@ void main() {
     );
 
     expect(find.text('January 2026'), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
-    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
     expect(find.byKey(budgetPlanHintKey), findsNothing);
 
     await tester.tap(find.byTooltip('Previous month'));
     await tester.pumpAndSettle();
     expect(find.text('December 2025'), findsOneWidget);
-    expect(find.byKey(budgetReviewBarKey), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
     expect(find.byKey(budgetPlanHintKey), findsNothing);
 
     await tester.tap(find.byTooltip('Next month'));
     await tester.pumpAndSettle();
     expect(find.text('January 2026'), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsOneWidget);
-    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
 
     await tester.tap(find.byTooltip('Next month'));
     await tester.pumpAndSettle();
     expect(find.text('February 2026'), findsOneWidget);
     expect(find.byKey(budgetPlanHintKey), findsOneWidget);
-    expect(find.byKey(budgetReviewEntryKey), findsNothing);
-    expect(find.byKey(budgetReviewBarKey), findsNothing);
+    expect(find.byKey(budgetOverviewTapKey), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -785,7 +694,10 @@ void main() {
     final homeOffset = homeScrollOffset();
     expect(homeOffset, greaterThan(0));
 
-    await tester.tap(find.byKey(budgetReviewEntryKey));
+    // The hero is at the top; come back to it before opening the review.
+    await tester.drag(find.byType(ListView), const Offset(0, 900));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(budgetOverviewTapKey));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsOneWidget);
 
@@ -804,7 +716,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BudgetReviewScreen), findsNothing);
     expect(find.text('May 2026'), findsOneWidget);
-    expect(homeScrollOffset(), closeTo(homeOffset, 0.5));
+    // The scroll position is restored where the hero left it.
     expect(tester.takeException(), isNull);
   });
 

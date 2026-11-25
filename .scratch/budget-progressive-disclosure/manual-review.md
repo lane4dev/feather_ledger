@@ -156,3 +156,19 @@ the month picker.
 - Delete: the trash icon clears the note, closes the sheet, shows
   `复盘备忘已删除` with 撤销, and 撤销 restores the previous text.
 - [ ] pass  [ ] fail — notes:
+
+## 13. The hero as the review's door
+
+- Page: L1 预算, tracked and closed months, plus the planned month.
+- The independent 月度复盘与趋势 card is gone from the bottom of a tracked month
+  and from under the hero of a closed month; the page ends with 计划外支出 for
+  a tracked month and with the plan hint for a future one.
+- Track and review: a 16 dp `onSurfaceVariant` chevron sits to the right of the
+  `达标率 x/y` pill; tapping anywhere on the hero ripples with the card's 24 dp
+  corners and pushes L2. Coming back lands on the same month.
+- Plan: no chevron, and tapping the hero does nothing — no ripple, no push.
+- A month with a note shows one clipped line under the footer, separated by a
+  40%-alpha `outlineVariant` hairline: 14 dp notebook-pen icon, then the note
+  with `…` at the first line's end. A month without a note shows no extra row,
+  and the card keeps its compact height.
+- [ ] pass  [ ] fail — notes:

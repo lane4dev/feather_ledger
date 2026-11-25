@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
@@ -26,9 +27,19 @@ class BudgetOverviewCard extends StatelessWidget {
   const BudgetOverviewCard({
     super.key,
     required this.overview,
+    this.onTap,
+    this.notePreview,
   });
 
   final BudgetOverviewUiModel overview;
+
+  /// Opens the month's review. Null on a planned month: nothing there has
+  /// happened yet, so the card is a reading of a plan, not a door.
+  final VoidCallback? onTap;
+
+  /// The month note's text, shown as one clipped line under the footer. Null
+  /// when the month has no note.
+  final String? notePreview;
 
   /// Long enough to read as a change of state, short enough that swiping
   /// between months never waits on it.
@@ -45,6 +56,7 @@ class BudgetOverviewCard extends StatelessWidget {
         : transitionDuration;
     final mainLabel = _mainLabel(l10n);
 
+    final openable = overview.mode != BudgetMode.plan && onTap != null;
     final badges = <Widget>[
       if (overview.mode != BudgetMode.track)
         AppBadge(
@@ -58,6 +70,17 @@ class BudgetOverviewCard extends StatelessWidget {
         AppBadge(
           label: '${l10n.budgetCompliance} ${overview.complianceDisplay}',
           compact: true,
+        ),
+      // The card itself is the way into the review, so the affordance has to
+      // be on the card and not only in the footer's words.
+      if (openable)
+        Padding(
+          padding: EdgeInsetsDirectional.only(start: spacing.xs),
+          child: Icon(
+            LucideIcons.chevronRight,
+            size: 16,
+            color: scheme.onSurfaceVariant,
+          ),
         ),
     ];
 
@@ -177,13 +200,65 @@ class BudgetOverviewCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                if (openable && notePreview != null) ...[
+                  SizedBox(height: spacing.md),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                  SizedBox(height: spacing.sm),
+                  Row(
+                    children: [
+                      Icon(
+                        LucideIcons.notebookPen,
+                        size: 14,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      SizedBox(width: spacing.xs),
+                      Expanded(
+                        child: Text(
+                          _oneLine(notePreview!),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.meta(context).copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
+          // A transparent Material above the tint keeps the ripple visible:
+          // an InkWell inside the card would paint it under the gradient.
+          if (openable)
+            Positioned.fill(
+              child: Material(
+                type: MaterialType.transparency,
+                borderRadius: metrics.overviewCardBorderRadius,
+                clipBehavior: Clip.antiAlias,
+                child: Semantics(
+                  label: l10n.budgetReviewTitle,
+                  button: true,
+                  child: InkWell(
+                    key: const ValueKey('budget-overview-tap'),
+                    onTap: onTap,
+                    borderRadius: metrics.overviewCardBorderRadius,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
+
+  /// Notes are free text: a line break would otherwise end the preview early
+  /// and a run of spaces would open a hole in it.
+  String _oneLine(String note) => note.replaceAll(RegExp(r'\s+'), ' ').trim();
 
   String _mainLabel(AppLocalizations l10n) => switch (overview.mainLabel) {
         BudgetOverviewMainLabel.projectedRemaining =>

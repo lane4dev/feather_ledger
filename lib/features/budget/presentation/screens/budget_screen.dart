@@ -34,10 +34,10 @@ const double _bottomReach = 88;
 
 /// The budget home (L1).
 ///
-/// One page per month, composed by the month's phase: a tracked month ends in
-/// the review entry, a closed month opens with the review summary bar right
-/// under the hero, and a future month ends in the planning hint. Everything
-/// else — the hero, the budgeted categories, the unbudgeted spending — is
+/// One page per month, composed by the month's phase: the hero is the way
+/// into the review for a tracked or closed month, a future month ends in the
+/// planning hint. Everything else — the hero, the budgeted categories, the
+/// unbudgeted spending — is
 /// shared. Categories without a budget and without activity left the page for
 /// the "+" drawer in the app bar.
 class BudgetScreen extends ConsumerStatefulWidget {
@@ -211,13 +211,12 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           return _NoAccountsState(currencyCode: overview.currencyCode);
         }
 
-        final reviewEntry = BudgetReviewEntryUiModel.from(model);
-
         void openReview() => showBudgetReview(
               context,
               month: month,
               currencyCode: currencyCode,
             );
+        final canOpenReview = overview.mode != BudgetMode.plan;
 
         return ListView(
           key: PageStorageKey(month),
@@ -225,18 +224,11 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             EdgeInsets.symmetric(vertical: context.spacing.md),
           ),
           children: [
-            BudgetOverviewCard(overview: overview),
-            // A closed month has nothing left to act on, so its one review
-            // entry sits directly under the hero instead of at the bottom.
-            if (overview.mode == BudgetMode.review) ...[
-              SizedBox(height: context.spacing.sm),
-              _ReviewEntry(
-                key: const ValueKey('budget-review-bar'),
-                entry: reviewEntry,
-                onTap: openReview,
-                compact: true,
-              ),
-            ],
+            BudgetOverviewCard(
+              overview: overview,
+              onTap: canOpenReview ? openReview : null,
+              notePreview: canOpenReview ? model.monthReviewNote : null,
+            ),
             if (!overview.hasAnyBudget) ...[
               SizedBox(height: context.spacing.md),
               const _FirstBudgetCard(),
@@ -259,14 +251,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 isHistoricalMonth: isHistoricalMonth,
               ),
             ),
-            if (overview.mode == BudgetMode.track) ...[
-              SizedBox(height: context.spacing.md),
-              _ReviewEntry(
-                key: const ValueKey('budget-review-entry'),
-                entry: reviewEntry,
-                onTap: openReview,
-              ),
-            ],
             if (overview.mode == BudgetMode.plan) ...[
               SizedBox(height: context.spacing.md),
               _PlanHint(
@@ -356,90 +340,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         isHistoricalMonth: isHistoricalMonth,
       );
     }
-  }
-}
-
-/// The tracked month's way into L2: the review's name, one line of it, and the
-/// month note's opening words.
-///
-/// [compact] draws the closed month's summary bar — the same words on a
-/// subdued surface with tighter padding, since there it sits directly under the
-/// hero rather than at the end of the page.
-class _ReviewEntry extends StatelessWidget {
-  final BudgetReviewEntryUiModel entry;
-  final VoidCallback onTap;
-  final bool compact;
-
-  const _ReviewEntry({
-    super.key,
-    required this.entry,
-    required this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final spacing = context.spacing;
-    final content = Row(
-      children: [
-        Icon(
-          LucideIcons.barChart2,
-          size: compact
-              ? context.metrics.inlineIconSize
-              : context.metrics.iconSize,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        SizedBox(width: spacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.budgetReviewTitle,
-                style: AppTypography.selectedLabel(context),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: spacing.xs),
-              Text(
-                _reviewEntryLine(l10n, entry),
-                style: AppTypography.meta(context),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (entry.notePreview != null) ...[
-                SizedBox(height: spacing.xs),
-                Text(
-                  l10n.budgetReviewNotePreview(entry.notePreview!),
-                  style: AppTypography.meta(context),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        ),
-        SizedBox(width: spacing.sm),
-        Icon(
-          LucideIcons.chevronRight,
-          size: 18,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ],
-    );
-
-    if (compact) {
-      return AppCard.day(
-        onTap: onTap,
-        padding: EdgeInsets.symmetric(
-          horizontal: spacing.md,
-          vertical: spacing.sm,
-        ),
-        child: content,
-      );
-    }
-    return AppCard(onTap: onTap, child: content);
   }
 }
 
@@ -560,27 +460,4 @@ class _NoAccountsState extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Resolves the entry's meaning to words. The kinds are named by the model and
-/// the amounts arrive preformatted; this is the one place the two meet.
-String _reviewEntryLine(
-  AppLocalizations l10n,
-  BudgetReviewEntryUiModel entry,
-) {
-  return switch (entry.kind) {
-    BudgetReviewEntryKind.actuals => l10n.budgetReviewEntryActuals(
-        entry.committedActualDisplay!,
-        entry.discretionaryActualDisplay!,
-      ),
-    BudgetReviewEntryKind.overrun => l10n.budgetReviewEntryOverrun(
-        entry.categoryName!,
-        entry.amountDisplay!,
-      ),
-    BudgetReviewEntryKind.surplus => l10n.budgetReviewEntrySurplus(
-        entry.categoryName!,
-        entry.amountDisplay!,
-      ),
-    BudgetReviewEntryKind.quiet => l10n.budgetReviewEntryQuiet,
-  };
 }

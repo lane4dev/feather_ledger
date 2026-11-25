@@ -21,10 +21,9 @@ const budgetTestApril = YearMonth(2026, 4);
 const budgetTestMay = YearMonth(2026, 5);
 const budgetTestJune = YearMonth(2026, 6);
 
-/// The single review entry of a month: compact bar under the hero for a closed
-/// month, full-width card at the end of the page for the current one.
-const budgetReviewBarKey = ValueKey('budget-review-bar');
-const budgetReviewEntryKey = ValueKey('budget-review-entry');
+/// The hero is the way into L2 for a tracked or closed month; the tap target
+/// is an ink overlay on the card.
+const budgetOverviewTapKey = ValueKey('budget-overview-tap');
 const budgetPlanHintKey = ValueKey('budget-plan-hint');
 
 BudgetMode _modeOf(YearMonth month, [DateTime? now]) {

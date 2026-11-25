@@ -194,7 +194,7 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byTooltip(l10n.previousMonth));
           await tester.pumpAndSettle();
-          expect(find.byKey(budgetReviewBarKey), findsOneWidget);
+          expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
           expect(tickFinder, findsNothing);
           expect(
             find.byKey(const ValueKey('budget-overview-bar-actual')),
@@ -255,9 +255,10 @@ void main() {
           locale: locale,
         );
 
-        await tester.drag(find.byType(ListView), const Offset(0, -1200));
+        // The hero is the review's door; scroll back up to it.
+        await tester.drag(find.byType(ListView), const Offset(0, 1200));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(budgetReviewEntryKey));
+        await tester.tap(find.byKey(budgetOverviewTapKey));
         await tester.pumpAndSettle();
         expect(find.byType(BudgetReviewScreen), findsOneWidget);
 

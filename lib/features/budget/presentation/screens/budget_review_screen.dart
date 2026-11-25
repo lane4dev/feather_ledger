@@ -8,7 +8,6 @@ import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
-import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import '../../domain/services/budget_service.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
