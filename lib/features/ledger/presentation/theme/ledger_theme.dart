@@ -90,10 +90,6 @@ class LedgerTheme {
       Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
 
   // Compatibility roles delegate to the global typography system.
-  static TextStyle balanceText(BuildContext context) =>
-      AppTypography.balance(context);
-  static TextStyle balanceLabel(BuildContext context) =>
-      Theme.of(context).textTheme.labelMedium!;
   static TextStyle anchorDayText(BuildContext context) =>
       AppTypography.sectionTitle(context);
   static TextStyle anchorWeekdayText(BuildContext context) =>

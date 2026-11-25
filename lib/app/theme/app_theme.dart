@@ -569,6 +569,13 @@ class AppTheme {
     );
   }
 
+  static Color ensureForegroundContrast(
+    Color fg,
+    Color background, {
+    double minRatio = 4.5,
+  }) =>
+      _ensureContrast(fg, [background], minRatio);
+
   static double _contrastRatio(Color a, Color b) {
     final la = a.computeLuminance();
     final lb = b.computeLuminance();

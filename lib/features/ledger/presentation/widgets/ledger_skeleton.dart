@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 
 import '../theme/ledger_theme.dart';
@@ -47,60 +48,73 @@ class _LedgerSkeletonState extends State<LedgerSkeleton>
   }
 
   Widget _buildSkeletonGroup(BuildContext context) {
-    return Column(
-      children: [
-        // Group Header (simulating Anchor)
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: context.spacing.sm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Anchor Column
-              SizedBox(
-                width: LedgerTheme.colAnchorWidth,
-                child: Column(
-                  children: [
-                    _box(context, width: 24, height: 24), // Day
-                    const SizedBox(height: 4),
-                    _box(context, width: 32, height: 12), // Weekday
-                  ],
-                ),
-              ),
-              // List Items (Reduced to 2)
-              Expanded(
-                child: Column(
-                  children:
-                      List.generate(2, (i) => _buildSkeletonItem(context)),
-                ),
-              ),
-            ],
+    return Padding(
+      padding: EdgeInsets.only(
+        right: context.spacing.md,
+        bottom: LedgerTheme.dayCardGap,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: LedgerTheme.colAnchorWidth,
+            height: LedgerTheme.rowMinHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _box(context, width: 24, height: 24),
+                const SizedBox(height: 4),
+                _box(context, width: 32, height: 12),
+              ],
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: AppCard.day(
+              padding: EdgeInsets.zero,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(2, (i) => _buildSkeletonItem(context)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSkeletonItem(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.md,
-        vertical: context.spacing.sm,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _box(context, width: 120, height: 16), // Title
-                const SizedBox(height: 6),
-                _box(context, width: 80, height: 12), // Meta
-              ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: LedgerTheme.rowMinHeight),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: context.spacing.md,
+          vertical: 10.0,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: LedgerTheme.categoryAvatarSize,
+              height: LedgerTheme.categoryAvatarSize,
+              decoration: BoxDecoration(
+                color: LedgerTheme.skeletonFill(context),
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          SizedBox(width: context.spacing.md),
-          _box(context, width: 60, height: 16), // Amount
-        ],
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _box(context, width: 120, height: 16),
+                  const SizedBox(height: 6),
+                  _box(context, width: 80, height: 12),
+                ],
+              ),
+            ),
+            SizedBox(width: context.spacing.md),
+            _box(context, width: 60, height: 16),
+          ],
+        ),
       ),
     );
   }

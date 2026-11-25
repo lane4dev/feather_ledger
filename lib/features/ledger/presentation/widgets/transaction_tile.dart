@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:flutter/material.dart';
 
@@ -192,7 +190,7 @@ class TransactionTile extends StatelessWidget {
       final rawColor = Color(category.colorInt);
       final isDark = theme.brightness == Brightness.dark;
       bgColor = Color.lerp(cardSurface, rawColor, isDark ? 0.28 : 0.16)!;
-      fgColor = _readableForeground(rawColor, bgColor);
+      fgColor = AppTheme.ensureForegroundContrast(rawColor, bgColor);
     } else {
       bgColor = scheme.surfaceContainerHigh;
       fgColor = scheme.onSurfaceVariant;
@@ -225,33 +223,6 @@ class TransactionTile extends StatelessWidget {
       alignment: Alignment.center,
       child: icon,
     );
-  }
-
-  /// Ensures category icon contrast stays >= 4.5:1 on its tinted circle in
-  /// both light and dark modes while preserving the category hue.
-  static Color _readableForeground(Color raw, Color background) {
-    if (_contrastRatio(raw, background) >= 4.5) return raw;
-    final bgLuminance = background.computeLuminance();
-    final hsl = HSLColor.fromColor(raw);
-    final lighten = bgLuminance < 0.5;
-    for (var step = 1; step <= 20; step++) {
-      final t = step / 20.0;
-      final lightness = lighten
-          ? hsl.lightness + (0.92 - hsl.lightness) * t
-          : hsl.lightness * (1 - t * 0.85);
-      final candidate =
-          hsl.withLightness(lightness.clamp(0.08, 0.94)).toColor();
-      if (_contrastRatio(candidate, background) >= 4.5) return candidate;
-    }
-    return lighten ? Colors.white : Colors.black;
-  }
-
-  static double _contrastRatio(Color a, Color b) {
-    final l1 = a.computeLuminance();
-    final l2 = b.computeLuminance();
-    final lighter = math.max(l1, l2);
-    final darker = math.min(l1, l2);
-    return (lighter + 0.05) / (darker + 0.05);
   }
 
   /// The scheduled status tag (`待入账` / `已跳过` / `自动入账失败`).
