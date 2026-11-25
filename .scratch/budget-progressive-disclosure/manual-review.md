@@ -122,3 +122,10 @@ the month picker.
 - Note editor: the field's left edge lines up with the title and `0/500`, and
   保存 is a tonal button on the right.
 - [ ] pass  [ ] fail — notes:
+
+## 11. Budget app bar scroll tint
+
+- Pages: L1 month list and L2 review
+- Scroll down: the app bar turns a shallow `surfaceContainer`; scroll back to
+  the top and it returns to the page surface with no shadow or jump.
+- [ ] pass  [ ] fail — notes:
