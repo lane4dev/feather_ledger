@@ -34,6 +34,11 @@ class BudgetReviewUiMapper {
       committedBaselineMinor += category.committedBaselineMinor;
     }
 
+    final isHistorical = todayMonth != null && summary.month < todayMonth;
+    final showBaselineRow = !isHistorical ||
+        summary.hasLeftoverPendingInReview ||
+        committedBaselineMinor != committedActualMinor;
+
     return BudgetReviewUiModel(
       month: summary.month,
       monthLabel: monthFormat.format(summary.month.toDateTime()),
@@ -43,7 +48,9 @@ class BudgetReviewUiMapper {
           formatMinorWithSymbol(discretionaryActualMinor, currencySymbol),
       committedBaselineDisplay:
           formatMinorWithSymbol(committedBaselineMinor, currencySymbol),
-      hasLeftoverPendingBills: summary.hasLeftoverPendingInReview,
+      committedActualMinor: committedActualMinor,
+      discretionaryActualMinor: discretionaryActualMinor,
+      showBaselineRow: showBaselineRow,
       overBudgetTop3: summary.overBudgetTop3
           .map((item) => _mapAttribution(item, currencySymbol, isOver: true))
           .toList(growable: false),
@@ -51,7 +58,12 @@ class BudgetReviewUiMapper {
           .map((item) => _mapAttribution(item, currencySymbol, isOver: false))
           .toList(growable: false),
       monthTrend6Months: summary.monthTrend6Months
-          .map((point) => _mapTrendPoint(point, shortMonthFormat, todayMonth))
+          .map((point) => _mapTrendPoint(
+                point,
+                shortMonthFormat,
+                todayMonth,
+                currencySymbol,
+              ))
           .toList(growable: false),
       monthReviewNote: _normalizedNote(summary.monthReviewNote),
     );
@@ -79,14 +91,20 @@ class BudgetReviewUiMapper {
     BudgetTrendPoint point,
     DateFormat monthFormat,
     YearMonth? todayMonth,
+    String currencySymbol,
   ) {
+    final budgetMinor = point.budgetMinor;
     return BudgetTrendPointUiModel(
       ym: point.month,
       shortLabel: monthFormat.format(point.month.toDateTime()),
-      budgetMinor: point.budgetMinor,
+      budgetMinor: budgetMinor,
       actualMinor: point.actualMinor,
-      budgetChartValue: (point.budgetMinor ?? 0) / 100.0,
+      budgetChartValue: (budgetMinor ?? 0) / 100.0,
       actualChartValue: point.actualMinor / 100.0,
+      budgetDisplay: budgetMinor == null
+          ? null
+          : formatMinorWithSymbol(budgetMinor, currencySymbol),
+      actualDisplay: formatMinorWithSymbol(point.actualMinor, currencySymbol),
       hasReviewNote: point.hasReviewNote,
       isFuture: todayMonth != null && point.month > todayMonth,
     );

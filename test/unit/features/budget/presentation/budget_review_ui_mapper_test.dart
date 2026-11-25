@@ -93,7 +93,8 @@ void main() {
 
   const mapper = BudgetReviewUiMapper();
 
-  test('folds committed, discretionary and baseline across every category, '
+  test(
+      'folds committed, discretionary and baseline across every category, '
       'including unbudgeted ones', () {
     final model = mapper.map(
       summary(
@@ -170,7 +171,8 @@ void main() {
     expect(model.hasAttribution, isTrue);
   });
 
-  test('maps trend points and exposes the selected month budget line only when '
+  test(
+      'maps trend points and exposes the selected month budget line only when '
       'the month is budgeted', () {
     final model = mapper.map(
       summary(
@@ -277,7 +279,7 @@ void main() {
             currencySymbol: '\$',
             locale: 'en',
           )
-          .hasLeftoverPendingBills,
+          .showBaselineRow,
       isTrue,
     );
   });

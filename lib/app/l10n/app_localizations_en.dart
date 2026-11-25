@@ -1097,10 +1097,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetOverviewBaselineShare => 'Baseline share';
 
   @override
-  String get budgetLeftoverPendingHint =>
-      'Past month has unposted scheduled bills excluded from review totals.';
-
-  @override
   String get budgetMaterializedOnlyHint =>
       'Only generated recurring bills are included.';
 
@@ -1111,18 +1107,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetReviewTitle => 'Monthly Review & Trends';
 
   @override
-  String get budgetReviewScopeNote =>
-      'Whole month, including unbudgeted categories.';
+  String get budgetReviewCompositionSubtitle =>
+      'Whole-month composition · incl. unbudgeted';
 
   @override
-  String get budgetReviewCommittedActual => 'Committed spent';
+  String get budgetReviewCommittedActual => 'Committed';
 
   @override
-  String get budgetReviewDiscretionaryActual => 'Discretionary spent';
+  String get budgetReviewDiscretionaryActual => 'Discretionary';
 
   @override
-  String get budgetReviewBaselineNote =>
-      'Committed spent + effective pending bills. Reference only; the three figures are not additive.';
+  String get budgetReviewBaselineRow => 'Committed baseline (incl. pending)';
 
   @override
   String get budgetReviewNoteEmptyDeletes =>
@@ -1138,7 +1133,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetTrendLegendAverage => '3-month average';
 
   @override
-  String get budgetAttributionTitle => 'Month Review & Attribution';
+  String budgetTrendTooltipActual(String amount) {
+    return 'Actual $amount';
+  }
+
+  @override
+  String budgetTrendTooltipBudget(String amount) {
+    return 'Budget $amount';
+  }
+
+  @override
+  String get budgetAttributionTitle => 'Budget attribution';
+
+  @override
+  String get budgetAttributionActualBasis => 'Posted only';
 
   @override
   String get budgetOverTopTitle => 'Top Over Budget';

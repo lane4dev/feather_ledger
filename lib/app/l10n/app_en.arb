@@ -878,19 +878,35 @@
   "budgetOverviewAvailable": "Available to spend",
   "budgetOverviewBudgetUsage": "Budget used",
   "budgetOverviewBaselineShare": "Baseline share",
-  "budgetLeftoverPendingHint": "Past month has unposted scheduled bills excluded from review totals.",
   "budgetMaterializedOnlyHint": "Only generated recurring bills are included.",
   "budgetTrendTitle": "6-Month Budget vs Actual",
   "budgetReviewTitle": "Monthly Review & Trends",
-  "budgetReviewScopeNote": "Whole month, including unbudgeted categories.",
-  "budgetReviewCommittedActual": "Committed spent",
-  "budgetReviewDiscretionaryActual": "Discretionary spent",
-  "budgetReviewBaselineNote": "Committed spent + effective pending bills. Reference only; the three figures are not additive.",
+  "budgetReviewCompositionSubtitle": "Whole-month composition · incl. unbudgeted",
+  "budgetReviewCommittedActual": "Committed",
+  "budgetReviewDiscretionaryActual": "Discretionary",
+  "budgetReviewBaselineRow": "Committed baseline (incl. pending)",
   "budgetReviewNoteEmptyDeletes": "Leave the note empty and save to remove it.",
   "budgetTrendLegendActual": "All actual spend",
   "budgetTrendLegendBudget": "Total budget",
   "budgetTrendLegendAverage": "3-month average",
-  "budgetAttributionTitle": "Month Review & Attribution",
+  "budgetTrendTooltipActual": "Actual {amount}",
+  "@budgetTrendTooltipActual": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetTrendTooltipBudget": "Budget {amount}",
+  "@budgetTrendTooltipBudget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetAttributionTitle": "Budget attribution",
+  "budgetAttributionActualBasis": "Posted only",
   "budgetOverTopTitle": "Top Over Budget",
   "budgetUnderTopTitle": "Top Under Budget",
   "budgetMonthNoteLabel": "Month review note",

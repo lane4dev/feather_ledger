@@ -17,9 +17,15 @@ class BudgetReviewUiModel {
   final String discretionaryActualDisplay;
   final String committedBaselineDisplay;
 
-  /// True when a historical month still has unposted scheduled bills, which
-  /// the domain excludes from every review figure.
-  final bool hasLeftoverPendingBills;
+  /// Whole-month minor-unit figures behind the two composition labels. The
+  /// composition bar proportions them; the card never does the arithmetic.
+  final int committedActualMinor;
+  final int discretionaryActualMinor;
+
+  /// False only for a historical month whose committed baseline equals its
+  /// committed actual with no pending bills left: the bottom line would then
+  /// repeat the figure directly above it.
+  final bool showBaselineRow;
 
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
@@ -36,7 +42,9 @@ class BudgetReviewUiModel {
     required this.committedActualDisplay,
     required this.discretionaryActualDisplay,
     required this.committedBaselineDisplay,
-    required this.hasLeftoverPendingBills,
+    required this.committedActualMinor,
+    required this.discretionaryActualMinor,
+    required this.showBaselineRow,
     required this.overBudgetTop3,
     required this.underBudgetTop3,
     required this.monthTrend6Months,

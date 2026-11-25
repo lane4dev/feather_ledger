@@ -12,6 +12,11 @@ class BudgetTrendPointUiModel {
   final int actualMinor;
   final double budgetChartValue;
   final double actualChartValue;
+
+  /// Preformatted amounts for the chart's touch tooltip. Formatting stays in
+  /// the mapper; the chart only inserts them into a localized sentence.
+  final String? budgetDisplay;
+  final String actualDisplay;
   final bool hasReviewNote;
 
   /// Whether the month is after the mapper's today. A future month may carry a
@@ -25,6 +30,8 @@ class BudgetTrendPointUiModel {
     required this.actualMinor,
     required this.budgetChartValue,
     required this.actualChartValue,
+    required this.budgetDisplay,
+    required this.actualDisplay,
     required this.hasReviewNote,
     this.isFuture = false,
   });

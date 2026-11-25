@@ -2111,12 +2111,6 @@ abstract class AppLocalizations {
   /// **'Baseline share'**
   String get budgetOverviewBaselineShare;
 
-  /// No description provided for @budgetLeftoverPendingHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Past month has unposted scheduled bills excluded from review totals.'**
-  String get budgetLeftoverPendingHint;
-
   /// No description provided for @budgetMaterializedOnlyHint.
   ///
   /// In en, this message translates to:
@@ -2135,29 +2129,29 @@ abstract class AppLocalizations {
   /// **'Monthly Review & Trends'**
   String get budgetReviewTitle;
 
-  /// No description provided for @budgetReviewScopeNote.
+  /// No description provided for @budgetReviewCompositionSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Whole month, including unbudgeted categories.'**
-  String get budgetReviewScopeNote;
+  /// **'Whole-month composition · incl. unbudgeted'**
+  String get budgetReviewCompositionSubtitle;
 
   /// No description provided for @budgetReviewCommittedActual.
   ///
   /// In en, this message translates to:
-  /// **'Committed spent'**
+  /// **'Committed'**
   String get budgetReviewCommittedActual;
 
   /// No description provided for @budgetReviewDiscretionaryActual.
   ///
   /// In en, this message translates to:
-  /// **'Discretionary spent'**
+  /// **'Discretionary'**
   String get budgetReviewDiscretionaryActual;
 
-  /// No description provided for @budgetReviewBaselineNote.
+  /// No description provided for @budgetReviewBaselineRow.
   ///
   /// In en, this message translates to:
-  /// **'Committed spent + effective pending bills. Reference only; the three figures are not additive.'**
-  String get budgetReviewBaselineNote;
+  /// **'Committed baseline (incl. pending)'**
+  String get budgetReviewBaselineRow;
 
   /// No description provided for @budgetReviewNoteEmptyDeletes.
   ///
@@ -2183,11 +2177,29 @@ abstract class AppLocalizations {
   /// **'3-month average'**
   String get budgetTrendLegendAverage;
 
+  /// No description provided for @budgetTrendTooltipActual.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual {amount}'**
+  String budgetTrendTooltipActual(String amount);
+
+  /// No description provided for @budgetTrendTooltipBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget {amount}'**
+  String budgetTrendTooltipBudget(String amount);
+
   /// No description provided for @budgetAttributionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Month Review & Attribution'**
+  /// **'Budget attribution'**
   String get budgetAttributionTitle;
+
+  /// No description provided for @budgetAttributionActualBasis.
+  ///
+  /// In en, this message translates to:
+  /// **'Posted only'**
+  String get budgetAttributionActualBasis;
 
   /// No description provided for @budgetOverTopTitle.
   ///

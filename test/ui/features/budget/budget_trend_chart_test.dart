@@ -31,6 +31,10 @@ void main() {
       actualMinor: actualMinor,
       budgetChartValue: (budgetMinor ?? 0) / 100.0,
       actualChartValue: actualMinor / 100.0,
+      budgetDisplay: budgetMinor == null
+          ? null
+          : '¥${(budgetMinor / 100).toStringAsFixed(2)}',
+      actualDisplay: '¥${(actualMinor / 100).toStringAsFixed(2)}',
       hasReviewNote: hasReviewNote,
       isFuture: isFuture,
     );
@@ -63,14 +67,17 @@ void main() {
   }
 
   Color primaryOf(WidgetTester tester) =>
-      Theme.of(tester.element(find.byType(BudgetTrendChart))).colorScheme.primary;
+      Theme.of(tester.element(find.byType(BudgetTrendChart)))
+          .colorScheme
+          .primary;
 
   Color expenseOf(WidgetTester tester) => Theme.of(
         tester.element(find.byType(BudgetTrendChart)),
       ).extension<AppSemanticColors>()!.expense;
 
   group('valid-month rule', () {
-    test('counts a month only when it has a positive budget or actual spend', () {
+    test('counts a month only when it has a positive budget or actual spend',
+        () {
       final months = [
         point(2026, 1, budgetMinor: null, actualMinor: 0, hasReviewNote: true),
         point(2026, 2, budgetMinor: 0, actualMinor: 0),
@@ -130,7 +137,8 @@ void main() {
     }
   });
 
-  testWidgets('renders title, legend and one bar per point from two valid '
+  testWidgets(
+      'renders title, legend and one bar per point from two valid '
       'months', (tester) async {
     await pumpChart(
       tester,
@@ -184,7 +192,8 @@ void main() {
     expect(rods(tester).last.color, isNot(expenseOf(tester)));
   });
 
-  testWidgets('category mode colours only months that strictly exceed their '
+  testWidgets(
+      'category mode colours only months that strictly exceed their '
       'own budget', (tester) async {
     await pumpChart(
       tester,
@@ -227,8 +236,8 @@ void main() {
       tester,
       BudgetTrendChart(
         points: [
-          point(2026, 4, budgetMinor: 20000, actualMinor: 10000,
-              hasReviewNote: true),
+          point(2026, 4,
+              budgetMinor: 20000, actualMinor: 10000, hasReviewNote: true),
           point(2026, 5, budgetMinor: 20000, actualMinor: 24000),
         ],
       ),
@@ -266,7 +275,8 @@ void main() {
     expect(lines.map((line) => line.y), contains(150));
   });
 
-  testWidgets('draws each month its own budget column and none where the '
+  testWidgets(
+      'draws each month its own budget column and none where the '
       'month has no budget', (tester) async {
     await pumpChart(
       tester,
@@ -293,7 +303,8 @@ void main() {
     expect(find.text('Total budget'), findsOneWidget);
   });
 
-  testWidgets('leaves the budget legend off when no month in view has a '
+  testWidgets(
+      'leaves the budget legend off when no month in view has a '
       'budget', (tester) async {
     await pumpChart(
       tester,
@@ -310,7 +321,8 @@ void main() {
     expect(rods(tester).every((rod) => !rod.backDrawRodData.show), isTrue);
   });
 
-  testWidgets('keeps the legacy constructor call shape compiling and renders '
+  testWidgets(
+      'keeps the legacy constructor call shape compiling and renders '
       'in dark mode', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,

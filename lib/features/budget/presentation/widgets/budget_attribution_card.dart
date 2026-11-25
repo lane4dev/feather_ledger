@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -29,7 +28,6 @@ class BudgetAttributionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
-    final scheme = Theme.of(context).colorScheme;
     final showOver = overBudgetTop3.isNotEmpty;
     final showUnder = underBudgetTop3.isNotEmpty;
 
@@ -39,9 +37,6 @@ class BudgetAttributionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(LucideIcons.sparkles,
-                  size: context.metrics.inlineIconSize, color: scheme.primary),
-              SizedBox(width: spacing.xs),
               Expanded(
                 child: Text(
                   l10n.budgetAttributionTitle,
@@ -122,14 +117,27 @@ class _AttributionColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          title,
-          style: AppTypography.meta(context).copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: AppTypography.meta(context).copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Text(
+              l10n.budgetAttributionActualBasis,
+              style: AppTypography.compactLabel(context).copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         for (final item in items)
           _AttributionRow(
@@ -142,6 +150,32 @@ class _AttributionColumn extends StatelessWidget {
             onTap: () => onCategoryTap(item.categoryId),
           ),
       ],
+    );
+  }
+}
+
+/// The small tonal disc that matches the home page's category avatars.
+class _AttributionAvatar extends StatelessWidget {
+  static const double _size = 30;
+
+  final String iconKey;
+  final int colorInt;
+
+  const _AttributionAvatar({required this.iconKey, required this.colorInt});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = Color(colorInt);
+    return Container(
+      width: _size,
+      height: _size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color.lerp(scheme.surfaceContainerLow, color, 0.14),
+      ),
+      alignment: Alignment.center,
+      child: CategoryIcon(iconKey: iconKey, size: 16, color: color),
     );
   }
 }
@@ -175,11 +209,7 @@ class _AttributionRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: context.spacing.xs),
         child: Row(
           children: [
-            CategoryIcon(
-              iconKey: iconKey,
-              size: context.metrics.rowIconSize,
-              color: Color(colorInt),
-            ),
+            _AttributionAvatar(iconKey: iconKey, colorInt: colorInt),
             SizedBox(width: context.spacing.xs),
             Expanded(
               child: Text(

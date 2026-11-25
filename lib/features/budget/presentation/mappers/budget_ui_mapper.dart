@@ -377,7 +377,8 @@ class BudgetUiMapper {
         anomalyPercent: anomalyPercent,
         reviewNote: c.reviewNote,
         trend6Months: c.sixMonthTrend
-            .map((p) => _mapTrendPoint(p, monthFormat, todayMonth))
+            .map((p) =>
+                _mapTrendPoint(p, monthFormat, todayMonth, currencySymbol))
             .toList(),
         topContributions: c.topTransactions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
@@ -445,7 +446,8 @@ class BudgetUiMapper {
               ))
           .toList(),
       monthTrend6Months: summary.monthTrend6Months
-          .map((p) => _mapTrendPoint(p, monthFormat, todayMonth))
+          .map(
+              (p) => _mapTrendPoint(p, monthFormat, todayMonth, currencySymbol))
           .toList(),
       monthReviewNote: summary.monthReviewNote,
     );
@@ -455,14 +457,20 @@ class BudgetUiMapper {
     BudgetTrendPoint p,
     DateFormat monthFormat,
     YearMonth? todayMonth,
+    String currencySymbol,
   ) {
+    final budgetMinor = p.budgetMinor;
     return BudgetTrendPointUiModel(
       ym: p.month,
       shortLabel: monthFormat.format(p.month.toDateTime()),
-      budgetMinor: p.budgetMinor,
+      budgetMinor: budgetMinor,
       actualMinor: p.actualMinor,
-      budgetChartValue: (p.budgetMinor ?? 0) / 100.0,
+      budgetChartValue: (budgetMinor ?? 0) / 100.0,
       actualChartValue: p.actualMinor / 100.0,
+      budgetDisplay: budgetMinor == null
+          ? null
+          : formatMinorWithSymbol(budgetMinor, currencySymbol),
+      actualDisplay: formatMinorWithSymbol(p.actualMinor, currencySymbol),
       hasReviewNote: p.hasReviewNote,
       isFuture: todayMonth != null && p.month > todayMonth,
     );

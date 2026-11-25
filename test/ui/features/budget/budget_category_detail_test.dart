@@ -147,8 +147,7 @@ class _StubLedgerRepository implements LedgerRepository {
   }
 
   @override
-  Future<ScheduledTransactionEntity?> getScheduledTransaction(
-      String id) async {
+  Future<ScheduledTransactionEntity?> getScheduledTransaction(String id) async {
     return ScheduledTransactionEntity(
       id: id,
       seriesId: 'series-1',
@@ -195,6 +194,10 @@ BudgetTrendPointUiModel _chartPoint(
       actualMinor: actualMinor,
       budgetChartValue: (budgetMinor ?? 0) / 100.0,
       actualChartValue: actualMinor / 100.0,
+      budgetDisplay: budgetMinor == null
+          ? null
+          : '¥${(budgetMinor / 100).toStringAsFixed(2)}',
+      actualDisplay: '¥${(actualMinor / 100).toStringAsFixed(2)}',
       hasReviewNote: hasReviewNote,
     );
 
@@ -273,9 +276,8 @@ MonthBudgetSummary buildSummary({
     totalBudgetMinor: budgetMinor ?? 0,
     budgetedActualMinor: actualMinor,
     budgetedPendingMinor: pendingMinor,
-    projectedRemainingMinor: budgetMinor == null
-        ? 0
-        : budgetMinor - actualMinor - pendingMinor,
+    projectedRemainingMinor:
+        budgetMinor == null ? 0 : budgetMinor - actualMinor - pendingMinor,
     budgetedRemainingActualMinor:
         budgetMinor == null ? 0 : budgetMinor - actualMinor,
     allExpenseActualMinor: actualMinor,
@@ -344,8 +346,7 @@ void main() {
       GoRoute(
         path: '/ledger/edit',
         builder: (_, state) => Scaffold(
-          body: Text(
-              'Editing ${(state.extra as TransactionTileUiModel).id}'),
+          body: Text('Editing ${(state.extra as TransactionTileUiModel).id}'),
         ),
       ),
       GoRoute(
@@ -438,8 +439,7 @@ void main() {
     await pumpDetail(tester, service: service, size: const Size(400, 700));
 
     expect(
-      find.text(
-          'Spending is 300% above the 3-month average of \$750.00.'),
+      find.text('Spending is 300% above the 3-month average of \$750.00.'),
       findsOneWidget,
     );
     // The explanation names what was compared against; a bare "+300%" label
@@ -456,8 +456,7 @@ void main() {
       for (var i = 3; i <= 5; i++)
         _point(YearMonth(2026, i),
             budgetMinor: 100000, actualMinor: 30000 + i * 1000),
-      _point(const YearMonth(2026, 6),
-          budgetMinor: 100000, actualMinor: 38000),
+      _point(const YearMonth(2026, 6), budgetMinor: 100000, actualMinor: 38000),
     ];
     final service = _StubBudgetService(buildSummary(
       sixMonthTrend: [_point(_may, budgetMinor: 100000, actualMinor: 45000)],
@@ -496,8 +495,8 @@ void main() {
     expect(find.byType(BarChart), findsOneWidget);
     expect(find.text('All actual spend'), findsOneWidget);
 
-    await pumpMonthlyChart(tester,
-        [_chartPoint(_may, budgetMinor: 100000, actualMinor: 45000)]);
+    await pumpMonthlyChart(
+        tester, [_chartPoint(_may, budgetMinor: 100000, actualMinor: 45000)]);
     expect(find.text('6-Month Budget vs Actual'), findsNothing);
     expect(find.byType(BarChart), findsNothing);
   });
@@ -624,8 +623,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(service.savedNote, isNull);
-    expect(find.text('Review note cannot exceed 500 characters'),
-        findsOneWidget);
+    expect(
+        find.text('Review note cannot exceed 500 characters'), findsOneWidget);
     // The oversized draft stays where the user left it.
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -681,14 +680,15 @@ void main() {
   testWidgets('removing the budget refreshes the note and its chart marker',
       (tester) async {
     final trend = [
-      _point(const YearMonth(2026, 4),
-          budgetMinor: 90000, actualMinor: 30000),
-      _point(_may, budgetMinor: 100000, actualMinor: 45000, hasReviewNote: true),
+      _point(const YearMonth(2026, 4), budgetMinor: 90000, actualMinor: 30000),
+      _point(_may,
+          budgetMinor: 100000, actualMinor: 45000, hasReviewNote: true),
     ];
     final service = _StubBudgetService(buildSummary(sixMonthTrend: trend));
     await pumpDetail(tester, service: service, size: const Size(900, 1200));
 
-    final marker = find.byKey(const ValueKey('budget-trend-note-marker-2026-05'));
+    final marker =
+        find.byKey(const ValueKey('budget-trend-note-marker-2026-05'));
     expect(marker, findsOneWidget);
 
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
@@ -738,7 +738,8 @@ void main() {
     );
   });
 
-  testWidgets('a closed month reports actual only; the open month shows pending',
+  testWidgets(
+      'a closed month reports actual only; the open month shows pending',
       (tester) async {
     // April is behind the clock (May 2026): its pending figure is not part of
     // the story it tells.
@@ -772,8 +773,8 @@ void main() {
       pendingMinor: 20000,
       hasHighFrequencyPending: true,
     ));
-    await pumpDetail(
-        tester, service: materialized, size: const Size(900, 1200));
+    await pumpDetail(tester,
+        service: materialized, size: const Size(900, 1200));
     expect(hint, findsOneWidget);
   });
 
@@ -845,8 +846,7 @@ void main() {
 
       // The composition card is reachable by scrolling at every width, and
       // none of its figures is truncated with an ellipsis or a line cap.
-      await tester.scrollUntilVisible(
-          find.text('Spending composition'), 200,
+      await tester.scrollUntilVisible(find.text('Spending composition'), 200,
           scrollable: find.byType(Scrollable).first);
       await tester.pumpAndSettle();
       expect(find.text('Spending composition'), findsOneWidget);
@@ -858,12 +858,10 @@ void main() {
         expect(text.maxLines, isNull);
       }
       expect(inCompositionCard(find.text('Committed')), findsOneWidget);
-      expect(inCompositionCard(find.text('Committed \$1500.00')),
-          findsOneWidget);
-      expect(inCompositionCard(find.text('Last mo \$800.00')),
-          findsOneWidget);
-      expect(inCompositionCard(find.text('3-mo avg \$750.00')),
-          findsOneWidget);
+      expect(
+          inCompositionCard(find.text('Committed \$1500.00')), findsOneWidget);
+      expect(inCompositionCard(find.text('Last mo \$800.00')), findsOneWidget);
+      expect(inCompositionCard(find.text('3-mo avg \$750.00')), findsOneWidget);
       expect(
         tester.getSize(find.byType(BudgetCategoryCompositionCard)).width,
         lessThanOrEqualTo(config.size.width),

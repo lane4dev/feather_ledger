@@ -165,6 +165,7 @@ void main() {
     String? note,
     List<BudgetTrendPoint>? trend,
     bool hasLeftoverPendingInReview = false,
+    YearMonth month = may,
   }) {
     final dining = category(
       id: 'dining',
@@ -181,7 +182,7 @@ void main() {
     );
     return MonthBudgetSummary(
       currencyCode: 'USD',
-      month: may,
+      month: month,
       mode: BudgetMode.review,
       hasAnyActiveAccount: true,
       totalBudgetMinor: 20000,
@@ -307,7 +308,8 @@ void main() {
     return service;
   }
 
-  testWidgets('shows whole-month actuals, the committed baseline and the '
+  testWidgets(
+      'shows whole-month actuals, the committed baseline and the '
       'leftover-bill explanation', (tester) async {
     await pumpReview(
       tester,
@@ -318,42 +320,47 @@ void main() {
     expect(find.byIcon(LucideIcons.arrowLeft), findsOneWidget);
     expect(find.text('May 2026'), findsOneWidget);
     expect(
-      find.text('Whole month, including unbudgeted categories.'),
+      find.text('Whole-month composition · incl. unbudgeted'),
       findsOneWidget,
     );
-    expect(find.text('Committed spent'), findsOneWidget);
+    expect(find.text('Committed'), findsOneWidget);
     expect(find.text('\$400.00'), findsNWidgets(2));
-    expect(find.text('Discretionary spent'), findsOneWidget);
+    expect(find.text('Discretionary'), findsOneWidget);
     expect(find.text('\$2600.00'), findsOneWidget);
-    expect(find.text('Committed baseline'), findsOneWidget);
     expect(
-      find.text(
-        'Committed spent + effective pending bills. Reference only; the three '
-        'figures are not additive.',
-      ),
+      find.text('Committed baseline (incl. pending)'),
       findsOneWidget,
     );
     expect(
-      find.text(
-        'Past month has unposted scheduled bills excluded from review totals.',
-      ),
+      find.textContaining('Reference only'),
+      findsNothing,
+    );
+    expect(
+      find.textContaining('excluded from review totals'),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('budget-review-composition-bar')),
       findsOneWidget,
     );
   });
 
-  testWidgets('omits the leftover-bill explanation when nothing is pending',
-      (tester) async {
-    await pumpReview(tester);
+  testWidgets(
+      'hides the baseline row on a historical month with nothing '
+      'pending', (tester) async {
+    await pumpReview(
+      tester,
+      summary: buildSummary(month: const YearMonth(2026, 4)),
+    );
 
     expect(
-      find.text(
-        'Past month has unposted scheduled bills excluded from review totals.',
-      ),
+      find.text('Committed baseline (incl. pending)'),
       findsNothing,
     );
   });
 
-  testWidgets('shows over and under budget side by side in domain order and '
+  testWidgets(
+      'shows over and under budget side by side in domain order and '
       'opens the same-month L3 on tap', (tester) async {
     await pumpReview(tester, size: const Size(900, 2400));
 
@@ -431,7 +438,8 @@ void main() {
   });
 
   testWidgets('saving an empty note deletes it', (tester) async {
-    final service = await pumpReview(tester, summary: buildSummary(note: 'Car repair'));
+    final service =
+        await pumpReview(tester, summary: buildSummary(note: 'Car repair'));
     expect(find.text('Car repair'), findsOneWidget);
 
     await tester.tap(find.text('Edit'));
@@ -501,7 +509,8 @@ void main() {
     expect(find.text('All actual spend'), findsNothing);
   });
 
-  testWidgets('renders the trend with two valid months and the 240/200 bars '
+  testWidgets(
+      'renders the trend with two valid months and the 240/200 bars '
       'stay primary', (tester) async {
     await pumpReview(tester);
 
@@ -514,7 +523,7 @@ void main() {
     await pumpReview(tester, brightness: Brightness.dark);
 
     expect(find.text('Monthly Review & Trends'), findsOneWidget);
-    expect(find.text('Committed baseline'), findsOneWidget);
+    expect(find.text('Committed baseline (incl. pending)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -526,7 +535,7 @@ void main() {
     );
 
     expect(find.text('Monthly Review & Trends'), findsOneWidget);
-    expect(find.text('Committed baseline'), findsOneWidget);
+    expect(find.text('Committed baseline (incl. pending)'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.scrollUntilVisible(find.text('Month review note'), 300);

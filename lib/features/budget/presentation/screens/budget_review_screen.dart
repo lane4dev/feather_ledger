@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_button.dart';
@@ -82,15 +83,46 @@ class BudgetReviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final summaryAsync = ref.watch(budgetMonthSummaryProvider(month));
+    final scheme = Theme.of(context).colorScheme;
+    final monthLabel =
+        DateFormat.yMMMM(Localizations.localeOf(context).toString())
+            .format(month.toDateTime());
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 3,
         leading: AppIconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(l10n.budgetReviewTitle),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.budgetReviewTitle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(width: context.spacing.sm),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.spacing.sm,
+                vertical: context.spacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                monthLabel,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+          ],
+        ),
       ),
       body: summaryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -122,24 +154,13 @@ class _BudgetReviewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
-    final showTrend =
-        BudgetTrendChart.shouldShow(model.monthTrend6Months);
+    final showTrend = BudgetTrendChart.shouldShow(model.monthTrend6Months);
 
     return ListView(
-      padding: context.pagePadding.copyWith(top: spacing.md, bottom: spacing.xl),
+      padding:
+          context.pagePadding.copyWith(top: spacing.md, bottom: spacing.xl),
       children: [
-        Text(
-          model.monthLabel,
-          style: AppTypography.sectionTitle(context),
-        ),
-        SizedBox(height: spacing.xs),
-        Text(
-          l10n.budgetReviewScopeNote,
-          style: AppTypography.meta(context),
-        ),
-        SizedBox(height: spacing.md),
         _ActualsCard(model: model),
         if (model.hasAttribution) ...[
           SizedBox(height: spacing.md),
@@ -177,11 +198,17 @@ class _ActualsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
+    final scheme = Theme.of(context).colorScheme;
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            l10n.budgetReviewCompositionSubtitle,
+            style: AppTypography.meta(context),
+          ),
+          SizedBox(height: spacing.md),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -200,27 +227,79 @@ class _ActualsCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: spacing.md),
-          _Metric(
-            label: l10n.budgetCommittedBaseline,
-            value: model.committedBaselineDisplay,
+          SizedBox(height: spacing.sm),
+          _CompositionBar(
+            committedMinor: model.committedActualMinor,
+            discretionaryMinor: model.discretionaryActualMinor,
           ),
-          SizedBox(height: spacing.xs),
-          Text(
-            l10n.budgetReviewBaselineNote,
-            style: AppTypography.meta(context),
-          ),
-          if (model.hasLeftoverPendingBills) ...[
+          if (model.showBaselineRow) ...[
+            SizedBox(height: spacing.md),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: scheme.outlineVariant.withValues(alpha: 0.7),
+            ),
             SizedBox(height: spacing.sm),
-            Text(
-              l10n.budgetLeftoverPendingHint,
-              style: AppTypography.meta(context).copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.budgetReviewBaselineRow,
+                    style: AppTypography.meta(context),
+                  ),
+                ),
+                Text(
+                  model.committedBaselineDisplay,
+                  style: AppTypography.amount(context),
+                ),
+              ],
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The 6dp committed/flexible proportion strip under the two figures.
+class _CompositionBar extends StatelessWidget {
+  final int committedMinor;
+  final int discretionaryMinor;
+
+  const _CompositionBar({
+    required this.committedMinor,
+    required this.discretionaryMinor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final total = committedMinor + discretionaryMinor;
+    return Container(
+      key: const ValueKey('budget-review-composition-bar'),
+      height: 6,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: total <= 0
+          ? null
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (committedMinor > 0)
+                  Expanded(
+                    flex: committedMinor,
+                    child: ColoredBox(color: scheme.primary),
+                  ),
+                if (discretionaryMinor > 0)
+                  Expanded(
+                    flex: discretionaryMinor,
+                    child: ColoredBox(color: scheme.tertiary),
+                  ),
+              ],
+            ),
     );
   }
 }
@@ -322,13 +401,12 @@ class _MonthNoteCardState extends ConsumerState<_MonthNoteCard> {
     }
 
     setState(() => _saving = true);
-    final result = await ref
-        .read(budgetViewModelProvider.notifier)
-        .saveReviewNote(
-          currencyCode: widget.currencyCode,
-          month: widget.month,
-          note: raw,
-        );
+    final result =
+        await ref.read(budgetViewModelProvider.notifier).saveReviewNote(
+              currencyCode: widget.currencyCode,
+              month: widget.month,
+              note: raw,
+            );
     if (!mounted) return;
 
     setState(() {
@@ -387,12 +465,25 @@ class _MonthNoteCardState extends ConsumerState<_MonthNoteCard> {
           ),
           if (_editing) ...[
             SizedBox(height: spacing.sm),
-            AppTextField(
-              controller: _controller,
-              minLines: 3,
-              maxLines: 4,
-              hintText: l10n.budgetNotePlaceholder,
-              onChanged: (_) => setState(() {}),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: spacing.sm,
+                vertical: spacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLowest,
+                borderRadius:
+                    BorderRadius.circular(context.metrics.controlRadius),
+              ),
+              child: AppTextField(
+                controller: _controller,
+                variant: AppFieldVariant.inline,
+                minLines: 3,
+                maxLines: 4,
+                hintText: l10n.budgetNotePlaceholder,
+                onChanged: (_) => setState(() {}),
+              ),
             ),
             SizedBox(height: spacing.xs),
             Text(
@@ -417,7 +508,7 @@ class _MonthNoteCardState extends ConsumerState<_MonthNoteCard> {
                   onPressed: _saving ? null : _cancelEditing,
                   child: Text(l10n.cancel),
                 ),
-                AppButton.outlined(
+                AppButton.secondary(
                   onPressed: _saving ? null : _save,
                   child: Text(l10n.budgetSaveNote),
                 ),

@@ -1043,9 +1043,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetOverviewBaselineShare => '基线占比';
 
   @override
-  String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
-
-  @override
   String get budgetMaterializedOnlyHint => '待入账仅含已物化排期账单。';
 
   @override
@@ -1055,7 +1052,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetReviewTitle => '月度复盘与趋势';
 
   @override
-  String get budgetReviewScopeNote => '整月口径，含未设预算的分类。';
+  String get budgetReviewCompositionSubtitle => '全盘支出构成 · 含未设预算';
 
   @override
   String get budgetReviewCommittedActual => '固定支出';
@@ -1064,7 +1061,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetReviewDiscretionaryActual => '弹性支出';
 
   @override
-  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入账。仅供参考，三个数字不可相加。';
+  String get budgetReviewBaselineRow => '固定基线（含待入账）';
 
   @override
   String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
@@ -1079,7 +1076,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetTrendLegendAverage => '3 个月平均';
 
   @override
-  String get budgetAttributionTitle => '月度复盘与归因';
+  String budgetTrendTooltipActual(String amount) {
+    return '实际 $amount';
+  }
+
+  @override
+  String budgetTrendTooltipBudget(String amount) {
+    return '预算 $amount';
+  }
+
+  @override
+  String get budgetAttributionTitle => '预算归因';
+
+  @override
+  String get budgetAttributionActualBasis => '按已入账口径';
 
   @override
   String get budgetOverTopTitle => '超支 TOP';
@@ -2418,9 +2428,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetOverviewBaselineShare => '基线占比';
 
   @override
-  String get budgetLeftoverPendingHint => '该历史月仍有未入账周期账单，复盘统计已忽略。';
-
-  @override
   String get budgetMaterializedOnlyHint => '仅统计已生成的周期账单。';
 
   @override
@@ -2430,7 +2437,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetReviewTitle => '月度复盘与趋势';
 
   @override
-  String get budgetReviewScopeNote => '整月口径，含未设预算的分类。';
+  String get budgetReviewCompositionSubtitle => '全盘支出构成 · 含未设预算';
 
   @override
   String get budgetReviewCommittedActual => '固定支出';
@@ -2439,7 +2446,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetReviewDiscretionaryActual => '弹性支出';
 
   @override
-  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入账。仅供参考，三个数字不可相加。';
+  String get budgetReviewBaselineRow => '固定基线（含待入账）';
 
   @override
   String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
@@ -2454,7 +2461,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetTrendLegendAverage => '3 个月平均';
 
   @override
-  String get budgetAttributionTitle => '月度复盘与归因';
+  String budgetTrendTooltipActual(String amount) {
+    return '实际 $amount';
+  }
+
+  @override
+  String budgetTrendTooltipBudget(String amount) {
+    return '预算 $amount';
+  }
+
+  @override
+  String get budgetAttributionTitle => '预算归因';
+
+  @override
+  String get budgetAttributionActualBasis => '按已入账口径';
 
   @override
   String get budgetOverTopTitle => '超支 TOP';
@@ -3793,9 +3813,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetOverviewBaselineShare => '基線佔比';
 
   @override
-  String get budgetLeftoverPendingHint => '該歷史月仍有未入帳週期帳單，複盤統計已忽略。';
-
-  @override
   String get budgetMaterializedOnlyHint => '僅統計已生成的週期帳單。';
 
   @override
@@ -3805,7 +3822,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetReviewTitle => '月度複盤與趨勢';
 
   @override
-  String get budgetReviewScopeNote => '整月口徑，含未設預算的分類。';
+  String get budgetReviewCompositionSubtitle => '全盤支出構成 · 含未設預算';
 
   @override
   String get budgetReviewCommittedActual => '固定支出';
@@ -3814,7 +3831,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetReviewDiscretionaryActual => '彈性支出';
 
   @override
-  String get budgetReviewBaselineNote => '固定支出 + 生效中的待入帳。僅供參考，三個數字不可相加。';
+  String get budgetReviewBaselineRow => '固定基線（含待入帳）';
 
   @override
   String get budgetReviewNoteEmptyDeletes => '備註留空並儲存即可刪除。';
@@ -3829,7 +3846,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetTrendLegendAverage => '3 個月平均';
 
   @override
-  String get budgetAttributionTitle => '月度複盤與歸因';
+  String budgetTrendTooltipActual(String amount) {
+    return '實際 $amount';
+  }
+
+  @override
+  String budgetTrendTooltipBudget(String amount) {
+    return '預算 $amount';
+  }
+
+  @override
+  String get budgetAttributionTitle => '預算歸因';
+
+  @override
+  String get budgetAttributionActualBasis => '按已入帳口徑';
 
   @override
   String get budgetOverTopTitle => '超支 TOP';

@@ -964,11 +964,8 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetModePlan => 'Plan';
 
-
   @override
   String get budgetModeReview => 'Review';
-
-
 
   @override
   String get budgetTotal => 'Total budget';
@@ -991,8 +988,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetCommitted => 'Committed';
 
-
-
   @override
   String get budgetDiscretionary => 'Discretionary';
 
@@ -1014,12 +1009,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetOverviewBaselineShare => 'Baseline share';
 
-
-
-  @override
-  String get budgetLeftoverPendingHint =>
-      'Past month has unposted scheduled bills excluded from review totals.';
-
   @override
   String get budgetMaterializedOnlyHint =>
       'Includes materialized pending bills only.';
@@ -1030,18 +1019,17 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetReviewTitle => 'Monthly Review & Trends';
 
   @override
-  String get budgetReviewScopeNote =>
-      'Whole month, including unbudgeted categories.';
+  String get budgetReviewCompositionSubtitle =>
+      'Whole-month composition · incl. unbudgeted';
 
   @override
-  String get budgetReviewCommittedActual => 'Committed spent';
+  String get budgetReviewCommittedActual => 'Committed';
 
   @override
-  String get budgetReviewDiscretionaryActual => 'Discretionary spent';
+  String get budgetReviewDiscretionaryActual => 'Discretionary';
 
   @override
-  String get budgetReviewBaselineNote =>
-      'Committed spent + effective pending bills. Reference only; the three figures are not additive.';
+  String get budgetReviewBaselineRow => 'Committed baseline (incl. pending)';
 
   @override
   String get budgetReviewNoteEmptyDeletes =>
@@ -1057,14 +1045,22 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetTrendLegendAverage => '3-month average';
 
   @override
-  String get budgetAttributionTitle => 'Month Review & Attribution';
+  String budgetTrendTooltipActual(String amount) => 'Actual $amount';
+
+  @override
+  String budgetTrendTooltipBudget(String amount) => 'Budget $amount';
+
+  @override
+  String get budgetAttributionTitle => 'Budget attribution';
+
+  @override
+  String get budgetAttributionActualBasis => 'Posted only';
 
   @override
   String get budgetOverTopTitle => 'Top Over Budget';
 
   @override
   String get budgetUnderTopTitle => 'Top Under Budget';
-
 
   @override
   String get budgetMonthNoteLabel => 'Month review note';
@@ -1091,7 +1087,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetSectionUnbudgetedActive => 'Unbudgeted spending';
 
-
   @override
   String get budgetSetButton => 'Set budget';
 
@@ -1105,8 +1100,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String budgetRowRemaining(String amount) => 'Left $amount';
 
   @override
-  String budgetRowProjectedRemaining(String amount) =>
-      'Projected left $amount';
+  String budgetRowProjectedRemaining(String amount) => 'Projected left $amount';
 
   @override
   String budgetRowReviewRemaining(String amount) => 'Unspent $amount';
@@ -1207,10 +1201,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetCleared => 'Budget deleted';
 
-
-
-
-
   @override
   String budgetAnomalyDetail(int percent, String average) =>
       'Spending is $percent% above the 3-month average of $average.';
@@ -1290,8 +1280,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String budgetReviewNotePreview(String note) => 'Note: $note';
 
   @override
-  String get budgetPlanHintCarryForward =>
-      "Last month's rules carry forward";
+  String get budgetPlanHintCarryForward => "Last month's rules carry forward";
 
   @override
   String budgetPlanHintFixedBills(String amount) =>

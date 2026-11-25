@@ -75,10 +75,10 @@ class BudgetTrendChart extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final spacing = context.spacing;
     final hasBudget = _hasBudget(points);
-    final averageLine = threeMonthAvgChartValue != null &&
-            threeMonthAvgChartValue! > 0
-        ? threeMonthAvgChartValue
-        : null;
+    final averageLine =
+        threeMonthAvgChartValue != null && threeMonthAvgChartValue! > 0
+            ? threeMonthAvgChartValue
+            : null;
 
     final maxVal = points.fold<double>(
       averageLine ?? 0.0,
@@ -124,7 +124,37 @@ class BudgetTrendChart extends StatelessWidget {
               maxY: chartMaxY,
               minY: 0,
               alignment: BarChartAlignment.spaceAround,
-              barTouchData: const BarTouchData(enabled: false),
+              barTouchData: BarTouchData(
+                enabled: true,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => scheme.surfaceContainerHighest,
+                  tooltipBorderRadius:
+                      BorderRadius.circular(context.metrics.chipRadius),
+                  tooltipPadding: EdgeInsets.symmetric(
+                    horizontal: spacing.sm,
+                    vertical: spacing.xs,
+                  ),
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final point = points[groupIndex];
+                    final lines = [
+                      l10n.budgetTrendTooltipActual(point.actualDisplay),
+                      if (point.budgetDisplay != null)
+                        l10n.budgetTrendTooltipBudget(point.budgetDisplay!),
+                    ];
+                    return BarTooltipItem(
+                      '${point.shortLabel}\n${lines.join('\n')}',
+                      TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.start,
+                    );
+                  },
+                ),
+              ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
@@ -147,8 +177,30 @@ class BudgetTrendChart extends StatelessWidget {
                 ],
               ),
               titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 34,
+                    interval: chartMaxY / 3,
+                    getTitlesWidget: (value, meta) {
+                      // Three light ticks at the grid lines; zero stays bare.
+                      if (value <= 0) return const SizedBox.shrink();
+                      return SideTitleWidget(
+                        meta: meta,
+                        space: 4,
+                        child: Text(
+                          _compactTick(value),
+                          style: TextStyle(
+                            color: scheme.outline,
+                            fontSize: 11,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 rightTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
@@ -159,7 +211,7 @@ class BudgetTrendChart extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40,
+                    reservedSize: 48,
                     getTitlesWidget: (value, meta) {
                       final idx = value.toInt();
                       if (idx < 0 || idx >= points.length) {
@@ -169,10 +221,16 @@ class BudgetTrendChart extends StatelessWidget {
                       return SideTitleWidget(
                         meta: meta,
                         space: 4,
-                        child: Row(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            Text(
+                              point.shortLabel,
+                              style: AppTypography.compactLabel(context)
+                                  .copyWith(color: scheme.onSurfaceVariant),
+                            ),
                             if (point.hasReviewNote) ...[
+                              const SizedBox(height: 2),
                               Container(
                                 key: ValueKey(
                                   'budget-trend-note-marker-${point.ym}',
@@ -184,13 +242,7 @@ class BudgetTrendChart extends StatelessWidget {
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                              const SizedBox(width: 2),
                             ],
-                            Text(
-                              point.shortLabel,
-                              style: AppTypography.compactLabel(context)
-                                  .copyWith(color: scheme.onSurfaceVariant),
-                            ),
                           ],
                         ),
                       );
@@ -211,8 +263,7 @@ class BudgetTrendChart extends StatelessWidget {
                     BarChartRodData(
                       toY: point.actualChartValue,
                       width: 10,
-                      color:
-                          overrun ? context.colors.expense : scheme.primary,
+                      color: overrun ? context.colors.expense : scheme.primary,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(4),
                       ),
@@ -236,6 +287,15 @@ class BudgetTrendChart extends StatelessWidget {
 
     return wrappedInCard ? AppCard(child: content) : content;
   }
+}
+
+/// A short axis tick: whole units below a thousand, then `k`.
+String _compactTick(double majorUnits) {
+  if (majorUnits >= 1000) {
+    final thousands = majorUnits / 1000;
+    return '${thousands.toStringAsFixed(thousands >= 10 ? 0 : 1)}k';
+  }
+  return majorUnits.toStringAsFixed(0);
 }
 
 class _LegendItem extends StatelessWidget {
