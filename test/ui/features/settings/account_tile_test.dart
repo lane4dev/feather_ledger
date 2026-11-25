@@ -87,8 +87,8 @@ void main() {
       expect(find.text('Bank account'), findsOneWidget);
       expect(find.text('Credit card'), findsOneWidget);
       expect(find.text('Other account'), findsOneWidget);
-      expect(find.text(r'- $1234.56'), findsOneWidget);
-      final amount = tester.widget<Text>(find.text(r'- $1234.56'));
+      expect(find.text(r'-$1234.56'), findsOneWidget);
+      final amount = tester.widget<Text>(find.text(r'-$1234.56'));
       final context = tester.element(find.byType(AccountTile).first);
       expect(amount.style!.fontFeatures,
           contains(const FontFeature.tabularFigures()));
@@ -156,7 +156,7 @@ void main() {
         ),
         textScale: 1.8));
     await tester.pumpAndSettle();
-    expect(find.text(r'- $12345678901.23'), findsOneWidget);
+    expect(find.text(r'-$12345678901.23'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -177,14 +177,14 @@ void main() {
                   id: 'jpy',
                   currencyCode: 'JPY',
                   name: 'Yen wallet',
-                  balanceMinor: 10000),
+                  balanceMinor: -1234),
               showCurrencyCode: true),
         ]),
       ),
     )));
     await tester.pumpAndSettle();
     expect(find.text('¥100.00 CNY'), findsOneWidget);
-    expect(find.text('¥100.00 JPY'), findsOneWidget);
+    expect(find.text('-¥12.34 JPY'), findsOneWidget);
     expect(find.text('¥100.00'), findsNothing);
     expect(tester.takeException(), isNull);
   });

@@ -11,7 +11,7 @@ class AccountUiModel {
   final AccountEntity account;
 
   /// Ready to print, currency symbol included. A credit card's balance is
-  /// negative, and reads `- $12.34`.
+  /// negative, and reads `-$12.34`.
   final String displayBalance;
 
   /// [displayBalance] with the ISO code appended (`¥5000.00 JPY`), for a

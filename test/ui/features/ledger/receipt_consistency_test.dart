@@ -103,7 +103,7 @@ void main() {
               .first;
           final rect = tester.getRect(surface);
           final amountStyle =
-              tester.widget<Text>(find.text('- €1234.56')).style;
+              tester.widget<Text>(find.text('-€1234.56')).style;
           final editPosition =
               tester.getCenter(find.byIcon(LucideIcons.squarePen)) -
                   rect.topLeft;

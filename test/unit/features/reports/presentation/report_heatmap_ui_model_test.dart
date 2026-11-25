@@ -90,7 +90,7 @@ void main() {
         days(model).singleWhere((cell) => cell.date == DateTime(2026, 11, day));
     expect(cell(1).direction, ReportHeatmapDirection.negative);
     expect(cell(1).level, 2);
-    expect(cell(1).tooltip, contains(r'Net flow: - $25.00'));
+    expect(cell(1).tooltip, contains(r'Net flow: -$25.00'));
     expect(cell(2).direction, ReportHeatmapDirection.positive);
     expect(cell(2).level, 5);
     expect(cell(4).level, 1);

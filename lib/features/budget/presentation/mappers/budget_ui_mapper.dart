@@ -239,7 +239,8 @@ class BudgetUiMapper {
       isPending: tx.isPending,
       title: tx.description,
       dateDisplay: dayFormat.format(tx.occurredAt),
-      amountDisplay: formatMinorWithSymbol(tx.amountMinor, currencySymbol),
+      amountDisplay:
+          formatMinorWithSymbol(-tx.amountMinor.abs(), currencySymbol),
       isCommitted: tx.isCommitted,
       accountName: tx.accountName,
     );

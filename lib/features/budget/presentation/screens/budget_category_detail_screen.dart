@@ -555,7 +555,7 @@ class _ContributionCard extends ConsumerWidget {
         if (transaction.accountName.isNotEmpty) transaction.accountName
       ].join(' · '),
       date: transaction.dateDisplay,
-      amount: '- ${transaction.amountDisplay}',
+      amount: transaction.amountDisplay,
       amountColor: context.colors.expense,
       badges: [
         AppBadge(

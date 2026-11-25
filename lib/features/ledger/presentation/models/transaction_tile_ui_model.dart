@@ -20,6 +20,11 @@ class TransactionTileUiModel {
   final String displayAmount;
   final String displaySign;
 
+  /// Compact read-only amount string with sign tightly attached to the
+  /// currency symbol (e.g. `-¥10.00`, `+¥10.00`, `¥20.00`).
+  String formattedAmount(String currencySymbol) =>
+      '$displaySign$currencySymbol$displayAmount';
+
   /// A bill that has not happened yet — a recurring series' upcoming
   /// instance, shown in the month list but not part of the ledger. It is
   /// rendered muted and is acted on by posting or skipping, not by editing.

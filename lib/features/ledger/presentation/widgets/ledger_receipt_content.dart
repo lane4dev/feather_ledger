@@ -84,7 +84,7 @@ class LedgerReceiptContent extends StatelessWidget {
                 right: status == null ? 0 : context.spacing.xl,
               ),
               child: Text(
-                '${transaction.displaySign} $currencySymbol${transaction.displayAmount}',
+                transaction.formattedAmount(currencySymbol),
                 style: AppTypography.amountInput(context)
                     .copyWith(color: amountColor),
                 textAlign: TextAlign.center,

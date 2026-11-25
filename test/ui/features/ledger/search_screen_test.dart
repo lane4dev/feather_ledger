@@ -136,7 +136,7 @@ void main() {
     expect(find.byType(TimeAnchor), findsNothing);
     expect(find.widgetWithIcon(IconButton, LucideIcons.share2), findsNothing);
     expect(find.widgetWithIcon(IconButton, LucideIcons.filter), findsOneWidget);
-    expect(find.textContaining('12.34'), findsOneWidget);
+    expect(find.text(r'-$12.34'), findsOneWidget);
     expect(
         find.descendant(
           of: find.byType(SearchTransactionTile),

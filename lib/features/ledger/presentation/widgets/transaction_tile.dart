@@ -120,7 +120,7 @@ class TransactionTile extends StatelessWidget {
 
             // Amount — transfers are neutral (net zero, spec US5).
             Text(
-              '${transaction.displaySign} $effectiveCurrencySymbol${transaction.displayAmount}',
+              transaction.formattedAmount(effectiveCurrencySymbol),
               style: LedgerTheme.transactionAmount(context).copyWith(
                 decoration: isSkipped ? TextDecoration.lineThrough : null,
                 color: switch (transaction.type) {

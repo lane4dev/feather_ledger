@@ -41,9 +41,13 @@ void main() {
             .displayBalanceWithCode,
         '¥5000.00 JPY');
     expect(
+        AccountUiModel.of(account(currencyCode: 'JPY', balanceMinor: -1234))
+            .displayBalanceWithCode,
+        '-¥12.34 JPY');
+    expect(
         AccountUiModel.of(account(currencyCode: 'USD', balanceMinor: -123456))
             .displayBalanceWithCode,
-        r'- $1234.56 USD');
+        r'-$1234.56 USD');
   });
 
   test('keeps the entity for the screen to name and tap', () {

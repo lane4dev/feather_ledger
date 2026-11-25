@@ -55,6 +55,7 @@ void main() {
       expect(tile.displayAmount, '500.00');
       expect(tile.displaySign, '-',
           reason: 'the kind is the only thing deciding the sign');
+      expect(tile.formattedAmount('¥'), '-¥500.00');
     });
 
     test('renders one sign, not two', () {
@@ -64,9 +65,8 @@ void main() {
         account: cash,
       );
 
-      // What the row actually paints.
-      final painted = '${tile.displaySign} ${tile.displayAmount}';
-      expect(painted, '- 500.00');
+      final painted = tile.formattedAmount('¥');
+      expect(painted, '-¥500.00');
       expect(painted.contains('--'), isFalse);
     });
 
@@ -80,6 +80,44 @@ void main() {
       expect(tile.amount, 30000);
       expect(tile.displaySign, '+');
       expect(tile.displayAmount, '300.00');
+      expect(tile.formattedAmount('¥'), '+¥300.00');
+    });
+  });
+
+  group('posted transactions', () {
+    TransactionEntity posted({
+      required TransactionKind type,
+      required int amount,
+    }) =>
+        TransactionEntity(
+          id: 'tx_1',
+          amount: amount,
+          type: type,
+          date: DateTime(2026, 11, 1),
+          account: cash,
+          category: type == TransactionKind.transfer ? null : rent,
+          toAccount: type == TransactionKind.transfer ? cash : null,
+          eventId: 1,
+        );
+
+    test('formats compact signed and unsigned amounts without extra spaces',
+        () {
+      expect(
+        mapper
+            .toTile(posted(type: TransactionKind.expense, amount: -1000))
+            .formattedAmount('¥'),
+        '-¥10.00',
+      );
+      expect(
+        mapper
+            .toTile(posted(type: TransactionKind.income, amount: 1000))
+            .formattedAmount('¥'),
+        '+¥10.00',
+      );
+      final transfer =
+          mapper.toTile(posted(type: TransactionKind.transfer, amount: 2000));
+      expect(transfer.formattedAmount('¥'), '¥20.00');
+      expect(transfer.formattedAmount('¥').startsWith(' '), isFalse);
     });
   });
 }

@@ -56,9 +56,7 @@ class SearchTransactionTile extends StatelessWidget {
       title: title,
       metadata: metadata,
       date: date,
-      amount:
-          '${transaction.displaySign} $currencySymbol${transaction.displayAmount}'
-              .trim(),
+      amount: transaction.formattedAmount(currencySymbol),
       amountColor: amountColor,
     );
   }

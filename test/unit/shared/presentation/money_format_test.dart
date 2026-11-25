@@ -10,13 +10,14 @@ import 'package:feather_ledger/core/domain/enums.dart';
 /// How a signed amount is written.
 ///
 /// The rule is one character wide and easy to undo one call site at a time:
-/// the minus goes **outside** the symbol. `$-12.34` reads as a currency sign
-/// followed by a negative number, which is not what a negative amount is.
+/// the minus goes **outside** the symbol without a space. `$-12.34` reads as
+/// a currency sign followed by a negative number, which is not what a negative
+/// amount is.
 void main() {
   group('formatMinorWithSymbol', () {
-    test('puts a negative amount’s sign before the symbol', () {
-      expect(formatMinorWithSymbol(-1234, r'$'), r'- $12.34');
-      expect(formatMinorWithSymbol(-1234, '¥'), '- ¥12.34');
+    test('puts a negative amount’s sign immediately before the symbol', () {
+      expect(formatMinorWithSymbol(-1234, r'$'), r'-$12.34');
+      expect(formatMinorWithSymbol(-1234, '¥'), '-¥12.34');
     });
 
     test('leaves a positive amount alone', () {
@@ -38,8 +39,9 @@ void main() {
       expect(formatMinorWithSymbolAndCode(123456, r'$', 'USD'), r'$1234.56 USD');
     });
 
-    test('keeps a negative sign outside the symbol', () {
-      expect(formatMinorWithSymbolAndCode(-1234, r'$', 'USD'), r'- $12.34 USD');
+    test('keeps a negative sign immediately outside the symbol', () {
+      expect(formatMinorWithSymbolAndCode(-1234, r'$', 'USD'), r'-$12.34 USD');
+      expect(formatMinorWithSymbolAndCode(-1234, '¥', 'JPY'), '-¥12.34 JPY');
     });
   });
 
@@ -54,8 +56,8 @@ void main() {
           lastUpdatedEventId: 0,
         );
 
-    test('an overdrawn account balance reads - \$12.34', () {
-      expect(AccountUiModel.of(account(-1234)).displayBalance, r'- $12.34');
+    test('an overdrawn account balance reads -\$12.34', () {
+      expect(AccountUiModel.of(account(-1234)).displayBalance, r'-$12.34');
     });
 
     test('a month that ended below zero reads the same way', () {
@@ -66,7 +68,7 @@ void main() {
         currencySymbol: r'$',
       );
 
-      expect(summary.displayBalance, r'- $50.00');
+      expect(summary.displayBalance, r'-$50.00');
       // Income and expense are magnitudes: the label beside them is what says
       // which way the money went, so a minus there would say it twice.
       expect(summary.displayIncome, r'$100.00');

@@ -15,19 +15,19 @@ import 'package:feather_ledger/core/domain/money/money.dart';
 /// [formatMinorWithSymbol] wherever there is a symbol to place.
 String formatMinor(int minorUnits) => (minorUnits / 100).toStringAsFixed(2);
 
-/// A signed amount with its currency, e.g. `- $12.34`.
+/// A signed amount with its currency, e.g. `-$12.34`.
 ///
-/// The sign goes **outside** the symbol: `- $12.34`, never `$-12.34`. Every
+/// The sign goes **outside** the symbol: `-$12.34`, never `$-12.34`. Every
 /// amount that can legitimately be negative — an overdrawn balance, a credit
 /// card's debt, an expense category's total — reads this way, and a positive
 /// one is left alone rather than given a `+` it never had.
 String formatMinorWithSymbol(int minorUnits, String currencySymbol) =>
     minorUnits < 0
-        ? '- $currencySymbol${formatMinor(-minorUnits)}'
+        ? '-$currencySymbol${formatMinor(-minorUnits)}'
         : '$currencySymbol${formatMinor(minorUnits)}';
 
 /// A signed amount with its currency symbol and ISO code, e.g.
-/// `¥5000.00 JPY` or `- $12.34 USD`.
+/// `¥5000.00 JPY` or `-$12.34 USD`.
 ///
 /// Only a mixed-currency list needs the code: two currencies (CNY and JPY)
 /// share `¥`, and the code disambiguates. The sign stays outside the symbol,

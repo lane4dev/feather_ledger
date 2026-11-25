@@ -13,9 +13,9 @@ void main() {
 
     test('formats overview, category rows, compliance, and 6-mo chart points',
         () {
-      const summary = MonthBudgetSummary(
+      final summary = MonthBudgetSummary(
         currencyCode: 'CNY',
-        month: YearMonth(2026, 5),
+        month: const YearMonth(2026, 5),
         mode: BudgetMode.track,
         hasAnyActiveAccount: true,
         totalBudgetMinor: 300000,
@@ -57,7 +57,7 @@ void main() {
             anomalyDeltaRatio: 0.333,
             riskLevel: BudgetRiskLevel.inBudget,
             sixMonthTrend: [
-              BudgetTrendPoint(
+              const BudgetTrendPoint(
                 month: YearMonth(2026, 5),
                 budgetMinor: 300000,
                 actualMinor: 120000,
@@ -65,7 +65,18 @@ void main() {
                 hasReviewNote: true,
               ),
             ],
-            topTransactions: [],
+            topTransactions: [
+              BudgetContributionTx(
+                transactionId: 'tx-1',
+                sourceScheduledBillId: null,
+                scheduledBillId: null,
+                description: 'Lunch',
+                occurredAt: DateTime(2026, 5, 10),
+                amountMinor: 1000,
+                isPending: false,
+                accountName: 'Cash',
+              ),
+            ],
             reviewNote: 'Eating out',
           ),
         ],
@@ -74,7 +85,7 @@ void main() {
         overBudgetTop3: [],
         underBudgetTop3: [],
         unbudgetedAlertsTop3: [
-          UnbudgetedSpendAlert(
+          const UnbudgetedSpendAlert(
             categoryId: 'travel',
             categoryName: 'Travel',
             iconKey: 'plane',
@@ -112,6 +123,7 @@ void main() {
       expect(row.trend6Months.single.hasReviewNote, isTrue);
       expect(row.trend6Months.single.budgetChartValue, 3000.0);
       expect(row.trend6Months.single.actualChartValue, 1200.0);
+      expect(row.topContributions.single.amountDisplay, '-¥10.00');
       expect(ui.unbudgetedAlertsTop3.single.shareDisplay, '29%');
     });
   });
