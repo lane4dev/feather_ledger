@@ -1006,6 +1006,21 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetCommittedBaseline => 'Committed baseline';
 
   @override
+  String get budgetOverviewMonthlySurplus => 'Monthly surplus';
+
+  @override
+  String get budgetOverviewMonthlyOverspend => 'Monthly overspend';
+
+  @override
+  String get budgetOverviewAvailable => 'Available to spend';
+
+  @override
+  String get budgetOverviewBudgetUsage => 'Budget used';
+
+  @override
+  String get budgetOverviewBaselineShare => 'Baseline share';
+
+  @override
   String budgetAllExpensesLine(String total, String unbudgeted) =>
       'All expenses $total (unbudgeted $unbudgeted)';
 

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -561,7 +562,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String restoreConfirmMessage(
-      int backupEvents, int currentEvents, int discarded) {
+    int backupEvents,
+    int currentEvents,
+    int discarded,
+  ) {
     return 'This backup holds $backupEvents events. This ledger has $currentEvents, so restoring discards $discarded of them. Everything currently stored will be replaced.';
   }
 
@@ -1095,6 +1099,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budgetCommittedBaseline => 'Committed baseline';
+
+  @override
+  String get budgetOverviewMonthlySurplus => 'Monthly surplus';
+
+  @override
+  String get budgetOverviewMonthlyOverspend => 'Monthly overspend';
+
+  @override
+  String get budgetOverviewAvailable => 'Available to spend';
+
+  @override
+  String get budgetOverviewBudgetUsage => 'Budget used';
+
+  @override
+  String get budgetOverviewBaselineShare => 'Baseline share';
 
   @override
   String budgetAllExpensesLine(String total, String unbudgeted) {

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -544,7 +545,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String restoreConfirmMessage(
-      int backupEvents, int currentEvents, int discarded) {
+    int backupEvents,
+    int currentEvents,
+    int discarded,
+  ) {
     return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
   }
 
@@ -1041,6 +1045,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetCommittedBaseline => '固定基线';
+
+  @override
+  String get budgetOverviewMonthlySurplus => '本月结余';
+
+  @override
+  String get budgetOverviewMonthlyOverspend => '本月超支';
+
+  @override
+  String get budgetOverviewAvailable => '可自由支配';
+
+  @override
+  String get budgetOverviewBudgetUsage => '预算使用率';
+
+  @override
+  String get budgetOverviewBaselineShare => '基线占比';
 
   @override
   String budgetAllExpensesLine(String total, String unbudgeted) {
@@ -1792,7 +1811,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String restoreConfirmMessage(
-      int backupEvents, int currentEvents, int discarded) {
+    int backupEvents,
+    int currentEvents,
+    int discarded,
+  ) {
     return '这份备份包含 $backupEvents 条事件，当前账本有 $currentEvents 条，恢复将丢弃其中 $discarded 条。当前存储的全部内容都会被替换。';
   }
 
@@ -2289,6 +2311,21 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetCommittedBaseline => '固定基线';
+
+  @override
+  String get budgetOverviewMonthlySurplus => '本月结余';
+
+  @override
+  String get budgetOverviewMonthlyOverspend => '本月超支';
+
+  @override
+  String get budgetOverviewAvailable => '可自由支配';
+
+  @override
+  String get budgetOverviewBudgetUsage => '预算使用率';
+
+  @override
+  String get budgetOverviewBaselineShare => '基线占比';
 
   @override
   String budgetAllExpensesLine(String total, String unbudgeted) {
@@ -3040,7 +3077,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String restoreConfirmMessage(
-      int backupEvents, int currentEvents, int discarded) {
+    int backupEvents,
+    int currentEvents,
+    int discarded,
+  ) {
     return '這份備份包含 $backupEvents 條事件，目前帳本有 $currentEvents 條，還原將捨棄其中 $discarded 條。目前儲存的全部內容都會被取代。';
   }
 
@@ -3537,6 +3577,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetCommittedBaseline => '固定基準線';
+
+  @override
+  String get budgetOverviewMonthlySurplus => '本月結餘';
+
+  @override
+  String get budgetOverviewMonthlyOverspend => '本月超支';
+
+  @override
+  String get budgetOverviewAvailable => '可自由支配';
+
+  @override
+  String get budgetOverviewBudgetUsage => '預算使用率';
+
+  @override
+  String get budgetOverviewBaselineShare => '基線佔比';
 
   @override
   String budgetAllExpensesLine(String total, String unbudgeted) {

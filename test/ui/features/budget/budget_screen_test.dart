@@ -15,6 +15,7 @@ import 'package:feather_ledger/features/budget/domain/entities/budget_entities.d
 import 'package:feather_ledger/features/budget/domain/services/budget_service.dart';
 import 'package:feather_ledger/features/budget/domain/value_objects/budget_value_objects.dart';
 import 'package:feather_ledger/features/budget/presentation/screens/budget_screen.dart';
+import 'package:feather_ledger/features/budget/presentation/widgets/budget_overview_card.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 
 class _FakeBudgetService implements BudgetService {
@@ -282,15 +283,21 @@ void main() {
     await pumpBudgetScreen(tester,
         service: service, now: DateTime(2026, 5, 10));
 
-    // Track mode hero + budgeted-only compliance + unbudgeted side-note
-    expect(find.text('Track'), findsOneWidget);
+    // Track mode hero: no mode badge (track is the default), budgeted-only
+    // compliance pill on the right, and no all-expense side-note in the card.
+    expect(find.text('Track'), findsNothing);
+    expect(find.text('Projected left'), findsOneWidget);
     expect(find.textContaining('1/1'), findsOneWidget);
-    expect(find.textContaining('All expenses'), findsOneWidget);
-    expect(find.byIcon(LucideIcons.info), findsOneWidget);
-    expect(tester.getTopLeft(find.textContaining('All expenses')).dy,
-        greaterThan(tester.getTopLeft(find.text('Total budget').first).dy));
-    expect(tester.getCenter(find.textContaining('1/1')).dx,
-        greaterThan(tester.getCenter(find.text('Track')).dx));
+    expect(find.textContaining('All expenses'), findsNothing);
+    expect(find.byIcon(LucideIcons.info), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(BudgetOverviewCard),
+        matching: find.text('Total budget'),
+      ),
+      findsOneWidget,
+    );
+
     final badge = find.ancestor(
         of: find.textContaining('1/1'), matching: find.byType(AppBadge));
     final headerRow =
@@ -316,12 +323,14 @@ void main() {
     expect(isSelected(tester, 'Budget tracking'), isFalse);
     expect(isSelected(tester, 'Review preview'), isTrue);
 
-    // Navigate backward to April -> Review mode + archived badge + leftover pending hint
+    // Navigate backward to April -> Review mode + archived badge. The
+    // leftover-pending hint left the overview card; explaining a closed
+    // month's unposted bills happens further down the page.
     await tester.fling(find.byType(PageView), const Offset(900, 0), 1500);
     await tester.pumpAndSettle();
     expect(find.text('Review'), findsOneWidget);
     expect(find.text('Archived'), findsOneWidget);
-    expect(find.textContaining('unposted scheduled bills'), findsOneWidget);
+    expect(find.textContaining('unposted scheduled bills'), findsNothing);
 
     // Navigate forward twice to June -> Plan mode
     await tester.fling(find.byType(PageView), const Offset(-900, 0), 1500);
@@ -333,16 +342,19 @@ void main() {
     expect(find.byType(AppFloatingToolbar), findsNothing);
   });
 
-  testWidgets('omits the expense note when there is no unbudgeted spend',
+  testWidgets('the overview card never draws the all-expense line',
       (tester) async {
     const may = YearMonth(2026, 5);
     await pumpBudgetScreen(tester,
         service: _FakeBudgetService({
-          may: _summary(month: may, mode: BudgetMode.track, unbudgetedMinor: 0),
+          may: _summary(month: may, mode: BudgetMode.track),
         }),
         now: DateTime(2026, 5, 10));
     expect(find.textContaining('All expenses'), findsNothing);
     expect(find.byIcon(LucideIcons.info), findsNothing);
+    // The card's own number is budgeted-only: $1000 budget - $400 spent -
+    // $100 pending, whatever was spent outside the budget.
+    expect(find.text('\$500.00'), findsOneWidget);
   });
 
   testWidgets('toolbar hides on downward scroll and returns on upward scroll',

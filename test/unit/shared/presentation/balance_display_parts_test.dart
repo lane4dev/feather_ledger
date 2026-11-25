@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feather_ledger/features/ledger/presentation/models/balance_display_parts.dart';
+import 'package:feather_ledger/shared/presentation/models/balance_display_parts.dart';
 
 /// The overview card sets a balance in three sizes, which means it needs one
 /// written-out amount taken apart. These tests pin the split — including the

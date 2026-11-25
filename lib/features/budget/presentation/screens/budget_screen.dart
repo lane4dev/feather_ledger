@@ -106,7 +106,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       }
     });
     final selectedDate = uiState.selectedMonth.toDateTime();
-    final nowYm = YearMonth.fromDate(ref.read(budgetClockProvider).now());
+    final now = ref.read(budgetClockProvider).now();
+    final nowYm = YearMonth.fromDate(now);
     final currencyCode = ref.watch(ledgerCurrencyProvider);
     final currencySymbol = ref.watch(displayCurrencySymbolProvider);
     final summaryAsync =
@@ -184,6 +185,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   summaryAsync.asData!.value,
                   currencySymbol: currencySymbol,
                   locale: locale,
+                  today: now,
                 );
                 if (!model.overview.hasAnyAccount ||
                     model.allEditableCategories.isEmpty) {
@@ -219,7 +221,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 currencyCode,
                 currencySymbol,
                 locale,
-                nowYm);
+                now);
           });
         },
       ),
@@ -233,8 +235,9 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     String currencyCode,
     String currencySymbol,
     String locale,
-    YearMonth nowYm,
+    DateTime now,
   ) {
+    final nowYm = YearMonth.fromDate(now);
     final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(budgetViewModelProvider.notifier);
     final summary = summaryAsync.asData?.value;
@@ -249,6 +252,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           summary,
           currencySymbol: currencySymbol,
           locale: locale,
+          today: now,
         );
         final overview = model.overview;
 
