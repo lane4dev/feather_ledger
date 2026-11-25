@@ -208,8 +208,11 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            centerTitle: !_collapsed,
-            titleSpacing: _collapsed ? null : 8,
+            // Left-aligned like the budget tab's bar, and with the same
+            // default title spacing: the two tabs are swiped between, so their
+            // month switchers have to sit on the same x rather than one
+            // centering and one hugging the gutter.
+            centerTitle: false,
             elevation: _scrolled ? 2.0 : 0.0,
             scrolledUnderElevation: _scrolled ? 2.0 : 0.0,
             backgroundColor:

@@ -27,7 +27,7 @@ void main() {
     displayExpense: r'$200.00',
   );
 
-  Widget wrap(Widget child, {bool showBalance = true, bool centerTitle = false}) =>
+  Widget wrap(Widget child, {bool showBalance = true}) =>
       ProviderScope(
         overrides: [
           balanceVisibilityControllerProvider
@@ -47,8 +47,10 @@ void main() {
               slivers: [
                 SliverAppBar(
                   pinned: true,
-                  centerTitle: centerTitle,
-                  titleSpacing: centerTitle ? 8 : null,
+                  // The app's own bar is left-aligned (it matches the budget
+                  // tab's), so the harness has to be too or the arrow-hugging
+                  // assertions measure a layout the app never renders.
+                  centerTitle: false,
                   title: child,
                   actions: [
                     AppIconButton(
@@ -491,8 +493,7 @@ void main() {
                 slivers: [
                   SliverAppBar(
                     pinned: true,
-                    centerTitle: true,
-                    titleSpacing: 8,
+                    centerTitle: false,
                     title: LedgerAppBarTitle(
                       selectedDate: targetMonth,
                       summaryAsync: const AsyncData(summary),
@@ -544,9 +545,12 @@ void main() {
         expect(rightRect.left - monthRect.right, lessThan(24));
         expect(searchRect.left, greaterThanOrEqualTo(rightRect.right));
 
+        // Left-aligned at every width: the switcher starts at the toolbar's
+        // title spacing and grows rightwards, never centred.
+        final switcherRect = tester.getRect(find.byType(LedgerMonthSwitcher));
+        expect(switcherRect.left, closeTo(leftRect.left, 0.5));
         if (entry.width >= 800) {
-          final switcherRect = tester.getRect(find.byType(LedgerMonthSwitcher));
-          expect(switcherRect.center.dx, closeTo(entry.width / 2, 4));
+          expect(switcherRect.left, lessThan(entry.width / 4));
         } else {
           expect(leftRect.left, greaterThanOrEqualTo(0));
           expect(rightRect.right, lessThanOrEqualTo(searchRect.left));

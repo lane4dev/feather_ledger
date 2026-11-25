@@ -84,8 +84,9 @@ class LedgerHeader extends StatelessWidget {
 /// beside it.
 ///
 /// The month lives up here rather than down in the expanded area so it shares
-/// the toolbar's centre line with the search action — the two are one row of
-/// controls. Collapsed, the steppers give way to plain text so the balance
+/// the toolbar's line with the search action — the two are one row of controls.
+/// It hugs the leading edge (as the budget tab's does, so switching tabs does
+/// not shift it). Collapsed, the steppers give way to plain text so the balance
 /// fits next to it.
 class LedgerAppBarTitle extends StatelessWidget {
   final DateTime selectedDate;
