@@ -107,3 +107,18 @@ the month picker.
   left untouched.
 - 320 dp @1.6x shows one full row next to the overview; density is traded for
   legibility at that size on purpose.
+
+## 10. L2 review page refinements
+
+- Month capsule: scroll the review page up; the app bar takes a shallow
+  `surfaceContainer` tint and the month pill never clips or jumps.
+- Composition card: subtitle on top, equal-width 固定支出 / 弹性支出, the 6 dp
+  strip shows both shares, and the baseline row sits under a hairline divider.
+  A historical month with no pending bills shows no baseline row.
+- Attribution: no ✨, 按已入账口径 sits beside both TOP headings, icons are
+  circular tonal badges.
+- Trend: note dots sit centred under their month labels; three light Y ticks
+  appear; tapping a bar shows the actual/budget tooltip.
+- Note editor: the field's left edge lines up with the title and `0/500`, and
+  保存 is a tonal button on the right.
+- [ ] pass  [ ] fail — notes:
