@@ -1116,13 +1116,76 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetSectionBudgeted => '已设预算分类';
 
   @override
-  String get budgetSectionUnbudgetedActive => '未设预算但有发生额';
+  String get budgetSectionUnbudgetedActive => '计划外支出';
 
   @override
   String get budgetSectionRemaining => '其余分类（点击设预算）';
 
   @override
   String get budgetSetButton => '设预算';
+
+  @override
+  String budgetRowProjectedOver(String amount) {
+    return '预计超支 $amount';
+  }
+
+  @override
+  String budgetRowOver(String amount) {
+    return '已超支 $amount';
+  }
+
+  @override
+  String budgetRowRemaining(String amount) {
+    return '剩余 $amount';
+  }
+
+  @override
+  String budgetRowReviewRemaining(String amount) {
+    return '结余 $amount';
+  }
+
+  @override
+  String budgetRowReviewOver(String amount) {
+    return '超支 $amount';
+  }
+
+  @override
+  String budgetRowPlanBudget(String amount) {
+    return '预算 $amount';
+  }
+
+  @override
+  String budgetRowPendingIncluded(String amount) {
+    return '含待入账 $amount';
+  }
+
+  @override
+  String budgetRowPending(String amount) {
+    return '待入账 $amount';
+  }
+
+  @override
+  String budgetRowUsage(String percent) {
+    return '已用 $percent';
+  }
+
+  @override
+  String budgetRowBaseline(String amount) {
+    return '固定基线 $amount';
+  }
+
+  @override
+  String budgetRowShare(String percent) {
+    return '占本月总支出 $percent';
+  }
+
+  @override
+  String budgetRowGroupSpent(String amount) {
+    return '已消费 $amount';
+  }
+
+  @override
+  String get budgetRowAnomalySemantics => '波动明显高于近三月均值';
 
   @override
   String get budgetEditTitle => '设置分类预算';
@@ -2382,13 +2445,76 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetSectionBudgeted => '已设预算分类';
 
   @override
-  String get budgetSectionUnbudgetedActive => '未设预算但有发生额';
+  String get budgetSectionUnbudgetedActive => '计划外支出';
 
   @override
   String get budgetSectionRemaining => '其余分类（点击设预算）';
 
   @override
   String get budgetSetButton => '设预算';
+
+  @override
+  String budgetRowProjectedOver(String amount) {
+    return '预计超支 $amount';
+  }
+
+  @override
+  String budgetRowOver(String amount) {
+    return '已超支 $amount';
+  }
+
+  @override
+  String budgetRowRemaining(String amount) {
+    return '剩余 $amount';
+  }
+
+  @override
+  String budgetRowReviewRemaining(String amount) {
+    return '结余 $amount';
+  }
+
+  @override
+  String budgetRowReviewOver(String amount) {
+    return '超支 $amount';
+  }
+
+  @override
+  String budgetRowPlanBudget(String amount) {
+    return '预算 $amount';
+  }
+
+  @override
+  String budgetRowPendingIncluded(String amount) {
+    return '含待入账 $amount';
+  }
+
+  @override
+  String budgetRowPending(String amount) {
+    return '待入账 $amount';
+  }
+
+  @override
+  String budgetRowUsage(String percent) {
+    return '已用 $percent';
+  }
+
+  @override
+  String budgetRowBaseline(String amount) {
+    return '固定基线 $amount';
+  }
+
+  @override
+  String budgetRowShare(String percent) {
+    return '占本月总支出 $percent';
+  }
+
+  @override
+  String budgetRowGroupSpent(String amount) {
+    return '已消费 $amount';
+  }
+
+  @override
+  String get budgetRowAnomalySemantics => '波动明显高于近三月均值';
 
   @override
   String get budgetEditTitle => '设置分类预算';
@@ -3648,13 +3774,76 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetSectionBudgeted => '已設預算分類';
 
   @override
-  String get budgetSectionUnbudgetedActive => '未設預算但有發生額';
+  String get budgetSectionUnbudgetedActive => '計劃外支出';
 
   @override
   String get budgetSectionRemaining => '其餘分類（點擊設預算）';
 
   @override
   String get budgetSetButton => '設預算';
+
+  @override
+  String budgetRowProjectedOver(String amount) {
+    return '預計超支 $amount';
+  }
+
+  @override
+  String budgetRowOver(String amount) {
+    return '已超支 $amount';
+  }
+
+  @override
+  String budgetRowRemaining(String amount) {
+    return '剩餘 $amount';
+  }
+
+  @override
+  String budgetRowReviewRemaining(String amount) {
+    return '結餘 $amount';
+  }
+
+  @override
+  String budgetRowReviewOver(String amount) {
+    return '超支 $amount';
+  }
+
+  @override
+  String budgetRowPlanBudget(String amount) {
+    return '預算 $amount';
+  }
+
+  @override
+  String budgetRowPendingIncluded(String amount) {
+    return '含待入賬 $amount';
+  }
+
+  @override
+  String budgetRowPending(String amount) {
+    return '待入賬 $amount';
+  }
+
+  @override
+  String budgetRowUsage(String percent) {
+    return '已用 $percent';
+  }
+
+  @override
+  String budgetRowBaseline(String amount) {
+    return '固定基準 $amount';
+  }
+
+  @override
+  String budgetRowShare(String percent) {
+    return '占本月總支出 $percent';
+  }
+
+  @override
+  String budgetRowGroupSpent(String amount) {
+    return '已消費 $amount';
+  }
+
+  @override
+  String get budgetRowAnomalySemantics => '波動明顯高於近三月均值';
 
   @override
   String get budgetEditTitle => '設定分類預算';

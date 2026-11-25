@@ -1073,13 +1073,53 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetSectionBudgeted => 'Budgeted categories';
 
   @override
-  String get budgetSectionUnbudgetedActive => 'Unbudgeted with activity';
+  String get budgetSectionUnbudgetedActive => 'Unbudgeted spending';
 
   @override
   String get budgetSectionRemaining => 'Other categories (tap to set budget)';
 
   @override
   String get budgetSetButton => 'Set budget';
+
+  @override
+  String budgetRowProjectedOver(String amount) => 'Projected over $amount';
+
+  @override
+  String budgetRowOver(String amount) => 'Over by $amount';
+
+  @override
+  String budgetRowRemaining(String amount) => 'Left $amount';
+
+  @override
+  String budgetRowReviewRemaining(String amount) => 'Unspent $amount';
+
+  @override
+  String budgetRowReviewOver(String amount) => 'Overspent $amount';
+
+  @override
+  String budgetRowPlanBudget(String amount) => 'Budget $amount';
+
+  @override
+  String budgetRowPendingIncluded(String amount) => 'Includes $amount pending';
+
+  @override
+  String budgetRowPending(String amount) => 'Pending $amount';
+
+  @override
+  String budgetRowUsage(String percent) => 'Used $percent';
+
+  @override
+  String budgetRowBaseline(String amount) => 'Fixed baseline $amount';
+
+  @override
+  String budgetRowShare(String percent) => "$percent of month's spend";
+
+  @override
+  String budgetRowGroupSpent(String amount) => 'Spent $amount';
+
+  @override
+  String get budgetRowAnomalySemantics =>
+      'Unusually high against its three-month average';
 
   @override
   String get budgetEditTitle => 'Set Category Budget';

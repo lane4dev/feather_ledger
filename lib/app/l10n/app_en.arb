@@ -915,9 +915,58 @@
     }
   },
   "budgetSectionBudgeted": "Budgeted categories",
-  "budgetSectionUnbudgetedActive": "Unbudgeted with activity",
+  "budgetSectionUnbudgetedActive": "Unbudgeted spending",
   "budgetSectionRemaining": "Other categories (tap to set budget)",
   "budgetSetButton": "Set budget",
+  "budgetRowProjectedOver": "Projected over {amount}",
+  "@budgetRowProjectedOver": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowOver": "Over by {amount}",
+  "@budgetRowOver": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowRemaining": "Left {amount}",
+  "@budgetRowRemaining": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowReviewRemaining": "Unspent {amount}",
+  "@budgetRowReviewRemaining": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowReviewOver": "Overspent {amount}",
+  "@budgetRowReviewOver": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowPlanBudget": "Budget {amount}",
+  "@budgetRowPlanBudget": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowPendingIncluded": "Includes {amount} pending",
+  "@budgetRowPendingIncluded": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowPending": "Pending {amount}",
+  "@budgetRowPending": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowUsage": "Used {percent}",
+  "@budgetRowUsage": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "budgetRowBaseline": "Fixed baseline {amount}",
+  "@budgetRowBaseline": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowShare": "{percent} of month's spend",
+  "@budgetRowShare": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "budgetRowGroupSpent": "Spent {amount}",
+  "@budgetRowGroupSpent": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "budgetRowAnomalySemantics": "Unusually high against its three-month average",
   "budgetEditTitle": "Set Category Budget",
   "budgetAmountLabel": "Monthly limit",
   "budgetLastMonthRef": "Last mo {amount}",
