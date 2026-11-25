@@ -2207,12 +2207,6 @@ abstract class AppLocalizations {
   /// **'Top Under Budget'**
   String get budgetUnderTopTitle;
 
-  /// No description provided for @budgetReviewNoteEmptyDeletes.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave the note empty and save to remove it.'**
-  String get budgetReviewNoteEmptyDeletes;
-
   /// No description provided for @budgetMonthNoteLabel.
   ///
   /// In en, this message translates to:
@@ -2224,6 +2218,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Jot down this month\'s review'**
   String get budgetNoteEmptyTitle;
+
+  /// No description provided for @budgetCategoryNoteEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Jot down this category\'s review'**
+  String get budgetCategoryNoteEmptyTitle;
 
   /// No description provided for @budgetNoteEmptySubtitle.
   ///

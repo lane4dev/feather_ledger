@@ -1062,11 +1062,10 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetMonthNoteLabel => 'Monthly review note';
 
   @override
-  String get budgetReviewNoteEmptyDeletes =>
-      'Leave the note empty and save to remove it.';
+  String get budgetNoteEmptyTitle => "Jot down this month's review";
 
   @override
-  String get budgetNoteEmptyTitle => "Jot down this month's review";
+  String get budgetCategoryNoteEmptyTitle => "Jot down this category's review";
 
   @override
   String get budgetNoteEmptySubtitle =>

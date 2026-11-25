@@ -172,3 +172,25 @@ the month picker.
   with `…` at the first line's end. A month without a note shows no extra row,
   and the card keeps its compact height.
 - [ ] pass  [ ] fail — notes:
+
+## 14. The category note uses the month-note surface
+
+- Page: L3 分类详情, a category with a saved note and a category without one.
+  Check light and dark at 400 dp, plus 320 dp at 1.6x text.
+- Saved note: the card is visually identical to the one on L2 (L2 月度复盘 →
+  月度复盘备忘), with `分类复盘备忘` as the header label, a 34 dp tonal pencil,
+  the 3 dp `primary` bar and five-line clamp. There is no standalone section
+  title above it and no inline text field on the page.
+- Empty note: the same dashed prompt as L2, with `记一句这个分类的复盘` and the
+  shared subtitle, plus the `+ 添加` pill. Tapping it opens the editor.
+- Editor: the same modal sheet as L2 — drag handle, `分类复盘备忘` title, a pill
+  carrying the category name instead of the month, the 500-character counter,
+  the three quick-note chips and the pinned 取消 / 保存 row.
+- Delete: the trash icon appears only when a note exists; it clears the note,
+  closes the sheet, and offers 撤销 like the month note.
+- Archived category: the note renders as the same saved card but with no pencil
+  (the card is inert), followed by the `已归档` read-only hint; an archived
+  category without a note shows only the hint.
+- Clearing the budget removes the note without leaving a stale card: the prompt
+  replaces the saved card and the chart marker disappears in the same frame.
+- [ ] pass  [ ] fail — notes:

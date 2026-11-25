@@ -8,7 +8,6 @@ import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
-import 'package:feather_ledger/app/design_system/app_text_field.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -22,6 +21,7 @@ import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
 import '../widgets/budget_category_detail_sections.dart';
 import '../widgets/budget_edit_sheet.dart';
+import '../widgets/budget_note_card.dart';
 import '../widgets/budget_trend_chart.dart';
 
 Future<void> showBudgetCategoryDetail(
@@ -74,11 +74,26 @@ class BudgetCategoryDetailScreen extends ConsumerStatefulWidget {
 
 class _BudgetCategoryDetailScreenState
     extends ConsumerState<BudgetCategoryDetailScreen> {
-  final TextEditingController _noteController = TextEditingController();
-  bool _noteInitialized = false;
-  String _lastSyncedNote = '';
-  bool _savingNote = false;
   bool _clearingBudget = false;
+
+  /// Opens the shared note editor for this category. The sheet reports the
+  /// saved text, but the card reads the persisted note from the summary
+  /// stream — the writer also rewrites it when a budget is cleared.
+  Future<void> _editNote(String currencyCode, BudgetCategoryRowUiModel row) {
+    return showBudgetNoteSheet(
+      context,
+      title: AppLocalizations.of(context)!.budgetCategoryNoteLabel,
+      contextLabel: row.name,
+      initialNote: row.reviewNote,
+      onSave: (note) =>
+          ref.read(budgetViewModelProvider.notifier).saveReviewNote(
+                currencyCode: currencyCode,
+                month: widget.month,
+                categoryId: widget.categoryId,
+                note: note,
+              ),
+    );
+  }
 
   Future<void> _clearBudget({
     required String currencyCode,
@@ -186,52 +201,6 @@ class _BudgetCategoryDetailScreenState
   }
 
   @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  /// Adopts a note that changed underneath us (removing the budget deletes the
-  /// month's note) unless the field holds an unsaved draft.
-  void _syncNoteFromStream(String note) {
-    if (!_noteInitialized || note == _lastSyncedNote) return;
-    final hasDraft = _noteController.text != _lastSyncedNote;
-    _lastSyncedNote = note;
-    if (hasDraft) return;
-    setState(() => _noteController.text = note);
-  }
-
-  Future<void> _saveNote(String currencyCode) async {
-    final l10n = AppLocalizations.of(context)!;
-    // The writer caps the note at 500 characters; reject locally so the draft
-    // the user is still editing survives instead of bouncing off the service.
-    if (_noteController.text.runes.length > 500) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(LedgerErrorCode.budgetNoteTooLong.message(l10n))));
-      return;
-    }
-    setState(() => _savingNote = true);
-    final result =
-        await ref.read(budgetViewModelProvider.notifier).saveReviewNote(
-              currencyCode: currencyCode,
-              month: widget.month,
-              categoryId: widget.categoryId,
-              note: _noteController.text,
-            );
-    if (!mounted) return;
-    setState(() => _savingNote = false);
-
-    switch (result) {
-      case Success():
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.budgetNoteSaved)));
-      case Failure(:final code):
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(code.message(l10n))));
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
@@ -243,22 +212,15 @@ class _BudgetCategoryDetailScreenState
       locale: locale,
     );
     final detailAsync = ref.watch(budgetCategoryDetailProvider(request));
-    // A budget change also rewrites this category's note (removing a budget
-    // clears it), so follow the model instead of caching the first value.
-    ref.listen(budgetCategoryDetailProvider(request), (_, next) {
-      final row = next.value?.row;
-      // A cleared budget has no note left, and that empty note is exactly what
-      // the field must adopt.
-      if (row != null) _syncNoteFromStream(row.reviewNote ?? '');
-    });
-
     return detailAsync.when(
       loading: () => Scaffold(
-          body: SafeArea(child: _statusPage(const CircularProgressIndicator()))),
+          body:
+              SafeArea(child: _statusPage(const CircularProgressIndicator()))),
       // The exception is a developer's to read, not the user's: the body is one
       // localized sentence and the cause goes to the log.
       error: (error, _) {
-        debugPrint('budget category ${widget.categoryId} failed to load: $error');
+        debugPrint(
+            'budget category ${widget.categoryId} failed to load: $error');
         return Scaffold(
           body: SafeArea(
             child: _statusPage(Text(
@@ -276,14 +238,9 @@ class _BudgetCategoryDetailScreenState
         }
         final row = detail.row;
 
-        if (!_noteInitialized) {
-          _noteController.text = row.reviewNote ?? '';
-          _lastSyncedNote = _noteController.text;
-          _noteInitialized = true;
-        }
-
         // A closed month has no bills left to arrive: actual only.
-        final showPending = !detail.isHistoricalMonth && row.pendingDisplay != null;
+        final showPending =
+            !detail.isHistoricalMonth && row.pendingDisplay != null;
         final showMaterializationHint = detail.showMaterializationHint;
         final spacing = context.spacing;
         final scheme = Theme.of(context).colorScheme;
@@ -431,74 +388,15 @@ class _BudgetCategoryDetailScreenState
                     ),
                   ),
                 SizedBox(height: context.metrics.sectionGap),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.budgetCategoryNoteLabel,
-                        style: AppTypography.sectionTitle(context),
-                      ),
-                      SizedBox(height: spacing.sm),
-                      if (row.archived) ...[
-                        Text(
-                          l10n.budgetArchivedNoteHint,
-                          style: AppTypography.meta(context),
-                        ),
-                        if (row.reviewNote != null) ...[
-                          SizedBox(height: spacing.sm),
-                          Text(
-                            row.reviewNote!,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ] else ...[
-                        AppTextField(
-                          controller: _noteController,
-                          maxLines: 3,
-                          minLines: 2,
-                          hintText: l10n.budgetNotePlaceholder,
-                          onChanged: (_) => setState(() {}),
-                        ),
-                        SizedBox(height: spacing.xs),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                l10n.budgetReviewNoteEmptyDeletes,
-                                style:
-                                    AppTypography.compactLabel(context).copyWith(
-                                        color: scheme.onSurfaceVariant),
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            Text(
-                              l10n.budgetNoteCharCount(
-                                _noteController.text.runes.length,
-                              ),
-                              style: AppTypography.compactLabel(context)
-                                  .copyWith(
-                                color: _noteController.text.runes.length > 500
-                                    ? scheme.error
-                                    : scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: spacing.sm),
-                        Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: AppButton.outlined(
-                            onPressed: _savingNote
-                                ? null
-                                : () => _saveNote(currencyCode),
-                            child: Text(l10n.budgetSaveNote),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                BudgetNoteCard(
+                  title: l10n.budgetCategoryNoteLabel,
+                  note: row.reviewNote,
+                  emptyTitle: l10n.budgetCategoryNoteEmptyTitle,
+                  emptySubtitle: l10n.budgetNoteEmptySubtitle,
+                  readOnlyHint:
+                      row.archived ? l10n.budgetArchivedNoteHint : null,
+                  onTap:
+                      row.archived ? null : () => _editNote(currencyCode, row),
                 ),
               ],
             ),

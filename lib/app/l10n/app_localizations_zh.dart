@@ -1095,13 +1095,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
-
-  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
 
   @override
   String get budgetNoteEmptyTitle => '记一句本月复盘';
+
+  @override
+  String get budgetCategoryNoteEmptyTitle => '记一句这个分类的复盘';
 
   @override
   String get budgetNoteEmptySubtitle => '记录偏差原因或下月调整思路';
@@ -2518,13 +2518,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '结余 TOP';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '备注留空并保存即可删除。';
-
-  @override
   String get budgetMonthNoteLabel => '月度复盘备忘';
 
   @override
   String get budgetNoteEmptyTitle => '记一句本月复盘';
+
+  @override
+  String get budgetCategoryNoteEmptyTitle => '记一句这个分类的复盘';
 
   @override
   String get budgetNoteEmptySubtitle => '记录偏差原因或下月调整思路';
@@ -3941,13 +3941,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetUnderTopTitle => '結餘 TOP';
 
   @override
-  String get budgetReviewNoteEmptyDeletes => '備註留空並儲存即可刪除。';
-
-  @override
   String get budgetMonthNoteLabel => '月度複盤備忘';
 
   @override
   String get budgetNoteEmptyTitle => '記一句本月複盤';
+
+  @override
+  String get budgetCategoryNoteEmptyTitle => '記一句這個分類的複盤';
 
   @override
   String get budgetNoteEmptySubtitle => '記錄偏差原因或下月調整思路';

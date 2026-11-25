@@ -22,6 +22,7 @@ import 'package:feather_ledger/features/budget/domain/value_objects/budget_value
 import 'package:feather_ledger/features/budget/presentation/models/budget_ui_models.dart';
 import 'package:feather_ledger/features/budget/presentation/screens/budget_category_detail_screen.dart';
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_edit_sheet.dart';
+import 'package:feather_ledger/features/budget/presentation/widgets/budget_note_card.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
@@ -482,7 +483,7 @@ void main() {
         greaterThan(0));
     expect(tester.widget<SlideTransition>(slide.first).position.value.dx, 0);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Unsaved thought');
+    expect(find.text('Old note'), findsOneWidget);
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
     expect(find.text('Delete budget'), findsOneWidget);
@@ -496,7 +497,7 @@ void main() {
         matching: find.byIcon(LucideIcons.x)));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsNothing);
-    expect(find.text('Unsaved thought'), findsOneWidget);
+    expect(find.text('Old note'), findsOneWidget);
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
@@ -512,7 +513,7 @@ void main() {
     expect(find.byType(BudgetEditSheet), findsNothing);
     updates.add(buildSummary(includeMore: true));
     await tester.pumpAndSettle();
-    expect(find.text('Unsaved thought'), findsOneWidget);
+    expect(find.text('Old note'), findsOneWidget);
     service.lastScope = null;
     service.hasFuture = true;
     tester.view.physicalSize = const Size(320, 740);
@@ -586,7 +587,7 @@ void main() {
     expect(find.text('Lunch'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Unsaved thought'), findsOneWidget);
+    expect(find.byType(BudgetNoteCard), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Open'), findsOneWidget);
@@ -662,22 +663,33 @@ void main() {
     expect(find.byType(BudgetCategoryDetailScreen), findsOneWidget);
     expect(find.byIcon(LucideIcons.arrowLeft), findsOneWidget);
 
-    // Too long note triggers error SnackBar
-    final noteField = find.byType(TextField);
-    await tester.enterText(noteField, 'x' * 501);
-    await tester.pump();
-    await tester.ensureVisible(find.text('Save note'));
-    await tester.tap(find.text('Save note'));
+    // The category note opens the same sheet as the month note.
+    await tester.tap(find.byType(BudgetNoteCard));
     await tester.pumpAndSettle();
-    expect(find.textContaining('500'), findsWidgets);
+    final noteField = find.descendant(
+      of: find.byKey(const ValueKey('budget-note-field')),
+      matching: find.byType(TextField),
+    );
+
+    // Too long note disables the save button and keeps the draft.
+    await tester.enterText(noteField, 'x' * 501);
+    await tester.pumpAndSettle();
+    expect(find.text('501/500'), findsOneWidget);
+    expect(
+      tester
+          .widget<AppButton>(find.widgetWithText(AppButton, 'Save note'))
+          .onPressed,
+      isNull,
+    );
     expect(service.savedNote, isNull);
 
-    // Valid note saves
+    // Valid note saves and closes the sheet.
     await tester.enterText(noteField, 'Good month');
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
     expect(service.savedNote, 'Good month');
+    expect(find.byKey(const ValueKey('budget-note-field')), findsNothing);
 
     // Tapping TOP transaction pushes /ledger/edit
     await tester.ensureVisible(find.text('Lunch'));
@@ -849,7 +861,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // The failure is named in the user's language, never as an exception.
-    expect(find.text('Something went wrong. Please try again.'), findsOneWidget);
+    expect(
+        find.text('Something went wrong. Please try again.'), findsOneWidget);
     expect(find.textContaining('StateError'), findsNothing);
 
     // And the sheet can still save: an unknown probe is not a veto.

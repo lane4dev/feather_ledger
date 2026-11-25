@@ -24,6 +24,7 @@ import 'package:feather_ledger/features/budget/domain/value_objects/budget_value
 import 'package:feather_ledger/features/budget/presentation/models/budget_ui_models.dart';
 import 'package:feather_ledger/features/budget/presentation/screens/budget_category_detail_screen.dart';
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_category_detail_sections.dart';
+import 'package:feather_ledger/features/budget/presentation/widgets/budget_note_card.dart';
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_trend_chart.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
@@ -415,6 +416,19 @@ void main() {
 
   /// ScaffoldMessenger queues snack bars: clear the visible one before
   /// asserting on the next, or the new message sits behind it.
+  final noteField = find.descendant(
+    of: find.byKey(const ValueKey('budget-note-field')),
+    matching: find.byType(TextField),
+  );
+
+  Future<void> openNoteSheet(WidgetTester tester) async {
+    final card = find.byType(BudgetNoteCard);
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+  }
+
   Future<void> dismissSnackBar(WidgetTester tester) async {
     tester
         .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
@@ -563,44 +577,23 @@ void main() {
     expect(find.text('Editing bill bill-4'), findsOneWidget);
   });
 
-  testWidgets('View all round trip keeps an unsaved note draft',
+  testWidgets('the note card opens the shared sheet and cancel keeps the note',
       (tester) async {
-    final contributions = [
-      BudgetContributionTx(
-        transactionId: 'tx-1',
-        sourceScheduledBillId: null,
-        scheduledBillId: null,
-        description: 'Lunch',
-        occurredAt: DateTime(2026, 5, 10),
-        amountMinor: 45000,
-        isPending: false,
-        accountName: 'Cash',
-      ),
-      for (var i = 2; i <= 4; i++)
-        BudgetContributionTx(
-          transactionId: 'tx-$i',
-          sourceScheduledBillId: null,
-          scheduledBillId: null,
-          description: 'Expense $i',
-          occurredAt: DateTime(2026, 5, 10),
-          amountMinor: 10000 ~/ i,
-          isPending: false,
-          accountName: 'Cash',
-        ),
-    ];
-    final service =
-        _StubBudgetService(buildSummary(contributions: contributions));
+    final service = _StubBudgetService(buildSummary());
     await pumpDetail(tester, service: service, size: const Size(900, 1200));
 
-    await tester.enterText(find.byType(TextField), 'Unsaved thought');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('View all'));
-    await tester.pumpAndSettle();
-    expect(find.text('Expense 4'), findsOneWidget);
+    expect(find.text('Old note'), findsOneWidget);
+    await openNoteSheet(tester);
 
-    await tester.pageBack();
+    expect(tester.widget<TextField>(noteField).controller!.text, 'Old note');
+
+    await tester.enterText(noteField, 'Unsaved thought');
     await tester.pumpAndSettle();
-    expect(find.text('Unsaved thought'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(service.savedNote, isNull);
+    expect(find.text('Old note'), findsOneWidget);
   });
 
   testWidgets('a 500-character note saves and a 501-character note is refused',
@@ -608,7 +601,8 @@ void main() {
     final service = _StubBudgetService(buildSummary());
     await pumpDetail(tester, service: service, size: const Size(900, 1200));
 
-    await tester.enterText(find.byType(TextField), 'x' * 500);
+    await openNoteSheet(tester);
+    await tester.enterText(noteField, 'x' * 500);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
@@ -617,19 +611,19 @@ void main() {
     await dismissSnackBar(tester);
 
     service.savedNote = null;
-    await tester.enterText(find.byType(TextField), 'y' * 501);
+    await openNoteSheet(tester);
+    await tester.enterText(noteField, 'y' * 501);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save note'));
+
+    expect(find.text('501/500'), findsOneWidget);
+    final save = find.widgetWithText(AppButton, 'Save note');
+    expect(tester.widget<AppButton>(save).onPressed, isNull);
+    await tester.tap(save);
     await tester.pumpAndSettle();
 
     expect(service.savedNote, isNull);
-    expect(
-        find.text('Review note cannot exceed 500 characters'), findsOneWidget);
     // The oversized draft stays where the user left it.
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      'y' * 501,
-    );
+    expect(tester.widget<TextField>(noteField).controller!.text, 'y' * 501);
   });
 
   testWidgets('an empty note clears it and a failed save keeps the draft',
@@ -637,7 +631,8 @@ void main() {
     final service = _StubBudgetService(buildSummary());
     await pumpDetail(tester, service: service, size: const Size(900, 1200));
 
-    await tester.enterText(find.byType(TextField), '');
+    await openNoteSheet(tester);
+    await tester.enterText(noteField, '');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
@@ -646,15 +641,45 @@ void main() {
 
     service.noteResult = const Result.failure(
         LedgerErrorCode.categoryArchived, 'category is archived');
-    await tester.enterText(find.byType(TextField), 'Draft note');
+    await openNoteSheet(tester);
+    await tester.enterText(noteField, 'Draft note');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save note'));
     await tester.pumpAndSettle();
     expect(find.text('Category is archived'), findsOneWidget);
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      'Draft note',
-    );
+    expect(tester.widget<TextField>(noteField).controller!.text, 'Draft note');
+  });
+
+  testWidgets('the shared sheet deletes the note and undo restores it',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary());
+    await pumpDetail(tester, service: service, size: const Size(900, 1200));
+
+    await openNoteSheet(tester);
+    await tester.tap(find.byKey(const ValueKey('budget-note-delete')));
+    await tester.pumpAndSettle();
+
+    expect(service.savedNote, '');
+    expect(find.text('Review note deleted'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(service.savedNote, 'Old note');
+  });
+
+  testWidgets('the empty note prompt fits a narrow, large-text page',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(note: null));
+    await pumpDetail(tester,
+        service: service,
+        size: const Size(320, 740),
+        textScale: 1.6);
+
+    await tester.scrollUntilVisible(find.byType(BudgetNoteCard), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Jot down this category's review"), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('archived categories show their note read-only without a menu',
@@ -674,6 +699,7 @@ void main() {
     );
     expect(find.byType(TextField), findsNothing);
     expect(find.text('Save note'), findsNothing);
+    expect(find.byKey(const ValueKey('budget-note-edit')), findsNothing);
     expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
   });
 
@@ -714,11 +740,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(marker, findsNothing);
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      '',
-    );
-    expect(find.text('0/500'), findsOneWidget);
+    expect(find.text('Old note'), findsNothing);
+    expect(find.text("Jot down this category's review"), findsOneWidget);
   });
 
   testWidgets('a note arriving from the stream never overwrites a live draft',
@@ -726,14 +749,15 @@ void main() {
     final service = _StubBudgetService(buildSummary());
     await pumpDetail(tester, service: service, size: const Size(900, 1200));
 
-    await tester.enterText(find.byType(TextField), 'Unsaved thought');
+    await openNoteSheet(tester);
+    await tester.enterText(noteField, 'Unsaved thought');
     await tester.pumpAndSettle();
 
     service.emit(buildSummary(note: 'Saved elsewhere'));
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      tester.widget<TextField>(noteField).controller!.text,
       'Unsaved thought',
     );
   });
@@ -867,9 +891,10 @@ void main() {
         lessThanOrEqualTo(config.size.width),
       );
 
-      await tester.scrollUntilVisible(find.text('Save note'), 200,
+      await tester.scrollUntilVisible(find.byType(BudgetNoteCard), 200,
           scrollable: find.byType(Scrollable).first);
       await tester.pumpAndSettle();
+      await openNoteSheet(tester);
       final save = find.widgetWithText(AppButton, 'Save note');
       expect(tester.getSize(save).height, greaterThanOrEqualTo(40));
       await tester.tap(save);
