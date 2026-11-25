@@ -1168,7 +1168,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetClearAction => '取消预算';
 
   @override
-  String get budgetClearConfirmTitle => '取消该分类预算？';
+  String budgetClearConfirmTitle(String category) {
+    return '删除$category预算？';
+  }
+
+  @override
+  String budgetClearConfirmThisMonth(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '将删除 $month 的$category预算 $amount，并清除本月的分类复盘备忘。';
+  }
+
+  @override
+  String budgetClearConfirmThisAndFollowing(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '将删除 $month 及以后的$category预算 $amount，并清除 $month 及以后的$category分类复盘备忘（含沿用预算、未单独设预算的月份）。';
+  }
+
+  @override
+  String get budgetClearFutureRulesWarning => '此操作也会清除之后已设置的预算。';
 
   @override
   String get budgetSaved => '预算已更新';
@@ -2434,7 +2457,30 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetClearAction => '取消预算';
 
   @override
-  String get budgetClearConfirmTitle => '取消该分类预算？';
+  String budgetClearConfirmTitle(String category) {
+    return '删除$category预算？';
+  }
+
+  @override
+  String budgetClearConfirmThisMonth(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '将删除 $month 的$category预算 $amount，并清除本月的分类复盘备忘。';
+  }
+
+  @override
+  String budgetClearConfirmThisAndFollowing(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '将删除 $month 及以后的$category预算 $amount，并清除 $month 及以后的$category分类复盘备忘（含沿用预算、未单独设预算的月份）。';
+  }
+
+  @override
+  String get budgetClearFutureRulesWarning => '此操作也会清除之后已设置的预算。';
 
   @override
   String get budgetSaved => '预算已更新';
@@ -3700,7 +3746,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetClearAction => '取消預算';
 
   @override
-  String get budgetClearConfirmTitle => '取消該分類預算？';
+  String budgetClearConfirmTitle(String category) {
+    return '刪除$category預算？';
+  }
+
+  @override
+  String budgetClearConfirmThisMonth(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '將刪除 $month 的$category預算 $amount，並清除本月的分類複盤備忘。';
+  }
+
+  @override
+  String budgetClearConfirmThisAndFollowing(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return '將刪除 $month 及以後的$category預算 $amount，並清除 $month 及以後的$category分類複盤備忘（含沿用預算、未單獨設預算的月份）。';
+  }
+
+  @override
+  String get budgetClearFutureRulesWarning => '此操作也會清除之後已設置的預算。';
 
   @override
   String get budgetSaved => '預算已更新';

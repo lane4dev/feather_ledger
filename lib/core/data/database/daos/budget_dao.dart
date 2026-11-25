@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show protected;
 
 import 'package:feather_ledger/core/domain/enums.dart';
 
@@ -546,6 +547,11 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
   /// using either [thisMonthOnly] (preserving `M+1`'s prior effective state) or
   /// `thisAndFollowing` (removing `> M` breakpoints), then prunes redundant
   /// breakpoints in ascending `effectiveYm` order.
+  ///
+  /// Clearing also deletes the category review notes that belonged to the same
+  /// month range, in the same transaction (ADR-0007). A cleared budget must not
+  /// keep a stale note, and a failed note delete must not leave the budget
+  /// erased.
   Future<void> upsertBudgetRule({
     required String currencyCode,
     required String categoryId,
@@ -626,7 +632,41 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
           prevState = row.amountMinor;
         }
       }
+
+      // Last, so that a failing note delete proves the rule writes above are
+      // rolled back together with it.
+      if (amountMinor == null) {
+        await deleteCategoryReviewNotes(
+          currencyCode: currencyCode,
+          categoryId: categoryId,
+          targetYm: targetYm,
+          thisMonthOnly: thisMonthOnly,
+        );
+      }
     });
+  }
+
+  /// Deletes the category review notes covered by clearing a category budget:
+  /// [targetYm] alone for [thisMonthOnly], [targetYm] onward otherwise. Only
+  /// the given currency and category are touched — month-level notes
+  /// (`categoryKey == ''`), other categories, other currencies, the budget
+  /// rules and the category itself all stay. Callers run this inside the
+  /// transaction that rewrites the rule timeline.
+  @protected
+  Future<void> deleteCategoryReviewNotes({
+    required String currencyCode,
+    required String categoryId,
+    required int targetYm,
+    required bool thisMonthOnly,
+  }) async {
+    await (delete(budgetReviewNotes)
+          ..where((n) =>
+              n.currencyCode.equals(currencyCode) &
+              n.categoryKey.equals(categoryId) &
+              (thisMonthOnly
+                  ? n.ym.equals(targetYm)
+                  : n.ym.isBiggerOrEqualValue(targetYm))))
+        .go();
   }
 
   /// Inserts, updates, or deletes a review note (`categoryKey == ''` for
