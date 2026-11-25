@@ -52,14 +52,21 @@ class LedgerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The card sits at the top of the header slot, not at the bottom of it.
+    // Bottom-aligning it (which is what this used to do) put all the slot's
+    // slack in one place: a gap above the card, and a card that grew upwards
+    // whenever hiding the balance made its contents shorter.
     return Padding(
-      padding:
-          context.pagePadding.add(EdgeInsets.only(bottom: context.spacing.md)),
+      padding: context.pagePadding.add(
+        EdgeInsets.only(
+          top: context.spacing.xs,
+          bottom: context.spacing.md,
+        ),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Balance Summary - Full Width
           _BalanceSummary(
             summaryAsync: summaryAsync,
             month: month ?? DateTime.now(),
@@ -487,7 +494,7 @@ class _OverviewBalance extends StatelessWidget {
       return FittedBox(
         fit: BoxFit.scaleDown,
         alignment: AlignmentDirectional.centerStart,
-        child: Text(display, style: wholeStyle),
+        child: Text(display, style: wholeStyle, strutStyle: _strut),
       );
     }
 
@@ -516,9 +523,19 @@ class _OverviewBalance extends StatelessWidget {
         ),
         maxLines: 1,
         softWrap: false,
+        // The line box is the whole-units size no matter which spans are
+        // present, so hiding the balance cannot make the card shorter. Without
+        // this the masked run (set at the decimals' size) collapses the line
+        // and the card shrinks under the finger that just pressed the eye.
+        strutStyle: _strut,
       ),
     );
   }
+
+  static const _strut = StrutStyle(
+    fontSize: LedgerTheme.balanceWholeSize,
+    forceStrutHeight: true,
+  );
 }
 
 /// The month's income and expense, fused into the card's lower edge.

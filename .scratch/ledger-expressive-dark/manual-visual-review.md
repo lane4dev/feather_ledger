@@ -136,7 +136,13 @@ verified — the *materials* and the iconography are not.
       hairline divider, and the amount does not sit closer to the edge than the
       label does.
 - [ ] Card height is not taller than the previous version — the header slot is
-      still 220dp (scaled for large text), so the list must not start lower.
+      200dp (scaled for large text), so the list must not start lower.
+- [ ] The card hugs the app bar: no dead band above it (the slot used to
+      bottom-align the card, which parked 35dp of empty space on top).
+- [ ] Tapping the eye masks the balance without the card changing height —
+      measured identical (165dp) visible vs hidden at 412dp/en, 360dp/zh_Hant
+      and `textScale` 1.8; confirm the same on device with a font that has real
+      metrics.
 
 ## Known out-of-scope / pre-existing
 

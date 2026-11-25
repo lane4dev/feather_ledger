@@ -195,7 +195,12 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final currency = ref.watch(displayCurrencySymbolProvider);
     final summary = ref.watch(ledgerMonthlySummaryProvider(selectedDate));
     final scaled = MediaQuery.textScalerOf(context).scale(120);
-    final headerHeight = 220.0 + (scaled > 120 ? (scaled - 120) * 1.3 : 0);
+    // The header slot only has to be as tall as the card plus its insets
+    // (roughly 185dp at the default text size); it used to be 220 because the
+    // card was bottom-aligned and the extra 35dp sat above it as dead space.
+    // Kept slightly generous so a wrapped footer label at 360dp width does not
+    // overflow, and the text-scale term covers everything larger.
+    final headerHeight = 200.0 + (scaled > 120 ? (scaled - 120) * 1.3 : 0);
 
     return Scaffold(
       body: CustomScrollView(
