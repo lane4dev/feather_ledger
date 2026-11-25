@@ -254,25 +254,6 @@ class BudgetAttributionItemUiModel {
 }
 
 @immutable
-class BudgetUnbudgetedAlertUiModel {
-  final String categoryId;
-  final String name;
-  final String iconKey;
-  final int colorInt;
-  final String actualDisplay;
-  final String shareDisplay;
-
-  const BudgetUnbudgetedAlertUiModel({
-    required this.categoryId,
-    required this.name,
-    required this.iconKey,
-    required this.colorInt,
-    required this.actualDisplay,
-    required this.shareDisplay,
-  });
-}
-
-@immutable
 class BudgetOverviewUiModel {
   final YearMonth targetYm;
   final BudgetMode mode;
@@ -409,7 +390,6 @@ class BudgetScreenUiModel {
   final List<BudgetCategoryRowUiModel> remainingActiveRows;
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
-  final List<BudgetUnbudgetedAlertUiModel> unbudgetedAlertsTop3;
   final List<BudgetTrendPointUiModel> monthTrend6Months;
   final String? monthReviewNote;
 
@@ -420,7 +400,6 @@ class BudgetScreenUiModel {
     required this.remainingActiveRows,
     required this.overBudgetTop3,
     required this.underBudgetTop3,
-    required this.unbudgetedAlertsTop3,
     required this.monthTrend6Months,
     required this.monthReviewNote,
   });

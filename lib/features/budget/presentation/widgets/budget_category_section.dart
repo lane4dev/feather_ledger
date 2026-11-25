@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
@@ -12,14 +11,11 @@ import '../../domain/value_objects/budget_value_objects.dart';
 import '../models/budget_ui_models.dart';
 
 /// The category lists of the budget screen: every budgeted category, then the
-/// categories that spent without a limit, then the untouched ones behind a
-/// toggle.
+/// categories that spent without a limit. Untouched categories have no group
+/// here — they live in the "+" drawer in the app bar.
 class BudgetCategorySection extends StatelessWidget {
   final List<BudgetCategoryRowUiModel> budgetedRows;
   final List<BudgetCategoryRowUiModel> unbudgetedActiveRows;
-  final List<BudgetCategoryRowUiModel> remainingActiveRows;
-  final bool showRemaining;
-  final VoidCallback onToggleRemaining;
   final ValueChanged<BudgetCategoryRowUiModel> onRowTap;
   final ValueChanged<BudgetCategoryRowUiModel> onSetBudgetTap;
 
@@ -27,9 +23,6 @@ class BudgetCategorySection extends StatelessWidget {
     super.key,
     required this.budgetedRows,
     required this.unbudgetedActiveRows,
-    required this.remainingActiveRows,
-    required this.showRemaining,
-    required this.onToggleRemaining,
     required this.onRowTap,
     required this.onSetBudgetTap,
   });
@@ -98,65 +91,6 @@ class BudgetCategorySection extends StatelessWidget {
             ),
           ),
           SizedBox(height: spacing.lg),
-        ],
-        if (remainingActiveRows.isNotEmpty) ...[
-          InkWell(
-            onTap: onToggleRemaining,
-            borderRadius: context.metrics.selectionBorderRadius,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: spacing.sm,
-                horizontal: spacing.xs,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${l10n.budgetSectionRemaining} · ${remainingActiveRows.length}',
-                      style: AppTypography.meta(context),
-                    ),
-                  ),
-                  Icon(
-                    showRemaining
-                        ? LucideIcons.chevronUp
-                        : LucideIcons.chevronDown,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (showRemaining) ...[
-            SizedBox(height: spacing.xs),
-            AppCard.group(
-              child: Column(
-                children: [
-                  for (var i = 0; i < remainingActiveRows.length; i++) ...[
-                    if (i > 0) const FeatherDivider(),
-                    ListTile(
-                      onTap: () => onSetBudgetTap(remainingActiveRows[i]),
-                      leading: AppIconBadge(
-                        color: Color(remainingActiveRows[i].colorInt),
-                        child: CategoryIcon(
-                          iconKey: remainingActiveRows[i].iconKey,
-                          size: context.metrics.iconSize,
-                          color: Color(remainingActiveRows[i].colorInt),
-                        ),
-                      ),
-                      title: Text(remainingActiveRows[i].name),
-                      trailing: Text(
-                        l10n.budgetSetButton,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ],
       ],
     );

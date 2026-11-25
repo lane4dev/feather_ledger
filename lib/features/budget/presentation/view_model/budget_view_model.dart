@@ -18,26 +18,11 @@ part 'budget_view_model.g.dart';
 @immutable
 class BudgetUiState {
   final YearMonth selectedMonth;
-  final bool isReviewPreview;
-  final bool showRemainingCategories;
 
-  const BudgetUiState({
-    required this.selectedMonth,
-    this.isReviewPreview = false,
-    this.showRemainingCategories = false,
-  });
+  const BudgetUiState({required this.selectedMonth});
 
-  BudgetUiState copyWith({
-    YearMonth? selectedMonth,
-    bool? isReviewPreview,
-    bool? showRemainingCategories,
-  }) {
-    return BudgetUiState(
-      selectedMonth: selectedMonth ?? this.selectedMonth,
-      isReviewPreview: isReviewPreview ?? this.isReviewPreview,
-      showRemainingCategories:
-          showRemainingCategories ?? this.showRemainingCategories,
-    );
+  BudgetUiState copyWith({YearMonth? selectedMonth}) {
+    return BudgetUiState(selectedMonth: selectedMonth ?? this.selectedMonth);
   }
 }
 
@@ -52,20 +37,7 @@ class BudgetViewModel extends _$BudgetViewModel {
   void setMonth(DateTime date) {
     final next = YearMonth.fromDate(date);
     if (next == state.selectedMonth) return;
-    state = state.copyWith(
-      selectedMonth: next,
-      isReviewPreview: false,
-    );
-  }
-
-  void toggleReviewPreview() {
-    state = state.copyWith(isReviewPreview: !state.isReviewPreview);
-  }
-
-  void toggleRemainingCategories() {
-    state = state.copyWith(
-      showRemainingCategories: !state.showRemainingCategories,
-    );
+    state = state.copyWith(selectedMonth: next);
   }
 
   Future<bool> hasFutureRulesAfter({

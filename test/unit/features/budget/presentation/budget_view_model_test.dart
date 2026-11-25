@@ -32,8 +32,7 @@ void main() {
     await db.close();
   });
 
-  test('BudgetViewModel manages month, preview/remaining toggles, and commands',
-      () async {
+  test('BudgetViewModel manages the selected month and commands', () async {
     final container = ProviderContainer(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
@@ -45,23 +44,13 @@ void main() {
 
     final initial = container.read(budgetViewModelProvider);
     expect(initial.selectedMonth, const YearMonth(2026, 5));
-    expect(initial.isReviewPreview, isFalse);
-    expect(initial.showRemainingCategories, isFalse);
 
     final notifier = container.read(budgetViewModelProvider.notifier);
-    notifier.toggleReviewPreview();
-    notifier.toggleRemainingCategories();
-    expect(container.read(budgetViewModelProvider).isReviewPreview, isTrue);
-    expect(container.read(budgetViewModelProvider).showRemainingCategories,
-        isTrue);
-
     notifier.setMonth(DateTime(2026, 4, 1));
     expect(
       container.read(budgetViewModelProvider).selectedMonth,
       const YearMonth(2026, 4),
     );
-    // Changing month resets review preview toggle cleanly.
-    expect(container.read(budgetViewModelProvider).isReviewPreview, isFalse);
 
     final res = await notifier.setCategoryBudget(
       currencyCode: 'CNY',

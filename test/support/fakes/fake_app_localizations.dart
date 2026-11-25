@@ -960,17 +960,11 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetModePlan => 'Plan';
 
-  @override
-  String get budgetModeTrack => 'Track';
 
   @override
   String get budgetModeReview => 'Review';
 
-  @override
-  String get budgetReviewPreviewToggle => 'Review preview';
 
-  @override
-  String get budgetTracking => 'Budget tracking';
 
   @override
   String get budgetTotal => 'Total budget';
@@ -993,11 +987,7 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetCommitted => 'Committed';
 
-  @override
-  String get budgetCommittedSpending => 'Committed spending';
 
-  @override
-  String get budgetDiscretionarySpending => 'Discretionary spending';
 
   @override
   String get budgetDiscretionary => 'Discretionary';
@@ -1020,12 +1010,7 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetOverviewBaselineShare => 'Baseline share';
 
-  @override
-  String budgetAllExpensesLine(String total, String unbudgeted) =>
-      'All expenses $total (unbudgeted $unbudgeted)';
 
-  @override
-  String budgetAllExpensesOnly(String total) => 'All expenses $total';
 
   @override
   String get budgetLeftoverPendingHint =>
@@ -1076,8 +1061,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetUnderTopTitle => 'Top Under Budget';
 
-  @override
-  String get budgetUnbudgetedAlertsTitle => 'Unbudgeted Spend Alerts';
 
   @override
   String get budgetMonthNoteLabel => 'Month review note';
@@ -1104,8 +1087,6 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetSectionUnbudgetedActive => 'Unbudgeted spending';
 
-  @override
-  String get budgetSectionRemaining => 'Other categories (tap to set budget)';
 
   @override
   String get budgetSetButton => 'Set budget';
@@ -1218,17 +1199,9 @@ class FakeAppLocalizations implements AppLocalizations {
   @override
   String get budgetCleared => 'Budget removed';
 
-  @override
-  String get budgetStatusInBudget => 'In budget';
 
-  @override
-  String get budgetStatusAtRisk => 'At risk';
 
-  @override
-  String get budgetStatusOver => 'Over';
 
-  @override
-  String budgetAnomalyBadge(int percent) => '+$percent% vs 3m avg';
 
   @override
   String budgetAnomalyDetail(int percent, String average) =>

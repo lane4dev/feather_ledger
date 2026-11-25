@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_text_field.dart';
@@ -24,7 +23,6 @@ import '../models/budget_ui_models.dart';
 class BudgetAttributionCard extends StatefulWidget {
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
-  final List<BudgetUnbudgetedAlertUiModel> unbudgetedAlertsTop3;
   final String? monthReviewNote;
   final ValueChanged<String> onCategoryTap;
   final Future<void> Function(String note)? onSaveMonthNote;
@@ -33,7 +31,6 @@ class BudgetAttributionCard extends StatefulWidget {
     super.key,
     required this.overBudgetTop3,
     required this.underBudgetTop3,
-    this.unbudgetedAlertsTop3 = const [],
     this.monthReviewNote,
     required this.onCategoryTap,
     this.onSaveMonthNote,
@@ -150,37 +147,6 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
                 );
               },
             ),
-          ],
-          if (widget.unbudgetedAlertsTop3.isNotEmpty) ...[
-            SizedBox(height: spacing.sm),
-            Text(
-              l10n.budgetUnbudgetedAlertsTitle,
-              style: AppTypography.meta(context),
-            ),
-            SizedBox(height: spacing.xs),
-            for (final alert in widget.unbudgetedAlertsTop3)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: spacing.xs),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        alert.name,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    AppBadge(label: alert.shareDisplay),
-                    SizedBox(width: spacing.sm),
-                    Text(
-                      alert.actualDisplay,
-                      style: AppTypography.amount(context)
-                          .copyWith(color: scheme.onSurface),
-                    ),
-                  ],
-                ),
-              ),
           ],
           if (widget.onSaveMonthNote != null) ...[
             SizedBox(height: spacing.md),

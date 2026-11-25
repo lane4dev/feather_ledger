@@ -459,17 +459,6 @@ class BudgetUiMapper {
                 isOver: false,
               ))
           .toList(),
-      unbudgetedAlertsTop3: summary.unbudgetedAlertsTop3
-          .map((a) => BudgetUnbudgetedAlertUiModel(
-                categoryId: a.categoryId,
-                name: a.categoryName,
-                iconKey: a.iconKey,
-                colorInt: a.colorInt,
-                actualDisplay:
-                    formatMinorWithSymbol(a.actualMinor, currencySymbol),
-                shareDisplay: '${(a.shareOfTotalActual * 100).round()}%',
-              ))
-          .toList(),
       monthTrend6Months: summary.monthTrend6Months
           .map((p) => _mapTrendPoint(p, monthFormat))
           .toList(),

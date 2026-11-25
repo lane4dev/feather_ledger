@@ -125,7 +125,6 @@ void main() {
       expect(row.trend6Months.single.budgetChartValue, 3000.0);
       expect(row.trend6Months.single.actualChartValue, 1200.0);
       expect(row.topContributions.single.amountDisplay, '-¥10.00');
-      expect(ui.unbudgetedAlertsTop3.single.shareDisplay, '29%');
     });
   });
 
