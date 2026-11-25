@@ -32,6 +32,7 @@ class _StubBudgetService implements BudgetService {
   final MonthBudgetSummary summary;
   final Stream<MonthBudgetSummary>? updates;
   bool hasFuture = false;
+  Result<void>? clearResult;
   String? savedNote;
   BudgetEditScope? lastScope;
   int? lastAmountMinor;
@@ -84,7 +85,7 @@ class _StubBudgetService implements BudgetService {
     required BudgetEditScope scope,
   }) async {
     lastScope = scope;
-    return unitResult;
+    return clearResult ?? unitResult;
   }
 
   @override
@@ -141,7 +142,11 @@ void main() {
     await initializeDateFormatting('en');
   });
 
-  MonthBudgetSummary buildSummary({bool includeMore = false}) {
+  MonthBudgetSummary buildSummary({
+    bool includeMore = false,
+    bool archived = false,
+    bool unbudgeted = false,
+  }) {
     final contributions = [
       BudgetContributionTx(
         transactionId: 'tx-1',
@@ -172,9 +177,9 @@ void main() {
       categoryName: 'Dining',
       iconKey: 'utensils',
       colorInt: 0xFFE65100,
-      isArchived: false,
-      archiveYm: null,
-      budgetMinor: 100000,
+      isArchived: archived,
+      archiveYm: archived ? const YearMonth(2026, 5) : null,
+      budgetMinor: unbudgeted ? null : 100000,
       hasFutureRulesAfter: false,
       committedActualMinor: 0,
       discretionaryActualMinor: 45000,
@@ -222,9 +227,9 @@ void main() {
       hasLeftoverPendingInReview: false,
       hasHighFrequencyPending: false,
       isFarFutureMaterializedOnly: false,
-      budgetedCategories: [dining],
-      unbudgetedActiveCategories: const [],
-      remainingActiveCategories: const [],
+      budgetedCategories: archived || unbudgeted ? const [] : [dining],
+      unbudgetedActiveCategories: unbudgeted ? [dining] : const [],
+      remainingActiveCategories: archived ? [dining] : const [],
       overBudgetTop3: const [],
       underBudgetTop3: const [],
       unbudgetedAlertsTop3: const [],
@@ -239,6 +244,166 @@ void main() {
       ],
       monthReviewNote: null,
     );
+  }
+
+  Future<void> pumpDetail(
+    WidgetTester tester, {
+    required _StubBudgetService service,
+    required Size size,
+    double textScale = 1.0,
+    ThemeData? theme,
+  }) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final router = GoRouter(initialLocation: '/', routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, __) => Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showBudgetCategoryDetail(
+                context,
+                month: const YearMonth(2026, 5),
+                categoryId: 'dining',
+              ),
+              child: const Text('Open detail'),
+            ),
+          ),
+        ),
+      ),
+    ]);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        budgetClockProvider
+            .overrideWithValue(FixedClock(DateTime(2026, 5, 15))),
+        budgetServiceProvider.overrideWithValue(service),
+        ledgerRepositoryProvider.overrideWithValue(_StubLedgerRepository()),
+        ledgerCurrencyProvider.overrideWithValue('USD'),
+        displayCurrencySymbolProvider.overrideWithValue('\$'),
+      ],
+      child: MaterialApp.router(
+        theme: theme ?? AppTheme.lightTheme,
+        routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ));
+    await tester.tap(find.text('Open detail'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openClearDialog(WidgetTester tester) async {
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('clear failure surfaces the localized error', (tester) async {
+    final service = _StubBudgetService(buildSummary())
+      ..clearResult = const Result.failure(
+          LedgerErrorCode.categoryArchived, 'category is archived');
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+
+    await openClearDialog(tester);
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+
+    expect(service.lastScope, BudgetEditScope.thisMonthOnly);
+    expect(find.text('Category is archived'), findsOneWidget);
+  });
+
+  testWidgets('archived category is read only and has no overflow menu',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(archived: true));
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+
+    expect(find.text('Archived'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
+  });
+
+  testWidgets('clear is disabled for a category without a budget',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(unbudgeted: true));
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+
+    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Edit'), findsOneWidget);
+    expect(service.lastScope, isNull);
+  });
+
+  for (final config in const [
+    (label: '400x700', size: Size(400, 700), textScale: 1.0, dark: false),
+    (
+      label: '430x932 with 1.6x text',
+      size: Size(430, 932),
+      textScale: 1.6,
+      dark: false
+    ),
+    (label: 'dark 400x700', size: Size(400, 700), textScale: 1.0, dark: true),
+    (
+      label: 'wide 1200x2400',
+      size: Size(1200, 2400),
+      textScale: 1.0,
+      dark: false
+    ),
+  ]) {
+    testWidgets(
+        'clear dialog copy stays readable and reachable at '
+        '${config.label}', (tester) async {
+      final service = _StubBudgetService(buildSummary())..hasFuture = true;
+      await pumpDetail(
+        tester,
+        service: service,
+        size: config.size,
+        textScale: config.textScale,
+        theme: config.dark ? AppTheme.darkTheme : null,
+      );
+
+      await openClearDialog(tester);
+      expect(find.textContaining('Dining budget for May 2026'), findsOneWidget);
+      // Large text pushes the scope control below the fold; it stays reachable
+      // by scrolling the dialog body.
+      await tester.ensureVisible(find.text('This & following months'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('This & following months'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('from May 2026 onward'), findsOneWidget);
+      expect(find.textContaining('will also be removed'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(SingleChildScrollView),
+        ),
+        findsOneWidget,
+      );
+      // Long copy scrolls inside the dialog rather than pushing the
+      // destructive action out of reach.
+      await tester.drag(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(SingleChildScrollView),
+        ),
+        const Offset(0, -120),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove budget'));
+      await tester.pumpAndSettle();
+
+      expect(service.lastScope, BudgetEditScope.thisAndFollowing);
+    });
   }
 
   testWidgets('view all shows every contribution and preserves an unsaved note',
@@ -333,7 +498,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove budget'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('will be replaced'), findsOneWidget);
+    // The safe default is this month only, so the future-rule warning stays
+    // away until the wider scope is picked; the copy still names the category,
+    // the month and the note the clear deletes.
+    expect(find.text('This month only'), findsOneWidget);
+    expect(find.textContaining('Dining budget for May 2026'), findsOneWidget);
+    expect(find.textContaining("this month's category review note"),
+        findsOneWidget);
+    expect(find.textContaining('will also be removed'), findsNothing);
+    await tester.tap(find.text('This & following months'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('May 2026 onward'), findsOneWidget);
+    expect(find.textContaining('will also be removed'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(service.lastScope, isNull);
@@ -341,9 +517,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove budget'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('This month only'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('will be replaced'), findsNothing);
     await tester.tap(find.text('Remove budget'));
     await tester.pumpAndSettle();
     expect(service.lastScope, BudgetEditScope.thisMonthOnly);
@@ -351,6 +524,8 @@ void main() {
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove budget'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('This & following months'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove budget'));
     await tester.pumpAndSettle();

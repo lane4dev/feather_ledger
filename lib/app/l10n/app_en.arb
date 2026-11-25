@@ -988,7 +988,27 @@
   "budgetHistoryEditHint": "Past month has ended. Consider adjusting current or future months instead.",
   "budgetZeroAmountHint": "Budget must be greater than 0. Tap Remove budget to unset.",
   "budgetClearAction": "Remove budget",
-  "budgetClearConfirmTitle": "Remove budget?",
+  "budgetClearConfirmTitle": "Remove {category} budget?",
+  "@budgetClearConfirmTitle": {
+    "placeholders": { "category": { "type": "String" } }
+  },
+  "budgetClearConfirmThisMonth": "Deletes the {amount} {category} budget for {month} and clears this month's category review note.",
+  "@budgetClearConfirmThisMonth": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "category": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "budgetClearConfirmThisAndFollowing": "Deletes the {amount} {category} budget for {month} and clears {category} review notes from {month} onward, including months that carry the budget forward.",
+  "@budgetClearConfirmThisAndFollowing": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "category": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "budgetClearFutureRulesWarning": "Budgets already set in later months will also be removed.",
   "budgetSaved": "Budget updated",
   "budgetCleared": "Budget removed",
   "budgetStatusInBudget": "In budget",

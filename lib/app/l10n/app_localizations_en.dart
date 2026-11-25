@@ -1291,7 +1291,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetClearAction => 'Remove budget';
 
   @override
-  String get budgetClearConfirmTitle => 'Remove budget?';
+  String budgetClearConfirmTitle(String category) {
+    return 'Remove $category budget?';
+  }
+
+  @override
+  String budgetClearConfirmThisMonth(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return 'Deletes the $amount $category budget for $month and clears this month\'s category review note.';
+  }
+
+  @override
+  String budgetClearConfirmThisAndFollowing(
+    String month,
+    String category,
+    String amount,
+  ) {
+    return 'Deletes the $amount $category budget for $month and clears $category review notes from $month onward, including months that carry the budget forward.';
+  }
+
+  @override
+  String get budgetClearFutureRulesWarning =>
+      'Budgets already set in later months will also be removed.';
 
   @override
   String get budgetSaved => 'Budget updated';

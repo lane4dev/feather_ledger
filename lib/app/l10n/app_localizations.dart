@@ -2411,8 +2411,34 @@ abstract class AppLocalizations {
   /// No description provided for @budgetClearConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove budget?'**
-  String get budgetClearConfirmTitle;
+  /// **'Remove {category} budget?'**
+  String budgetClearConfirmTitle(String category);
+
+  /// No description provided for @budgetClearConfirmThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes the {amount} {category} budget for {month} and clears this month\'s category review note.'**
+  String budgetClearConfirmThisMonth(
+    String month,
+    String category,
+    String amount,
+  );
+
+  /// No description provided for @budgetClearConfirmThisAndFollowing.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes the {amount} {category} budget for {month} and clears {category} review notes from {month} onward, including months that carry the budget forward.'**
+  String budgetClearConfirmThisAndFollowing(
+    String month,
+    String category,
+    String amount,
+  );
+
+  /// No description provided for @budgetClearFutureRulesWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Budgets already set in later months will also be removed.'**
+  String get budgetClearFutureRulesWarning;
 
   /// No description provided for @budgetSaved.
   ///

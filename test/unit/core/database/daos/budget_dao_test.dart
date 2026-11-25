@@ -125,14 +125,11 @@ void main() {
         now: now,
       );
       var rows = await dao.getRulesForCategory('CNY', 'dining');
-      expect(
-        rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(),
-        [
-          (202611, 200000),
-          (202612, 150000),
-          (202701, 200000),
-        ],
-      );
+      expect(rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(), [
+        (202611, 200000),
+        (202612, 150000),
+        (202701, 200000),
+      ]);
       expect(await dao.hasFutureRulesAfter('CNY', 'dining', 202612), isTrue);
 
       // Now edit 2026-12 back to 2000 (thisMonthOnly) -> both 202612 and 202701
@@ -146,42 +143,43 @@ void main() {
         now: now,
       );
       rows = await dao.getRulesForCategory('CNY', 'dining');
-      expect(
-        rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(),
-        [(202611, 200000)],
-      );
+      expect(rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(), [
+        (202611, 200000),
+      ]);
     });
 
-    test('leading null sentinel is pruned when clearing unset timeline',
-        () async {
-      final now = DateTime(2026, 5, 1);
-      await dao.upsertBudgetRule(
-        currencyCode: 'CNY',
-        categoryId: 'dining',
-        targetYm: 202604,
-        amountMinor: 100000,
-        thisMonthOnly: true,
-        now: now,
-      );
-      var rows = await dao.getRulesForCategory('CNY', 'dining');
-      expect(
-        rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(),
-        [(202604, 100000), (202605, null)],
-      );
+    test(
+      'leading null sentinel is pruned when clearing unset timeline',
+      () async {
+        final now = DateTime(2026, 5, 1);
+        await dao.upsertBudgetRule(
+          currencyCode: 'CNY',
+          categoryId: 'dining',
+          targetYm: 202604,
+          amountMinor: 100000,
+          thisMonthOnly: true,
+          now: now,
+        );
+        var rows = await dao.getRulesForCategory('CNY', 'dining');
+        expect(rows.map((r) => (r.effectiveYm, r.amountMinor)).toList(), [
+          (202604, 100000),
+          (202605, null),
+        ]);
 
-      // Clear 2026-04 only -> both leading null (202604) and trailing null
-      // (202605) collapse to zero rows.
-      await dao.upsertBudgetRule(
-        currencyCode: 'CNY',
-        categoryId: 'dining',
-        targetYm: 202604,
-        amountMinor: null,
-        thisMonthOnly: true,
-        now: now,
-      );
-      rows = await dao.getRulesForCategory('CNY', 'dining');
-      expect(rows, isEmpty);
-    });
+        // Clear 2026-04 only -> both leading null (202604) and trailing null
+        // (202605) collapse to zero rows.
+        await dao.upsertBudgetRule(
+          currencyCode: 'CNY',
+          categoryId: 'dining',
+          targetYm: 202604,
+          amountMinor: null,
+          thisMonthOnly: true,
+          now: now,
+        );
+        rows = await dao.getRulesForCategory('CNY', 'dining');
+        expect(rows, isEmpty);
+      },
+    );
 
     test('review notes enforce composite PK and blank deletion', () async {
       final now = DateTime(2026, 5, 1);
@@ -210,7 +208,9 @@ void main() {
       var notes = await dao.getNotesForMonth('CNY', 202605);
       expect(notes.length, 2);
       expect(
-          notes.firstWhere((n) => n.categoryKey == '').note, 'Month note v2');
+        notes.firstWhere((n) => n.categoryKey == '').note,
+        'Month note v2',
+      );
 
       await dao.upsertReviewNote(
         currencyCode: 'CNY',
@@ -225,6 +225,225 @@ void main() {
     });
   });
 
+  group('BudgetDao atomic budget clear with category notes', () {
+    const currency = 'CNY';
+    const categoryId = 'travel';
+    final now = DateTime(2026, 5, 1);
+
+    Future<void> seedRule(int ym, int? amountMinor) async {
+      await db.into(db.budgetRules).insert(
+            BudgetRulesCompanion.insert(
+              currencyCode: currency,
+              categoryId: categoryId,
+              effectiveYm: ym,
+              amountMinor: Value(amountMinor),
+              updatedAt: now,
+            ),
+          );
+    }
+
+    Future<void> seedNote(
+      String currencyCode,
+      int ym,
+      String categoryKey,
+      String note,
+    ) =>
+        dao.upsertReviewNote(
+          currencyCode: currencyCode,
+          ym: ym,
+          categoryKey: categoryKey,
+          note: note,
+          now: now,
+        );
+
+    // October has its own rule, November has a breakpoint, December only
+    // inherits November's amount. Notes exist in all three months, plus
+    // month-level and other-category notes that a category clear must keep.
+    Future<void> seedOctoberToDecember() async {
+      await seedRule(202610, 100000);
+      await seedRule(202611, 120000);
+      await seedNote(currency, 202610, categoryId, 'Oct travel note');
+      await seedNote(currency, 202611, categoryId, 'Nov travel note');
+      await seedNote(currency, 202612, categoryId, 'Dec travel note');
+      await seedNote(currency, 202611, '', 'Nov month note');
+      await seedNote(currency, 202612, '', 'Dec month note');
+      await seedNote(currency, 202611, 'groceries', 'Nov groceries note');
+      await seedNote('USD', 202611, categoryId, 'USD travel note');
+    }
+
+    Future<Map<String, String>> notesFor(String currencyCode, int ym) async {
+      final rows = await dao.getNotesForMonth(currencyCode, ym);
+      return {for (final row in rows) row.categoryKey: row.note};
+    }
+
+    Future<List<(int, int?)>> rulesFor() async {
+      final rows = await dao.getRulesForCategory(currency, categoryId);
+      return [for (final row in rows) (row.effectiveYm, row.amountMinor)];
+    }
+
+    test(
+        'this month only clears that month note and keeps the inherited '
+        'amount for the next month', () async {
+      await seedOctoberToDecember();
+
+      await dao.upsertBudgetRule(
+        currencyCode: currency,
+        categoryId: categoryId,
+        targetYm: 202611,
+        amountMinor: null,
+        thisMonthOnly: true,
+        now: now,
+      );
+
+      expect(await rulesFor(), [
+        (202610, 100000),
+        (202611, null),
+        (202612, 120000),
+      ]);
+      expect(await notesFor(currency, 202611), {
+        '': 'Nov month note',
+        'groceries': 'Nov groceries note',
+      });
+      expect(await notesFor(currency, 202610), {categoryId: 'Oct travel note'});
+      expect(await notesFor(currency, 202612), {
+        '': 'Dec month note',
+        categoryId: 'Dec travel note',
+      });
+      expect(await notesFor('USD', 202611), {categoryId: 'USD travel note'});
+    });
+
+    test(
+        'this and following clears notes in months that only inherit the '
+        'budget, leaving earlier and later breakpoints intact', () async {
+      await seedOctoberToDecember();
+      expect(
+        await dao.hasFutureRulesAfter(currency, categoryId, 202610),
+        isTrue,
+      );
+
+      await dao.upsertBudgetRule(
+        currencyCode: currency,
+        categoryId: categoryId,
+        targetYm: 202611,
+        amountMinor: null,
+        thisMonthOnly: false,
+        now: now,
+      );
+
+      expect(await rulesFor(), [(202610, 100000), (202611, null)]);
+      expect(await notesFor(currency, 202610), {categoryId: 'Oct travel note'});
+      expect(await notesFor(currency, 202611), {
+        '': 'Nov month note',
+        'groceries': 'Nov groceries note',
+      });
+      // December had no rule of its own but was inside the cleared range.
+      expect(await notesFor(currency, 202612), {'': 'Dec month note'});
+      expect(await notesFor('USD', 202611), {categoryId: 'USD travel note'});
+    });
+
+    // The calculator turns these note rows into the trend chart's note marker,
+    // so the marker can only disappear with the row.
+    test('cleared notes no longer mark the summary trend', () async {
+      await seedOctoberToDecember();
+
+      Future<List<String>> markers(int targetYm) async {
+        final summary =
+            await dao.watchMonthBudgetSummary(currency, targetYm).first;
+        return summary.reviewNotes
+            .map((note) => '${note.ym}:${note.categoryKey}')
+            .toList();
+      }
+
+      expect(
+        await markers(202611),
+        unorderedEquals([
+          '202610:$categoryId',
+          '202611:$categoryId',
+          '202611:',
+          '202611:groceries',
+        ]),
+      );
+
+      await dao.upsertBudgetRule(
+        currencyCode: currency,
+        categoryId: categoryId,
+        targetYm: 202611,
+        amountMinor: null,
+        thisMonthOnly: false,
+        now: now,
+      );
+
+      expect(
+        await markers(202611),
+        unorderedEquals([
+          '202610:$categoryId',
+          '202611:',
+          '202611:groceries',
+        ]),
+      );
+    });
+
+    test('editing the amount keeps every category note', () async {
+      await seedOctoberToDecember();
+
+      await dao.upsertBudgetRule(
+        currencyCode: currency,
+        categoryId: categoryId,
+        targetYm: 202611,
+        amountMinor: 130000,
+        thisMonthOnly: true,
+        now: now,
+      );
+
+      expect(await notesFor(currency, 202611), {
+        categoryId: 'Nov travel note',
+        '': 'Nov month note',
+        'groceries': 'Nov groceries note',
+      });
+      expect(await notesFor(currency, 202612), {
+        categoryId: 'Dec travel note',
+        '': 'Dec month note',
+      });
+    });
+
+    test(
+      'a failing note delete rolls back the rule write and its breakpoints',
+      () async {
+        await seedOctoberToDecember();
+        final failingDao = _FailingNoteDeleteBudgetDao(db);
+
+        await expectLater(
+          failingDao.upsertBudgetRule(
+            currencyCode: currency,
+            categoryId: categoryId,
+            targetYm: 202611,
+            amountMinor: null,
+            thisMonthOnly: true,
+            now: now,
+          ),
+          throwsStateError,
+        );
+
+        // The this-month-only clear writes a December breakpoint first; both it
+        // and the cleared November rule must be gone again.
+        expect(await rulesFor(), [(202610, 100000), (202611, 120000)]);
+        expect(
+          await dao.hasFutureRulesAfter(currency, categoryId, 202611),
+          isFalse,
+        );
+        expect(await notesFor(currency, 202611), {
+          categoryId: 'Nov travel note',
+          '': 'Nov month note',
+          'groceries': 'Nov groceries note',
+        });
+        expect(await notesFor(currency, 202612), {
+          categoryId: 'Dec travel note',
+          '': 'Dec month note',
+        });
+      },
+    );
+  });
+
   group('BudgetDao three streams & filtering', () {
     test(
         'watchMonthBudgetSummary respects local month bounds, systemCode, '
@@ -232,7 +451,10 @@ void main() {
       await seedAccount(id: 'acc-ok', currencyCode: 'CNY');
       await seedAccount(id: 'acc-arch', currencyCode: 'CNY', archived: true);
       await seedAccount(
-          id: 'acc-excl', currencyCode: 'CNY', includeInTotals: false);
+        id: 'acc-excl',
+        currencyCode: 'CNY',
+        includeInTotals: false,
+      );
       await seedAccount(id: 'acc-del', currencyCode: 'CNY', deleted: true);
       await seedAccount(id: 'acc-usd', currencyCode: 'USD');
 
@@ -305,14 +527,17 @@ void main() {
       final summary = await dao.watchMonthBudgetSummary('CNY', 202605).first;
 
       expect(summary.expenseCategories.map((c) => c.id), ['dining']);
-      expect(summary.windowExpenses.map((e) => e.transactionId),
-          unorderedEquals(['tx-may', 'tx-arch']));
       expect(
-          summary.windowExpenses
-              .where((e) => e.transactionId == 'tx-may')
-              .single
-              .accountName,
-          'Acc acc-ok');
+        summary.windowExpenses.map((e) => e.transactionId),
+        unorderedEquals(['tx-may', 'tx-arch']),
+      );
+      expect(
+        summary.windowExpenses
+            .where((e) => e.transactionId == 'tx-may')
+            .single
+            .accountName,
+        'Acc acc-ok',
+      );
       expect(summary.earliestExpenseYm, 202510);
       expect(summary.hasAnyActiveAccount, isTrue);
     });
@@ -322,7 +547,10 @@ void main() {
         'scheduled/failed statuses, and filters accounts', () async {
       await seedAccount(id: 'acc-ok', currencyCode: 'CNY');
       await seedAccount(
-          id: 'acc-excl', currencyCode: 'CNY', includeInTotals: false);
+        id: 'acc-excl',
+        currencyCode: 'CNY',
+        includeInTotals: false,
+      );
       await seedCategory(id: 'rent');
 
       await db.into(db.recurringSeries).insert(
@@ -444,4 +672,20 @@ void main() {
       expect(juneHint.effectiveBudgetMinor, isNull);
     });
   });
+}
+
+/// Simulates a failing note delete so the rollback test can prove the rule
+/// writes above it share the same transaction.
+class _FailingNoteDeleteBudgetDao extends BudgetDao {
+  _FailingNoteDeleteBudgetDao(super.db);
+
+  @override
+  Future<void> deleteCategoryReviewNotes({
+    required String currencyCode,
+    required String categoryId,
+    required int targetYm,
+    required bool thisMonthOnly,
+  }) async {
+    throw StateError('review note delete failed');
+  }
 }

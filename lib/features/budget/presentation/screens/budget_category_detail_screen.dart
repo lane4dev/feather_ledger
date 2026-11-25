@@ -82,8 +82,14 @@ class _BudgetCategoryDetailScreenState
   bool _savingNote = false;
   bool _clearingBudget = false;
 
-  Future<void> _clearBudget(String currencyCode) async {
+  Future<void> _clearBudget({
+    required String currencyCode,
+    required BudgetCategoryRowUiModel row,
+    required String locale,
+  }) async {
     if (_clearingBudget) return;
+    final budgetDisplay = row.budgetDisplay;
+    if (budgetDisplay == null) return;
     setState(() => _clearingBudget = true);
     final futureRules =
         await ref.read(budgetViewModelProvider.notifier).checkFutureRules(
@@ -100,34 +106,50 @@ class _BudgetCategoryDetailScreenState
     }
 
     final l10n = AppLocalizations.of(context)!;
-    var scope = BudgetEditScope.thisAndFollowing;
+    final monthLabel =
+        DateFormat.yMMMM(locale).format(widget.month.toDateTime());
+    // Both scopes only ever touch the selected month or later, so "this month
+    // only" is the safe default (ADR-0007).
+    var scope = BudgetEditScope.thisMonthOnly;
     final selectedScope = await showDialog<BudgetEditScope>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.budgetClearConfirmTitle),
+          title: Text(l10n.budgetClearConfirmTitle(row.name)),
           content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              AppSegmentedControl<BudgetEditScope>(
-                segments: [
-                  ButtonSegment(
-                      value: BudgetEditScope.thisMonthOnly,
-                      label: Text(l10n.budgetScopeThisMonth)),
-                  ButtonSegment(
-                      value: BudgetEditScope.thisAndFollowing,
-                      label: Text(l10n.budgetScopeThisAndFollowing)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  scope == BudgetEditScope.thisMonthOnly
+                      ? l10n.budgetClearConfirmThisMonth(
+                          monthLabel, row.name, budgetDisplay)
+                      : l10n.budgetClearConfirmThisAndFollowing(
+                          monthLabel, row.name, budgetDisplay),
+                ),
+                SizedBox(height: context.spacing.md),
+                AppSegmentedControl<BudgetEditScope>(
+                  segments: [
+                    ButtonSegment(
+                        value: BudgetEditScope.thisMonthOnly,
+                        label: Text(l10n.budgetScopeThisMonth)),
+                    ButtonSegment(
+                        value: BudgetEditScope.thisAndFollowing,
+                        label: Text(l10n.budgetScopeThisAndFollowing)),
+                  ],
+                  selected: scope,
+                  onSelected: (value) => setDialogState(() => scope = value),
+                ),
+                if (futureRules.value &&
+                    scope == BudgetEditScope.thisAndFollowing) ...[
+                  SizedBox(height: context.spacing.sm),
+                  Text(l10n.budgetClearFutureRulesWarning,
+                      style: AppTypography.compactLabel(context)
+                          .copyWith(color: context.colors.expense)),
                 ],
-                selected: scope,
-                onSelected: (value) => setDialogState(() => scope = value),
-              ),
-              if (futureRules.value &&
-                  scope == BudgetEditScope.thisAndFollowing) ...[
-                SizedBox(height: context.spacing.sm),
-                Text(l10n.budgetScopeFutureOverrideWarning,
-                    style: AppTypography.compactLabel(context)
-                        .copyWith(color: context.colors.expense)),
               ],
-            ]),
+            ),
           ),
           actions: [
             AppButton.text(
@@ -287,7 +309,11 @@ class _BudgetCategoryDetailScreenState
                                   month: widget.month,
                                   isHistoricalMonth: widget.month < nowYm);
                             case _BudgetAction.clear:
-                              _clearBudget(currencyCode);
+                              _clearBudget(
+                                currencyCode: currencyCode,
+                                row: row,
+                                locale: locale,
+                              );
                           }
                         },
                         itemBuilder: (context) => [
