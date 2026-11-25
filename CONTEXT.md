@@ -200,6 +200,10 @@ remaining budget and overrun risk alerts during tracking and planning, and exclu
 historical review.
 _Avoid_: projected actual, unpaid expense
 
+**Budget compliance** (实耗达标):
+A category with an effective budget is on target while its actual spend is at or below that budget.
+It can remain on target even when pending bill exposure puts it at risk of a projected overrun.
+
 **Budget variance**:
 The signed difference `budget - actual` for a category or month (positive when under budget, negative
 when overspent). Tracked alongside pending exposure for overrun risk, while month-over-month anomaly
@@ -208,6 +212,6 @@ _Avoid_: diff, balance remaining, overrun
 
 **Review note**:
 A plain-text retrospective reflection attached to a currency and month (and optionally a category),
-explaining variance and recording next-month adjustments. Preserved as read-only history once a
-category is archived.
+explaining variance and recording next-month adjustments. Clearing a category budget clears the review notes for that currency and category
+within the selected scope: the selected month alone, or that month and every later month. Archiving a category preserves its notes as read-only history.
 _Avoid_: comment, memo, journal
