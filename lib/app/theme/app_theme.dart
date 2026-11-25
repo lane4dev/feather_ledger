@@ -63,22 +63,38 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     required this.income,
     required this.expense,
     required this.frequency,
+    required this.incomeContainer,
+    required this.onIncomeContainer,
+    required this.expenseContainer,
+    required this.onExpenseContainer,
   });
 
   final Color income;
   final Color expense;
   final Color frequency;
+  final Color incomeContainer;
+  final Color onIncomeContainer;
+  final Color expenseContainer;
+  final Color onExpenseContainer;
 
   @override
   AppSemanticColors copyWith({
     Color? income,
     Color? expense,
     Color? frequency,
+    Color? incomeContainer,
+    Color? onIncomeContainer,
+    Color? expenseContainer,
+    Color? onExpenseContainer,
   }) {
     return AppSemanticColors(
       income: income ?? this.income,
       expense: expense ?? this.expense,
       frequency: frequency ?? this.frequency,
+      incomeContainer: incomeContainer ?? this.incomeContainer,
+      onIncomeContainer: onIncomeContainer ?? this.onIncomeContainer,
+      expenseContainer: expenseContainer ?? this.expenseContainer,
+      onExpenseContainer: onExpenseContainer ?? this.onExpenseContainer,
     );
   }
 
@@ -91,6 +107,18 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       income: Color.lerp(income, other.income, t) ?? income,
       expense: Color.lerp(expense, other.expense, t) ?? expense,
       frequency: Color.lerp(frequency, other.frequency, t) ?? frequency,
+      incomeContainer:
+          Color.lerp(incomeContainer, other.incomeContainer, t) ??
+              incomeContainer,
+      onIncomeContainer:
+          Color.lerp(onIncomeContainer, other.onIncomeContainer, t) ??
+              onIncomeContainer,
+      expenseContainer:
+          Color.lerp(expenseContainer, other.expenseContainer, t) ??
+              expenseContainer,
+      onExpenseContainer:
+          Color.lerp(onExpenseContainer, other.onExpenseContainer, t) ??
+              onExpenseContainer,
     );
   }
 }
@@ -103,11 +131,19 @@ class AppTheme {
     income: Color(0xFF0F766E),
     expense: Color(0xFFC2410C),
     frequency: Color(0xFF665BD8),
+    incomeContainer: Color(0xFFDAEDDF),
+    onIncomeContainer: Color(0xFF25392E),
+    expenseContainer: Color(0xFFF9E5DF),
+    onExpenseContainer: Color(0xFF572D22),
   );
   static const _semanticsDark = AppSemanticColors(
     income: Color(0xFF81C995),
-    expense: Color(0xFFFFB4AB),
+    expense: Color(0xFFF2B8B5),
     frequency: Color(0xFFB6AEFF),
+    incomeContainer: Color(0xFF1D3A2B),
+    onIncomeContainer: Color(0xFFC2EAD0),
+    expenseContainer: Color(0xFF4B2521),
+    onExpenseContainer: Color(0xFFFFDBD7),
   );
 
   static const textTheme = TextTheme(
@@ -131,51 +167,26 @@ class AppTheme {
     labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
   );
 
-  static final lightTheme = _build(Brightness.light);
-  static final darkTheme = _build(Brightness.dark);
+  static final lightTheme = buildLight();
+  static final darkTheme = buildDark();
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData buildLight([ColorScheme? dynamicScheme]) =>
+      _build(Brightness.light, dynamicScheme: dynamicScheme);
+
+  static ThemeData buildDark([ColorScheme? dynamicScheme]) =>
+      _build(Brightness.dark, dynamicScheme: dynamicScheme);
+
+  static ThemeData _build(
+    Brightness brightness, {
+    ColorScheme? dynamicScheme,
+  }) {
     final dark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF386A63),
-      brightness: brightness,
-    ).copyWith(
-      primary: dark ? const Color(0xFFF2F2F2) : const Color(0xFF171717),
-      onPrimary: dark ? const Color(0xFF171717) : const Color(0xFFFFFFFF),
-      primaryContainer:
-          dark ? const Color(0xFF353535) : const Color(0xFFEAEAEA),
-      onPrimaryContainer:
-          dark ? const Color(0xFFF2F2F2) : const Color(0xFF171717),
-      secondary: dark ? const Color(0xFFCCCCCC) : const Color(0xFF505050),
-      onSecondary: dark ? const Color(0xFF171717) : const Color(0xFFFFFFFF),
-      secondaryContainer:
-          dark ? const Color(0xFF383838) : const Color(0xFFE7E7E7),
-      onSecondaryContainer:
-          dark ? const Color(0xFFF2F2F2) : const Color(0xFF171717),
-      surface: dark ? const Color(0xFF121212) : const Color(0xFFFFFFFF),
-      surfaceDim: dark ? const Color(0xFF121212) : const Color(0xFFE4E4E4),
-      surfaceBright: dark ? const Color(0xFF353535) : const Color(0xFFFFFFFF),
-      surfaceContainerLowest:
-          dark ? const Color(0xFF0D0D0D) : const Color(0xFFFFFFFF),
-      surfaceContainerLow:
-          dark ? const Color(0xFF1C1C1C) : const Color(0xFFF6F6F6),
-      surfaceContainer:
-          dark ? const Color(0xFF222222) : const Color(0xFFF2F2F2),
-      surfaceContainerHigh:
-          dark ? const Color(0xFF282828) : const Color(0xFFEEEEEE),
-      surfaceContainerHighest:
-          dark ? const Color(0xFF303030) : const Color(0xFFE8E8E8),
-      onSurface: dark ? const Color(0xFFF2F2F2) : const Color(0xFF171717),
-      onSurfaceVariant:
-          dark ? const Color(0xFFB0B0B0) : const Color(0xFF686868),
-      outline: dark ? const Color(0xFF777777) : const Color(0xFF888888),
-      outlineVariant: dark ? const Color(0xFF383838) : const Color(0xFFE3E3E3),
-      inverseSurface: dark ? const Color(0xFFF2F2F2) : const Color(0xFF242424),
-      onInverseSurface:
-          dark ? const Color(0xFF171717) : const Color(0xFFF2F2F2),
-      inversePrimary: dark ? const Color(0xFF171717) : const Color(0xFFF2F2F2),
-      surfaceTint: dark ? const Color(0xFF121212) : const Color(0xFFFFFFFF),
-    );
+    final scheme = dynamicScheme == null
+        ? _defaultScheme(brightness)
+        : _resolveDynamicScheme(dynamicScheme, brightness);
+    final semantics = dynamicScheme == null
+        ? (dark ? _semanticsDark : _semanticsLight)
+        : _resolveDynamicSemantics(scheme, brightness);
     // Resolve platform font families and foreground colors once before using
     // the same roles in Material component themes.
     final typography = ThemeData(
@@ -206,7 +217,7 @@ class AppTheme {
       extensions: <ThemeExtension<dynamic>>[
         spacing,
         metrics,
-        dark ? _semanticsDark : _semanticsLight,
+        semantics,
         dark ? AccountCardTheme.dark : AccountCardTheme.light,
       ],
       appBarTheme: AppBarThemeData(
@@ -283,8 +294,8 @@ class AppTheme {
         selectedTileColor: scheme.secondaryContainer,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: scheme.surface,
-        surfaceTintColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
+        surfaceTintColor: scheme.surfaceContainer,
         elevation: 0,
         indicatorColor: scheme.secondaryContainer,
         iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
@@ -299,8 +310,8 @@ class AppTheme {
                     : scheme.onSurfaceVariant)),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
         elevation: 0,
         highlightElevation: metrics.subtleElevation,
         shape: RoundedRectangleBorder(borderRadius: metrics.cardBorderRadius),
@@ -358,6 +369,238 @@ class AppTheme {
         shape: controlShape,
       ),
     );
+  }
+
+  static ColorScheme _defaultScheme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    return ColorScheme.fromSeed(
+      seedColor: const Color(0xFF216A58),
+      brightness: brightness,
+    ).copyWith(
+      primary: dark ? const Color(0xFF8AD6BE) : const Color(0xFF1C6956),
+      onPrimary: dark ? const Color(0xFF07382C) : const Color(0xFFFFFFFF),
+      primaryContainer:
+          dark ? const Color(0xFF1F4E42) : const Color(0xFFC5ECDC),
+      onPrimaryContainer:
+          dark ? const Color(0xFFA6F2DC) : const Color(0xFF153E33),
+      secondary: dark ? const Color(0xFFB3CCC0) : const Color(0xFF4A6358),
+      onSecondary: dark ? const Color(0xFF1E352C) : const Color(0xFFFFFFFF),
+      secondaryContainer:
+          dark ? const Color(0xFF314C42) : const Color(0xFFD6E8DC),
+      onSecondaryContainer:
+          dark ? const Color(0xFFCFE8DB) : const Color(0xFF263D34),
+      tertiary: dark ? const Color(0xFFA6CCE0) : const Color(0xFF3E6373),
+      onTertiary: dark ? const Color(0xFF093544) : const Color(0xFFFFFFFF),
+      tertiaryContainer:
+          dark ? const Color(0xFF254B5C) : const Color(0xFFC2E8FA),
+      onTertiaryContainer:
+          dark ? const Color(0xFFC2E8FA) : const Color(0xFF001F2A),
+      error: dark ? const Color(0xFFFFB4AB) : const Color(0xFFBA1A1A),
+      onError: dark ? const Color(0xFF690005) : const Color(0xFFFFFFFF),
+      errorContainer:
+          dark ? const Color(0xFF93000A) : const Color(0xFFFFDAD6),
+      onErrorContainer:
+          dark ? const Color(0xFFFFDAD6) : const Color(0xFF410002),
+      surface: dark ? const Color(0xFF111413) : const Color(0xFFF7FAF7),
+      surfaceDim: dark ? const Color(0xFF111413) : const Color(0xFFD7DFD9),
+      surfaceBright: dark ? const Color(0xFF373E3B) : const Color(0xFFF7FAF7),
+      surfaceContainerLowest:
+          dark ? const Color(0xFF0C0F0E) : const Color(0xFFFFFFFF),
+      surfaceContainerLow:
+          dark ? const Color(0xFF191D1B) : const Color(0xFFEFF4EF),
+      surfaceContainer:
+          dark ? const Color(0xFF1B201E) : const Color(0xFFE6EDE7),
+      surfaceContainerHigh:
+          dark ? const Color(0xFF222826) : const Color(0xFFDFE6E1),
+      surfaceContainerHighest:
+          dark ? const Color(0xFF2B322F) : const Color(0xFFD7DFD9),
+      onSurface: dark ? const Color(0xFFE1E6E2) : const Color(0xFF191D1B),
+      onSurfaceVariant:
+          dark ? const Color(0xFFBCC5BF) : const Color(0xFF424B46),
+      outline: dark ? const Color(0xFF8A938D) : const Color(0xFF6E7872),
+      outlineVariant: dark ? const Color(0xFF3D4541) : const Color(0xFFC4CEC7),
+      inverseSurface: dark ? const Color(0xFFE1E6E2) : const Color(0xFF2D322F),
+      onInverseSurface:
+          dark ? const Color(0xFF191D1B) : const Color(0xFFEEF2EE),
+      inversePrimary: dark ? const Color(0xFF1C6956) : const Color(0xFF8AD6BE),
+      surfaceTint: dark ? const Color(0xFF111413) : const Color(0xFFF7FAF7),
+    );
+  }
+
+  static ColorScheme _resolveDynamicScheme(
+    ColorScheme dynamicScheme,
+    Brightness brightness,
+  ) {
+    final dark = brightness == Brightness.dark;
+    final base = dynamicScheme.brightness == brightness
+        ? dynamicScheme
+        : ColorScheme.fromSeed(
+            seedColor: dynamicScheme.primary,
+            brightness: brightness,
+          );
+    final seeded = ColorScheme.fromSeed(
+      seedColor: base.primary,
+      brightness: brightness,
+    );
+
+    final s0 = base.surface.computeLuminance();
+    final s1 = base.surfaceContainerLow.computeLuminance();
+    final s2 = base.surfaceContainer.computeLuminance();
+    final s3 = base.surfaceContainerHigh.computeLuminance();
+    final hasValidSurfaces = dark
+        ? base.surface != const Color(0xFF000000) &&
+            s0 < s1 &&
+            s1 < s2 &&
+            s2 < s3
+        : s0 > s1 && s1 > s2 && s2 > s3;
+
+    var resolved = hasValidSurfaces
+        ? base
+        : base.copyWith(
+            surface: seeded.surface,
+            surfaceDim: seeded.surfaceDim,
+            surfaceBright: seeded.surfaceBright,
+            surfaceContainerLowest: seeded.surfaceContainerLowest,
+            surfaceContainerLow: seeded.surfaceContainerLow,
+            surfaceContainer: seeded.surfaceContainer,
+            surfaceContainerHigh: seeded.surfaceContainerHigh,
+            surfaceContainerHighest: seeded.surfaceContainerHighest,
+          );
+
+    if (dark) {
+      if (resolved.surface == const Color(0xFF000000)) {
+        resolved = resolved.copyWith(surface: const Color(0xFF111413));
+      }
+      if (resolved.onSurface == const Color(0xFFFFFFFF)) {
+        resolved = resolved.copyWith(onSurface: seeded.onSurface);
+      }
+      if (resolved.primary == const Color(0xFFFFFFFF)) {
+        resolved = resolved.copyWith(primary: seeded.primary);
+      }
+    }
+
+    final surfaces = <Color>[
+      resolved.surface,
+      resolved.surfaceContainerLow,
+      resolved.surfaceContainer,
+      resolved.surfaceContainerHigh,
+    ];
+
+    final primary = _ensureContrast(resolved.primary, surfaces, 3.0);
+    final onPrimary = _ensureContrast(resolved.onPrimary, [primary], 4.5);
+    final onPrimaryContainer = _ensureContrast(
+      resolved.onPrimaryContainer,
+      [resolved.primaryContainer],
+      4.5,
+    );
+    final onSecondaryContainer = _ensureContrast(
+      resolved.onSecondaryContainer,
+      [resolved.secondaryContainer],
+      4.5,
+    );
+    final onErrorContainer = _ensureContrast(
+      resolved.onErrorContainer,
+      [resolved.errorContainer],
+      4.5,
+    );
+    final onSurface = _ensureContrast(resolved.onSurface, surfaces, 4.5);
+    final onSurfaceVariant =
+        _ensureContrast(resolved.onSurfaceVariant, surfaces, 4.5);
+    final outline = _ensureContrast(resolved.outline, surfaces, 3.0);
+
+    return resolved.copyWith(
+      primary: primary,
+      onPrimary: onPrimary,
+      onPrimaryContainer: onPrimaryContainer,
+      onSecondaryContainer: onSecondaryContainer,
+      onErrorContainer: onErrorContainer,
+      onSurface: onSurface,
+      onSurfaceVariant: onSurfaceVariant,
+      outline: outline,
+      surfaceTint: resolved.surface,
+    );
+  }
+
+  static AppSemanticColors _resolveDynamicSemantics(
+    ColorScheme scheme,
+    Brightness brightness,
+  ) {
+    final dark = brightness == Brightness.dark;
+    final base = dark ? _semanticsDark : _semanticsLight;
+    final primarySurfaces = <Color>[scheme.surface, scheme.surfaceContainerLow];
+    final allCardSurfaces = <Color>[
+      scheme.surface,
+      scheme.surfaceContainerLow,
+      scheme.surfaceContainerHigh,
+    ];
+    final income = _ensureContrast(
+      _ensureContrast(base.income, primarySurfaces, 4.5),
+      allCardSurfaces,
+      dark ? 4.5 : 3.0,
+    );
+    final expense = _ensureContrast(
+      _ensureContrast(base.expense, primarySurfaces, 4.5),
+      allCardSurfaces,
+      dark ? 4.5 : 3.0,
+    );
+    final frequency = _ensureContrast(
+      _ensureContrast(base.frequency, primarySurfaces, 4.5),
+      allCardSurfaces,
+      dark ? 4.5 : 3.0,
+    );
+    final onIncomeContainer = _ensureContrast(
+      base.onIncomeContainer,
+      [base.incomeContainer],
+      4.5,
+    );
+    final onExpenseContainer = _ensureContrast(
+      base.onExpenseContainer,
+      [base.expenseContainer],
+      4.5,
+    );
+    return AppSemanticColors(
+      income: income,
+      expense: expense,
+      frequency: frequency,
+      incomeContainer: base.incomeContainer,
+      onIncomeContainer: onIncomeContainer,
+      expenseContainer: base.expenseContainer,
+      onExpenseContainer: onExpenseContainer,
+    );
+  }
+
+  static double _contrastRatio(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    return la > lb ? (la + 0.05) / (lb + 0.05) : (lb + 0.05) / (la + 0.05);
+  }
+
+  static Color _ensureContrast(
+    Color fg,
+    List<Color> backgrounds,
+    double minRatio,
+  ) {
+    if (backgrounds.every((bg) => _contrastRatio(fg, bg) >= minRatio)) {
+      return fg;
+    }
+    final hsl = HSLColor.fromColor(fg);
+    final avgBgLum = backgrounds
+            .map((b) => b.computeLuminance())
+            .reduce((a, b) => a + b) /
+        backgrounds.length;
+    final goLighter = avgBgLum < 0.5;
+    for (var step = 1; step <= 40; step++) {
+      final t = step / 40.0;
+      final targetL = goLighter
+          ? hsl.lightness + (0.94 - hsl.lightness) * t
+          : hsl.lightness * (1.0 - t * 0.9);
+      final candidate =
+          hsl.withLightness(targetL.clamp(0.05, 0.94)).toColor();
+      if (backgrounds.every((bg) => _contrastRatio(candidate, bg) >= minRatio)) {
+        return candidate;
+      }
+    }
+    return goLighter ? const Color(0xFFE6EBE8) : const Color(0xFF151917);
   }
 }
 

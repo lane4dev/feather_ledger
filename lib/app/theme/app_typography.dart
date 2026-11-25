@@ -32,6 +32,10 @@ abstract final class AppTypography {
       .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
   static TextStyle compactLabel(BuildContext context) =>
       Theme.of(context).textTheme.labelSmall!;
+  static TextStyle compactAmount(BuildContext context) =>
+      Theme.of(context).textTheme.labelMedium!.copyWith(
+          fontWeight: FontWeight.w600,
+          fontFeatures: const [FontFeature.tabularFigures()]);
   static TextStyle chartLabel(BuildContext context,
           {bool emphasized = false}) =>
       (emphasized
