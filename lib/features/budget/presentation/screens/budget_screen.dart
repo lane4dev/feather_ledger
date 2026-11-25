@@ -104,14 +104,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       budgetScreenUiModelProvider((month: selectedMonth, locale: locale)),
     );
 
-    // The "+" drawer is where the untouched categories went: editable, and
-    // neither budgeted nor spending. Everywhere else they have no row.
+    // The "+" drawer is every category without a budget, spending or not.
+    // A category that already spent this month is the likeliest one to give a
+    // limit to, so it comes before the untouched ones.
     final selectedSummaryValue = selectedSummary.asData?.value;
     final settableRows = selectedSummaryValue == null
         ? const <BudgetCategoryRowUiModel>[]
-        : selectedSummaryValue.remainingActiveRows
-            .where((row) => row.isBudgetEditable)
-            .toList();
+        : [
+            ...selectedSummaryValue.unbudgetedActiveRows,
+            ...selectedSummaryValue.remainingActiveRows,
+          ].where((row) => row.isBudgetEditable).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -252,7 +254,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ),
             if (overview.mode == BudgetMode.track) ...[
-              SizedBox(height: context.spacing.lg),
+              SizedBox(height: context.spacing.md),
               _ReviewEntry(
                 key: const ValueKey('budget-review-entry'),
                 entry: reviewEntry,
@@ -260,7 +262,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ],
             if (overview.mode == BudgetMode.plan) ...[
-              SizedBox(height: context.spacing.lg),
+              SizedBox(height: context.spacing.md),
               _PlanHint(
                 key: const ValueKey('budget-plan-hint'),
                 model: BudgetPlanHintUiModel.from(model),

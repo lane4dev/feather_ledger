@@ -2273,6 +2273,12 @@ abstract class AppLocalizations {
   /// **'Left {amount}'**
   String budgetRowRemaining(String amount);
 
+  /// No description provided for @budgetRowProjectedRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected left {amount}'**
+  String budgetRowProjectedRemaining(String amount);
+
   /// No description provided for @budgetRowReviewRemaining.
   ///
   /// In en, this message translates to:

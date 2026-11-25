@@ -64,6 +64,10 @@ enum BudgetCategoryAmountLabel {
   /// Track: spent plus billed still sits inside the limit.
   remaining,
 
+  /// Track: spent plus billed still sits inside the limit, and bills are
+  /// still due — the amount is what will be left, not what is left today.
+  projectedRemaining,
+
   /// Track: spent plus billed is over the limit.
   projectedOver,
 
@@ -78,6 +82,26 @@ enum BudgetCategoryAmountLabel {
 
   /// Plan: the limit the category has been given.
   planBudget,
+}
+
+/// How a row's main amount should read at a glance.
+///
+/// The label already says what the amount measures; the tone says whether the
+/// number is healthy, a warning, or a shortfall, so the widget does not
+/// re-derive that from the amount's sign.
+enum BudgetCategoryAmountTone {
+  /// The amount is neither a remainder nor a shortfall (a category with no
+  /// limit, or plan's budget).
+  neutral,
+
+  /// Money is still left — soft teal rather than the default ink.
+  positive,
+
+  /// Spent plus billed exceeds the limit, but nothing has overspent yet.
+  warning,
+
+  /// The limit has actually been exceeded.
+  negative,
 }
 
 /// What a category row's second line on the left says.
@@ -179,8 +203,13 @@ class BudgetCategoryRowUiModel {
   final String? mainAmountDisplay;
 
   /// Whether [mainAmountDisplay] is a shortfall, which paints it in the
-  /// expense colour.
+  /// expense colour. The overview and the detail screen use this; category
+  /// rows colour through [mainAmountTone] so a projected overrun can be amber
+  /// rather than red.
   final bool isMainAmountNegative;
+
+  /// The three-way colour of [mainAmountDisplay] on a category row.
+  final BudgetCategoryAmountTone mainAmountTone;
 
   /// The spent-against-limit line under [mainAmountDisplay], e.g.
   /// `¥40.00 / ¥200.00`. Null when there is no limit to compare against.
@@ -247,6 +276,7 @@ class BudgetCategoryRowUiModel {
     this.amountLabel = BudgetCategoryAmountLabel.none,
     this.mainAmountDisplay,
     this.isMainAmountNegative = false,
+    this.mainAmountTone = BudgetCategoryAmountTone.neutral,
     this.secondaryAmountDisplay,
     this.subtitleKind = BudgetCategorySubtitle.none,
     this.subtitleAmountDisplay,

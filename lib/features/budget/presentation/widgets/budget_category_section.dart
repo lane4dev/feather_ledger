@@ -64,9 +64,9 @@ class BudgetCategorySection extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: spacing.lg),
         ],
         if (unbudgetedActiveRows.isNotEmpty) ...[
+          if (budgetedRows.isNotEmpty) SizedBox(height: spacing.md),
           _SectionHeader(
             title: l10n.budgetSectionUnbudgetedActive,
             trailing: unbudgetedGroup == null
@@ -91,7 +91,6 @@ class BudgetCategorySection extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: spacing.lg),
         ],
       ],
     );
@@ -230,7 +229,12 @@ class _RowAmounts extends StatelessWidget {
     final amount = _mainAmountText(l10n, row);
     if (amount == null) return const SizedBox.shrink();
 
-    final color = row.isMainAmountNegative ? context.colors.expense : null;
+    final color = switch (row.mainAmountTone) {
+      BudgetCategoryAmountTone.neutral => null,
+      BudgetCategoryAmountTone.positive => context.colors.income,
+      BudgetCategoryAmountTone.warning => context.colors.warning,
+      BudgetCategoryAmountTone.negative => context.colors.expense,
+    };
     return Column(
       crossAxisAlignment: textAlign == TextAlign.end
           ? CrossAxisAlignment.end
@@ -587,6 +591,8 @@ String? _mainAmountText(AppLocalizations l10n, BudgetCategoryRowUiModel row) {
   return switch (row.amountLabel) {
     BudgetCategoryAmountLabel.none => amount,
     BudgetCategoryAmountLabel.remaining => l10n.budgetRowRemaining(amount),
+    BudgetCategoryAmountLabel.projectedRemaining =>
+      l10n.budgetRowProjectedRemaining(amount),
     BudgetCategoryAmountLabel.projectedOver =>
       l10n.budgetRowProjectedOver(amount),
     BudgetCategoryAmountLabel.over => l10n.budgetRowOver(amount),

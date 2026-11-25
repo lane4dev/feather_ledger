@@ -1192,6 +1192,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String budgetRowProjectedRemaining(String amount) {
+    return 'Projected left $amount';
+  }
+
+  @override
   String budgetRowReviewRemaining(String amount) {
     return 'Unspent $amount';
   }

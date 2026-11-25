@@ -426,7 +426,7 @@ void main() {
     expect(find.byType(BudgetCategoryDetailScreen), findsNothing);
   });
 
-  testWidgets('the + drawer offers only categories with no activity',
+  testWidgets('the + drawer lists unbudgeted categories, spending first',
       (tester) async {
     await pumpBudgetScreen(
       tester,
@@ -440,14 +440,19 @@ void main() {
 
     final sheet = find.byType(BottomSheet);
     expect(find.text('Choose category'), findsOneWidget);
+    // Travel spent ¥250 this month without a budget; Utilities spent nothing.
+    // The drawer opens on Travel, because that is the limit worth setting.
     expect(
       find.descendant(of: sheet, matching: find.byType(ListTile)),
-      findsOneWidget,
+      findsNWidgets(2),
     );
-    expect(
-      find.descendant(of: sheet, matching: find.text('Utilities')),
-      findsOneWidget,
-    );
+    final names = tester
+        .widgetList<ListTile>(
+          find.descendant(of: sheet, matching: find.byType(ListTile)),
+        )
+        .map((tile) => (tile.title! as Text).data)
+        .toList();
+    expect(names, ['Travel', 'Utilities']);
     expect(
       find.descendant(of: sheet, matching: find.text('Dining')),
       findsNothing,
@@ -460,12 +465,16 @@ void main() {
     expect(find.textContaining('Set Category Budget'), findsOneWidget);
   });
 
-  testWidgets('the + action disappears when no category is left untouched',
+  testWidgets('the + action disappears when no category lacks a budget',
       (tester) async {
     await pumpBudgetScreen(
       tester,
       service: FakeBudgetService(overrides: {
-        budgetTestMay: monthBudgetSummary(budgetTestMay, remaining: const []),
+        budgetTestMay: monthBudgetSummary(
+          budgetTestMay,
+          unbudgeted: const [],
+          remaining: const [],
+        ),
       }),
     );
 

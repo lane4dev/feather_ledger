@@ -370,6 +370,7 @@ void main() {
       expect(row.amountLabel, BudgetCategoryAmountLabel.projectedOver);
       expect(row.mainAmountDisplay, '¥20.00');
       expect(row.isMainAmountNegative, isTrue);
+      expect(row.mainAmountTone, BudgetCategoryAmountTone.warning);
       expect(row.subtitleKind, BudgetCategorySubtitle.pendingIncluded);
       expect(row.subtitleAmountDisplay, '¥40.00');
       expect(row.secondaryAmountDisplay, '¥180.00 / ¥200.00');
@@ -391,6 +392,7 @@ void main() {
       expect(row.amountLabel, BudgetCategoryAmountLabel.over);
       expect(row.mainAmountDisplay, '¥20.00');
       expect(row.isMainAmountNegative, isTrue);
+      expect(row.mainAmountTone, BudgetCategoryAmountTone.negative);
       expect(row.subtitleKind, BudgetCategorySubtitle.usage);
       expect(row.subtitlePercentDisplay, '110%');
       expect(row.actualProgress, 1);
@@ -407,9 +409,12 @@ void main() {
         ),
       ).budgetedRows.single;
 
-      expect(row.amountLabel, BudgetCategoryAmountLabel.remaining);
+      // Bills are still due, so the figure is what will be left — the same
+      // reading as the hero — rather than what is left today.
+      expect(row.amountLabel, BudgetCategoryAmountLabel.projectedRemaining);
       expect(row.mainAmountDisplay, '¥130.00');
       expect(row.isMainAmountNegative, isFalse);
+      expect(row.mainAmountTone, BudgetCategoryAmountTone.positive);
       expect(row.subtitleKind, BudgetCategorySubtitle.pendingIncluded);
       expect(row.subtitleAmountDisplay, '¥30.00');
     });
@@ -423,9 +428,11 @@ void main() {
         ),
       ).budgetedRows.single;
 
+      expect(row.amountLabel, BudgetCategoryAmountLabel.remaining);
       expect(row.subtitleKind, BudgetCategorySubtitle.usage);
       expect(row.subtitlePercentDisplay, '20%');
       expect(row.subtitleAmountDisplay, isNull);
+      expect(row.mainAmountTone, BudgetCategoryAmountTone.positive);
     });
   });
 
@@ -443,6 +450,7 @@ void main() {
       expect(row.amountLabel, BudgetCategoryAmountLabel.reviewRemaining);
       expect(row.mainAmountDisplay, '¥160.00');
       expect(row.isMainAmountNegative, isFalse);
+      expect(row.mainAmountTone, BudgetCategoryAmountTone.positive);
       expect(row.subtitleKind, BudgetCategorySubtitle.usage);
       expect(row.subtitlePercentDisplay, '20%');
       expect(row.secondaryAmountDisplay, '¥40.00 / ¥200.00');
@@ -627,7 +635,8 @@ void main() {
       expect(rows.single.sharePercentDisplay, isNull);
     });
 
-    test('a mixed group is headed by its spend and still names each pending', () {
+    test('a mixed group is headed by its spend and still names each pending',
+        () {
       final rows = _map(
         _summary(
           mode: BudgetMode.track,
@@ -653,6 +662,29 @@ void main() {
       final row = _plan(budgetedBaselineMinor: 0).unbudgetedActiveRows.single;
 
       expect(row.sharePercentDisplay, isNull);
+    });
+
+    test('names the "+" drawer by this month\'s spend, descending', () {
+      final screen = _map(
+        _summary(
+          mode: BudgetMode.track,
+          budgetedCategories: const [],
+          budgetedActualMinor: 0,
+          budgetedPendingMinor: 0,
+          remainingActiveCategories: [
+            _cat(categoryId: 'clothing', budgetMinor: null, actualMinor: 0),
+            _cat(categoryId: 'travel', budgetMinor: null, actualMinor: 6000),
+            _cat(categoryId: 'food', budgetMinor: null, actualMinor: 12000),
+          ],
+        ),
+      );
+
+      // A category that spent something is the one a limit is being set for;
+      // untouched categories keep their relative order behind it.
+      expect(
+        screen.remainingActiveRows.map((r) => r.categoryId),
+        ['food', 'travel', 'clothing'],
+      );
     });
 
     test('only the unbudgeted group carries a header model', () {
@@ -761,6 +793,7 @@ MonthBudgetSummary _summary({
   bool hasAnyBudget = true,
   List<CategoryBudgetSummary>? budgetedCategories,
   List<CategoryBudgetSummary> unbudgetedActiveCategories = const [],
+  List<CategoryBudgetSummary> remainingActiveCategories = const [],
 }) {
   final actual = budgetedActualMinor;
   return MonthBudgetSummary(
@@ -787,7 +820,7 @@ MonthBudgetSummary _summary({
     isFarFutureMaterializedOnly: mode == BudgetMode.plan,
     budgetedCategories: budgetedCategories ?? [_cat()],
     unbudgetedActiveCategories: unbudgetedActiveCategories,
-    remainingActiveCategories: const [],
+    remainingActiveCategories: remainingActiveCategories,
     overBudgetTop3: const [],
     underBudgetTop3: const [],
     unbudgetedAlertsTop3: const [],

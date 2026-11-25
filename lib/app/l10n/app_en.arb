@@ -919,6 +919,10 @@
   "@budgetRowRemaining": {
     "placeholders": { "amount": { "type": "String" } }
   },
+  "budgetRowProjectedRemaining": "Projected left {amount}",
+  "@budgetRowProjectedRemaining": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
   "budgetRowReviewRemaining": "Unspent {amount}",
   "@budgetRowReviewRemaining": {
     "placeholders": { "amount": { "type": "String" } }

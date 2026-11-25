@@ -278,6 +278,7 @@ class BudgetUiMapper {
 
       var amountLabel = BudgetCategoryAmountLabel.none;
       var isMainAmountNegative = false;
+      var mainAmountTone = BudgetCategoryAmountTone.neutral;
       String? mainAmountDisplay;
       var subtitleKind = BudgetCategorySubtitle.none;
       String? subtitleAmountDisplay;
@@ -315,6 +316,7 @@ class BudgetUiMapper {
         mainAmountDisplay =
             formatMinorWithSymbol(readings.amountMinor, currencySymbol);
         isMainAmountNegative = readings.negative;
+        mainAmountTone = readings.tone;
         subtitleKind = readings.subtitle;
         baselineProgress = readings.baselineProgress;
         final subtitleAmountMinor = readings.subtitleAmountMinor;
@@ -387,6 +389,7 @@ class BudgetUiMapper {
         amountLabel: amountLabel,
         mainAmountDisplay: mainAmountDisplay,
         isMainAmountNegative: isMainAmountNegative,
+        mainAmountTone: mainAmountTone,
         secondaryAmountDisplay: hasLimit && mode != BudgetMode.plan
             ? '${formatMinorWithSymbol(c.actualMinor, currencySymbol)} / '
                 '${formatMinorWithSymbol(limit, currencySymbol)}'
@@ -411,9 +414,10 @@ class BudgetUiMapper {
       unbudgetedActiveRows: unbudgetedActive
           .map((c) => mapCategory(c, _CategoryGroup.unbudgetedActive))
           .toList(),
-      remainingActiveRows: summary.remainingActiveCategories
-          .map((c) => mapCategory(c, _CategoryGroup.remaining))
-          .toList(),
+      remainingActiveRows:
+          _sortRemainingBySpend(summary.remainingActiveCategories)
+              .map((c) => mapCategory(c, _CategoryGroup.remaining))
+              .toList(),
       overBudgetTop3: summary.overBudgetTop3
           .map((item) => BudgetAttributionItemUiModel(
                 categoryId: item.categoryId,
@@ -483,6 +487,7 @@ class BudgetUiMapper {
         return _RowSemantics(
           label: BudgetCategoryAmountLabel.planBudget,
           amountMinor: limit,
+          tone: BudgetCategoryAmountTone.neutral,
           subtitle: baseline > 0
               ? BudgetCategorySubtitle.baseline
               : average != null && average > 0
@@ -505,6 +510,7 @@ class BudgetUiMapper {
             label: BudgetCategoryAmountLabel.reviewOver,
             amountMinor: c.actualMinor - limit,
             negative: true,
+            tone: BudgetCategoryAmountTone.negative,
             subtitle: BudgetCategorySubtitle.usage,
             subtitlePercent: usagePercent,
           );
@@ -512,6 +518,7 @@ class BudgetUiMapper {
         return _RowSemantics(
           label: BudgetCategoryAmountLabel.reviewRemaining,
           amountMinor: limit - c.actualMinor,
+          tone: BudgetCategoryAmountTone.positive,
           subtitle: BudgetCategorySubtitle.usage,
           subtitlePercent: usagePercent,
         );
@@ -524,13 +531,20 @@ class BudgetUiMapper {
               ? BudgetCategoryAmountLabel.over
               : projectedOver
                   ? BudgetCategoryAmountLabel.projectedOver
-                  : BudgetCategoryAmountLabel.remaining,
+                  : c.pendingMinor > 0
+                      ? BudgetCategoryAmountLabel.projectedRemaining
+                      : BudgetCategoryAmountLabel.remaining,
           amountMinor: over
               ? c.actualMinor - limit
               : projectedOver
                   ? committed - limit
                   : limit - committed,
           negative: over || projectedOver,
+          tone: over
+              ? BudgetCategoryAmountTone.negative
+              : projectedOver
+                  ? BudgetCategoryAmountTone.warning
+                  : BudgetCategoryAmountTone.positive,
           subtitle: c.pendingMinor > 0
               ? BudgetCategorySubtitle.pendingIncluded
               : BudgetCategorySubtitle.usage,
@@ -572,6 +586,7 @@ class _RowSemantics {
     required this.label,
     required this.amountMinor,
     this.negative = false,
+    this.tone = BudgetCategoryAmountTone.neutral,
     required this.subtitle,
     this.subtitleAmountMinor,
     this.subtitlePercent,
@@ -582,6 +597,7 @@ class _RowSemantics {
   final BudgetCategoryAmountLabel label;
   final int amountMinor;
   final bool negative;
+  final BudgetCategoryAmountTone tone;
   final BudgetCategorySubtitle subtitle;
   final int? subtitleAmountMinor;
   final int? subtitlePercent;
@@ -592,3 +608,17 @@ class _RowSemantics {
 /// Stands in for a figure that has no answer, e.g. a share of a month with no
 /// budget. One spelling so the placeholders cannot drift apart.
 const _placeholder = '—';
+
+/// The "+" drawer lists untouched categories by what the month already spent
+/// there: a category that has spending is the one most likely to need a limit.
+/// Ties — and categories with nothing spent — keep the summary's order.
+List<CategoryBudgetSummary> _sortRemainingBySpend(
+  List<CategoryBudgetSummary> categories,
+) {
+  final indexed = categories.indexed.toList(growable: false)
+    ..sort((a, b) {
+      final bySpend = b.$2.actualMinor.compareTo(a.$2.actualMinor);
+      return bySpend != 0 ? bySpend : a.$1.compareTo(b.$1);
+    });
+  return [for (final (_, category) in indexed) category];
+}

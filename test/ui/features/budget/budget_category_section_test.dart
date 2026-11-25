@@ -433,6 +433,55 @@ void main() {
     );
   });
 
+  testWidgets('remaining amounts read teal, amber and coral by risk',
+      (tester) async {
+    final screen = _map(
+      _summary(
+        mode: BudgetMode.track,
+        budgetedCategories: [
+          _cat(id: 'rent', name: 'Rent', actualMinor: 10000),
+          _cat(
+            id: 'groceries',
+            name: 'Groceries',
+            actualMinor: 4000,
+            pendingMinor: 1000,
+          ),
+          _cat(
+            id: 'dining',
+            name: 'Dining',
+            actualMinor: 18000,
+            pendingMinor: 4000,
+          ),
+          _cat(id: 'transport', name: 'Transport', actualMinor: 22000),
+        ],
+      ),
+    );
+    await _pump(tester, screen);
+
+    // Bills still due rename the figure: it is what will be left, not what is
+    // left today, matching the hero's "projected remaining".
+    expect(find.text('Includes ¥40.00 pending'), findsOneWidget);
+    expect(find.text('Projected over ¥20.00'), findsOneWidget);
+
+    final colors = AppTheme.lightTheme.extension<AppSemanticColors>()!;
+    expect(
+      tester.widget<Text>(find.text('Left ¥100.00')).style?.color,
+      colors.income,
+    );
+    expect(
+      tester.widget<Text>(find.text('Projected left ¥150.00')).style?.color,
+      colors.income,
+    );
+    expect(
+      tester.widget<Text>(find.text('Projected over ¥20.00')).style?.color,
+      colors.warning,
+    );
+    expect(
+      tester.widget<Text>(find.text('Over by ¥20.00')).style?.color,
+      colors.expense,
+    );
+  });
+
   testWidgets('dark theme keeps the row shapes and the shortfall colour',
       (tester) async {
     final screen = _map(

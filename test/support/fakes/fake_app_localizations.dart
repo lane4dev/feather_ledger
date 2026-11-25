@@ -1105,6 +1105,10 @@ class FakeAppLocalizations implements AppLocalizations {
   String budgetRowRemaining(String amount) => 'Left $amount';
 
   @override
+  String budgetRowProjectedRemaining(String amount) =>
+      'Projected left $amount';
+
+  @override
   String budgetRowReviewRemaining(String amount) => 'Unspent $amount';
 
   @override

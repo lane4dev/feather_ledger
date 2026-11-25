@@ -803,6 +803,7 @@
   "budgetRowProjectedOver": "預計超支 {amount}",
   "budgetRowOver": "已超支 {amount}",
   "budgetRowRemaining": "剩餘 {amount}",
+  "budgetRowProjectedRemaining": "預計剩餘 {amount}",
   "budgetRowReviewRemaining": "結餘 {amount}",
   "budgetRowReviewOver": "超支 {amount}",
   "budgetRowPlanBudget": "預算 {amount}",

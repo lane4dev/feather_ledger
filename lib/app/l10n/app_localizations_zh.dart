@@ -1132,6 +1132,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String budgetRowProjectedRemaining(String amount) {
+    return '预计剩余 $amount';
+  }
+
+  @override
   String budgetRowReviewRemaining(String amount) {
     return '结余 $amount';
   }
@@ -2502,6 +2507,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String budgetRowProjectedRemaining(String amount) {
+    return '预计剩余 $amount';
+  }
+
+  @override
   String budgetRowReviewRemaining(String amount) {
     return '结余 $amount';
   }
@@ -3869,6 +3879,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String budgetRowRemaining(String amount) {
     return '剩餘 $amount';
+  }
+
+  @override
+  String budgetRowProjectedRemaining(String amount) {
+    return '預計剩餘 $amount';
   }
 
   @override

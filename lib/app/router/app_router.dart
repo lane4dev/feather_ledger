@@ -261,6 +261,9 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
             ),
             NavigationDestination(
               icon: const Icon(LucideIcons.wallet),
+              selectedIcon: const _SolidWalletIcon(
+                key: ValueKey('budget-selected-wallet-icon'),
+              ),
               label: l10n.budget,
             ),
             NavigationDestination(
@@ -378,5 +381,67 @@ class _SolidBookPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SolidBookPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// The budget tab's selected state: a filled wallet instead of Lucide's stroke
+/// glyph, matching the ledger tab's solid book. Lucide ships outline icons
+/// only, so the mark is drawn from the same 24dp silhouette the family uses.
+class _SolidWalletIcon extends StatelessWidget {
+  const _SolidWalletIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconTheme = IconTheme.of(context);
+    final size = iconTheme.size ?? 24.0;
+    final color =
+        iconTheme.color ?? Theme.of(context).colorScheme.onSecondaryContainer;
+    return SizedBox.square(
+      dimension: size,
+      child: CustomPaint(
+        painter: _SolidWalletPainter(color: color),
+      ),
+    );
+  }
+}
+
+class _SolidWalletPainter extends CustomPainter {
+  const _SolidWalletPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 24.0, size.height / 24.0);
+
+    final body = Path()
+      ..addRRect(
+        RRect.fromLTRBR(3, 5.5, 21, 20, const Radius.circular(2.75)),
+      );
+    // The card pocket: a rounded notch that opens through the right edge, so
+    // the silhouette still reads as a wallet at 24dp.
+    final pocket = Path()
+      ..addRRect(
+        RRect.fromLTRBR(13.5, 10, 22.5, 15.5, const Radius.circular(2.5)),
+      );
+    final mark = Path.combine(PathOperation.difference, body, pocket);
+
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(mark, fillPaint);
+    canvas.drawPath(mark, strokePaint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_SolidWalletPainter oldDelegate) =>
       oldDelegate.color != color;
 }
