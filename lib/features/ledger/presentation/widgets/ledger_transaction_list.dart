@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/router/card_page_transition.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 
@@ -40,7 +43,14 @@ class LedgerTransactionList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync =
         ref.watch(ledgerMonthlyTransactionsProvider(month));
-    final isEmpty = transactionsAsync.asData?.value.isEmpty ?? false;
+    final days = transactionsAsync.asData?.value;
+    final isEmpty = days?.isEmpty ?? false;
+    final hasTransactions = days != null && days.isNotEmpty;
+    final fabHeight =
+        Theme.of(context).floatingActionButtonTheme.sizeConstraints?.minHeight ??
+            56.0;
+    final fabMargin = context.spacing.md;
+    final tailClearance = math.max(88.0, fabHeight + fabMargin + fabMargin);
 
     // The empty state asks two different questions. Accounts exist but have
     // no transactions → point at the + button. No accounts in this currency
@@ -113,11 +123,13 @@ class LedgerTransactionList extends ConsumerWidget {
               child: Center(child: Text(l10n.errorPrefix('$e'))),
             ),
           ),
-          if (!isEmpty)
+          if (hasTransactions)
             SliverToBoxAdapter(
               child: SizedBox(
-                  height: (NavigationBarTheme.of(context).height ?? 80) +
-                      MediaQuery.viewPaddingOf(context).bottom),
+                height: (NavigationBarTheme.of(context).height ?? 80) +
+                    MediaQuery.viewPaddingOf(context).bottom +
+                    tailClearance,
+              ),
             ),
         ],
       ),

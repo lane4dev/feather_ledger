@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/router/app_router.dart';
@@ -12,7 +14,6 @@ import 'package:feather_ledger/features/settings/presentation/screens/about_scre
 import 'package:feather_ledger/features/settings/presentation/screens/account_management_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/screens/settings_screen.dart';
 import 'package:feather_ledger/features/settings/presentation/widgets/external_links.dart';
-import 'package:flutter/services.dart';
 
 import '../../../support/event_sourcing/ledger_service_harness.dart';
 
@@ -243,6 +244,51 @@ void main() {
     router.pop();
     await tester.pumpAndSettle();
 
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Theme, language and currency'), findsOneWidget);
+  });
+
+  testWidgets(
+      'settings exposes backup and restore and closing returns to more with bottom bar',
+      (tester) async {
+    await pumpMore(tester);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.book),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.wallet),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.ellipsis),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(ListTile, 'Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.widgetWithText(ListTile, 'Back up now'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Restore from backup'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.databaseBackup), findsOneWidget);
+    expect(find.byIcon(LucideIcons.history), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsScreen), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Theme, language and currency'), findsOneWidget);
   });

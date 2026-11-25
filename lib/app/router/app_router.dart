@@ -254,6 +254,9 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
           destinations: [
             NavigationDestination(
               icon: const Icon(LucideIcons.book),
+              selectedIcon: const _SolidBookIcon(
+                key: ValueKey('ledger-selected-book-icon'),
+              ),
               label: l10n.ledgerTitle,
             ),
             NavigationDestination(
@@ -269,4 +272,111 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       ),
     );
   }
+}
+
+class _SolidBookIcon extends StatelessWidget {
+  const _SolidBookIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconTheme = IconTheme.of(context);
+    final size = iconTheme.size ?? 24.0;
+    final color =
+        iconTheme.color ?? Theme.of(context).colorScheme.onSecondaryContainer;
+    return SizedBox.square(
+      dimension: size,
+      child: CustomPaint(
+        painter: _SolidBookPainter(color: color),
+      ),
+    );
+  }
+}
+
+class _SolidBookPainter extends CustomPainter {
+  const _SolidBookPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 24.0, size.height / 24.0);
+
+    // Matches LucideIcons.book 24x24 silhouette with a solid cover fill and
+    // open bottom page channel.
+    final coverPath = Path()
+      ..moveTo(4, 19.5)
+      ..lineTo(4, 4.5)
+      ..arcToPoint(
+        const Offset(6.5, 2),
+        radius: const Radius.circular(2.5),
+        clockwise: true,
+      )
+      ..lineTo(19, 2)
+      ..arcToPoint(
+        const Offset(20, 3),
+        radius: const Radius.circular(1),
+        clockwise: true,
+      )
+      ..lineTo(20, 17)
+      ..lineTo(6.5, 17)
+      ..arcToPoint(
+        const Offset(4, 19.5),
+        radius: const Radius.circular(2.5),
+        clockwise: false,
+      )
+      ..close();
+
+    final outlinePath = Path()
+      ..moveTo(4, 19.5)
+      ..lineTo(4, 4.5)
+      ..arcToPoint(
+        const Offset(6.5, 2),
+        radius: const Radius.circular(2.5),
+        clockwise: true,
+      )
+      ..lineTo(19, 2)
+      ..arcToPoint(
+        const Offset(20, 3),
+        radius: const Radius.circular(1),
+        clockwise: true,
+      )
+      ..lineTo(20, 21)
+      ..arcToPoint(
+        const Offset(19, 22),
+        radius: const Radius.circular(1),
+        clockwise: true,
+      )
+      ..lineTo(6.5, 22)
+      ..arcToPoint(
+        const Offset(4, 19.5),
+        radius: const Radius.circular(2.5),
+        clockwise: true,
+      )
+      ..arcToPoint(
+        const Offset(6.5, 17),
+        radius: const Radius.circular(2.5),
+        clockwise: true,
+      )
+      ..lineTo(20, 17);
+
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(coverPath, fillPaint);
+    canvas.drawPath(outlinePath, strokePaint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_SolidBookPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

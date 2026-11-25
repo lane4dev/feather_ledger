@@ -3,12 +3,19 @@ import 'dart:async';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/router/app_router.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/app/theme/category_tokens.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/entities/account.dart';
+import 'package:feather_ledger/core/domain/entities/category.dart';
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/ledger_day_group.dart';
+import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_empty.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_transaction_list.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_header.dart';
 import 'package:feather_ledger/features/reports/presentation/providers/reports_providers.dart';
@@ -354,5 +361,406 @@ void main() {
     await tester.pumpAndSettle();
     expect(
         tester.getTopLeft(find.byType(FloatingActionButton)), buttonPosition);
+  });
+
+  testWidgets('bottom navigation renders 3 tabs with solid ledger book icon and fab styling',
+      (tester) async {
+    final harness = LedgerServiceHarness();
+    addTearDown(harness.close);
+    final container = ProviderContainer(overrides: [
+      appDatabaseProvider.overrideWithValue(harness.db),
+      accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+      categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+      ledgerMonthlyTransactionsProvider
+          .overrideWith((ref, month) => Stream.value([])),
+      ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+          const MonthlySummaryUiModel(
+              displayBalance: r'$0',
+              displayIncome: r'$0',
+              displayExpense: r'$0'))),
+    ]);
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: AppTheme.lightTheme,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navBar.destinations, hasLength(3));
+    expect(
+      navBar.destinations
+          .map((destination) => (destination as NavigationDestination).label)
+          .toList(),
+      ['Ledger', 'Budget', 'More'],
+    );
+
+    final navContext = tester.element(find.byType(NavigationBar));
+    final navTheme = NavigationBarTheme.of(navContext);
+    final scheme = Theme.of(navContext).colorScheme;
+    expect(navTheme.backgroundColor, scheme.surfaceContainer);
+    expect(navTheme.indicatorColor, scheme.secondaryContainer);
+
+    // Selected Ledger tab shows solid book CustomPaint in onSecondaryContainer;
+    // unselected tabs show Lucide outline icons.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byKey(const ValueKey('ledger-selected-book-icon')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.book),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.wallet),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.ellipsis),
+      ),
+      findsOneWidget,
+    );
+
+    final selectedBookTheme = IconTheme.of(
+      tester.element(find.byKey(const ValueKey('ledger-selected-book-icon'))),
+    );
+    expect(selectedBookTheme.color, scheme.onSecondaryContainer);
+
+    // FAB styling & navigation to /ledger/add.
+    final fabTheme = Theme.of(tester.element(find.byType(FloatingActionButton)))
+        .floatingActionButtonTheme;
+    expect(fabTheme.backgroundColor, scheme.primaryContainer);
+    expect(fabTheme.foregroundColor, scheme.onPrimaryContainer);
+    expect(
+      find.descendant(
+        of: find.byType(FloatingActionButton),
+        matching: find.byIcon(LucideIcons.plus),
+      ),
+      findsOneWidget,
+    );
+
+    // Switch to Budget and More: Ledger reverts to outline LucideIcons.book.
+    await tester.tap(find.text('Budget'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byKey(const ValueKey('ledger-selected-book-icon')),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.book),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byIcon(LucideIcons.book),
+      ),
+      findsOneWidget,
+    );
+
+    // Return to Ledger and tap FAB -> TransactionFormScreen.
+    await tester.tap(find.text('Ledger'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(TransactionFormScreen), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  const tailAccount = AccountEntity(
+    id: 'acc-1',
+    name: 'Wallet',
+    type: AccountType.cash,
+    currencyCode: 'USD',
+    balanceMinor: 50000,
+    archived: false,
+    lastUpdatedEventId: 1,
+  );
+  final tailCategory = CategoryEntity(
+    id: 'cat-1',
+    name: 'Food',
+    iconKey: CategoryTokens.defaultIcons.first.toString(),
+    colorInt: CategoryTokens.defaultColor.toARGB32(),
+    type: CategoryType.expense,
+  );
+  final tailThemes = <String, ThemeData>{
+    'light': AppTheme.lightTheme,
+    'dark': AppTheme.darkTheme,
+    'dynamic-light': AppTheme.buildLight(ColorScheme.fromSeed(
+      seedColor: const Color(0xFF1A73E8),
+      brightness: Brightness.light,
+    )),
+    'dynamic-dark': AppTheme.buildDark(ColorScheme.fromSeed(
+      seedColor: const Color(0xFF1A73E8),
+      brightness: Brightness.dark,
+    )),
+  };
+
+  for (final width in [360.0, 800.0]) {
+    for (final entry in tailThemes.entries) {
+      testWidgets(
+          'last transaction amount clears FAB and visible nav bar (${entry.key} @ ${width.toInt()}dp)',
+          (tester) async {
+        tester.view.physicalSize = Size(width, 800);
+        tester.view.devicePixelRatio = 1.0;
+        tester.view.padding = const FakeViewPadding(bottom: 24);
+        tester.view.viewPadding = const FakeViewPadding(bottom: 24);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPadding);
+        addTearDown(tester.view.resetViewPadding);
+
+        final harness = LedgerServiceHarness();
+        addTearDown(harness.close);
+        final container = ProviderContainer(overrides: [
+          appDatabaseProvider.overrideWithValue(harness.db),
+          accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+          categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+          ledgerMonthlyTransactionsProvider.overrideWith((ref, month) {
+            final days = List.generate(12, (i) {
+              final day = 12 - i;
+              final date = DateTime(month.year, month.month, day, 12);
+              final isLastDay = i == 11;
+              if (isLastDay) {
+                return LedgerDayGroup(
+                  date: date,
+                  transactions: [
+                    TransactionTileUiModel(
+                      id: 'tx-last',
+                      amount: 4250,
+                      type: TransactionKind.expense,
+                      date: date,
+                      note: 'Late snack',
+                      category: tailCategory,
+                      account: tailAccount,
+                      displayAmount: '42.50',
+                      displaySign: '-',
+                    ),
+                  ],
+                );
+              }
+              return LedgerDayGroup(
+                date: date,
+                transactions: [
+                  TransactionTileUiModel(
+                    id: 'tx-$i',
+                    amount: 1000 + i,
+                    type: TransactionKind.expense,
+                    date: date,
+                    note: 'Meal $i',
+                    category: tailCategory,
+                    account: tailAccount,
+                    displayAmount: '10.0$i',
+                    displaySign: '-',
+                  ),
+                ],
+              );
+            });
+            return Stream.value(days);
+          }),
+          ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+              const MonthlySummaryUiModel(
+                  displayBalance: r'$500.00',
+                  displayIncome: r'$0.00',
+                  displayExpense: r'$152.50'))),
+        ]);
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: container.read(goRouterProvider),
+            theme: entry.value,
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        final listFinder = find.byType(LedgerTransactionList);
+        final controller =
+            tester.widget<LedgerTransactionList>(listFinder).controller;
+        expect(controller.position.maxScrollExtent, greaterThan(0),
+            reason: '${entry.key}@$width should scroll');
+
+        void assertLastAmountClearsChrome({required bool expectNavBarVisible}) {
+          final viewportRect = tester.getRect(listFinder);
+          final amountFinder = find.text(r'-$42.50');
+          expect(amountFinder, findsOneWidget,
+              reason: 'last amount missing in ${entry.key}@$width');
+          final amountRect = tester.getRect(amountFinder);
+          final fabRect = tester.getRect(find.byType(FloatingActionButton));
+
+          expect(amountRect.top, greaterThanOrEqualTo(viewportRect.top),
+              reason: '${entry.key}@$width amount clipped at top');
+          expect(amountRect.bottom, lessThanOrEqualTo(viewportRect.bottom),
+              reason: '${entry.key}@$width amount clipped at bottom');
+          expect(amountRect.left, greaterThanOrEqualTo(viewportRect.left));
+          expect(amountRect.right, lessThanOrEqualTo(viewportRect.right));
+          expect(amountRect.overlaps(fabRect), isFalse,
+              reason: '${entry.key}@$width amount overlaps FAB');
+
+          if (expectNavBarVisible) {
+            final navRect = tester.getRect(find.byType(NavigationBar));
+            expect(amountRect.overlaps(navRect), isFalse,
+                reason: '${entry.key}@$width amount overlaps NavigationBar');
+          }
+        }
+
+        // 1. At maxScrollExtent with NavigationBar visible.
+        controller.jumpTo(controller.position.maxScrollExtent);
+        await tester.pumpAndSettle();
+        expect(find.byType(NavigationBar), findsOneWidget);
+        assertLastAmountClearsChrome(expectNavBarVisible: true);
+
+        // 2. Scroll down by drag so NavigationBar hides; amount still clears FAB.
+        controller.jumpTo(0);
+        await tester.pumpAndSettle();
+        for (var step = 0; step < 5; step++) {
+          await tester.drag(listFinder, const Offset(0, -600));
+          await tester.pumpAndSettle();
+        }
+        expect(find.byType(NavigationBar), findsNothing);
+        assertLastAmountClearsChrome(expectNavBarVisible: false);
+
+        // 3. Slight scroll up restores NavigationBar; amount still clears both.
+        await tester.drag(listFinder, const Offset(0, 40));
+        await tester.pumpAndSettle();
+        expect(find.byType(NavigationBar), findsOneWidget);
+        assertLastAmountClearsChrome(expectNavBarVisible: true);
+      });
+    }
+  }
+
+  testWidgets(
+      'deleting the single remaining transaction leaves empty month unscrollable without tail spacer',
+      (tester) async {
+    const account = AccountEntity(
+      id: 'acc-1',
+      name: 'Wallet',
+      type: AccountType.cash,
+      currencyCode: 'USD',
+      balanceMinor: 5000,
+      archived: false,
+      lastUpdatedEventId: 1,
+    );
+    final category = CategoryEntity(
+      id: 'cat-1',
+      name: 'Food',
+      iconKey: CategoryTokens.defaultIcons.first.toString(),
+      colorInt: CategoryTokens.defaultColor.toARGB32(),
+      type: CategoryType.expense,
+    );
+
+    final harness = LedgerServiceHarness();
+    addTearDown(harness.close);
+    final changes = StreamController<List<LedgerDayGroup>>.broadcast();
+    addTearDown(changes.close);
+    final container = ProviderContainer(overrides: [
+      appDatabaseProvider.overrideWithValue(harness.db),
+      accountUiListProvider.overrideWith((ref) => const AsyncData([])),
+      categoryListProvider.overrideWith((ref, type) => Stream.value([])),
+      ledgerMonthlyTransactionsProvider
+          .overrideWith((ref, month) => changes.stream),
+      ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
+          const MonthlySummaryUiModel(
+              displayBalance: r'$50.00',
+              displayIncome: r'$0.00',
+              displayExpense: r'$12.00'))),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        routerConfig: container.read(goRouterProvider),
+        theme: AppTheme.lightTheme,
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ));
+    await tester.pump();
+
+    final now = DateTime.now();
+    final date = DateTime(now.year, now.month, 15, 12);
+    changes.add([
+      LedgerDayGroup(
+        date: date,
+        transactions: [
+          TransactionTileUiModel(
+            id: 'tx-only',
+            amount: 1200,
+            type: TransactionKind.expense,
+            date: date,
+            note: 'Coffee',
+            category: category,
+            account: account,
+            displayAmount: '12.00',
+            displaySign: '-',
+          ),
+        ],
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    final listFinder = find.byType(LedgerTransactionList);
+    final scrollFinder = find.descendant(
+      of: listFinder,
+      matching: find.byType(CustomScrollView),
+    );
+    expect(
+      tester.widget<CustomScrollView>(scrollFinder).physics,
+      isNot(isA<NeverScrollableScrollPhysics>()),
+    );
+    expect(find.text(r'-$12.00'), findsOneWidget);
+
+    // Delete the only transaction -> empty month restores NeverScrollableScrollPhysics.
+    changes.add(const []);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LedgerEmpty), findsOneWidget);
+    expect(
+      tester.widget<CustomScrollView>(scrollFinder).physics,
+      isA<NeverScrollableScrollPhysics>(),
+    );
+    final controller =
+        tester.widget<LedgerTransactionList>(listFinder).controller;
+    expect(controller.offset, 0);
+    await tester.drag(listFinder, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }
