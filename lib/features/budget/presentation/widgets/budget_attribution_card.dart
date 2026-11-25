@@ -12,22 +12,31 @@ import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart'
 
 import '../models/budget_ui_models.dart';
 
+/// Month review attribution: over/under budget TOP 3 and the month note.
+///
+/// The over and under lists sit side by side when the card is wide enough and
+/// stack when it is not, so a narrow screen or large text never forces the
+/// category names into a sliver. Order comes from the domain lists unchanged.
+///
+/// The note editor only renders when [onSaveMonthNote] is provided. The L2
+/// review page owns its own editor (it needs the save result to keep the draft
+/// on failure), so it passes no callback here.
 class BudgetAttributionCard extends StatefulWidget {
   final List<BudgetAttributionItemUiModel> overBudgetTop3;
   final List<BudgetAttributionItemUiModel> underBudgetTop3;
   final List<BudgetUnbudgetedAlertUiModel> unbudgetedAlertsTop3;
   final String? monthReviewNote;
   final ValueChanged<String> onCategoryTap;
-  final Future<void> Function(String note) onSaveMonthNote;
+  final Future<void> Function(String note)? onSaveMonthNote;
 
   const BudgetAttributionCard({
     super.key,
     required this.overBudgetTop3,
     required this.underBudgetTop3,
-    required this.unbudgetedAlertsTop3,
-    required this.monthReviewNote,
+    this.unbudgetedAlertsTop3 = const [],
+    this.monthReviewNote,
     required this.onCategoryTap,
-    required this.onSaveMonthNote,
+    this.onSaveMonthNote,
   });
 
   @override
@@ -61,7 +70,7 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
 
   Future<void> _submitNote() async {
     setState(() => _saving = true);
-    await widget.onSaveMonthNote(_noteController.text);
+    await widget.onSaveMonthNote!(_noteController.text);
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -74,6 +83,8 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
     final scheme = Theme.of(context).colorScheme;
+    final showOver = widget.overBudgetTop3.isNotEmpty;
+    final showUnder = widget.underBudgetTop3.isNotEmpty;
 
     return AppCard(
       child: Column(
@@ -82,7 +93,7 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
           Row(
             children: [
               Icon(LucideIcons.sparkles, size: 18, color: scheme.primary),
-              SizedBox(width: spacing.sm),
+              SizedBox(width: spacing.xs),
               Expanded(
                 child: Text(
                   l10n.budgetAttributionTitle,
@@ -91,154 +102,206 @@ class _BudgetAttributionCardState extends State<BudgetAttributionCard> {
               ),
             ],
           ),
-          if (widget.overBudgetTop3.isNotEmpty) ...[
-            SizedBox(height: spacing.md),
-            Text(l10n.budgetOverTopTitle, style: AppTypography.meta(context)),
-            SizedBox(height: spacing.xs),
-            for (final item in widget.overBudgetTop3)
-              _AttributionRow(
-                categoryId: item.categoryId,
-                name: item.name,
-                iconKey: item.iconKey,
-                colorInt: item.colorInt,
-                trailingText: '+${item.deltaDisplay}',
-                trailingColor: context.colors.expense,
-                onTap: () => widget.onCategoryTap(item.categoryId),
-              ),
-          ],
-          if (widget.underBudgetTop3.isNotEmpty) ...[
-            SizedBox(height: spacing.md),
-            Text(l10n.budgetUnderTopTitle, style: AppTypography.meta(context)),
-            SizedBox(height: spacing.xs),
-            for (final item in widget.underBudgetTop3)
-              _AttributionRow(
-                categoryId: item.categoryId,
-                name: item.name,
-                iconKey: item.iconKey,
-                colorInt: item.colorInt,
-                trailingText: item.deltaDisplay,
-                trailingColor: context.colors.income,
-                onTap: () => widget.onCategoryTap(item.categoryId),
-              ),
+          if (showOver || showUnder) ...[
+            SizedBox(height: spacing.sm),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final textScale = MediaQuery.textScalerOf(context).scale(14);
+                final sideBySide = constraints.maxWidth >= 300 &&
+                    textScale <= 20 &&
+                    showOver &&
+                    showUnder;
+                final columns = <Widget>[
+                  if (showOver)
+                    _AttributionColumn(
+                      title: l10n.budgetOverTopTitle,
+                      items: widget.overBudgetTop3,
+                      trailingText: (item) => '+${item.deltaDisplay}',
+                      trailingColor: context.colors.expense,
+                      onCategoryTap: widget.onCategoryTap,
+                    ),
+                  if (showUnder)
+                    _AttributionColumn(
+                      title: l10n.budgetUnderTopTitle,
+                      items: widget.underBudgetTop3,
+                      trailingText: (item) => item.deltaDisplay,
+                      trailingColor: context.colors.income,
+                      onCategoryTap: widget.onCategoryTap,
+                    ),
+                ];
+                if (!sideBySide) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < columns.length; i++) ...[
+                        if (i > 0) SizedBox(height: spacing.sm),
+                        columns[i],
+                      ],
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: columns[0]),
+                    SizedBox(width: spacing.md),
+                    Expanded(child: columns[1]),
+                  ],
+                );
+              },
+            ),
           ],
           if (widget.unbudgetedAlertsTop3.isNotEmpty) ...[
-            SizedBox(height: spacing.md),
+            SizedBox(height: spacing.sm),
             Text(
               l10n.budgetUnbudgetedAlertsTitle,
               style: AppTypography.meta(context),
             ),
             SizedBox(height: spacing.xs),
             for (final alert in widget.unbudgetedAlertsTop3)
-              InkWell(
-                onTap: () => widget.onCategoryTap(alert.categoryId),
-                borderRadius: context.metrics.selectionBorderRadius,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: spacing.xs),
-                  child: Row(
-                    children: [
-                      CategoryIcon(
-                        iconKey: alert.iconKey,
-                        size: 16,
-                        color: Color(alert.colorInt),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: spacing.xs),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        alert.name,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(width: spacing.sm),
-                      Expanded(
-                        child: Text(
-                          alert.name,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      AppBadge(label: alert.shareDisplay),
-                      SizedBox(width: spacing.sm),
-                      Text(
-                        alert.actualDisplay,
-                        style: AppTypography.amount(context)
-                            .copyWith(color: scheme.onSurface),
-                      ),
-                    ],
-                  ),
+                    ),
+                    AppBadge(label: alert.shareDisplay),
+                    SizedBox(width: spacing.sm),
+                    Text(
+                      alert.actualDisplay,
+                      style: AppTypography.amount(context)
+                          .copyWith(color: scheme.onSurface),
+                    ),
+                  ],
                 ),
               ),
           ],
-          SizedBox(height: spacing.md),
-          const FeatherDivider(),
-          SizedBox(height: spacing.sm),
-          Row(
-            children: [
-              Text(
-                l10n.budgetMonthNoteLabel,
-                style: AppTypography.meta(context),
-              ),
-              const Spacer(),
-              if (!_editingNote)
-                TextButton.icon(
-                  onPressed: () {
-                    _noteController.text = widget.monthReviewNote ?? '';
-                    setState(() => _editingNote = true);
-                  },
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-                  ),
-                  icon: const Icon(LucideIcons.pencil, size: 14),
-                  label: Text(
-                    l10n.edit,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ),
-            ],
-          ),
-          if (_editingNote) ...[
-            SizedBox(height: spacing.xs),
-            AppTextField(
-              controller: _noteController,
-              maxLines: 3,
-              minLines: 2,
-              hintText: l10n.budgetNotePlaceholder,
-              onChanged: (_) => setState(() {}),
-            ),
-            SizedBox(height: spacing.xs),
+          if (widget.onSaveMonthNote != null) ...[
+            SizedBox(height: spacing.md),
+            const FeatherDivider(),
+            SizedBox(height: spacing.sm),
             Row(
               children: [
                 Text(
-                  l10n.budgetNoteCharCount(_noteController.text.runes.length),
-                  style: AppTypography.compactLabel(context).copyWith(
-                    color: _noteController.text.runes.length > 500
-                        ? scheme.error
-                        : scheme.onSurfaceVariant,
-                  ),
+                  l10n.budgetMonthNoteLabel,
+                  style: AppTypography.meta(context),
                 ),
                 const Spacer(),
-                AppButton.text(
-                  onPressed: _saving
-                      ? null
-                      : () => setState(() => _editingNote = false),
-                  child: Text(l10n.cancel),
-                ),
-                SizedBox(width: spacing.xs),
-                AppButton.outlined(
-                  onPressed: _saving ? null : _submitNote,
-                  child: Text(l10n.budgetSaveNote),
-                ),
+                if (!_editingNote)
+                  TextButton.icon(
+                    onPressed: () {
+                      _noteController.text = widget.monthReviewNote ?? '';
+                      setState(() => _editingNote = true);
+                    },
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.symmetric(horizontal: spacing.sm),
+                    ),
+                    icon: const Icon(LucideIcons.pencil, size: 14),
+                    label: Text(
+                      l10n.edit,
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
               ],
             ),
-          ] else if (widget.monthReviewNote != null) ...[
-            SizedBox(height: spacing.xs),
-            Text(
-              widget.monthReviewNote!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ] else ...[
-            SizedBox(height: spacing.xs),
-            Text(
-              l10n.budgetNotePlaceholder,
-              style: AppTypography.meta(context),
-            ),
+            if (_editingNote) ...[
+              SizedBox(height: spacing.xs),
+              AppTextField(
+                controller: _noteController,
+                maxLines: 3,
+                minLines: 2,
+                hintText: l10n.budgetNotePlaceholder,
+                onChanged: (_) => setState(() {}),
+              ),
+              SizedBox(height: spacing.xs),
+              Row(
+                children: [
+                  Text(
+                    l10n.budgetNoteCharCount(_noteController.text.runes.length),
+                    style: AppTypography.compactLabel(context).copyWith(
+                      color: _noteController.text.runes.length > 500
+                          ? scheme.error
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  AppButton.text(
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() => _editingNote = false),
+                    child: Text(l10n.cancel),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  AppButton.outlined(
+                    onPressed: _saving ? null : _submitNote,
+                    child: Text(l10n.budgetSaveNote),
+                  ),
+                ],
+              ),
+            ] else if (widget.monthReviewNote != null) ...[
+              SizedBox(height: spacing.xs),
+              Text(
+                widget.monthReviewNote!,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ] else ...[
+              SizedBox(height: spacing.xs),
+              Text(
+                l10n.budgetNotePlaceholder,
+                style: AppTypography.meta(context),
+              ),
+            ],
           ],
         ],
       ),
+    );
+  }
+}
+
+class _AttributionColumn extends StatelessWidget {
+  final String title;
+  final List<BudgetAttributionItemUiModel> items;
+  final String Function(BudgetAttributionItemUiModel item) trailingText;
+  final Color trailingColor;
+  final ValueChanged<String> onCategoryTap;
+
+  const _AttributionColumn({
+    required this.title,
+    required this.items,
+    required this.trailingText,
+    required this.trailingColor,
+    required this.onCategoryTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: AppTypography.meta(context).copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        for (final item in items)
+          _AttributionRow(
+            categoryId: item.categoryId,
+            name: item.name,
+            iconKey: item.iconKey,
+            colorInt: item.colorInt,
+            trailingText: trailingText(item),
+            trailingColor: trailingColor,
+            onTap: () => onCategoryTap(item.categoryId),
+          ),
+      ],
     );
   }
 }
@@ -265,6 +328,7 @@ class _AttributionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: ValueKey('budget-attribution-$categoryId'),
       onTap: onTap,
       borderRadius: context.metrics.selectionBorderRadius,
       child: Padding(
@@ -276,7 +340,7 @@ class _AttributionRow extends StatelessWidget {
               size: 16,
               color: Color(colorInt),
             ),
-            SizedBox(width: context.spacing.sm),
+            SizedBox(width: context.spacing.xs),
             Expanded(
               child: Text(
                 name,

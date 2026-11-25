@@ -2174,6 +2174,60 @@ abstract class AppLocalizations {
   /// **'6-Month Budget vs Actual'**
   String get budgetTrendTitle;
 
+  /// No description provided for @budgetReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Review & Trends'**
+  String get budgetReviewTitle;
+
+  /// No description provided for @budgetReviewScopeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole month, including unbudgeted categories.'**
+  String get budgetReviewScopeNote;
+
+  /// No description provided for @budgetReviewCommittedActual.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed spent'**
+  String get budgetReviewCommittedActual;
+
+  /// No description provided for @budgetReviewDiscretionaryActual.
+  ///
+  /// In en, this message translates to:
+  /// **'Discretionary spent'**
+  String get budgetReviewDiscretionaryActual;
+
+  /// No description provided for @budgetReviewBaselineNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed spent + effective pending bills. Reference only; the three figures are not additive.'**
+  String get budgetReviewBaselineNote;
+
+  /// No description provided for @budgetReviewNoteEmptyDeletes.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the note empty and save to remove it.'**
+  String get budgetReviewNoteEmptyDeletes;
+
+  /// No description provided for @budgetTrendLegendActual.
+  ///
+  /// In en, this message translates to:
+  /// **'All actual spend'**
+  String get budgetTrendLegendActual;
+
+  /// No description provided for @budgetTrendLegendBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Total budget'**
+  String get budgetTrendLegendBudget;
+
+  /// No description provided for @budgetTrendLegendAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'3-month average'**
+  String get budgetTrendLegendAverage;
+
   /// No description provided for @budgetAttributionTitle.
   ///
   /// In en, this message translates to:
