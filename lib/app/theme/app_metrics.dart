@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 class AppMetrics extends ThemeExtension<AppMetrics> {
   const AppMetrics({
     this.cardRadius = 20,
+    this.overviewCardRadius = 24,
+    this.dayCardRadius = 18,
     this.subtleElevation = 1,
     this.cellRadius = 4,
     this.controlRadius = 14,
@@ -25,6 +27,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   });
 
   final double cardRadius;
+  final double overviewCardRadius;
+  final double dayCardRadius;
   final double subtleElevation;
   final double cellRadius;
   final double controlRadius;
@@ -45,6 +49,9 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   BorderRadius get legendBorderRadius => BorderRadius.circular(cellRadius / 2);
   BorderRadius get dialogBorderRadius => BorderRadius.circular(sheetRadius);
   BorderRadius get cardBorderRadius => BorderRadius.circular(cardRadius);
+  BorderRadius get overviewCardBorderRadius =>
+      BorderRadius.circular(overviewCardRadius);
+  BorderRadius get dayCardBorderRadius => BorderRadius.circular(dayCardRadius);
   BorderRadius get controlBorderRadius => BorderRadius.circular(controlRadius);
   BorderRadius get selectionBorderRadius =>
       BorderRadius.circular(selectionRadius);
@@ -61,6 +68,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   @override
   AppMetrics copyWith({
     double? cardRadius,
+    double? overviewCardRadius,
+    double? dayCardRadius,
     double? subtleElevation,
     double? cellRadius,
     double? controlRadius,
@@ -79,6 +88,8 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   }) =>
       AppMetrics(
         cardRadius: cardRadius ?? this.cardRadius,
+        overviewCardRadius: overviewCardRadius ?? this.overviewCardRadius,
+        dayCardRadius: dayCardRadius ?? this.dayCardRadius,
         subtleElevation: subtleElevation ?? this.subtleElevation,
         cellRadius: cellRadius ?? this.cellRadius,
         controlRadius: controlRadius ?? this.controlRadius,
@@ -101,6 +112,9 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
     if (other is! AppMetrics) return this;
     return AppMetrics(
       cardRadius: lerpDouble(cardRadius, other.cardRadius, t)!,
+      overviewCardRadius:
+          lerpDouble(overviewCardRadius, other.overviewCardRadius, t)!,
+      dayCardRadius: lerpDouble(dayCardRadius, other.dayCardRadius, t)!,
       subtleElevation: lerpDouble(subtleElevation, other.subtleElevation, t)!,
       cellRadius: lerpDouble(cellRadius, other.cellRadius, t)!,
       controlRadius: lerpDouble(controlRadius, other.controlRadius, t)!,

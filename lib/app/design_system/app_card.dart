@@ -5,6 +5,8 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import '../theme/account_card_theme.dart';
 import '../theme/app_theme.dart';
 
+enum _AppCardVariant { standard, outlined, group, overview, day, account }
+
 /// M3 surface entry point for feature UI. Shape, elevation and colours are
 /// read from ThemeData, so callers do not create local visual systems.
 class AppCard extends StatelessWidget {
@@ -13,31 +15,43 @@ class AppCard extends StatelessWidget {
   final AccountType? _accountType;
   final bool _archived;
   final VoidCallback? _onTap;
-  final bool _outlined;
-  final bool _group;
+  final _AppCardVariant _variant;
 
   const AppCard(
       {super.key, required this.child, this.padding, VoidCallback? onTap})
       : _accountType = null,
         _archived = false,
         _onTap = onTap,
-        _outlined = false,
-        _group = false;
+        _variant = _AppCardVariant.standard;
 
   const AppCard.outlined({super.key, required this.child, this.padding})
       : _accountType = null,
         _archived = false,
         _onTap = null,
-        _outlined = true,
-        _group = false;
+        _variant = _AppCardVariant.outlined;
 
   const AppCard.group({super.key, required this.child})
       : padding = EdgeInsets.zero,
         _accountType = null,
         _archived = false,
         _onTap = null,
-        _outlined = false,
-        _group = true;
+        _variant = _AppCardVariant.group;
+
+  /// Elevated-tonal overview surface (`surfaceContainerHigh` + 24dp radius).
+  const AppCard.overview(
+      {super.key, required this.child, this.padding, VoidCallback? onTap})
+      : _accountType = null,
+        _archived = false,
+        _onTap = onTap,
+        _variant = _AppCardVariant.overview;
+
+  /// Daily transaction group surface (`surfaceContainerLow` + 18dp radius).
+  const AppCard.day(
+      {super.key, required this.child, this.padding, VoidCallback? onTap})
+      : _accountType = null,
+        _archived = false,
+        _onTap = onTap,
+        _variant = _AppCardVariant.day;
 
   /// A subdued financial surface. Decoration and touch feedback share the
   /// same clipped Material, so the texture never covers the ripple or text.
@@ -51,34 +65,52 @@ class AppCard extends StatelessWidget {
   })  : _accountType = type,
         _archived = archived,
         _onTap = onTap,
-        _outlined = false,
-        _group = false;
+        _variant = _AppCardVariant.account;
 
   @override
   Widget build(BuildContext context) {
     final content =
         Padding(padding: padding ?? context.metrics.cardPadding, child: child);
     final type = _accountType;
-    if (type == null) {
+    if (_variant != _AppCardVariant.account || type == null) {
+      final scheme = Theme.of(context).colorScheme;
+      final metrics = context.metrics;
+      final color = switch (_variant) {
+        _AppCardVariant.outlined => scheme.surface,
+        _AppCardVariant.overview => scheme.surfaceContainerHigh,
+        _AppCardVariant.day => scheme.surfaceContainerLow,
+        _ => null,
+      };
+      final borderRadius = switch (_variant) {
+        _AppCardVariant.overview => metrics.overviewCardBorderRadius,
+        _AppCardVariant.day => metrics.dayCardBorderRadius,
+        _ => metrics.cardBorderRadius,
+      };
+      final ShapeBorder? shape = switch (_variant) {
+        _AppCardVariant.outlined => RoundedRectangleBorder(
+            borderRadius: borderRadius,
+            side: BorderSide(color: scheme.outlineVariant),
+          ),
+        _AppCardVariant.overview ||
+        _AppCardVariant.day =>
+          RoundedRectangleBorder(borderRadius: borderRadius),
+        _ => null,
+      };
+
       return Card(
-        color: _outlined ? Theme.of(context).colorScheme.surface : null,
-        shape: _outlined
-            ? RoundedRectangleBorder(
-                borderRadius: context.metrics.cardBorderRadius,
-                side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant),
-              )
-            : null,
+        color: color,
+        surfaceTintColor: color,
+        shape: shape,
         child: _onTap != null
             ? InkWell(
                 onTap: _onTap,
-                borderRadius: context.metrics.cardBorderRadius,
+                borderRadius: borderRadius,
                 child: content,
               )
-            : _group
+            : _variant == _AppCardVariant.group
                 ? ListTileTheme(
                     data: ListTileTheme.of(context)
-                        .copyWith(contentPadding: context.metrics.fieldPadding),
+                        .copyWith(contentPadding: metrics.fieldPadding),
                     child: content,
                   )
                 : content,
