@@ -63,7 +63,7 @@ import 'app_localizations_zh.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,18 +86,18 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('zh'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
-    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// The title of the application
@@ -1161,7 +1161,10 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This backup holds {backupEvents} events. This ledger has {currentEvents}, so restoring discards {discarded} of them. Everything currently stored will be replaced.'**
   String restoreConfirmMessage(
-      int backupEvents, int currentEvents, int discarded);
+    int backupEvents,
+    int currentEvents,
+    int discarded,
+  );
 
   /// Title shown once a restore has been staged
   ///
@@ -2111,6 +2114,36 @@ abstract class AppLocalizations {
   /// **'Committed baseline'**
   String get budgetCommittedBaseline;
 
+  /// No description provided for @budgetOverviewMonthlySurplus.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly surplus'**
+  String get budgetOverviewMonthlySurplus;
+
+  /// No description provided for @budgetOverviewMonthlyOverspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly overspend'**
+  String get budgetOverviewMonthlyOverspend;
+
+  /// No description provided for @budgetOverviewAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to spend'**
+  String get budgetOverviewAvailable;
+
+  /// No description provided for @budgetOverviewBudgetUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget used'**
+  String get budgetOverviewBudgetUsage;
+
+  /// No description provided for @budgetOverviewBaselineShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Baseline share'**
+  String get budgetOverviewBaselineShare;
+
   /// No description provided for @budgetAllExpensesLine.
   ///
   /// In en, this message translates to:
@@ -2513,8 +2546,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

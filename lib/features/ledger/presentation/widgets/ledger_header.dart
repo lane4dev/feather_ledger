@@ -7,9 +7,9 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/core/presentation/providers/balance_visibility_provider.dart';
 
+import 'package:feather_ledger/shared/presentation/models/balance_display_parts.dart';
 import 'package:feather_ledger/shared/presentation/models/monthly_summary_ui_model.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../models/balance_display_parts.dart';
 import '../models/ledger_expense_trend.dart';
 import '../theme/ledger_theme.dart';
 import 'ledger_balance_sparkline.dart';

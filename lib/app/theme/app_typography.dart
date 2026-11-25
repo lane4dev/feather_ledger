@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 
 /// Shared visual roles; formatted values and business meaning stay with callers.
 abstract final class AppTypography {
+  /// The three sizes an overview amount is set at: symbol, whole units, then
+  /// the decimals. The digits that carry the magnitude are the ones read at a
+  /// glance; the cents step back into the supporting colour.
+  ///
+  /// Shared by the ledger header and the budget overview so the two hero
+  /// numbers typeset alike instead of drifting apart one edit at a time.
+  static const double overviewSymbolSize = 20.0;
+  static const double overviewWholeSize = 36.0;
+  static const double overviewFractionSize = 22.0;
+  static const double overviewWholeTracking = -0.5;
+
   static TextStyle balance(BuildContext context) => Theme.of(context)
       .textTheme
       .headlineLarge!

@@ -878,6 +878,11 @@
   "budgetDiscretionarySpending": "Discretionary spending",
   "budgetDiscretionary": "Discretionary",
   "budgetCommittedBaseline": "Committed baseline",
+  "budgetOverviewMonthlySurplus": "Monthly surplus",
+  "budgetOverviewMonthlyOverspend": "Monthly overspend",
+  "budgetOverviewAvailable": "Available to spend",
+  "budgetOverviewBudgetUsage": "Budget used",
+  "budgetOverviewBaselineShare": "Baseline share",
   "budgetAllExpensesLine": "All expenses {total} (unbudgeted {unbudgeted})",
   "@budgetAllExpensesLine": {
     "placeholders": {

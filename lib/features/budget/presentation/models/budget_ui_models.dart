@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:feather_ledger/shared/presentation/models/balance_display_parts.dart';
+
 import '../../domain/value_objects/budget_value_objects.dart';
 
 @immutable
@@ -173,6 +175,33 @@ class BudgetOverviewUiModel {
   final bool hasLeftoverPendingInReview;
   final bool hasHighFrequencyMaterializationHint;
 
+  /// What the main amount measures this mode — the hero's label.
+  final BudgetOverviewMainLabel mainLabel;
+
+  /// The main amount, already written and taken apart for three-tier setting.
+  /// Non-numeric (`—`) when the month has no budget at all.
+  final BalanceDisplayParts mainAmount;
+
+  /// True when [mainAmount] is a shortfall (projected over, overspent in a
+  /// closed month, or a baseline above the budget). The card paints the amount
+  /// in the expense colour only then; everything else stays in ink.
+  final bool isMainAmountNegative;
+
+  /// The footer's three columns, in reading order.
+  final List<BudgetOverviewMetricUiModel> footerMetrics;
+
+  /// The share of the total budget the budgeted categories' fixed baseline
+  /// occupies — plan mode's bar. Clamped to 1 so an over-committed month still
+  /// draws a full bar and states the gap as an amount instead.
+  final double fixedBaselineRatio;
+
+  /// Whether the month has any budgeted baseline to draw in plan mode.
+  final bool hasFixedBaseline;
+
+  /// Where today sits in the month (0..1), or null when the month is not the
+  /// one containing today. Track mode's tick on the bar.
+  final double? todayTickRatio;
+
   const BudgetOverviewUiModel({
     required this.targetYm,
     required this.mode,
@@ -197,6 +226,55 @@ class BudgetOverviewUiModel {
     required this.discretionaryActualDisplay,
     required this.hasLeftoverPendingInReview,
     required this.hasHighFrequencyMaterializationHint,
+    required this.mainLabel,
+    required this.mainAmount,
+    required this.isMainAmountNegative,
+    required this.footerMetrics,
+    required this.fixedBaselineRatio,
+    required this.hasFixedBaseline,
+    required this.todayTickRatio,
+  });
+}
+
+/// Which quantity the overview card's main amount is.
+///
+/// The label is a localizable resource, not a number, so the mapper names the
+/// meaning and the widget resolves it — the same split as
+/// [BudgetOverviewMetric].
+enum BudgetOverviewMainLabel {
+  projectedRemaining,
+  projectedOver,
+  monthlySurplus,
+  monthlyOverspend,
+  availableToSpend,
+}
+
+/// A footer column of the overview card.
+enum BudgetOverviewMetric {
+  spent,
+  pending,
+  totalBudget,
+  budgetUsage,
+  committedBaseline,
+  baselineShare,
+}
+
+/// How much weight a footer column carries.
+///
+/// Only [pending] is distinct: it is the one figure that is money not yet
+/// spent, so it wears the same lavender as the bar's pending segment.
+enum BudgetOverviewMetricTone { neutral, pending }
+
+@immutable
+class BudgetOverviewMetricUiModel {
+  final BudgetOverviewMetric metric;
+  final String value;
+  final BudgetOverviewMetricTone tone;
+
+  const BudgetOverviewMetricUiModel({
+    required this.metric,
+    required this.value,
+    this.tone = BudgetOverviewMetricTone.neutral,
   });
 }
 

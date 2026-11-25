@@ -44,10 +44,13 @@ class LedgerTheme {
   static const double footerVerticalPadding = 10.0;
 
   // --- Overview card balance typesetting ---
-  static const double balanceSymbolSize = 20.0;
-  static const double balanceWholeSize = 36.0;
-  static const double balanceFractionSize = 22.0;
-  static const double balanceWholeTracking = -0.5;
+  // The sizes themselves live in [AppTypography] because the budget overview
+  // sets its hero amount the same way.
+  static const double balanceSymbolSize = AppTypography.overviewSymbolSize;
+  static const double balanceWholeSize = AppTypography.overviewWholeSize;
+  static const double balanceFractionSize = AppTypography.overviewFractionSize;
+  static const double balanceWholeTracking =
+      AppTypography.overviewWholeTracking;
 
   /// The card's backplate: a soft diagonal mix of the scheme's own tones.
   ///

@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import 'package:feather_ledger/shared/presentation/models/balance_display_parts.dart';
 import 'package:feather_ledger/shared/presentation/money_format.dart';
 
 import '../../domain/entities/budget_entities.dart';
@@ -17,6 +18,7 @@ class BudgetUiMapper {
     MonthBudgetSummary summary, {
     required String currencySymbol,
     required String locale,
+    DateTime? today,
   }) {
     final monthFormat = DateFormat.MMM(locale);
     final dayFormat = DateFormat.yMd(locale).add_Hm();
@@ -43,6 +45,115 @@ class BudgetUiMapper {
         .fold<int>(0, (sum, c) => sum + c.committedActualMinor);
     final discretionaryActualMinor = summary.allSummaries
         .fold<int>(0, (sum, c) => sum + c.discretionaryActualMinor);
+
+    // The plan card answers "how much is still free to allocate", so its
+    // baseline is the *budgeted* categories' alone: what an unbudgeted
+    // category has committed is not money the budget has spoken for yet.
+    final budgetedBaselineMinor = summary.budgetedCategories
+        .fold<int>(0, (sum, c) => sum + c.committedBaselineMinor);
+
+    // The main amount is the one number each mode exists to show: what is left
+    // after what is spent and billed (track), what the closed month ended with
+    // (review), and what the budget has not been pinned down by (plan).
+    final mainMinor = switch (summary.mode) {
+      BudgetMode.track => summary.projectedRemainingMinor,
+      BudgetMode.review => summary.budgetedRemainingActualMinor,
+      BudgetMode.plan => summary.totalBudgetMinor - budgetedBaselineMinor,
+    };
+
+    final mainLabel = switch (summary.mode) {
+      BudgetMode.track => mainMinor < 0
+          ? BudgetOverviewMainLabel.projectedOver
+          : BudgetOverviewMainLabel.projectedRemaining,
+      BudgetMode.review => mainMinor < 0
+          ? BudgetOverviewMainLabel.monthlyOverspend
+          : BudgetOverviewMainLabel.monthlySurplus,
+      BudgetMode.plan => BudgetOverviewMainLabel.availableToSpend,
+    };
+
+    final baselineRatio = totalBudget > 0
+        ? (budgetedBaselineMinor / totalBudget).clamp(0.0, 1.0)
+        : 0.0;
+
+    // A share of nothing has no answer; `—` says so instead of `0%`.
+    final sharePercent = totalBudget > 0
+        ? '${(budgetedBaselineMinor / totalBudget * 100).round()}%'
+        : '—';
+    // Usage is deliberately uncapped: a month that spent 150% of its budget
+    // should be readable as such, the bar being full is the geometric half.
+    final usagePercent = totalBudget > 0
+        ? '${(summary.budgetedActualMinor / totalBudget * 100).round()}%'
+        : '—';
+
+    final budgetedBaselineDisplay =
+        formatMinorWithSymbol(budgetedBaselineMinor, currencySymbol);
+    final remainingBudgetDisplay =
+        formatMinorWithSymbol(summary.totalBudgetMinor, currencySymbol);
+    final budgetValueDisplay =
+        summary.hasAnyBudget ? remainingBudgetDisplay : '—';
+
+    final footerMetrics = switch (summary.mode) {
+      BudgetMode.track => [
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.spent,
+            value: formatMinorWithSymbol(
+              summary.budgetedActualMinor,
+              currencySymbol,
+            ),
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.pending,
+            value: formatMinorWithSymbol(
+              summary.budgetedPendingMinor,
+              currencySymbol,
+            ),
+            tone: BudgetOverviewMetricTone.pending,
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.totalBudget,
+            value: budgetValueDisplay,
+          ),
+        ],
+      BudgetMode.review => [
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.spent,
+            value: formatMinorWithSymbol(
+              summary.budgetedActualMinor,
+              currencySymbol,
+            ),
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.budgetUsage,
+            value: usagePercent,
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.totalBudget,
+            value: budgetValueDisplay,
+          ),
+        ],
+      BudgetMode.plan => [
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.committedBaseline,
+            value: budgetedBaselineDisplay,
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.baselineShare,
+            value: sharePercent,
+          ),
+          BudgetOverviewMetricUiModel(
+            metric: BudgetOverviewMetric.totalBudget,
+            value: budgetValueDisplay,
+          ),
+        ],
+    };
+
+    // Today's position on the bar only means something in the month that
+    // contains it; other months get no tick at all.
+    final todayTickRatio =
+        today != null && YearMonth.fromDate(today) == summary.month
+            ? (today.day / DateTime(today.year, today.month + 1, 0).day)
+                .clamp(0.0, 1.0)
+            : null;
 
     final overview = BudgetOverviewUiModel(
       targetYm: summary.month,
@@ -86,6 +197,17 @@ class BudgetUiMapper {
       hasLeftoverPendingInReview: summary.hasLeftoverPendingInReview,
       hasHighFrequencyMaterializationHint: summary.hasHighFrequencyPending ||
           summary.isFarFutureMaterializedOnly,
+      mainLabel: mainLabel,
+      mainAmount: BalanceDisplayParts.parse(
+        summary.hasAnyBudget
+            ? formatMinorWithSymbol(mainMinor, currencySymbol)
+            : '—',
+      ),
+      isMainAmountNegative: summary.hasAnyBudget && mainMinor < 0,
+      footerMetrics: footerMetrics,
+      fixedBaselineRatio: baselineRatio,
+      hasFixedBaseline: budgetedBaselineMinor > 0,
+      todayTickRatio: todayTickRatio,
     );
 
     BudgetCategoryRowUiModel mapCategory(CategoryBudgetSummary c) {
