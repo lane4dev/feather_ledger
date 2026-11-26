@@ -1505,6 +1505,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Added 1 overdue bill to review} other{Added {count} overdue bills to review}}'**
   String overdueBillsAdded(int count);
 
+  /// Session banner note explaining that historical backfill capped older dormant occurrences
+  ///
+  /// In en, this message translates to:
+  /// **'Older long-dormant scheduled bills were skipped automatically.'**
+  String get overdueBillsTruncatedNotice;
+
+  /// Session banner note when startup auto-post circuit breaker pauses overdue bills for manual review
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Paused auto-post for 1 overdue bill — please review manually.} other{Paused auto-post for {count} overdue bills — please review manually.}}'**
+  String autoPostCircuitBreakerNotice(int count);
+
   /// No description provided for @repeatNever.
   ///
   /// In en, this message translates to:

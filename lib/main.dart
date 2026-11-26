@@ -125,12 +125,11 @@ void main() async {
   // The catch is not decoration: this is new work over user data on the
   // launch path, and one bad series row must not stop the ledger opening.
   try {
-    final materializedOverdue =
-        await container.read(recurringServiceProvider).materialize();
-    if (materializedOverdue > 0) {
+    final summary = await container.read(recurringServiceProvider).materialize();
+    if (summary.shouldNotifyUser) {
       container
-          .read(overdueMaterializationCountProvider.notifier)
-          .set(materializedOverdue);
+          .read(overdueMaterializationNoticeProvider.notifier)
+          .setMaterialization(summary);
     }
   } catch (e) {
     debugPrint('recurring catch-up failed: $e');
@@ -178,15 +177,20 @@ void main() async {
       unawaited(
         container
             .read(recurringServiceProvider)
-            .catchUpAutoPosted()
-            .then((posted) {
-          if (posted > 0) {
-            _showAutoPostSnackBar(container, posted);
+            .catchUpAutoPostedWithSummary()
+            .then((result) {
+          if (result.circuitBreakerTripped) {
+            container
+                .read(overdueMaterializationNoticeProvider.notifier)
+                .setCircuitBreakerLatched(result.circuitBreakerLatchedCount);
           }
-          return posted;
+          if (result.postedCount > 0) {
+            _showAutoPostSnackBar(container, result.postedCount);
+          }
+          return result;
         }).catchError((Object e) {
           debugPrint('recurring auto-post catch-up failed: $e');
-          return 0;
+          return AutoPostCatchUpResult.empty;
         }),
       );
     });

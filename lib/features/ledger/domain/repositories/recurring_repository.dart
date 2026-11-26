@@ -34,6 +34,8 @@ abstract class RecurringRepository {
 
   Future<void> markManualOnly(String id);
 
+  Future<int> markManualOnlyBatch(List<String> ids);
+
   Future<void> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff);
 
   Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff);

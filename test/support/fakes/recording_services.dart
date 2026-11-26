@@ -273,11 +273,19 @@ class RecordingRecurringService implements RecurringService {
       unitResult;
 
   @override
-  Future<int> materialize() async => 0;
+  Future<MaterializationSummary> materialize() async =>
+      MaterializationSummary.empty;
 
   @override
   Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async =>
       0;
+
+  @override
+  Future<AutoPostCatchUpResult> catchUpAutoPostedWithSummary({
+    String? accountId,
+    String? seriesId,
+  }) async =>
+      AutoPostCatchUpResult.empty;
 
   @override
   int takeLastAutoPostedCount() => 0;

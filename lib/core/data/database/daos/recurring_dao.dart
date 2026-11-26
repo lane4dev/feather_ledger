@@ -111,6 +111,13 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       (update(scheduledTransactionsView)..where((t) => t.id.equals(id))).write(
           const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
 
+  Future<int> markManualOnlyBatch(List<String> ids) {
+    if (ids.isEmpty) return Future.value(0);
+    return (update(scheduledTransactionsView)..where((t) => t.id.isIn(ids)))
+        .write(
+            const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
+  }
+
   Future<int> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff) =>
       (update(scheduledTransactionsView)
             ..where((t) =>

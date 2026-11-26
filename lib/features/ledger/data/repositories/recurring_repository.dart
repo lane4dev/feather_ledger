@@ -185,6 +185,10 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<void> markManualOnly(String id) => _recurringDao.markManualOnly(id);
 
   @override
+  Future<int> markManualOnlyBatch(List<String> ids) =>
+      _recurringDao.markManualOnlyBatch(ids);
+
+  @override
   Future<void> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff) =>
       _recurringDao.markSeriesManualOnlyBefore(seriesId, cutoff);
 

@@ -873,6 +873,15 @@ class FakeAppLocalizations implements AppLocalizations {
       : 'Added $count overdue bills to review';
 
   @override
+  String get overdueBillsTruncatedNotice =>
+      'Older long-dormant scheduled bills were skipped automatically.';
+
+  @override
+  String autoPostCircuitBreakerNotice(int count) => count == 1
+      ? 'Paused auto-post for 1 overdue bill — please review manually.'
+      : 'Paused auto-post for $count overdue bills — please review manually.';
+
+  @override
   String get repeatNever => 'Does not repeat';
 
   @override

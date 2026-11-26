@@ -9,6 +9,7 @@ import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.d
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/mappers/transaction_ui_mapper.dart';
+import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/show_transaction_detail_sheet.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -99,7 +100,14 @@ class _ReminderResponseHandlerState
       return;
     }
     try {
-      await ref.read(recurringServiceProvider).catchUpAutoPosted();
+      final result = await ref
+          .read(recurringServiceProvider)
+          .catchUpAutoPostedWithSummary();
+      if (mounted && result.circuitBreakerTripped) {
+        ref
+            .read(overdueMaterializationNoticeProvider.notifier)
+            .setCircuitBreakerLatched(result.circuitBreakerLatchedCount);
+      }
     } catch (error) {
       debugPrint('Deferred recurring auto-post failed: $error');
     }

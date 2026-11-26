@@ -208,8 +208,10 @@ void main() {
 
       // Re-running materialize() is completely idempotent.
       final idsBefore = all.map((b) => b.id).toSet();
-      expect(await harness.recurringService.materialize(), 0);
-      expect(await harness.recurringService.materialize(), 0);
+      expect(await harness.recurringService.materialize(),
+          MaterializationSummary.empty);
+      expect(await harness.recurringService.materialize(),
+          MaterializationSummary.empty);
       final idsAfter = (await pending()).map((b) => b.id).toSet();
       expect(idsAfter, idsBefore);
     });
@@ -338,7 +340,8 @@ void main() {
             b.date.weekday == DateTime.saturday),
         isTrue,
       );
-      expect(await harness.recurringService.materialize(), 0);
+      expect(await harness.recurringService.materialize(),
+          MaterializationSummary.empty);
       expect(await pending(), hasLength(10));
     });
 
@@ -720,7 +723,8 @@ void main() {
       expect(overdue, hasLength(41));
       expect(overdue.first.date, start);
       expect(overdue.last.date, fromNow(0));
-      expect(await harness.recurringService.materialize(), 0);
+      expect(await harness.recurringService.materialize(),
+          MaterializationSummary.empty);
     });
 
     test(
@@ -761,10 +765,168 @@ void main() {
         ),
       );
 
-      final firstCount = await harness.recurringService.materialize();
-      expect(firstCount, 41);
-      final secondCount = await harness.recurringService.materialize();
-      expect(secondCount, 0);
+      final firstSummary = await harness.recurringService.materialize();
+      expect(firstSummary.newlyMaterializedOverdueCount, 41);
+      expect(firstSummary.hasTruncatedHistory, isFalse);
+      final secondSummary = await harness.recurringService.materialize();
+      expect(secondSummary, MaterializationSummary.empty);
+    });
+
+    test(
+        '2-year dormant DAILY series caps Phase 0 backfill at 100 most-recent occurrences, sets hasTruncatedHistory, and stays idempotent',
+        () async {
+      await seedAccountAndCategory(CategoryType.expense);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      final categoryId = await harness.userCategoryId();
+
+      await harness.db.recurringDao.saveSeries(
+        RecurringSeriesCompanion.insert(
+          id: 'dormant-2y-daily',
+          type: RecurringSeriesKind.expense,
+          mode: const Value(RecurringSeriesMode.repeating),
+          amountMinor: 100,
+          accountId: account.id,
+          categoryId: categoryId,
+          description: '2-year daily',
+          rrule: 'FREQ=DAILY',
+          frequency: 'DAILY',
+          startDate: DateTime(2024, 11, 26, 9, 0),
+          autoPost: const Value(false),
+        ),
+      );
+
+      final first = await harness.recurringService.materialize();
+      expect(first.newlyMaterializedOverdueCount, 100);
+      expect(first.hasTruncatedHistory, isTrue);
+
+      final all = (await pending())
+          .where((b) => b.seriesId == 'dormant-2y-daily')
+          .toList();
+      final overdue = all.where((b) => !b.date.isAfter(fixedNow)).toList();
+      expect(overdue, hasLength(100));
+      // 100 most recent days ending on 2026-11-26 is 2026-08-19 .. 2026-11-26.
+      expect(overdue.first.occurrenceKey, '2026-08-19');
+      expect(overdue.last.occurrenceKey, '2026-11-26');
+
+      // Re-running materialize() must insert zero rows and not re-flag truncation.
+      final second = await harness.recurringService.materialize();
+      expect(second, MaterializationSummary.empty);
+      final overdueAfter = (await pending())
+          .where((b) =>
+              b.seriesId == 'dormant-2y-daily' && !b.date.isAfter(fixedNow))
+          .toList();
+      expect(overdueAfter, hasLength(100));
+    });
+
+    test(
+        '2-year dormant MONTHLY series caps Phase 0 backfill at 12 calendar months and sets hasTruncatedHistory',
+        () async {
+      await seedAccountAndCategory(CategoryType.expense);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      final categoryId = await harness.userCategoryId();
+
+      await harness.db.recurringDao.saveSeries(
+        RecurringSeriesCompanion.insert(
+          id: 'dormant-2y-monthly',
+          type: RecurringSeriesKind.expense,
+          mode: const Value(RecurringSeriesMode.repeating),
+          amountMinor: 5000,
+          accountId: account.id,
+          categoryId: categoryId,
+          description: '2-year monthly',
+          rrule: 'FREQ=MONTHLY',
+          frequency: 'MONTHLY',
+          startDate: DateTime(2024, 11, 15, 9, 0),
+          autoPost: const Value(false),
+        ),
+      );
+
+      final first = await harness.recurringService.materialize();
+      expect(first.newlyMaterializedOverdueCount, 12);
+      expect(first.hasTruncatedHistory, isTrue);
+
+      final overdue = (await pending())
+          .where((b) =>
+              b.seriesId == 'dormant-2y-monthly' && !b.date.isAfter(fixedNow))
+          .toList();
+      expect(overdue, hasLength(12));
+      expect(overdue.first.occurrenceKey, '2025-12-15');
+      expect(overdue.last.occurrenceKey, '2026-11-15');
+
+      final second = await harness.recurringService.materialize();
+      expect(second, MaterializationSummary.empty);
+    });
+
+    test(
+        'active 2-year MONTHLY series with all earlier rows already posted does not flag hasTruncatedHistory',
+        () async {
+      await seedAccountAndCategory(CategoryType.expense);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      final categoryId = await harness.userCategoryId();
+
+      await harness.db.recurringDao.saveSeries(
+        RecurringSeriesCompanion.insert(
+          id: 'active-2y-monthly',
+          type: RecurringSeriesKind.expense,
+          mode: const Value(RecurringSeriesMode.repeating),
+          amountMinor: 5000,
+          accountId: account.id,
+          categoryId: categoryId,
+          description: 'Active monthly',
+          rrule: 'FREQ=MONTHLY',
+          frequency: 'MONTHLY',
+          startDate: DateTime(2024, 11, 15, 9, 0),
+          autoPost: const Value(false),
+        ),
+      );
+
+      // Seed every historical occurrence from 2024-11-15 through 2026-10-15 as posted,
+      // leaving only 2026-11-15 unmaterialized.
+      for (var i = 0; i < 24; i++) {
+        final d = DateTime(2024, 11 + i, 15, 9, 0);
+        await harness.db.recurringDao.insertOrUpdateScheduled(
+          ScheduledTransactionsViewCompanion(
+            id: Value('posted-$i'),
+            seriesId: const Value('active-2y-monthly'),
+            occurrenceKey: Value(scheduledOccurrenceKey(d)),
+            scheduledDate: Value(d),
+            status: const Value('posted'),
+            manualOnly: const Value(false),
+          ),
+        );
+      }
+
+      final summary = await harness.recurringService.materialize();
+      expect(summary.newlyMaterializedOverdueCount, 1);
+      expect(summary.hasTruncatedHistory, isFalse);
+    });
+
+    test(
+        '2-year dormant autoPost series sets hasTruncatedHistory while keeping manual overdue count at 0',
+        () async {
+      await seedAccountAndCategory(CategoryType.expense);
+      final account = (await harness.db.accountDao.getAllAccounts()).single;
+      final categoryId = await harness.userCategoryId();
+
+      await harness.db.recurringDao.saveSeries(
+        RecurringSeriesCompanion.insert(
+          id: 'dormant-2y-auto',
+          type: RecurringSeriesKind.expense,
+          mode: const Value(RecurringSeriesMode.repeating),
+          amountMinor: 500,
+          accountId: account.id,
+          categoryId: categoryId,
+          description: 'Dormant auto',
+          rrule: 'FREQ=DAILY',
+          frequency: 'DAILY',
+          startDate: DateTime(2024, 11, 26, 9, 0),
+          autoPost: const Value(true),
+        ),
+      );
+
+      final summary = await harness.recurringService.materialize();
+      expect(summary.newlyMaterializedOverdueCount, 0);
+      expect(summary.hasTruncatedHistory, isTrue);
     });
 
     test(
