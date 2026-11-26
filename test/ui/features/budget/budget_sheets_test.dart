@@ -594,6 +594,21 @@ void main() {
         findsOneWidget);
     expect(tester.getTopLeft(find.text('4 items')).dx,
         greaterThan(tester.getTopRight(find.text('Dining spending')).dx));
+    // The count and total sit on the title's bottom edge, all in bold.
+    final titleBottom = tester.getBottomLeft(find.text('Dining spending')).dy;
+    expect(tester.getBottomLeft(find.text('4 items')).dy,
+        closeTo(titleBottom, 0.5));
+    expect(tester.getBottomLeft(find.text('Total \$558.33')).dy,
+        closeTo(titleBottom, 0.5));
+    for (final text in [
+      'Dining spending',
+      '4 items',
+      'Total \$558.33',
+    ]) {
+      expect(tester.widget<Text>(find.text(text)).style?.fontWeight,
+          FontWeight.w700,
+          reason: text);
+    }
     expect(find.text('Pending'), findsOneWidget);
     expect(find.text('1 item · \$25.00'), findsOneWidget);
     expect(find.text('Posted'), findsOneWidget);

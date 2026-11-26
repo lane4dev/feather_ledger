@@ -658,6 +658,7 @@ class _ContributionsAppBarTitle extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final row = this.row;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Flexible(
           child: Text(
@@ -666,6 +667,10 @@ class _ContributionsAppBarTitle extends StatelessWidget {
                 : l10n.budgetCategorySpendingTitle(row.name),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         if (row != null) ...[
@@ -676,15 +681,20 @@ class _ContributionsAppBarTitle extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     l10n.budgetContributionCount(row.allContributions.length),
-                    style: AppTypography.meta(context),
+                    style: AppTypography.meta(context).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   SizedBox(width: context.spacing.xs / 2),
                   Text(
                     l10n.budgetContributionTotal(row.contributionsTotalDisplay),
-                    style: AppTypography.compactAmount(context),
+                    style: AppTypography.compactAmount(context).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
