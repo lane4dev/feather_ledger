@@ -880,4 +880,300 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.lastAmountMinor, 100000);
   });
+  testWidgets('the sheet header, amount and full-width scope align at 320dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final service = _StubBudgetService(buildSummary());
+    const row = BudgetCategoryRowUiModel(
+      categoryId: 'dining',
+      name: 'Dining',
+      titleDisplay: 'Dining · May 2026',
+      iconKey: 'utensils',
+      colorInt: 0xFFE65100,
+      archived: false,
+      isBudgetEditable: true,
+      budgetMinor: 100000,
+      lastMonthActualMinor: 80000,
+      threeMonthAvgMinor: 75000,
+      committedBaselineMinor: 15000,
+      budgetDisplay: '\$1000.00',
+      actualDisplay: '\$200.00',
+      pendingDisplay: null,
+      varianceDisplay: null,
+      isOverBudget: false,
+      committedActualDisplay: '\$150.00',
+      discretionaryActualDisplay: '\$50.00',
+      committedBaselineDisplay: '\$150.00',
+      lastMonthActualDisplay: '\$800.00',
+      threeMonthAvgDisplay: '\$750.00',
+      actualProgress: 0.2,
+      pendingProgress: 0,
+      riskLevel: BudgetRiskLevel.inBudget,
+      isAnomaly: false,
+      anomalyPercent: null,
+      trend6Months: [],
+      topContributions: [],
+      reviewNote: null,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [budgetServiceProvider.overrideWithValue(service)],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: BudgetEditSheet(
+              row: row,
+              currencyCode: 'USD',
+              currencySymbol: '\$',
+              month: YearMonth(2026, 5),
+              isHistoricalMonth: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // A 28dp circular badge, the category-led title and the month context.
+    expect(find.text('Dining budget'), findsOneWidget);
+    expect(find.text('May 2026'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('budget-sheet-avatar'))),
+      const Size(28, 28),
+    );
+    expect(
+      (tester
+              .widget<Container>(
+                  find.byKey(const ValueKey('budget-sheet-avatar')))
+              .decoration! as BoxDecoration)
+          .shape,
+      BoxShape.circle,
+    );
+
+    // The reference chips never wrap to a second line.
+    expect(
+        find.byKey(const ValueKey('budget-reference-chips')), findsOneWidget);
+    expect(
+      tester
+          .widget<SingleChildScrollView>(
+              find.byKey(const ValueKey('budget-reference-chips')))
+          .scrollDirection,
+      Axis.horizontal,
+    );
+
+    // The amount borrows the neutral colour, and the field carries controls
+    // that suppress selection droplets while keeping the caret.
+    final field = tester.widget<TextField>(find.descendant(
+      of: find.byType(LedgerAmountInput),
+      matching: find.byType(TextField),
+    ));
+    expect(field.selectionControls, isNotNull);
+    expect(
+      tester
+          .widget<Text>(find.descendant(
+              of: find.byType(LedgerAmountInput), matching: find.text('\$ ')))
+          .style!
+          .fontSize,
+      lessThan(Theme.of(tester.element(find.byType(LedgerAmountInput)))
+          .textTheme
+          .displayMedium!
+          .fontSize!),
+    );
+
+    // The scope switch and the save button share both edges.
+    final scopeWidth = tester
+        .getSize(find.byKey(const ValueKey('budget-scope-selector')))
+        .width;
+    final saveWidth =
+        tester.getSize(find.widgetWithText(AppButton, 'Save')).width;
+    expect(scopeWidth, closeTo(saveWidth, 0.5));
+  });
+
+  testWidgets('the keyboard leaves the amount controls on screen',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.resetViewInsets);
+
+    final service = _StubBudgetService(buildSummary());
+    const row = BudgetCategoryRowUiModel(
+      categoryId: 'dining',
+      name: 'Dining',
+      titleDisplay: 'Dining · May 2026',
+      iconKey: 'utensils',
+      colorInt: 0xFFE65100,
+      archived: false,
+      isBudgetEditable: true,
+      budgetMinor: 100000,
+      budgetDisplay: '\$1000.00',
+      actualDisplay: '\$200.00',
+      pendingDisplay: null,
+      varianceDisplay: null,
+      isOverBudget: false,
+      committedActualDisplay: '\$0.00',
+      discretionaryActualDisplay: '\$200.00',
+      committedBaselineDisplay: '\$0.00',
+      lastMonthActualDisplay: '\$800.00',
+      threeMonthAvgDisplay: '\$750.00',
+      lastMonthActualMinor: 80000,
+      threeMonthAvgMinor: 75000,
+      committedBaselineMinor: 0,
+      actualProgress: 0.2,
+      pendingProgress: 0,
+      riskLevel: BudgetRiskLevel.inBudget,
+      isAnomaly: false,
+      anomalyPercent: null,
+      trend6Months: [],
+      topContributions: [],
+      reviewNote: null,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [budgetServiceProvider.overrideWithValue(service)],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: BudgetEditSheet(
+              row: row,
+              currencyCode: 'USD',
+              currencySymbol: '\$',
+              month: YearMonth(2026, 5),
+              isHistoricalMonth: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.text('Save')).bottom,
+      lessThanOrEqualTo(800 - 320),
+    );
+  });
+  testWidgets('the clear dialog shows a warning icon and bolds the amount',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary());
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+    await openClearDialog(tester);
+
+    expect(find.byIcon(LucideIcons.trash2), findsOneWidget);
+
+    List<String> boldParts(String sentence) {
+      final rich = tester.widget<RichText>(find.byWidgetPredicate((widget) =>
+          widget is RichText && widget.text.toPlainText().contains(sentence)));
+      final parts = <String>[];
+      void walk(InlineSpan span) {
+        if (span is TextSpan) {
+          if (span.style?.fontWeight == FontWeight.w700) {
+            parts.add(span.text ?? '');
+          }
+          for (final child in span.children ?? const <InlineSpan>[]) {
+            walk(child);
+          }
+        }
+      }
+
+      walk(rich.text as TextSpan);
+      return parts;
+    }
+
+    // This-month copy names the amount in bold, and the sentence keeps the
+    // same wording the domain's delete contract promises.
+    expect(boldParts('Dining budget for May 2026'), contains('\$1000.00'));
+
+    await tester.tap(find.text('This & following months'));
+    await tester.pumpAndSettle();
+    expect(boldParts('May 2026 onward'), contains('\$1000.00'));
+  });
+  testWidgets('the sheet keeps its tonal hierarchy in the dark theme',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final service = _StubBudgetService(buildSummary());
+    const row = BudgetCategoryRowUiModel(
+      categoryId: 'dining',
+      name: 'Dining',
+      titleDisplay: 'Dining · May 2026',
+      iconKey: 'utensils',
+      colorInt: 0xFFE65100,
+      archived: false,
+      isBudgetEditable: true,
+      budgetMinor: 100000,
+      budgetDisplay: '\$1000.00',
+      actualDisplay: '\$200.00',
+      pendingDisplay: null,
+      varianceDisplay: null,
+      isOverBudget: false,
+      committedActualDisplay: '\$0.00',
+      discretionaryActualDisplay: '\$200.00',
+      committedBaselineDisplay: '\$0.00',
+      lastMonthActualDisplay: '\$800.00',
+      threeMonthAvgDisplay: '\$750.00',
+      lastMonthActualMinor: 80000,
+      threeMonthAvgMinor: 75000,
+      committedBaselineMinor: 15000,
+      actualProgress: 0.2,
+      pendingProgress: 0,
+      riskLevel: BudgetRiskLevel.inBudget,
+      isAnomaly: false,
+      anomalyPercent: null,
+      trend6Months: [],
+      topContributions: [],
+      reviewNote: null,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [budgetServiceProvider.overrideWithValue(service)],
+        child: MaterialApp(
+          theme: AppTheme.darkTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: BudgetEditSheet(
+              row: row,
+              currencyCode: 'USD',
+              currencySymbol: '\$',
+              month: YearMonth(2026, 5),
+              isHistoricalMonth: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scheme = AppTheme.darkTheme.colorScheme;
+    final selector = tester.widget<SegmentedButton<BudgetEditScope>>(
+        find.byKey(const ValueKey('budget-scope-selector')));
+    expect(
+      selector.style!.backgroundColor!.resolve({WidgetState.selected}),
+      scheme.secondaryContainer,
+    );
+    expect(
+      selector.style!.backgroundColor!.resolve(const <WidgetState>{}),
+      scheme.surfaceContainerHighest,
+    );
+    expect(find.text('Dining budget'), findsOneWidget);
+  });
 }

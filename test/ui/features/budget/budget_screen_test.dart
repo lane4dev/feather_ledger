@@ -337,7 +337,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dining'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Set Category Budget'), findsOneWidget);
+    expect(find.text('Dining budget'), findsOneWidget);
     expect(find.byType(BudgetCategoryDetailScreen), findsNothing);
   });
 
@@ -377,7 +377,7 @@ void main() {
       find.descendant(of: sheet, matching: find.text('Utilities')),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Set Category Budget'), findsOneWidget);
+    expect(find.text('Utilities budget'), findsOneWidget);
   });
 
   testWidgets('the + action disappears when no category lacks a budget',

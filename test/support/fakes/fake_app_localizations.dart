@@ -1190,6 +1190,8 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetEditTitle => 'Set Category Budget';
+  @override
+  String budgetSheetCategoryTitle(String category) => '$category budget';
 
   @override
   String get budgetAmountLabel => 'Monthly limit';

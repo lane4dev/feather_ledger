@@ -1009,6 +1009,10 @@
     "placeholders": { "amount": { "type": "String" } }
   },
   "budgetRowAnomalySemantics": "Unusually high against its three-month average",
+  "budgetSheetCategoryTitle": "{category} budget",
+  "@budgetSheetCategoryTitle": {
+    "placeholders": { "category": { "type": "String" } }
+  },
   "budgetEditTitle": "Set Category Budget",
   "budgetAmountLabel": "Monthly limit",
   "budgetLastMonthRef": "Last mo {amount}",

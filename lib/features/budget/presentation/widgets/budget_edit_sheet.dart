@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
-import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/app/design_system/app_sheet_handle.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
@@ -18,6 +19,7 @@ import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import '../../domain/value_objects/budget_value_objects.dart';
 import '../models/budget_ui_models.dart';
 import '../view_model/budget_view_model.dart';
+import 'budget_scope_selector.dart';
 
 Future<void> showBudgetEditSheet(
   BuildContext context, {
@@ -101,8 +103,7 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
         setState(() => _loadingFutureCheck = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                code.message(AppLocalizations.of(context)!)),
+            content: Text(code.message(AppLocalizations.of(context)!)),
           ),
         );
     }
@@ -185,144 +186,246 @@ class _BudgetEditSheetState extends ConsumerState<BudgetEditSheet> {
         spacing.lg,
         spacing.lg + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const AppSheetHandle(),
-          Row(
-            children: [
-              AppIconButton(
-                icon: const Icon(LucideIcons.x),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              SizedBox(width: spacing.xs),
-              CategoryIcon(
-                iconKey: widget.row.iconKey,
-                size: context.metrics.iconSize,
-                color: Color(widget.row.colorInt),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const AppSheetHandle(),
+            Row(
+              children: [
+                AppIconButton(
+                  icon: const Icon(LucideIcons.x),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                SizedBox(width: spacing.xs),
+                Container(
+                  key: const ValueKey('budget-sheet-avatar'),
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color.lerp(scheme.surfaceContainerLow,
+                        Color(widget.row.colorInt), 0.14),
+                  ),
+                  child: CategoryIcon(
+                    iconKey: widget.row.iconKey,
+                    size: 15,
+                    color: Color(widget.row.colorInt),
+                  ),
+                ),
+                SizedBox(width: spacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.budgetSheetCategoryTitle(widget.row.name),
+                    style: AppTypography.sectionTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(width: spacing.xs),
+                _MonthPill(month: widget.month),
+              ],
+            ),
+            if (widget.isHistoricalMonth) ...[
+              SizedBox(height: spacing.sm),
+              Container(
+                padding: EdgeInsets.all(spacing.sm),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerLow,
+                  borderRadius: context.metrics.controlBorderRadius,
+                ),
                 child: Text(
-                  '${l10n.budgetEditTitle} · ${widget.row.name}',
-                  style: AppTypography.sectionTitle(context),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  l10n.budgetHistoryEditHint,
+                  style: AppTypography.meta(context),
                 ),
               ),
             ],
-          ),
-          if (widget.isHistoricalMonth) ...[
-            SizedBox(height: spacing.sm),
-            Container(
-              padding: EdgeInsets.all(spacing.sm),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
-                borderRadius: context.metrics.controlBorderRadius,
-              ),
-              child: Text(
-                l10n.budgetHistoryEditHint,
-                style: AppTypography.meta(context),
-              ),
-            ),
-          ],
-          SizedBox(height: spacing.md),
-          Center(
-            child: Column(
-              children: [
-                Text(l10n.budgetAmountLabel,
-                    style: AppTypography.meta(context)),
-                SizedBox(height: spacing.xs),
-                LedgerAmountInput(
-                  controller: _controller,
-                  type: TransactionKind.expense,
-                  currencySymbol: widget.currencySymbol,
-                  autofocus: true,
-                  onChanged: (_) => setState(() {}),
-                ),
-                if (isExplicitZero) ...[
-                  SizedBox(height: spacing.xs),
-                  Text(
-                    l10n.budgetZeroAmountHint,
-                    style: AppTypography.compactLabel(context)
-                        .copyWith(color: scheme.error),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (widget.row.lastMonthActualDisplay != null ||
-              widget.row.threeMonthAvgDisplay != null ||
-              widget.row.committedBaselineMinor > 0) ...[
             SizedBox(height: spacing.md),
-            Wrap(
-              spacing: spacing.sm,
-              runSpacing: spacing.xs,
-              alignment: WrapAlignment.center,
-              children: [
-                if (widget.row.lastMonthActualDisplay != null &&
-                    (widget.row.lastMonthActualMinor ?? 0) > 0)
-                  ActionChip(
-                    label: Text(l10n.budgetLastMonthRef(
-                        widget.row.lastMonthActualDisplay!)),
-                    onPressed: () =>
-                        _fillBaseline(widget.row.lastMonthActualMinor!),
+            Center(
+              child: Column(
+                children: [
+                  Text(l10n.budgetAmountLabel,
+                      style: AppTypography.meta(context)),
+                  SizedBox(height: spacing.xs),
+                  LedgerAmountInput(
+                    controller: _controller,
+                    type: TransactionKind.transfer,
+                    currencySymbol: widget.currencySymbol,
+                    symbolStyle: AppTypography.amountInput(context).copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    selectionControls: _NoHandleSelectionControls(),
+                    autofocus: true,
+                    onChanged: (_) => setState(() {}),
                   ),
-                if (widget.row.threeMonthAvgDisplay != null &&
-                    (widget.row.threeMonthAvgMinor ?? 0) > 0)
-                  ActionChip(
-                    label: Text(l10n
-                        .budgetThreeMoAvgRef(widget.row.threeMonthAvgDisplay!)),
-                    onPressed: () =>
-                        _fillBaseline(widget.row.threeMonthAvgMinor!),
-                  ),
-                if (widget.row.committedBaselineMinor > 0)
-                  ActionChip(
-                    label: Text(l10n.budgetCommittedRef(
-                        widget.row.committedBaselineDisplay)),
-                    onPressed: () =>
-                        _fillBaseline(widget.row.committedBaselineMinor),
-                  ),
-              ],
+                  if (isExplicitZero) ...[
+                    SizedBox(height: spacing.xs),
+                    Text(
+                      l10n.budgetZeroAmountHint,
+                      style: AppTypography.compactLabel(context)
+                          .copyWith(color: scheme.error),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
-          if (!_loadingFutureCheck && _needsScopePicker) ...[
-            SizedBox(height: spacing.lg),
-            Text(l10n.budgetScopeLabel, style: AppTypography.meta(context)),
-            SizedBox(height: spacing.xs),
-            AppSegmentedControl<BudgetEditScope>(
-              segments: [
-                ButtonSegment(
-                  value: BudgetEditScope.thisMonthOnly,
-                  label: Text(l10n.budgetScopeThisMonth),
-                ),
-                ButtonSegment(
-                  value: BudgetEditScope.thisAndFollowing,
-                  label: Text(l10n.budgetScopeThisAndFollowing),
-                ),
-              ],
-              selected: _scope,
-              onSelected: (next) => setState(() => _scope = next),
-            ),
-            if (_hasFutureRules && _scope == BudgetEditScope.thisAndFollowing)
-              Padding(
-                padding: EdgeInsets.only(top: spacing.xs),
-                child: Text(
-                  l10n.budgetScopeFutureOverrideWarning,
-                  style: AppTypography.compactLabel(context)
-                      .copyWith(color: context.colors.expense),
+            if (widget.row.lastMonthActualDisplay != null ||
+                widget.row.threeMonthAvgDisplay != null ||
+                widget.row.committedBaselineMinor > 0) ...[
+              const SizedBox(height: 18),
+              SingleChildScrollView(
+                key: const ValueKey('budget-reference-chips'),
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (widget.row.lastMonthActualDisplay != null &&
+                        (widget.row.lastMonthActualMinor ?? 0) > 0) ...[
+                      _ReferenceChip(
+                        label: l10n.budgetLastMonthRef(
+                            widget.row.lastMonthActualDisplay!),
+                        onTap: () =>
+                            _fillBaseline(widget.row.lastMonthActualMinor!),
+                      ),
+                      SizedBox(width: spacing.sm),
+                    ],
+                    if (widget.row.threeMonthAvgDisplay != null &&
+                        (widget.row.threeMonthAvgMinor ?? 0) > 0) ...[
+                      _ReferenceChip(
+                        label: l10n.budgetThreeMoAvgRef(
+                            widget.row.threeMonthAvgDisplay!),
+                        onTap: () =>
+                            _fillBaseline(widget.row.threeMonthAvgMinor!),
+                      ),
+                      SizedBox(width: spacing.sm),
+                    ],
+                    if (widget.row.committedBaselineMinor > 0)
+                      _ReferenceChip(
+                        label: l10n.budgetCommittedRef(
+                            widget.row.committedBaselineDisplay),
+                        onTap: () =>
+                            _fillBaseline(widget.row.committedBaselineMinor),
+                      ),
+                  ],
                 ),
               ),
+            ],
+            if (!_loadingFutureCheck && _needsScopePicker) ...[
+              SizedBox(height: spacing.md),
+              Text(
+                l10n.budgetScopeLabel,
+                style: AppTypography.meta(context),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: spacing.xs),
+              BudgetScopeSelector(
+                value: _scope,
+                onChanged: (next) => setState(() => _scope = next),
+              ),
+              if (_hasFutureRules && _scope == BudgetEditScope.thisAndFollowing)
+                Padding(
+                  padding: EdgeInsets.only(top: spacing.xs),
+                  child: Text(
+                    l10n.budgetScopeFutureOverrideWarning,
+                    style: AppTypography.compactLabel(context)
+                        .copyWith(color: context.colors.expense),
+                  ),
+                ),
+            ],
+            SizedBox(height: spacing.lg),
+            AppButton(
+              onPressed: canSave ? _save : null,
+              child: Text(l10n.save),
+            ),
           ],
-          SizedBox(height: spacing.lg),
-          AppButton(
-            onPressed: canSave ? _save : null,
-            child: Text(l10n.save),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _MonthPill extends StatelessWidget {
+  const _MonthPill({required this.month});
+
+  final YearMonth month;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label =
+        DateFormat.yMMMM(Localizations.localeOf(context).toLanguageTag())
+            .format(DateTime(month.year, month.month));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 96),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferenceChip extends StatelessWidget {
+  const _ReferenceChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      label: Text(label),
+      labelStyle: Theme.of(context).textTheme.labelSmall,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      onPressed: onTap,
+    );
+  }
+}
+
+/// Hides the Android/iOS selection droplets while keeping the caret: the
+/// bubbles otherwise sit on top of the reference chips on a phone.
+class _NoHandleSelectionControls extends MaterialTextSelectionControls {
+  _NoHandleSelectionControls();
+
+  @override
+  Size getHandleSize(double textLineHeight) => Size.zero;
+
+  @override
+  Widget buildHandle(BuildContext context, TextSelectionHandleType type,
+          double textLineHeight,
+          [VoidCallback? onTap]) =>
+      const SizedBox.shrink();
+
+  @override
+  Widget buildToolbar(
+    BuildContext context,
+    Rect globalEditableRegion,
+    double textLineHeight,
+    Offset selectionMidpoint,
+    List<TextSelectionPoint> endpoints,
+    TextSelectionDelegate delegate,
+    ValueListenable<ClipboardStatus>? clipboardStatus,
+    Offset? lastSecondaryTapDownPosition,
+  ) =>
+      const SizedBox.shrink();
 }

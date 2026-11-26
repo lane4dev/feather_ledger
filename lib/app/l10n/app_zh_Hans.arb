@@ -835,6 +835,10 @@
   "budgetRowShare": "占本月总支出 {percent}",
   "budgetRowGroupSpent": "已消费 {amount}",
   "budgetRowAnomalySemantics": "波动明显高于近三月均值",
+  "budgetSheetCategoryTitle": "{category}预算",
+  "@budgetSheetCategoryTitle": {
+    "placeholders": { "category": { "type": "String" } }
+  },
   "budgetEditTitle": "设置分类预算",
   "budgetAmountLabel": "月度预算额度",
   "budgetLastMonthRef": "上月实际 {amount}",

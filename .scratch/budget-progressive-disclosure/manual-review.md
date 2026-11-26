@@ -278,3 +278,27 @@ the month picker.
   elevation, shadow, background or title-style override that contradicts the
   theme, and L1 / L2 / L3 use the same `titleLarge` app-bar title role.
 - [ ] pass  [ ] fail — notes:
+
+## 19. Category budget sheet and delete-budget dialog
+
+- Page: any budget row or L3 detail → `调预算` / `设预算`; and `⋮ → 删除预算`.
+  Check light and dark at 400 dp, 320 dp at 1.6x text, and 900 dp.
+- Sheet header: 28 dp circular tonal category badge, title `{分类名}预算`
+  (not `设置分类预算 · 分类`), and a small month pill (e.g. `2026年11月`) at
+  the right. Long names ellipsize; the pill never pushes the title off-screen.
+- Amount: digits are neutral `onSurface`, not expense orange; the currency
+  symbol is smaller and `onSurfaceVariant`. There is 18 dp between the amount
+  and the reference chips.
+- Reference chips (`上月实际`, `近3月均`, `固定底线`) stay on ONE horizontally
+  scrollable line. With the system number keyboard open, the caret's selection
+  droplet must not cover the chips; only the vertical caret is visible.
+- Scope switch: `仅本月 | 本月及以后` spans the full content width, uses a flat
+  `secondaryContainer` selection with no floating shadow, and lines up with
+  the `保存` button on both edges. At 320 dp/1.6x labels scale down rather than
+  clip.
+- Delete dialog: centred 40 dp `errorContainer` circle with a trash glyph;
+  Chinese title ends in a full-width `？`. The scope switch is the same
+  full-width flat control. The sentence switches live between this-month and
+  this-and-following wording, and the amount is bold. `删除预算` is a capsule
+  `errorContainer` button; `取消` stays a quiet text button.
+- [ ] pass  [ ] fail — notes:

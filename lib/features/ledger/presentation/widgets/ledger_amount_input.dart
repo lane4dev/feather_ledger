@@ -36,6 +36,13 @@ class LedgerAmountInput extends StatelessWidget {
   final bool autofocus;
   final String currencySymbol;
 
+  /// Overrides the unit's type size/weight without touching the digits.
+  final TextStyle? symbolStyle;
+
+  /// Forwarded to the field. The budget sheet uses it to hide the selection
+  /// droplets, which otherwise cover the reference chips below on a phone.
+  final TextSelectionControls? selectionControls;
+
   const LedgerAmountInput({
     super.key,
     required this.controller,
@@ -43,6 +50,8 @@ class LedgerAmountInput extends StatelessWidget {
     required this.type,
     this.autofocus = false,
     this.currencySymbol = '\$',
+    this.symbolStyle,
+    this.selectionControls,
   });
 
   /// At most two decimals, and a minus only where the number carries the
@@ -89,7 +98,7 @@ class LedgerAmountInput extends StatelessWidget {
           // not yet tapped — the symbol was simply absent.
           Text(
             '$currencySymbol ',
-            style: AppTypography.amountInput(context)
+            style: (symbolStyle ?? AppTypography.amountInput(context))
                 .copyWith(color: colorScheme.onSurfaceVariant),
           ),
           Flexible(
@@ -139,6 +148,7 @@ class LedgerAmountInput extends StatelessWidget {
                 }),
               ],
               textInputAction: TextInputAction.next,
+              selectionControls: selectionControls,
               onChanged: onChanged,
               validator: (value) {
                 if (value == null || value.isEmpty) return l10n.required;

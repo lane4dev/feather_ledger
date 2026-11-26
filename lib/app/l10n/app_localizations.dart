@@ -2465,6 +2465,12 @@ abstract class AppLocalizations {
   /// **'Unusually high against its three-month average'**
   String get budgetRowAnomalySemantics;
 
+  /// No description provided for @budgetSheetCategoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} budget'**
+  String budgetSheetCategoryTitle(String category);
+
   /// No description provided for @budgetEditTitle.
   ///
   /// In en, this message translates to:

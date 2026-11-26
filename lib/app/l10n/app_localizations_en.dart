@@ -1325,6 +1325,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unusually high against its three-month average';
 
   @override
+  String budgetSheetCategoryTitle(String category) {
+    return '$category budget';
+  }
+
+  @override
   String get budgetEditTitle => 'Set Category Budget';
 
   @override

@@ -1260,6 +1260,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetRowAnomalySemantics => '波动明显高于近三月均值';
 
   @override
+  String budgetSheetCategoryTitle(String category) {
+    return '$category预算';
+  }
+
+  @override
   String get budgetEditTitle => '设置分类预算';
 
   @override
@@ -2710,6 +2715,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetRowAnomalySemantics => '波动明显高于近三月均值';
 
   @override
+  String budgetSheetCategoryTitle(String category) {
+    return '$category预算';
+  }
+
+  @override
   String get budgetEditTitle => '设置分类预算';
 
   @override
@@ -4158,6 +4168,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetRowAnomalySemantics => '波動明顯高於近三月均值';
+
+  @override
+  String budgetSheetCategoryTitle(String category) {
+    return '$category預算';
+  }
 
   @override
   String get budgetEditTitle => '設定分類預算';

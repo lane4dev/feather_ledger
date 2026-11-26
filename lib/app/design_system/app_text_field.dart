@@ -36,6 +36,7 @@ class AppTextField extends StatelessWidget {
   final bool floatingLabel;
   final AppFieldVariant variant;
   final TextInputAction? textInputAction;
+  final TextSelectionControls? selectionControls;
 
   const AppTextField({
     super.key,
@@ -58,6 +59,7 @@ class AppTextField extends StatelessWidget {
     this.floatingLabel = false,
     this.variant = AppFieldVariant.filled,
     this.textInputAction,
+    this.selectionControls,
   }) : assert(initialValue == null || controller == null,
             'Pass initialValue or controller, not both');
 
@@ -97,6 +99,7 @@ class AppTextField extends StatelessWidget {
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
       textInputAction: textInputAction,
+      selectionControls: selectionControls,
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,

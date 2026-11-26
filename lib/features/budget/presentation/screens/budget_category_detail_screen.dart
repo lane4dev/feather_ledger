@@ -7,7 +7,6 @@ import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
-import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
@@ -23,6 +22,7 @@ import '../view_model/budget_view_model.dart';
 import '../widgets/budget_category_detail_sections.dart';
 import '../widgets/budget_edit_sheet.dart';
 import '../widgets/budget_note_card.dart';
+import '../widgets/budget_scope_selector.dart';
 import '../widgets/budget_trend_chart.dart';
 
 Future<void> showBudgetCategoryDetail(
@@ -128,31 +128,38 @@ class _BudgetCategoryDetailScreenState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          icon: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.errorContainer,
+            ),
+            child: Icon(
+              LucideIcons.trash2,
+              size: 20,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
           title: Text(l10n.budgetClearConfirmTitle(row.name)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  scope == BudgetEditScope.thisMonthOnly
+                BudgetScopeSelector(
+                  value: scope,
+                  onChanged: (value) => setDialogState(() => scope = value),
+                ),
+                SizedBox(height: context.spacing.md),
+                _ClearCopy(
+                  text: scope == BudgetEditScope.thisMonthOnly
                       ? l10n.budgetClearConfirmThisMonth(
                           monthLabel, row.name, budgetDisplay)
                       : l10n.budgetClearConfirmThisAndFollowing(
                           monthLabel, row.name, budgetDisplay),
-                ),
-                SizedBox(height: context.spacing.md),
-                AppSegmentedControl<BudgetEditScope>(
-                  segments: [
-                    ButtonSegment(
-                        value: BudgetEditScope.thisMonthOnly,
-                        label: Text(l10n.budgetScopeThisMonth)),
-                    ButtonSegment(
-                        value: BudgetEditScope.thisAndFollowing,
-                        label: Text(l10n.budgetScopeThisAndFollowing)),
-                  ],
-                  selected: scope,
-                  onSelected: (value) => setDialogState(() => scope = value),
+                  amount: budgetDisplay,
                 ),
                 if (futureRules.value &&
                     scope == BudgetEditScope.thisAndFollowing) ...[
@@ -282,9 +289,7 @@ class _BudgetCategoryDetailScreenState
                       Flexible(
                         child: Text(
                           row.name,
-                          style: Theme.of(context)
-                                  .appBarTheme
-                                  .titleTextStyle ??
+                          style: Theme.of(context).appBarTheme.titleTextStyle ??
                               Theme.of(context).textTheme.titleLarge,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -570,6 +575,35 @@ class _BudgetContributionsPage extends ConsumerWidget {
                         categoryName: row.name),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The scope sentence names the amount in passing; the number is the part the
+/// user is being asked to confirm, so it is set in bold.
+class _ClearCopy extends StatelessWidget {
+  const _ClearCopy({required this.text, required this.amount});
+
+  final String text;
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final index = text.indexOf(amount);
+    if (index < 0) return Text(text);
+    final style = Theme.of(context).textTheme.bodyMedium;
+    return Text.rich(
+      TextSpan(
+        style: style,
+        children: [
+          TextSpan(text: text.substring(0, index)),
+          TextSpan(
+            text: amount,
+            style: style?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          TextSpan(text: text.substring(index + amount.length)),
+        ],
       ),
     );
   }

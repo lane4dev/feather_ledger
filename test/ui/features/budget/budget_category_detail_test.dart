@@ -648,7 +648,7 @@ void main() {
 
     await tester.tap(find.text('Adjust budget'));
     await tester.pumpAndSettle();
-    expect(find.text('Set Category Budget · Dining'), findsOneWidget);
+    expect(find.text('Dining budget'), findsOneWidget);
   });
 
   testWidgets('the progress card headlines projected remaining with one bar',
