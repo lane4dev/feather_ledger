@@ -701,7 +701,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the app bar takes a shallow tint once the review scrolls',
+  testWidgets('one app bar surface while the review scrolls under it',
       (tester) async {
     await pumpReview(tester, size: const Size(400, 700));
     final appBar = find.byType(AppBar);
@@ -710,10 +710,10 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -320));
     await tester.pump();
 
-    final scheme = Theme.of(tester.element(appBar)).colorScheme;
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
     expect(
-      tester.widget<AppBar>(appBar).backgroundColor,
-      scheme.surfaceContainer,
+      Theme.of(tester.element(appBar)).appBarTheme.scrolledUnderElevation,
+      1.5,
     );
 
     await tester.drag(find.byType(ListView), const Offset(0, 400));

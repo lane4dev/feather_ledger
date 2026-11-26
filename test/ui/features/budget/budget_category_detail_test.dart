@@ -636,6 +636,16 @@ void main() {
     expect((avatar.decoration! as BoxDecoration).shape, BoxShape.circle);
     expect(find.text('Adjust budget'), findsOneWidget);
 
+    // The category name wears the same title role as every other app bar,
+    // and the bar leaves its surface to the shared theme.
+    final appBar = find.byType(AppBar);
+    final theme = Theme.of(tester.element(appBar));
+    final name = tester.widget<Text>(
+      find.descendant(of: appBar, matching: find.text('Dining')),
+    );
+    expect(name.style, theme.appBarTheme.titleTextStyle);
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
+
     await tester.tap(find.text('Adjust budget'));
     await tester.pumpAndSettle();
     expect(find.text('Set Category Budget · Dining'), findsOneWidget);

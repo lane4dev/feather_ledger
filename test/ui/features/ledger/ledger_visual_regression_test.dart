@@ -428,15 +428,14 @@ void main() {
       findsOneWidget,
     );
 
-    // Scroll down to collapse header and verify collapsed app-bar balance is also masked
-    // and SliverAppBar adopts M3 scrolledUnder surfaceContainer backing.
+    // Scroll down to collapse header and verify collapsed app-bar balance is
+    // also masked. The app bar keeps the theme surface; the shared theme adds
+    // the scrolled-under shadow instead of a local tint.
     controller.jumpTo(260);
     await tester.pumpAndSettle();
     final scrolledAppBar =
         tester.widget<SliverAppBar>(find.byType(SliverAppBar));
-    final ledgerScheme =
-        Theme.of(tester.element(find.byType(SliverAppBar))).colorScheme;
-    expect(scrolledAppBar.backgroundColor, ledgerScheme.surfaceContainer);
+    expect(scrolledAppBar.backgroundColor, isNull);
     // The bar carries no local elevation override: the shared theme supplies
     // the 1.5 scrolled-under shadow on both themes.
     expect(scrolledAppBar.scrolledUnderElevation, isNull);
@@ -458,7 +457,7 @@ void main() {
     controller.jumpTo(0);
     await tester.pumpAndSettle();
     final topAppBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
-    expect(topAppBar.backgroundColor, ledgerScheme.surface);
+    expect(topAppBar.backgroundColor, isNull);
     expect(topAppBar.scrolledUnderElevation, isNull);
     await tester.tap(find.byIcon(LucideIcons.eyeOff));
     await tester.pumpAndSettle();

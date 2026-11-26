@@ -17,7 +17,6 @@ import '../view_model/budget_view_model.dart';
 import '../widgets/budget_attribution_card.dart';
 import '../widgets/budget_month_note_card.dart';
 import '../widgets/budget_trend_chart.dart';
-import '../widgets/scrolled_tint_scaffold.dart';
 import 'budget_category_detail_screen.dart';
 
 /// Opens the L2 monthly review page on the root navigator.
@@ -85,9 +84,8 @@ class BudgetReviewScreen extends ConsumerWidget {
         DateFormat.yMMMM(Localizations.localeOf(context).toString())
             .format(month.toDateTime());
 
-    return ScrolledTintScaffold(
-      appBarBuilder: (context, scrolledUnder) => AppBar(
-        backgroundColor: scrolledUnder ? scheme.surfaceContainer : null,
+    return Scaffold(
+      appBar: AppBar(
         leading: AppIconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,

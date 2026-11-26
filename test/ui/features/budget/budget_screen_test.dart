@@ -765,19 +765,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the app bar takes a shallow tint once the month scrolls',
+  testWidgets('one app bar surface while the month scrolls under it',
       (tester) async {
     await pumpBudgetScreen(tester, service: FakeBudgetService());
     final appBar = find.byType(AppBar);
+    // No local background: the shared theme owns surface + scrolled shadow.
     expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
 
     await tester.drag(find.byType(ListView).first, const Offset(0, -320));
     await tester.pump();
 
-    final scheme = Theme.of(tester.element(appBar)).colorScheme;
+    expect(tester.widget<AppBar>(appBar).backgroundColor, isNull);
     expect(
-      tester.widget<AppBar>(appBar).backgroundColor,
-      scheme.surfaceContainer,
+      Theme.of(tester.element(appBar)).appBarTheme.scrolledUnderElevation,
+      1.5,
     );
 
     await tester.drag(find.byType(ListView).first, const Offset(0, 400));

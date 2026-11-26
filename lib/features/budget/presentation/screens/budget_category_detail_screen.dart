@@ -282,7 +282,11 @@ class _BudgetCategoryDetailScreenState
                       Flexible(
                         child: Text(
                           row.name,
-                          style: AppTypography.sectionTitle(context),
+                          style: Theme.of(context)
+                                  .appBarTheme
+                                  .titleTextStyle ??
+                              Theme.of(context).textTheme.titleLarge,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

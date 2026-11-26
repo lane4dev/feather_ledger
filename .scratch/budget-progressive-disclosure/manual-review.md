@@ -270,11 +270,11 @@ the month picker.
 - At rest: every app bar is flat — no shadow, no divider, and no grey
   `surfaceTint` wash over the page surface.
 - Scrolling: once content passes under the bar a single soft shadow appears
-  (`scrolledUnderElevation: 1.5`, light `shadow` at 12 %, dark at 35 %). It
-  fades in with the scroll instead of popping, and the ledger/budget bars keep
-  their shallow `surfaceContainer` tint. Text and cards are clipped cleanly at
-  the bar's lower edge — no text bleeds through.
-- Scrolling back to the top removes the shadow and restores the surface
-  background. No page carries a local elevation or shadow override that
-  contradicts the theme.
+  (`scrolledUnderElevation: 1.5`, light `shadow` at 12 %, dark at 35 %). Every
+  bar keeps the same `surface` background — no page paints a container tint —
+  and text/cards are clipped cleanly at the bar's lower edge, with no bleed
+  through.
+- Scrolling back to the top removes the shadow. No page carries a local
+  elevation, shadow, background or title-style override that contradicts the
+  theme, and L1 / L2 / L3 use the same `titleLarge` app-bar title role.
 - [ ] pass  [ ] fail — notes:

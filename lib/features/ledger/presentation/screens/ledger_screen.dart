@@ -30,7 +30,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
   bool _programmaticMonthChange = false;
   final _monthControllers = <DateTime, ScrollController>{};
   bool _collapsed = false;
-  bool _scrolled = false;
 
   void _resetEmptyMonth(DateTime month) {
     if (!mounted) return;
@@ -56,12 +55,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final controller = _monthControllers[month];
     final hasOffset = controller != null && controller.hasClients;
     final collapsed = hasOffset && controller.offset >= headerHeight - 0.5;
-    final scrolled = hasOffset && controller.offset > 0.5;
-    if (_collapsed != collapsed || _scrolled != scrolled) {
-      setState(() {
-        _collapsed = collapsed;
-        _scrolled = scrolled;
-      });
+    if (_collapsed != collapsed) {
+      setState(() => _collapsed = collapsed);
     }
   }
 
@@ -176,7 +171,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
         (_, __) {});
 
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
 
     // The ledger's own currency, the same one the header and the day totals
     // use — not the display preference, which the accounts may have outgrown.
@@ -201,8 +195,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
             // month switchers have to sit on the same x rather than one
             // centering and one hugging the gutter.
             centerTitle: false,
-            backgroundColor:
-                _scrolled ? scheme.surfaceContainer : scheme.surface,
             title: _collapsed
                 ? InkWell(
                     borderRadius: context.metrics.chipBorderRadius,
