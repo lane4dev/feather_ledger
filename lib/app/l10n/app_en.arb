@@ -721,6 +721,19 @@
       }
     }
   },
+  "overdueBillsTruncatedNotice": "Older long-dormant scheduled bills were skipped automatically.",
+  "@overdueBillsTruncatedNotice": {
+    "description": "Session banner note explaining that historical backfill capped older dormant occurrences"
+  },
+  "autoPostCircuitBreakerNotice": "{count, plural, =1{Paused auto-post for 1 overdue bill — please review manually.} other{Paused auto-post for {count} overdue bills — please review manually.}}",
+  "@autoPostCircuitBreakerNotice": {
+    "description": "Session banner note when startup auto-post circuit breaker pauses overdue bills for manual review",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "repeatNever": "Does not repeat",
   "repeatSetupFailed": "Saved. The repeat could not be set up: {error}",
   "@repeatSetupFailed": {

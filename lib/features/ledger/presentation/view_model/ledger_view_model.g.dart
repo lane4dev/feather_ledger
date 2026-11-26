@@ -593,72 +593,83 @@ final class LedgerMonthlySummaryFamily extends $Family
   String toString() => r'ledgerMonthlySummaryProvider';
 }
 
-/// Session-only count of overdue bills newly materialized at startup.
+/// Session-only startup notice for newly materialized overdue bills, dormant
+/// history truncation, and auto-post circuit breaker pauses.
 ///
 /// Kept purely in memory so dismissing hides the banner for the rest of the
 /// session without persisting extra UI flags or re-prompting on already
 /// materialized rows.
 
-@ProviderFor(OverdueMaterializationCount)
-final overdueMaterializationCountProvider =
-    OverdueMaterializationCountProvider._();
+@ProviderFor(OverdueMaterializationNotice)
+final overdueMaterializationNoticeProvider =
+    OverdueMaterializationNoticeProvider._();
 
-/// Session-only count of overdue bills newly materialized at startup.
+/// Session-only startup notice for newly materialized overdue bills, dormant
+/// history truncation, and auto-post circuit breaker pauses.
 ///
 /// Kept purely in memory so dismissing hides the banner for the rest of the
 /// session without persisting extra UI flags or re-prompting on already
 /// materialized rows.
-final class OverdueMaterializationCountProvider
-    extends $NotifierProvider<OverdueMaterializationCount, int> {
-  /// Session-only count of overdue bills newly materialized at startup.
+final class OverdueMaterializationNoticeProvider extends $NotifierProvider<
+    OverdueMaterializationNotice, OverdueMaterializationNoticeState> {
+  /// Session-only startup notice for newly materialized overdue bills, dormant
+  /// history truncation, and auto-post circuit breaker pauses.
   ///
   /// Kept purely in memory so dismissing hides the banner for the rest of the
   /// session without persisting extra UI flags or re-prompting on already
   /// materialized rows.
-  OverdueMaterializationCountProvider._()
+  OverdueMaterializationNoticeProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'overdueMaterializationCountProvider',
+          name: r'overdueMaterializationNoticeProvider',
           isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$overdueMaterializationCountHash();
+  String debugGetCreateSourceHash() => _$overdueMaterializationNoticeHash();
 
   @$internal
   @override
-  OverdueMaterializationCount create() => OverdueMaterializationCount();
+  OverdueMaterializationNotice create() => OverdueMaterializationNotice();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(int value) {
+  Override overrideWithValue(OverdueMaterializationNoticeState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<int>(value),
+      providerOverride:
+          $SyncValueProvider<OverdueMaterializationNoticeState>(value),
     );
   }
 }
 
-String _$overdueMaterializationCountHash() =>
-    r'0b1044c3a6be7e7025f6f896e47b881d1a080807';
+String _$overdueMaterializationNoticeHash() =>
+    r'9b5fd67ed34b993b9dcf6217e7580ec80aebbd58';
 
-/// Session-only count of overdue bills newly materialized at startup.
+/// Session-only startup notice for newly materialized overdue bills, dormant
+/// history truncation, and auto-post circuit breaker pauses.
 ///
 /// Kept purely in memory so dismissing hides the banner for the rest of the
 /// session without persisting extra UI flags or re-prompting on already
 /// materialized rows.
 
-abstract class _$OverdueMaterializationCount extends $Notifier<int> {
-  int build();
+abstract class _$OverdueMaterializationNotice
+    extends $Notifier<OverdueMaterializationNoticeState> {
+  OverdueMaterializationNoticeState build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<int, int>;
-    final element = ref.element
-        as $ClassProviderElement<AnyNotifier<int, int>, int, Object?, Object?>;
+    final ref = this.ref as $Ref<OverdueMaterializationNoticeState,
+        OverdueMaterializationNoticeState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<OverdueMaterializationNoticeState,
+            OverdueMaterializationNoticeState>,
+        OverdueMaterializationNoticeState,
+        Object?,
+        Object?>;
     return element.handleCreate(ref, build);
   }
 }

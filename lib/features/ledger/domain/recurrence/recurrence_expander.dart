@@ -183,6 +183,15 @@ class RecurrenceExpander {
     return endOfCalendarMonth(local.year, local.month + monthsAhead);
   }
 
+  /// First moment (`00:00:00`) of the earliest local calendar month covered by
+  /// a [maxMonths]-month historical backfill window inclusive of `now`'s month
+  /// (`startOfMonth(nowYm - (maxMonths - 1))`). With [maxMonths] = 12, this is
+  /// `startOfMonth(nowYm - 11)` (12 full calendar months).
+  static DateTime backfillFloorForMonth(DateTime now, {int maxMonths = 12}) {
+    final local = _asLocalWallTime(now);
+    return DateTime(local.year, local.month - (maxMonths - 1), 1);
+  }
+
   /// Canonical RRULE serializer using local civil `UNTIL=YYYYMMDD` and sorted
   /// deduplicated `BYDAY` entries.
   static String formatRrule({

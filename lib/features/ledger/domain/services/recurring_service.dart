@@ -23,9 +23,69 @@ import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.d
 import 'package:feather_ledger/features/ledger/domain/queries/get_scheduled_transaction_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 
+export 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart'
+    show MaterializationSummary;
+
 part 'recurring_service.g.dart';
 
+/// Structured outcome of an auto-post catch-up pass.
+class AutoPostCatchUpResult {
+  /// Number of eligible due bills posted in this pass.
+  final int postedCount;
+
+  /// Number of due bills strictly older than [RecurringService.autoPostMaxAge]
+  /// (30 days) downgraded to `manualOnly = true` instead of silently posting.
+  final int staleLatchedCount;
+
+  /// Number of recent due bills (within 30 days) downgraded to
+  /// `manualOnly = true` because the batch exceeded
+  /// [RecurringService.autoPostBulkBreakerLimit] (10 bills).
+  final int bulkLatchedCount;
+
+  const AutoPostCatchUpResult({
+    this.postedCount = 0,
+    this.staleLatchedCount = 0,
+    this.bulkLatchedCount = 0,
+  });
+
+  static const AutoPostCatchUpResult empty = AutoPostCatchUpResult();
+
+  /// Total due auto-post bills diverted to manual review by either circuit
+  /// breaker stage.
+  int get circuitBreakerLatchedCount => staleLatchedCount + bulkLatchedCount;
+
+  /// Whether either circuit breaker stage tripped in this pass.
+  bool get circuitBreakerTripped => circuitBreakerLatchedCount > 0;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AutoPostCatchUpResult &&
+          other.postedCount == postedCount &&
+          other.staleLatchedCount == staleLatchedCount &&
+          other.bulkLatchedCount == bulkLatchedCount;
+
+  @override
+  int get hashCode =>
+      Object.hash(postedCount, staleLatchedCount, bulkLatchedCount);
+
+  @override
+  String toString() =>
+      'AutoPostCatchUpResult(postedCount: $postedCount, '
+      'staleLatchedCount: $staleLatchedCount, '
+      'bulkLatchedCount: $bulkLatchedCount)';
+}
+
 class RecurringService {
+  /// Due auto-post bills strictly older than this duration are never silently
+  /// posted; they are latched `manualOnly = true` for manual review.
+  static const Duration autoPostMaxAge = Duration(days: 30);
+
+  /// Maximum number of recent due auto-post bills (within [autoPostMaxAge])
+  /// allowed to silently auto-post in one catch-up pass before the bulk
+  /// circuit breaker trips and latches them `manualOnly = true`.
+  static const int autoPostBulkBreakerLimit = 10;
+
   final CreateRecurringSeriesCommand _createSeries;
   final DeleteRecurringBillCommand _deleteBill;
   final UpdateRecurringBillCommand _updateBill;
@@ -166,13 +226,23 @@ class RecurringService {
         }
       });
 
-  Future<Result<void>> postInstance(String scheduledId,
-      {String? commandId}) async {
+  Future<Result<void>> postInstance(String scheduledId, {String? commandId}) =>
+      _postInstanceInternal(
+        scheduledId,
+        commandId: commandId,
+        materializeAfter: true,
+      );
+
+  Future<Result<void>> _postInstanceInternal(
+    String scheduledId, {
+    String? commandId,
+    required bool materializeAfter,
+  }) async {
     final result = await guard(() => _postInstance.execute(
           scheduledId,
           commandId: commandId ?? const Uuid().v4(),
         ));
-    if (result is Success<void>) {
+    if (result is Success<void> && materializeAfter) {
       try {
         await materialize();
       } catch (_) {
@@ -182,9 +252,28 @@ class RecurringService {
     return result;
   }
 
-  Future<int> materialize() => _materialize.execute();
+  Future<MaterializationSummary> materialize() => _materialize.execute();
 
-  Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async {
+  Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async =>
+      (await catchUpAutoPostedWithSummary(
+        accountId: accountId,
+        seriesId: seriesId,
+      ))
+          .postedCount;
+
+  /// Runs startup/save auto-post catch-up guarded by the two-stage circuit
+  /// breaker:
+  /// 1. Any due bill strictly older than 30 days (`effectiveDate < now - 30d`)
+  ///    is latched `manualOnly = true` and never silently posted.
+  /// 2. If more than 10 recent due bills remain within 30 days, the bulk
+  ///    circuit breaker trips and latches all of them `manualOnly = true`.
+  ///
+  /// Eligible bills are posted in one batch followed by a single
+  /// [materialize] pass to avoid O(N^2) materialization amplification.
+  Future<AutoPostCatchUpResult> catchUpAutoPostedWithSummary({
+    String? accountId,
+    String? seriesId,
+  }) async {
     final now = _clock.now();
     final currentCurrency = _preferences?.getCurrency();
     final scheduled = await _watchScheduled.execute().first;
@@ -204,7 +293,40 @@ class RecurringService {
     }).toList()
       ..sort((a, b) => a.effectiveDate.compareTo(b.effectiveDate));
 
-    return _postAutoDueInstances(due);
+    if (due.isEmpty) return AutoPostCatchUpResult.empty;
+
+    final staleCutoff = now.subtract(autoPostMaxAge);
+    final stale = <ScheduledTransactionEntity>[];
+    final recent = <ScheduledTransactionEntity>[];
+    for (final instance in due) {
+      if (instance.effectiveDate.isBefore(staleCutoff)) {
+        stale.add(instance);
+      } else {
+        recent.add(instance);
+      }
+    }
+
+    if (stale.isNotEmpty) {
+      await _recurringRepository
+          .markManualOnlyBatch(stale.map((i) => i.id).toList());
+    }
+
+    if (recent.length > autoPostBulkBreakerLimit) {
+      await _recurringRepository
+          .markManualOnlyBatch(recent.map((i) => i.id).toList());
+      return AutoPostCatchUpResult(
+        postedCount: 0,
+        staleLatchedCount: stale.length,
+        bulkLatchedCount: recent.length,
+      );
+    }
+
+    final posted = recent.isEmpty ? 0 : await _postAutoDueInstances(recent);
+    return AutoPostCatchUpResult(
+      postedCount: posted,
+      staleLatchedCount: stale.length,
+      bulkLatchedCount: 0,
+    );
   }
 
   /// Marks all scheduled instances across every currency with
@@ -247,9 +369,8 @@ class RecurringService {
     if (postAll) {
       return _postAutoDueInstances(backlog);
     }
-    for (final instance in backlog) {
-      await _recurringRepository.markManualOnly(instance.id);
-    }
+    await _recurringRepository
+        .markManualOnlyBatch(backlog.map((i) => i.id).toList());
     return 0;
   }
 
@@ -261,9 +382,10 @@ class RecurringService {
         await Future<void>.delayed(Duration.zero);
       }
       final instance = due[i];
-      final result = await postInstance(
+      final result = await _postInstanceInternal(
         instance.id,
         commandId: 'autopost-${instance.id}',
+        materializeAfter: false,
       );
       if (result case Success()) {
         posted++;
@@ -284,6 +406,13 @@ class RecurringService {
             transactionId: Value(instance.transactionId),
           ),
         );
+      }
+    }
+    if (posted > 0) {
+      try {
+        await materialize();
+      } catch (_) {
+        // Materialization is also retried on launch.
       }
     }
     return posted;

@@ -5,6 +5,7 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
+import '../../domain/commands/project_recurring_events_command.dart';
 import '../../domain/entities/ledger_entities.dart';
 import '../../domain/services/ledger_service.dart';
 
@@ -180,19 +181,85 @@ Stream<MonthlySummaryUiModel> ledgerMonthlySummary(Ref ref, DateTime month) {
       );
 }
 
-/// Session-only count of overdue bills newly materialized at startup.
+/// Immutable session-only startup notice state rendered by
+/// [OverdueMaterializationBanner].
+class OverdueMaterializationNoticeState {
+  final int overdueCount;
+  final bool hasTruncatedHistory;
+  final int circuitBreakerLatchedCount;
+
+  const OverdueMaterializationNoticeState({
+    this.overdueCount = 0,
+    this.hasTruncatedHistory = false,
+    this.circuitBreakerLatchedCount = 0,
+  });
+
+  static const OverdueMaterializationNoticeState empty =
+      OverdueMaterializationNoticeState();
+
+  bool get isVisible =>
+      overdueCount > 0 ||
+      hasTruncatedHistory ||
+      circuitBreakerLatchedCount > 0;
+
+  OverdueMaterializationNoticeState copyWith({
+    int? overdueCount,
+    bool? hasTruncatedHistory,
+    int? circuitBreakerLatchedCount,
+  }) =>
+      OverdueMaterializationNoticeState(
+        overdueCount: overdueCount ?? this.overdueCount,
+        hasTruncatedHistory: hasTruncatedHistory ?? this.hasTruncatedHistory,
+        circuitBreakerLatchedCount:
+            circuitBreakerLatchedCount ?? this.circuitBreakerLatchedCount,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OverdueMaterializationNoticeState &&
+          other.overdueCount == overdueCount &&
+          other.hasTruncatedHistory == hasTruncatedHistory &&
+          other.circuitBreakerLatchedCount == circuitBreakerLatchedCount;
+
+  @override
+  int get hashCode => Object.hash(
+        overdueCount,
+        hasTruncatedHistory,
+        circuitBreakerLatchedCount,
+      );
+}
+
+/// Session-only startup notice for newly materialized overdue bills, dormant
+/// history truncation, and auto-post circuit breaker pauses.
 ///
 /// Kept purely in memory so dismissing hides the banner for the rest of the
 /// session without persisting extra UI flags or re-prompting on already
 /// materialized rows.
 @Riverpod(keepAlive: true)
-class OverdueMaterializationCount extends _$OverdueMaterializationCount {
+class OverdueMaterializationNotice extends _$OverdueMaterializationNotice {
   @override
-  int build() => 0;
+  OverdueMaterializationNoticeState build() =>
+      OverdueMaterializationNoticeState.empty;
 
-  void set(int count) => state = count > 0 ? count : 0;
+  void setMaterialization(MaterializationSummary summary) {
+    final count = summary.newlyMaterializedOverdueCount > 0
+        ? summary.newlyMaterializedOverdueCount
+        : 0;
+    state = state.copyWith(
+      overdueCount: count,
+      hasTruncatedHistory: summary.hasTruncatedHistory,
+    );
+  }
 
-  void dismiss() => state = 0;
+  void setCircuitBreakerLatched(int count) {
+    if (count <= 0) return;
+    state = state.copyWith(
+      circuitBreakerLatchedCount: state.circuitBreakerLatchedCount + count,
+    );
+  }
+
+  void dismiss() => state = OverdueMaterializationNoticeState.empty;
 }
 
 @Riverpod(keepAlive: true)

@@ -10,18 +10,26 @@ import 'package:feather_ledger/app/theme/app_theme.dart';
 import '../view_model/ledger_view_model.dart';
 
 /// Session-only, dismissible banner shown at the top of the ledger when
-/// startup materialization adds newly discovered overdue recurring bills.
+/// startup materialization adds newly discovered overdue recurring bills,
+/// truncates long-dormant history, or trips the auto-post circuit breaker.
 class OverdueMaterializationBanner extends ConsumerWidget {
   const OverdueMaterializationBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(overdueMaterializationCountProvider);
-    if (count <= 0) return const SizedBox.shrink();
+    final notice = ref.watch(overdueMaterializationNoticeProvider);
+    if (!notice.isVisible) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final spacing = context.spacing;
+
+    final messages = <String>[
+      if (notice.overdueCount > 0) l10n.overdueBillsAdded(notice.overdueCount),
+      if (notice.hasTruncatedHistory) l10n.overdueBillsTruncatedNotice,
+      if (notice.circuitBreakerLatchedCount > 0)
+        l10n.autoPostCircuitBreakerNotice(notice.circuitBreakerLatchedCount),
+    ];
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -36,6 +44,7 @@ class OverdueMaterializationBanner extends ConsumerWidget {
           bottom: spacing.xs,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(
               LucideIcons.clock,
@@ -44,16 +53,31 @@ class OverdueMaterializationBanner extends ConsumerWidget {
             ),
             SizedBox(width: spacing.sm),
             Expanded(
-              child: Text(
-                l10n.overdueBillsAdded(count),
-                style: theme.textTheme.bodyMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    messages.first,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  for (final secondary in messages.skip(1)) ...[
+                    SizedBox(height: spacing.xs),
+                    Text(
+                      secondary,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             AppIconButton(
               icon: const Icon(LucideIcons.x, size: 18),
               tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
               onPressed: () => ref
-                  .read(overdueMaterializationCountProvider.notifier)
+                  .read(overdueMaterializationNoticeProvider.notifier)
                   .dismiss(),
             ),
           ],

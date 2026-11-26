@@ -763,6 +763,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get overdueBillsTruncatedNotice =>
+      'Older long-dormant scheduled bills were skipped automatically.';
+
+  @override
+  String autoPostCircuitBreakerNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Paused auto-post for $count overdue bills — please review manually.',
+      one: 'Paused auto-post for 1 overdue bill — please review manually.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get repeatNever => 'Does not repeat';
 
   @override

@@ -96,13 +96,25 @@ class _Recurring implements RecurringService {
 
   @override
   Future<int> catchUpAutoPosted({String? accountId, String? seriesId}) async {
+    return (await catchUpAutoPostedWithSummary(
+      accountId: accountId,
+      seriesId: seriesId,
+    ))
+        .postedCount;
+  }
+
+  @override
+  Future<AutoPostCatchUpResult> catchUpAutoPostedWithSummary({
+    String? accountId,
+    String? seriesId,
+  }) async {
     calls.add('catchup');
     if (bill.status == ScheduledTransactionStatus.scheduled) {
       bill = bill.copyWith(
           status: ScheduledTransactionStatus.posted, transactionId: 'tx');
-      return 1;
+      return const AutoPostCatchUpResult(postedCount: 1);
     }
-    return 0;
+    return AutoPostCatchUpResult.empty;
   }
 
   @override

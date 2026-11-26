@@ -660,6 +660,8 @@
   "transactionModeRepeating": "重複",
   "autoPostWhenDue": "自動入帳",
   "overdueBillsAdded": "新補齊了 {count} 筆已到期帳單",
+  "overdueBillsTruncatedNotice": "更早期的長期未處理排期已自動略過。",
+  "autoPostCircuitBreakerNotice": "已暫停 {count} 筆自動入帳帳單，請手動核對後記入。",
   "repeatNever": "不重複",
   "repeatSetupFailed": "已儲存。但重複規則建立失敗：{error}",
   "addAttachment": "新增附件",

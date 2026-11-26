@@ -11,6 +11,46 @@ import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expa
 
 part 'project_recurring_events_command.g.dart';
 
+/// Structured summary returned by [ProjectRecurringEventsCommand.execute].
+class MaterializationSummary {
+  /// Newly materialized overdue bills from manual (`!autoPost`) series that
+  /// need user review.
+  final int newlyMaterializedOverdueCount;
+
+  /// True when at least one active repeating series had older unmaterialized
+  /// historical occurrences skipped due to the 12-month / 100-row backfill
+  /// safety caps.
+  final bool hasTruncatedHistory;
+
+  const MaterializationSummary({
+    this.newlyMaterializedOverdueCount = 0,
+    this.hasTruncatedHistory = false,
+  });
+
+  static const MaterializationSummary empty = MaterializationSummary();
+
+  bool get shouldNotifyUser =>
+      newlyMaterializedOverdueCount > 0 || hasTruncatedHistory;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MaterializationSummary &&
+          other.newlyMaterializedOverdueCount ==
+              newlyMaterializedOverdueCount &&
+          other.hasTruncatedHistory == hasTruncatedHistory;
+
+  @override
+  int get hashCode =>
+      Object.hash(newlyMaterializedOverdueCount, hasTruncatedHistory);
+
+  @override
+  String toString() =>
+      'MaterializationSummary(newlyMaterializedOverdueCount: '
+      '$newlyMaterializedOverdueCount, '
+      'hasTruncatedHistory: $hasTruncatedHistory)';
+}
+
 /// Materializes physical occurrences of every active recurring series whose
 /// account is live (`!archived && !deleted`).
 ///
@@ -20,8 +60,10 @@ part 'project_recurring_events_command.g.dart';
 ///   `startDate`.
 /// - `repeating` series materialize:
 ///   1. Phase 0: unmaterialized historical overdue occurrences in
-///      `[materializeFrom, now]`, returning the count of newly inserted overdue
-///      rows whose series does NOT auto-post (`!series.autoPost`).
+///      `[max(materializeFrom, startOfMonth(nowYm - 11)), now]`, capped at the
+///      [maxBackfillPerSeries] (100) most recent occurrences per series.
+///      Returns newly inserted overdue rows for non-auto-post series and
+///      whether any older unmaterialized occurrences were truncated.
 ///   2. Phase 1: every missing occurrence in `(now, endOfMonth(nowYm + 2)]`
 ///      (current month + next 2 full calendar months), with no `maxKeep = 3`
 ///      cap and a safety valve of [maxUpcomingSafetyValve] (120) upcoming rows.
@@ -60,19 +102,33 @@ class ProjectRecurringEventsCommand {
   /// near-term horizon (3 full calendar months has at most 92 days).
   static const int maxUpcomingSafetyValve = 120;
 
-  Future<int> execute() async {
+  /// Maximum calendar months (inclusive of `now`'s month) that Phase 0
+  /// historical backfill may look back (`startOfMonth(nowYm - 11)`).
+  static const int maxBackfillMonths = 12;
+
+  /// Maximum historical overdue rows retained per series in Phase 0, keeping
+  /// the occurrences closest to `now`.
+  static const int maxBackfillPerSeries = 100;
+
+  Future<MaterializationSummary> execute() async {
     final seriesList =
         await _recurringRepository.getMaterializableRecurringSeries();
     final now = _clock.now();
     var newlyMaterializedOverdueCount = 0;
+    var hasTruncatedHistory = false;
 
     for (final series in seriesList) {
-      newlyMaterializedOverdueCount += await _materializeSeries(series, now);
+      final result = await _materializeSeries(series, now);
+      newlyMaterializedOverdueCount += result.newlyMaterializedOverdueCount;
+      hasTruncatedHistory = hasTruncatedHistory || result.hasTruncatedHistory;
     }
-    return newlyMaterializedOverdueCount;
+    return MaterializationSummary(
+      newlyMaterializedOverdueCount: newlyMaterializedOverdueCount,
+      hasTruncatedHistory: hasTruncatedHistory,
+    );
   }
 
-  Future<int> _materializeSeries(
+  Future<MaterializationSummary> _materializeSeries(
     RecurringSeriesRow series,
     DateTime now,
   ) async {
@@ -86,7 +142,7 @@ class ProjectRecurringEventsCommand {
 
     if (series.mode == RecurringSeriesMode.planned) {
       if (existing.containsKey(kPlannedOccurrenceKey)) {
-        return 0;
+        return MaterializationSummary.empty;
       }
       final committed =
           await _recurringRepository.insertMaterializedBatchIfActive(
@@ -102,8 +158,12 @@ class ProjectRecurringEventsCommand {
           ),
         ],
       );
-      if (!committed) return 0;
-      return (!series.autoPost && !series.startDate.isAfter(now)) ? 1 : 0;
+      if (!committed) return MaterializationSummary.empty;
+      final overdueCount =
+          (!series.autoPost && !series.startDate.isAfter(now)) ? 1 : 0;
+      return MaterializationSummary(
+        newlyMaterializedOverdueCount: overdueCount,
+      );
     }
 
     final spec = RecurrenceRuleSpec.fromStored(
@@ -121,18 +181,76 @@ class ProjectRecurringEventsCommand {
     final toInsert = <ScheduledTransactionsViewCompanion>[];
     var insertedOverdue = 0;
 
-    // Phase 0 — historical overdue occurrences in [materializeFrom, now].
-    final overdueCandidates = _expander.expandInRange(
+    // Phase 0 — historical overdue occurrences in
+    // [max(materializeFrom, startOfMonth(nowYm - 11)), now], keeping at most
+    // the 100 most recent occurrences per series so dormant relaunches stay
+    // bounded and idempotent.
+    final backfillFloor = RecurrenceExpander.backfillFloorForMonth(
+      now,
+      maxMonths: maxBackfillMonths,
+    );
+    final localMaterializeFrom = spec.effectiveMaterializeFrom.isUtc
+        ? spec.effectiveMaterializeFrom.toLocal()
+        : spec.effectiveMaterializeFrom;
+    final effectiveLowerBound = localMaterializeFrom.isAfter(backfillFloor)
+        ? localMaterializeFrom
+        : backfillFloor;
+
+    final overdueInWindow = _expander.expandInRange(
       spec,
+      rangeStart: effectiveLowerBound,
+      includeRangeStart: true,
       rangeEnd: now,
       includeRangeEnd: true,
       respectMaterializeFrom: true,
     );
+
+    final List<RecurrenceOccurrence> overdueCandidates;
+    var droppedByCountCap = false;
+    if (overdueInWindow.length > maxBackfillPerSeries) {
+      final dropCount = overdueInWindow.length - maxBackfillPerSeries;
+      for (var i = 0; i < dropCount; i++) {
+        if (!existing.containsKey(overdueInWindow[i].occurrenceKey)) {
+          droppedByCountCap = true;
+          break;
+        }
+      }
+      overdueCandidates = overdueInWindow.sublist(dropCount);
+    } else {
+      overdueCandidates = overdueInWindow;
+    }
+
     for (final occ in overdueCandidates) {
       if (existing.containsKey(occ.occurrenceKey)) continue;
       toInsert.add(_companionFor(series.id, occ));
       existing[occ.occurrenceKey] = ScheduledTransactionStatus.scheduled;
       insertedOverdue++;
+    }
+
+    var truncatedHistory = false;
+    if (insertedOverdue > 0) {
+      if (droppedByCountCap) {
+        truncatedHistory = true;
+      } else if (localMaterializeFrom.isBefore(backfillFloor)) {
+        // Inspect at most `existing.length + 1` occurrences before the 12-month
+        // floor: by the pigeonhole principle, if more exist than are already in
+        // `existing`, at least one historical occurrence was never materialized.
+        final olderCandidates = _expander.expandInRange(
+          spec,
+          rangeStart: localMaterializeFrom,
+          includeRangeStart: true,
+          rangeEnd: backfillFloor,
+          includeRangeEnd: false,
+          maxCount: existing.length + 1,
+          respectMaterializeFrom: true,
+        );
+        for (final occ in olderCandidates) {
+          if (!existing.containsKey(occ.occurrenceKey)) {
+            truncatedHistory = true;
+            break;
+          }
+        }
+      }
     }
 
     // Phase 1 — all upcoming occurrences in (now, endOfMonth(nowYm + 2)],
@@ -180,15 +298,18 @@ class ProjectRecurringEventsCommand {
       }
     }
 
-    if (toInsert.isEmpty) return 0;
+    if (toInsert.isEmpty) return MaterializationSummary.empty;
 
     final committed =
         await _recurringRepository.insertMaterializedBatchIfActive(
       series.id,
       toInsert,
     );
-    if (!committed) return 0;
-    return series.autoPost ? 0 : insertedOverdue;
+    if (!committed) return MaterializationSummary.empty;
+    return MaterializationSummary(
+      newlyMaterializedOverdueCount: series.autoPost ? 0 : insertedOverdue,
+      hasTruncatedHistory: truncatedHistory,
+    );
   }
 
   static ScheduledTransactionsViewCompanion _companionFor(

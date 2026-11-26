@@ -728,6 +728,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get overdueBillsTruncatedNotice => '更早期的长期未处理排期已自动跳过。';
+
+  @override
+  String autoPostCircuitBreakerNotice(int count) {
+    return '已暂停 $count 笔自动入账账单，请手动核对后记入。';
+  }
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -2209,6 +2217,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String get overdueBillsTruncatedNotice => '更早期的长期未处理排期已自动跳过。';
+
+  @override
+  String autoPostCircuitBreakerNotice(int count) {
+    return '已暂停 $count 笔自动入账账单，请手动核对后记入。';
+  }
+
+  @override
   String get repeatNever => '不重复';
 
   @override
@@ -3687,6 +3703,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String overdueBillsAdded(int count) {
     return '新補齊了 $count 筆已到期帳單';
+  }
+
+  @override
+  String get overdueBillsTruncatedNotice => '更早期的長期未處理排期已自動略過。';
+
+  @override
+  String autoPostCircuitBreakerNotice(int count) {
+    return '已暫停 $count 筆自動入帳帳單，請手動核對後記入。';
   }
 
   @override

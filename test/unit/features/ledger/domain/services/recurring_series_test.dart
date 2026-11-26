@@ -7,6 +7,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 import '../../../../../support/mocks/mock_shared_preferences.dart';
@@ -1259,23 +1260,36 @@ void main() {
   // — 自动入账资格（创建与更新）———————————————————————————————————————————
 
   test(
-      'creating an auto-post series in active currency with past startDate immediately auto-posts all due bills without manualOnly latch',
+      'creating an auto-post series in active currency with past startDate auto-posts recent due bills while latching >30-day overdue bills manualOnly',
       () async {
     await seed();
+    final cutoff =
+        DateTime.now().subtract(RecurringService.autoPostMaxAge);
     await createMonthly(autoPost: true);
 
     final instances = await scheduled();
-    final past = instances.where((i) => !i.date.isAfter(DateTime.now()));
-    final future = instances.where((i) => i.date.isAfter(DateTime.now()));
-    expect(past, isNotEmpty, reason: 'fixture precondition');
+    final stale = instances.where((i) => i.date.isBefore(cutoff)).toList();
+    final recentDue = instances
+        .where((i) => !i.date.isBefore(cutoff) && !i.date.isAfter(DateTime.now()))
+        .toList();
+    final future =
+        instances.where((i) => i.date.isAfter(DateTime.now())).toList();
+    expect(stale, isNotEmpty, reason: 'fixture precondition');
+    expect(recentDue, isNotEmpty, reason: 'fixture precondition');
     expect(future, isNotEmpty, reason: 'fixture precondition');
 
-    expect(past.every((i) => i.status == ScheduledTransactionStatus.posted),
+    expect(
+        stale.every((i) =>
+            i.status == ScheduledTransactionStatus.scheduled && i.manualOnly),
         isTrue,
-        reason: 'past due bills on active currency auto-post immediately');
-    expect(past.every((i) => !i.manualOnly), isTrue);
+        reason: 'bills older than 30 days are latched manualOnly by circuit breaker');
+    expect(
+        recentDue.every((i) =>
+            i.status == ScheduledTransactionStatus.posted && !i.manualOnly),
+        isTrue,
+        reason: 'recent due bills within 30 days auto-post immediately');
     expect(future.every((i) => !i.manualOnly), isTrue);
-    expect(harness.recurringService.takeLastAutoPostedCount(), past.length);
+    expect(harness.recurringService.takeLastAutoPostedCount(), recentDue.length);
   });
 
   test('editing a still-future bill keeps manualOnly false', () async {

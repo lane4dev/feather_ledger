@@ -660,6 +660,8 @@
   "transactionModeRepeating": "重复",
   "autoPostWhenDue": "自动入账",
   "overdueBillsAdded": "新补齐了 {count} 笔已到期账单",
+  "overdueBillsTruncatedNotice": "更早期的长期未处理排期已自动跳过。",
+  "autoPostCircuitBreakerNotice": "已暂停 {count} 笔自动入账账单，请手动核对后记入。",
   "repeatNever": "不重复",
   "repeatSetupFailed": "已保存。但重复规则创建失败：{error}",
   "addAttachment": "添加附件",
