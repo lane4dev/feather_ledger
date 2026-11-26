@@ -273,4 +273,87 @@ void main() {
     expect(pending.values.single['payload'], 'recurring-reminder:cny');
     debugDefaultTargetPlatformOverride = null;
   });
+
+  testWidgets(
+      'enforces the 60-notification platform cap when a high-frequency daily series materializes >60 upcoming bills',
+      (tester) async {
+    final messenger = tester.binding.defaultBinaryMessenger;
+    const timezone = MethodChannel('flutter_timezone');
+    const notifications =
+        MethodChannel('dexterous.com/flutter/local_notifications');
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    final pending = <int, Map<String, Object?>>{};
+    messenger.setMockMethodCallHandler(timezone, (_) async => 'Asia/Shanghai');
+    messenger.setMockMethodCallHandler(notifications, (call) async {
+      switch (call.method) {
+        case 'initialize':
+          return true;
+        case 'getNotificationAppLaunchDetails':
+          return {'notificationLaunchedApp': false};
+        case 'pendingNotificationRequests':
+          return pending.values.toList();
+        case 'cancel':
+          pending.remove(call.arguments as int);
+          return null;
+        case 'zonedSchedule':
+          final values = Map<String, Object?>.from(call.arguments as Map);
+          pending[values['id']! as int] = values;
+          return null;
+        default:
+          throw StateError('Unexpected method ${call.method}');
+      }
+    });
+    final bills = _Bills();
+    final reminders = RecurringReminders(bills);
+    addTearDown(() async {
+      reminders.dispose();
+      await bills.controller.close();
+      messenger.setMockMethodCallHandler(timezone, null);
+      messenger.setMockMethodCallHandler(notifications, null);
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    final start = DateTime.now().add(const Duration(days: 1));
+    final series = RecurringTransactionSeriesEntity(
+      id: 'daily-series',
+      description: 'Daily Commute',
+      amountMinor: 500,
+      type: RecurringSeriesKind.expense,
+      categoryId: 'c',
+      accountId: 'a',
+      frequency: 'DAILY',
+      startDate: start,
+      autoPost: false,
+      reminderMinutes: 15,
+      mode: RecurringSeriesMode.repeating,
+    );
+    // 85 materialized daily bills (covering 3 full calendar months).
+    final manyBills = List.generate(85, (i) {
+      final date = DateTime(start.year, start.month, start.day + i, 9, 0);
+      return ScheduledTransactionEntity(
+        id: 'daily-${i.toString().padLeft(3, '0')}',
+        seriesId: 'daily-series',
+        occurrenceKey: scheduledOccurrenceKey(date),
+        scheduledDate: date,
+        status: ScheduledTransactionStatus.scheduled,
+        recurringTransactionSeries: series,
+      );
+    });
+
+    await reminders.start(
+      title: 'Upcoming transaction',
+      channelName: 'Reminders',
+    );
+    bills.controller.add(manyBills.reversed.toList());
+    await tester.pumpAndSettle();
+
+    expect(pending, hasLength(60),
+        reason: 'platform queue cap of 60 reminders must still hold');
+    final payloads = pending.values.map((v) => v['payload'] as String).toSet();
+    expect(payloads, contains('recurring-reminder:daily-000'));
+    expect(payloads, contains('recurring-reminder:daily-059'));
+    expect(payloads, isNot(contains('recurring-reminder:daily-060')));
+    debugDefaultTargetPlatformOverride = null;
+  });
 }

@@ -16,15 +16,24 @@ part 'recurring_repository.g.dart';
 
 class RecurringRepositoryImpl implements RecurringRepository {
   final RecurringDao _recurringDao;
-  final CategoriesDao _categoriesDao;
-  final AccountDao _accountsDao;
 
+  // Kept for source compatibility with callers passing DAOs; reads now reuse
+  // the single joined SQL query on [_recurringDao] with zero N+1 follow-ups.
   RecurringRepositoryImpl(
-      this._recurringDao, this._categoriesDao, this._accountsDao);
+    this._recurringDao, [
+    CategoriesDao? categoriesDao,
+    AccountDao? accountsDao,
+  ]);
 
   @override
   Future<ScheduledTransactionViewRow?> getScheduled(String id) {
     return _recurringDao.getScheduled(id);
+  }
+
+  @override
+  Future<ScheduledTransactionEntity?> getScheduledEntity(String id) async {
+    final row = await _recurringDao.getScheduledJoined(id);
+    return row == null ? null : _toEntity(row);
   }
 
   @override
@@ -45,8 +54,41 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
-  Stream<List<ScheduledTransactionEntity>> watchAllScheduled() {
-    return _recurringDao.watchAllScheduled().asyncMap(_toEntities);
+  Stream<List<ScheduledTransactionEntity>> watchAllScheduled({
+    String? currencyCode,
+  }) {
+    return _recurringDao
+        .watchAllScheduledJoined(currencyCode: currencyCode)
+        .map((rows) => rows.map(_toEntity).toList());
+  }
+
+  @override
+  Stream<List<ScheduledTransactionEntity>> watchPendingScheduled({
+    String? currencyCode,
+  }) {
+    return _recurringDao
+        .watchAllScheduledJoined(
+          currencyCode: currencyCode,
+          pendingOnly: true,
+        )
+        .map((rows) => rows.map(_toEntity).toList());
+  }
+
+  @override
+  Stream<List<ScheduledTransactionEntity>> watchScheduledInRange({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+    String? currencyCode,
+    bool pendingOnly = false,
+  }) {
+    return _recurringDao
+        .watchAllScheduledJoined(
+          currencyCode: currencyCode,
+          pendingOnly: pendingOnly,
+          startInclusive: startInclusive,
+          endExclusive: endExclusive,
+        )
+        .map((rows) => rows.map(_toEntity).toList());
   }
 
   @override
@@ -89,45 +131,26 @@ class RecurringRepositoryImpl implements RecurringRepository {
     await _recurringDao.deleteSeries(seriesId);
   }
 
-  Future<List<ScheduledTransactionEntity>> _toEntities(
-      List<ScheduledTransactionViewRow> rows) async {
-    final grouped = <String, List<ScheduledTransactionViewRow>>{};
-    for (final row in rows) {
-      grouped.putIfAbsent(row.seriesId, () => []).add(row);
-    }
-
-    final entities = <ScheduledTransactionEntity>[];
-    for (final entry in grouped.entries) {
-      final seriesRow = await _recurringDao.getSeries(entry.key);
-      if (seriesRow == null) continue;
-
-      final series = _toSeriesEntity(seriesRow);
-      final category =
-          await _categoriesDao.getCategoryById(seriesRow.categoryId);
-      final account = await _accountsDao.getAccountById(seriesRow.accountId);
-
-      for (final row in entry.value) {
-        entities.add(
-          ScheduledTransactionEntity(
-            id: row.id,
-            seriesId: row.seriesId,
-            occurrenceKey: row.occurrenceKey,
-            scheduledDate: row.scheduledDate,
-            amountOverrideMinor: row.amountOverrideMinor,
-            dateOverride: row.dateOverride,
-            memoOverride: row.memoOverride,
-            status: decodeScheduledStatus(row.status),
-            manualOnly: row.manualOnly,
-            transactionId: row.transactionId,
-            recurringTransactionSeries: series,
-            kind: seriesRow.type.toTransactionKind,
-            category: category == null ? null : _toCategoryEntity(category),
-            account: account == null ? null : _toAccountEntity(account),
-          ),
-        );
-      }
-    }
-    return entities;
+  ScheduledTransactionEntity _toEntity(ScheduledBillJoinedRow joined) {
+    final row = joined.scheduled;
+    final seriesRow = joined.series;
+    final category = joined.category;
+    return ScheduledTransactionEntity(
+      id: row.id,
+      seriesId: row.seriesId,
+      occurrenceKey: row.occurrenceKey,
+      scheduledDate: row.scheduledDate,
+      amountOverrideMinor: row.amountOverrideMinor,
+      dateOverride: row.dateOverride,
+      memoOverride: row.memoOverride,
+      status: decodeScheduledStatus(row.status),
+      manualOnly: row.manualOnly,
+      transactionId: row.transactionId,
+      recurringTransactionSeries: _toSeriesEntity(seriesRow),
+      kind: seriesRow.type.toTransactionKind,
+      category: category == null ? null : _toCategoryEntity(category),
+      account: _toAccountEntity(joined.account),
+    );
   }
 
   CategoryEntity _toCategoryEntity(CategoryViewRow row) => CategoryEntity(
@@ -182,6 +205,13 @@ class RecurringRepositoryImpl implements RecurringRepository {
       _recurringDao.insertMaterializedIfActive(entry);
 
   @override
+  Future<bool> insertMaterializedBatchIfActive(
+    String seriesId,
+    List<ScheduledTransactionsViewCompanion> entries,
+  ) =>
+      _recurringDao.insertMaterializedBatchIfActive(seriesId, entries);
+
+  @override
   Future<void> saveSeries(RecurringSeriesCompanion entry) {
     return _recurringDao.saveSeries(entry);
   }
@@ -204,6 +234,8 @@ class RecurringRepositoryImpl implements RecurringRepository {
         reminderMinutes: row.reminderMinutes,
         mode: row.mode,
         isActive: row.isActive,
+        materializeFrom: row.materializeFrom,
+        completedCountOffset: row.completedCountOffset,
       );
 }
 

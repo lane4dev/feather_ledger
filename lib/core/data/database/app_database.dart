@@ -8,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../domain/enums.dart';
 import '../../domain/event_sourcing/event_envelope.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 import 'database_file.dart';
 import 'tables.dart';
@@ -52,9 +53,11 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.internal(super.executor);
 
   @override
-  // v16 adds CRUD-exempt budget tables (`budget_rules`, `budget_review_notes`)
-  // and `categories_view.archived_at` for archive-month carry-forward cutoffs.
-  int get schemaVersion => 16;
+  // v17 adds `materialize_from` and `completed_count_offset` to CRUD-exempt
+  // `recurring_series` and migrates `scheduled_transactions_view.occurrence_key`
+  // for repeating series to local civil YYYY-MM-DD (without touching
+  // event-sourced projections or bumping `ledgerProjectionVersion`).
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,8 +100,114 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(budgetRules);
             await m.createTable(budgetReviewNotes);
           }
+          if (from >= 15 && from < 17) {
+            final existingCols = (await m.database
+                    .customSelect('PRAGMA table_info(recurring_series)')
+                    .get())
+                .map((r) => r.read<String>('name'))
+                .toSet();
+            if (!existingCols.contains('materialize_from')) {
+              await m.addColumn(
+                  recurringSeries, recurringSeries.materializeFrom);
+            }
+            if (!existingCols.contains('completed_count_offset')) {
+              await m.addColumn(
+                  recurringSeries, recurringSeries.completedCountOffset);
+            }
+            await m.database.customStatement(
+              'UPDATE recurring_series SET materialize_from = start_date',
+            );
+            await _migrateRepeatingOccurrenceKeysToLocalCivil();
+          }
         },
       );
+
+  static int _occurrenceStatusPriority(String status) => switch (status) {
+        'posted' => 4,
+        'failed' => 3,
+        'scheduled' => 2,
+        'skipped' => 1,
+        _ => 0,
+      };
+
+  Future<void> _migrateRepeatingOccurrenceKeysToLocalCivil() async {
+    final query = select(scheduledTransactionsView).join([
+      innerJoin(
+        recurringSeries,
+        recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId),
+      ),
+    ])
+      ..where(
+        recurringSeries.mode.equalsValue(RecurringSeriesMode.repeating) &
+            scheduledTransactionsView.occurrenceKey
+                .equals(kPlannedOccurrenceKey)
+                .not(),
+      );
+
+    final joined = await query.get();
+    if (joined.isEmpty) return;
+
+    final grouped = <({String seriesId, String key}),
+        List<ScheduledTransactionViewRow>>{};
+    for (final row in joined) {
+      final scheduled = row.readTable(scheduledTransactionsView);
+      final targetKey =
+          scheduledOccurrenceKey(scheduled.scheduledDate.toLocal());
+      grouped
+          .putIfAbsent(
+            (seriesId: scheduled.seriesId, key: targetKey),
+            () => [],
+          )
+          .add(scheduled);
+    }
+
+    final loserIds = <String>[];
+    final updates = <({String id, String targetKey})>[];
+
+    for (final entry in grouped.entries) {
+      final candidates = entry.value;
+      candidates.sort((a, b) {
+        final prioDiff = _occurrenceStatusPriority(b.status)
+            .compareTo(_occurrenceStatusPriority(a.status));
+        if (prioDiff != 0) return prioDiff;
+        return a.id.compareTo(b.id);
+      });
+      final winner = candidates.first;
+      for (var i = 1; i < candidates.length; i++) {
+        loserIds.add(candidates[i].id);
+      }
+      if (winner.occurrenceKey != entry.key.key) {
+        updates.add((id: winner.id, targetKey: entry.key.key));
+      }
+    }
+
+    if (loserIds.isNotEmpty) {
+      await (delete(scheduledTransactionsView)
+            ..where((t) => t.id.isIn(loserIds)))
+          .go();
+    }
+
+    // Two-phase key rewrite prevents transient UNIQUE(series_id, occurrence_key)
+    // collisions when consecutive days shift forward together.
+    for (final item in updates) {
+      await (update(scheduledTransactionsView)
+            ..where((t) => t.id.equals(item.id)))
+          .write(
+        ScheduledTransactionsViewCompanion(
+          occurrenceKey: Value('__mig_v17__${item.id}'),
+        ),
+      );
+    }
+    for (final item in updates) {
+      await (update(scheduledTransactionsView)
+            ..where((t) => t.id.equals(item.id)))
+          .write(
+        ScheduledTransactionsViewCompanion(
+          occurrenceKey: Value(item.targetKey),
+        ),
+      );
+    }
+  }
 }
 
 LazyDatabase _openConnection() {

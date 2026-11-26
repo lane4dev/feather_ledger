@@ -28,6 +28,10 @@ void main() {
     await v15.customStatement('SELECT 1');
     await v15.customStatement(
         'ALTER TABLE categories_view DROP COLUMN archived_at');
+    await v15.customStatement(
+        'ALTER TABLE recurring_series DROP COLUMN materialize_from');
+    await v15.customStatement(
+        'ALTER TABLE recurring_series DROP COLUMN completed_count_offset');
     await v15.customStatement('DROP TABLE IF EXISTS budget_rules');
     await v15.customStatement('DROP TABLE IF EXISTS budget_review_notes');
 
@@ -82,7 +86,7 @@ void main() {
     final upgraded = AppDatabase.internal(NativeDatabase(file));
     addTearDown(upgraded.close);
 
-    expect(upgraded.schemaVersion, 16);
+    expect(upgraded.schemaVersion, 17);
 
     final tables = (await upgraded
             .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")

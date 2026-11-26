@@ -24,7 +24,7 @@ void main() {
 
   group('AppDatabase', () {
     test('should initialize with correct schema version', () {
-      expect(database.schemaVersion, equals(16));
+      expect(database.schemaVersion, equals(17));
     });
 
     test('v6 archived accounts remain archived after upgrade', () async {
@@ -152,7 +152,7 @@ void main() {
       final upgraded = AppDatabase.internal(NativeDatabase(file));
       addTearDown(upgraded.close);
 
-      expect(upgraded.schemaVersion, 16);
+      expect(upgraded.schemaVersion, 17);
       final tables = await upgraded
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
           .get();

@@ -7,9 +7,17 @@ import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 import 'package:feather_ledger/core/domain/repositories/preferences_repository.dart'
     as prefs_api;
 import 'package:feather_ledger/app/theme/category_tokens.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/constants/category_constants.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
+import 'package:feather_ledger/features/budget/data/repositories/budget_repository_impl.dart';
+import 'package:feather_ledger/features/budget/domain/commands/clear_category_budget_command.dart';
+import 'package:feather_ledger/features/budget/domain/commands/save_review_note_command.dart';
+import 'package:feather_ledger/features/budget/domain/commands/set_category_budget_command.dart';
+import 'package:feather_ledger/features/budget/domain/queries/watch_month_budget_query.dart';
+import 'package:feather_ledger/features/budget/domain/queries/watch_transaction_budget_hint_query.dart';
+import 'package:feather_ledger/features/budget/domain/services/budget_service.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
 import 'package:feather_ledger/features/ledger/data/projections/ledger_projector.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
@@ -20,6 +28,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/record_transaction_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/restore_skipped_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/reverse_transaction_command.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_account_balance_query.dart';
@@ -62,6 +71,7 @@ import '../fakes/fake_app_database.dart';
 /// ```
 class LedgerServiceHarness {
   final FakeAppDatabase db;
+  final DomainClock clock;
 
   /// The spec EventStore (US2/T020) — every command appends through it.
   late final EventStore eventStore;
@@ -72,6 +82,7 @@ class LedgerServiceHarness {
   late final CategoryRepository categoryRepository;
   late final LedgerRepository ledgerRepository;
   late final RecurringRepository recurringRepository;
+  late final BudgetRepository budgetRepository;
 
   /// The write/read seam every migration logic test goes through.
   late final LedgerService ledgerService;
@@ -80,6 +91,9 @@ class LedgerServiceHarness {
   /// `scheduled_transactions_view` are CRUD-exempt, and this is the only
   /// service that reaches them and the event store in one action.
   late final RecurringService recurringService;
+
+  /// Real budget service backed by the same in-memory [db] and [clock].
+  late final BudgetService budgetService;
 
   late final AccountService accountService;
   late final CategoryService categoryService;
@@ -92,8 +106,12 @@ class LedgerServiceHarness {
   /// Null means every switch is off, which is what most tests want.
   final prefs_api.PreferencesRepository? preferences;
 
-  LedgerServiceHarness({this.autoPostEnabled = false, this.preferences})
-      : db = FakeAppDatabase() {
+  LedgerServiceHarness({
+    this.autoPostEnabled = false,
+    this.preferences,
+    DomainClock? clock,
+  })  : clock = clock ?? const SystemClock(),
+        db = FakeAppDatabase() {
     // Production registration — no test-only factory setup (US2/T021).
     registerLedgerEvents();
     eventStore = DriftEventStore(db, ledgerEventRegistry);
@@ -105,6 +123,7 @@ class LedgerServiceHarness {
         LedgerRepositoryImpl(db.transactionsDao, db.recurringDao);
     recurringRepository = RecurringRepositoryImpl(
         db.recurringDao, db.categoriesDao, db.accountDao);
+    budgetRepository = BudgetRepositoryImpl(db.budgetDao, db.categoriesDao);
 
     final contextResolver =
         PostingContextResolver(accountRepository, categoryRepository);
@@ -113,14 +132,34 @@ class LedgerServiceHarness {
     recurringService = RecurringService(
       CreateRecurringSeriesCommand(recurringRepository, contextResolver),
       DeleteRecurringBillCommand(recurringRepository),
-      UpdateRecurringBillCommand(recurringRepository, contextResolver),
+      UpdateRecurringBillCommand(
+        recurringRepository,
+        contextResolver,
+        clock: this.clock,
+      ),
       ConvertScheduledToPostedCommand(
           eventStore, projector, recurringRepository, contextResolver),
-      ProjectRecurringEventsCommand(recurringRepository),
+      ProjectRecurringEventsCommand(
+        recurringRepository,
+        clock: this.clock,
+      ),
       WatchScheduledTransactionsQuery(recurringRepository),
       GetScheduledTransactionQuery(recurringRepository),
       recurringRepository,
+      restoreSkipped: RestoreSkippedBillCommand(
+        recurringRepository,
+        clock: this.clock,
+      ),
       preferences: preferences,
+      clock: this.clock,
+    );
+    budgetService = BudgetService(
+      SetCategoryBudgetCommand(budgetRepository, clock: this.clock),
+      ClearCategoryBudgetCommand(budgetRepository, clock: this.clock),
+      SaveReviewNoteCommand(budgetRepository, clock: this.clock),
+      WatchMonthBudgetQuery(budgetRepository, clock: this.clock),
+      WatchTransactionBudgetHintQuery(budgetRepository),
+      budgetRepository,
     );
     ledgerService = LedgerService(
       recordCommand,

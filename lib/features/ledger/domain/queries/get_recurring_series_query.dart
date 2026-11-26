@@ -29,6 +29,9 @@ class GetRecurringSeriesQuery {
       autoPost: seriesRow.autoPost,
       reminderMinutes: seriesRow.reminderMinutes,
       mode: seriesRow.mode,
+      isActive: seriesRow.isActive,
+      materializeFrom: seriesRow.materializeFrom,
+      completedCountOffset: seriesRow.completedCountOffset,
     );
   }
 }

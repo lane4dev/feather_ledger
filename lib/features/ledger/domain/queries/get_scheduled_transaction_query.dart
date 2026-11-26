@@ -10,46 +10,8 @@ class GetScheduledTransactionQuery {
 
   GetScheduledTransactionQuery(this._recurringRepository);
 
-  Future<ScheduledTransactionEntity?> execute(String id) async {
-    final scheduledRow = await _recurringRepository.getScheduled(id);
-    if (scheduledRow == null) return null;
-
-    final seriesRow =
-        await _recurringRepository.getSeries(scheduledRow.seriesId);
-    if (seriesRow == null) {
-      return null;
-    }
-
-    return ScheduledTransactionEntity(
-      id: scheduledRow.id,
-      seriesId: scheduledRow.seriesId,
-      occurrenceKey: scheduledRow.occurrenceKey,
-      scheduledDate: scheduledRow.scheduledDate,
-      amountOverrideMinor: scheduledRow.amountOverrideMinor,
-      dateOverride: scheduledRow.dateOverride,
-      memoOverride: scheduledRow.memoOverride,
-      status: decodeScheduledStatus(scheduledRow.status),
-      manualOnly: scheduledRow.manualOnly,
-      transactionId: scheduledRow.transactionId,
-      recurringTransactionSeries: RecurringTransactionSeriesEntity(
-        id: seriesRow.id,
-        description: seriesRow.description,
-        startDate: seriesRow.startDate,
-        endDate: seriesRow.endDate,
-        amountMinor: seriesRow.amountMinor,
-        categoryId: seriesRow.categoryId,
-        accountId: seriesRow.accountId,
-        type: seriesRow.type,
-        frequency: seriesRow.frequency,
-        rrule: seriesRow.rrule,
-        interval: seriesRow.interval,
-        limit: seriesRow.countLimit,
-        autoPost: seriesRow.autoPost,
-        reminderMinutes: seriesRow.reminderMinutes,
-        mode: seriesRow.mode,
-        isActive: seriesRow.isActive,
-      ),
-    );
+  Future<ScheduledTransactionEntity?> execute(String id) {
+    return _recurringRepository.getScheduledEntity(id);
   }
 }
 

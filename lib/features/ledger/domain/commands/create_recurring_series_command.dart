@@ -5,6 +5,7 @@ import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 
 part 'create_recurring_series_command.g.dart';
@@ -35,6 +36,7 @@ class CreateRecurringSeriesCommand {
     required String frequency,
     required int interval,
     required DateTime startDate,
+    DateTime? materializeFrom,
     DateTime? endDate,
     int? countLimit,
     List<int> weekdays = const [],
@@ -101,50 +103,32 @@ class CreateRecurringSeriesCommand {
         autoPost: Value(autoPost),
         mode: Value(mode),
         reminderMinutes: Value(reminderMinutes),
+        materializeFrom: Value(materializeFrom ?? startDate),
+        completedCountOffset: const Value(0),
       ),
     );
   }
 
-  /// Canonical RRULE text for the `rrule` column.
-  ///
-  /// Nothing reads that column yet — materialization builds its rule from the
-  /// discrete columns — so this exists for a future import/export consumer.
-  // ponytail: rrule and the discrete columns encode the same schedule;
-  // converge on rrule if a second consumer ever appears.
+  /// Canonical RRULE text for the `rrule` column, delegated to
+  /// [RecurrenceExpander] so serialization and expansion share one source of
+  /// truth.
   static String rruleText({
     required String frequency,
     required int interval,
     DateTime? endDate,
     int? countLimit,
     List<int> weekdays = const [],
-  }) {
-    final buffer = StringBuffer('FREQ=$frequency');
-    if (interval != 1) buffer.write(';INTERVAL=$interval');
-    if (countLimit != null) buffer.write(';COUNT=$countLimit');
-    if (weekdays.isNotEmpty) {
-      const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-      buffer.write(';BYDAY=${weekdays.map((day) => days[day - 1]).join(',')}');
-    }
-    if (endDate != null) {
-      final utc = endDate.toUtc();
-      buffer.write(';UNTIL=${utc.year.toString().padLeft(4, '0')}'
-          '${utc.month.toString().padLeft(2, '0')}'
-          '${utc.day.toString().padLeft(2, '0')}T000000Z');
-    }
-    return buffer.toString();
-  }
+  }) =>
+      RecurrenceExpander.formatRrule(
+        frequency: frequency,
+        interval: interval,
+        endDate: endDate,
+        countLimit: countLimit,
+        weekdays: weekdays,
+      );
 
-  static List<int> weekdaysFromRrule(String? rrule) {
-    final match =
-        RegExp(r'(?:^|;)BYDAY=([^;]+)').firstMatch(rrule ?? '')?.group(1);
-    if (match == null || match.isEmpty) return const [];
-    const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-    return match
-        .split(',')
-        .map((code) => codes.indexOf(code.trim().toUpperCase()) + 1)
-        .where((day) => day >= 1 && day <= 7)
-        .toList();
-  }
+  static List<int> weekdaysFromRrule(String? rrule) =>
+      RecurrenceExpander.parseWeekdaysFromRrule(rrule);
 }
 
 @riverpod

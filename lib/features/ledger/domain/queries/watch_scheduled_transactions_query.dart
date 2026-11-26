@@ -13,13 +13,7 @@ class WatchScheduledTransactionsQuery {
   /// [currencyCode] scopes the pending-bill list to one ledger currency;
   /// null returns every currency.
   Stream<List<ScheduledTransactionEntity>> execute({String? currencyCode}) {
-    return _recurringRepository
-        .watchAllScheduled()
-        .map((items) => items
-            .where((s) =>
-                currencyCode == null ||
-                s.account?.currencyCode == currencyCode)
-            .toList());
+    return _recurringRepository.watchAllScheduled(currencyCode: currencyCode);
   }
 }
 

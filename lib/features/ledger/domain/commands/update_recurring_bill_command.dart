@@ -236,6 +236,9 @@ class UpdateRecurringBillCommand {
         reminderMinutes: Value(nextReminderMinutes),
         mode: Value(series.mode),
         isActive: Value(series.isActive),
+        materializeFrom:
+            Value(baseScheduleChanged ? nextStartDate : series.materializeFrom),
+        completedCountOffset: Value(series.completedCountOffset),
       ),
     );
 

@@ -167,6 +167,18 @@ class RecurringSeries extends Table {
   /// without touching historical rows.
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
+  /// Lower bound for materialization and budget virtual projection.
+  /// Kept separate from [startDate] so historical start dates remain the RRULE
+  /// schedule and [countLimit] anchor while skipping unwanted historical bills.
+  DateTimeColumn get materializeFrom => dateTime().withDefault(
+      Constant(DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)))();
+
+  /// Number of posted occurrences completed prior to a schedule reset.
+  /// Subtracted from [countLimit] during expansion so lifetime count remains
+  /// exact across schedule edits.
+  IntColumn get completedCountOffset =>
+      integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

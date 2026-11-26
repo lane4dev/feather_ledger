@@ -7,6 +7,22 @@ import '../tables.dart';
 
 part 'recurring_dao.g.dart';
 
+/// Joined projection of a scheduled bill row together with its owning series,
+/// account, and (optional) category fetched in a single SQL query.
+class ScheduledBillJoinedRow {
+  final ScheduledTransactionViewRow scheduled;
+  final RecurringSeriesRow series;
+  final AccountViewRow account;
+  final CategoryViewRow? category;
+
+  const ScheduledBillJoinedRow({
+    required this.scheduled,
+    required this.series,
+    required this.account,
+    this.category,
+  });
+}
+
 @DriftAccessor(tables: [
   RecurringSeries,
   ScheduledTransactionsView,
@@ -33,13 +49,32 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> insertMaterializedIfActive(
       ScheduledTransactionsViewCompanion entry) async {
-    await db.transaction(() async {
-      final series = await getSeries(entry.seriesId.value);
-      if (series == null || !series.isActive) return;
+    await insertMaterializedBatchIfActive(entry.seriesId.value, [entry]);
+  }
+
+  /// Inserts a batch of materialized occurrences for [seriesId] in a single
+  /// transaction using `INSERT OR IGNORE`, after verifying the series is still
+  /// active and its account is neither archived nor deleted.
+  ///
+  /// Returns `true` if the series and account were eligible and the batch ran.
+  Future<bool> insertMaterializedBatchIfActive(
+    String seriesId,
+    List<ScheduledTransactionsViewCompanion> entries,
+  ) async {
+    if (entries.isEmpty) return true;
+    return db.transaction(() async {
+      final series = await getSeries(seriesId);
+      if (series == null || !series.isActive) return false;
       final account = await db.accountDao.getAccountById(series.accountId);
-      if (account == null || account.archived || account.deleted) return;
-      await into(scheduledTransactionsView)
-          .insert(entry, mode: InsertMode.insertOrIgnore);
+      if (account == null || account.archived || account.deleted) return false;
+      await batch((b) {
+        b.insertAll(
+          scheduledTransactionsView,
+          entries,
+          mode: InsertMode.insertOrIgnore,
+        );
+      });
+      return true;
     });
   }
 
@@ -118,7 +153,11 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
               LedgerErrorCode.accountArchived, 'Account is archived');
         }
       }
-      await into(recurringSeries).insertOnConflictUpdate(entry);
+      final normalized =
+          (!entry.materializeFrom.present && entry.startDate.present)
+              ? entry.copyWith(materializeFrom: entry.startDate)
+              : entry;
+      await into(recurringSeries).insertOnConflictUpdate(normalized);
     });
   }
 
@@ -220,5 +259,81 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     ]);
     return query.watch().map((rows) =>
         rows.map((row) => row.readTable(scheduledTransactionsView)).toList());
+  }
+
+  JoinedSelectStatement<HasResultSet, dynamic> _joinedScheduledQuery({
+    String? currencyCode,
+    bool pendingOnly = false,
+    DateTime? startInclusive,
+    DateTime? endExclusive,
+  }) {
+    final query = select(scheduledTransactionsView).join([
+      innerJoin(
+        recurringSeries,
+        recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId),
+      ),
+      innerJoin(
+        db.accountsView,
+        db.accountsView.id.equalsExp(recurringSeries.accountId),
+      ),
+      leftOuterJoin(
+        db.categoriesView,
+        db.categoriesView.id.equalsExp(recurringSeries.categoryId),
+      ),
+    ]);
+
+    if (currencyCode != null) {
+      query.where(db.accountsView.currencyCode.equals(currencyCode));
+    }
+    if (pendingOnly) {
+      query.where(
+        scheduledTransactionsView.status.isIn(const ['scheduled', 'failed']),
+      );
+    }
+    if (startInclusive != null || endExclusive != null) {
+      final effectiveDate = coalesce([
+        scheduledTransactionsView.dateOverride,
+        scheduledTransactionsView.scheduledDate,
+      ]);
+      if (startInclusive != null) {
+        query.where(effectiveDate.isBiggerOrEqualValue(startInclusive));
+      }
+      if (endExclusive != null) {
+        query.where(effectiveDate.isSmallerThanValue(endExclusive));
+      }
+    }
+    return query;
+  }
+
+  ScheduledBillJoinedRow _mapJoinedRow(TypedResult row) =>
+      ScheduledBillJoinedRow(
+        scheduled: row.readTable(scheduledTransactionsView),
+        series: row.readTable(recurringSeries),
+        account: row.readTable(db.accountsView),
+        category: row.readTableOrNull(db.categoriesView),
+      );
+
+  /// Single-query joined stream of scheduled bills, eliminating N+1 lookups
+  /// for series, account, and category metadata.
+  Stream<List<ScheduledBillJoinedRow>> watchAllScheduledJoined({
+    String? currencyCode,
+    bool pendingOnly = false,
+    DateTime? startInclusive,
+    DateTime? endExclusive,
+  }) {
+    final query = _joinedScheduledQuery(
+      currencyCode: currencyCode,
+      pendingOnly: pendingOnly,
+      startInclusive: startInclusive,
+      endExclusive: endExclusive,
+    );
+    return query.watch().map((rows) => rows.map(_mapJoinedRow).toList());
+  }
+
+  Future<ScheduledBillJoinedRow?> getScheduledJoined(String id) async {
+    final query = _joinedScheduledQuery()
+      ..where(scheduledTransactionsView.id.equals(id));
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapJoinedRow(row);
   }
 }

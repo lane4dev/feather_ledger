@@ -13,11 +13,13 @@ enum ScheduledTransactionStatus {
 /// Occurrence key for a one-shot planned bill (`(series_id, occurrence_key)`).
 const kPlannedOccurrenceKey = 'single';
 
-/// Semantic occurrence key (`YYYY-MM-DD`) for one rule-generated instance.
+/// Semantic occurrence key (local civil `YYYY-MM-DD`) for one rule-generated
+/// instance.
 String scheduledOccurrenceKey(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
+  final local = date.isUtc ? date.toLocal() : date;
+  final y = local.year.toString().padLeft(4, '0');
+  final m = local.month.toString().padLeft(2, '0');
+  final d = local.day.toString().padLeft(2, '0');
   return '$y-$m-$d';
 }
 
@@ -226,6 +228,10 @@ class RecurringTransactionSeriesEntity {
   /// The creation mode (计划 / 重复). Immutable after creation.
   final RecurringSeriesMode mode;
   final bool isActive;
+  final DateTime? materializeFrom;
+  final int completedCountOffset;
+
+  DateTime get effectiveMaterializeFrom => materializeFrom ?? startDate;
 
   const RecurringTransactionSeriesEntity({
     required this.id,
@@ -244,5 +250,7 @@ class RecurringTransactionSeriesEntity {
     this.reminderMinutes,
     required this.mode,
     this.isActive = true,
+    this.materializeFrom,
+    this.completedCountOffset = 0,
   });
 }

@@ -2,7 +2,22 @@ import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 abstract class RecurringRepository {
-  Stream<List<ScheduledTransactionEntity>> watchAllScheduled();
+  Stream<List<ScheduledTransactionEntity>> watchAllScheduled({
+    String? currencyCode,
+  });
+
+  Stream<List<ScheduledTransactionEntity>> watchPendingScheduled({
+    String? currencyCode,
+  });
+
+  Stream<List<ScheduledTransactionEntity>> watchScheduledInRange({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+    String? currencyCode,
+    bool pendingOnly = false,
+  });
+
+  Future<ScheduledTransactionEntity?> getScheduledEntity(String id);
 
   Future<ScheduledTransactionViewRow?> getScheduled(String id);
 
@@ -29,6 +44,11 @@ abstract class RecurringRepository {
 
   Future<void> insertMaterializedIfActive(
       ScheduledTransactionsViewCompanion entry);
+
+  Future<bool> insertMaterializedBatchIfActive(
+    String seriesId,
+    List<ScheduledTransactionsViewCompanion> entries,
+  );
 
   Future<void> saveSeries(RecurringSeriesCompanion entry);
 

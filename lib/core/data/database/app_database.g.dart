@@ -2815,6 +2815,23 @@ class $RecurringSeriesTable extends RecurringSeries
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _materializeFromMeta =
+      const VerificationMeta('materializeFrom');
+  @override
+  late final GeneratedColumn<DateTime> materializeFrom =
+      GeneratedColumn<DateTime>('materialize_from', aliasedName, false,
+          type: DriftSqlType.dateTime,
+          requiredDuringInsert: false,
+          defaultValue:
+              Constant(DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)));
+  static const VerificationMeta _completedCountOffsetMeta =
+      const VerificationMeta('completedCountOffset');
+  @override
+  late final GeneratedColumn<int> completedCountOffset = GeneratedColumn<int>(
+      'completed_count_offset', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2832,7 +2849,9 @@ class $RecurringSeriesTable extends RecurringSeries
         autoPost,
         mode,
         reminderMinutes,
-        isActive
+        isActive,
+        materializeFrom,
+        completedCountOffset
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2925,6 +2944,18 @@ class $RecurringSeriesTable extends RecurringSeries
       context.handle(_isActiveMeta,
           isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
     }
+    if (data.containsKey('materialize_from')) {
+      context.handle(
+          _materializeFromMeta,
+          materializeFrom.isAcceptableOrUnknown(
+              data['materialize_from']!, _materializeFromMeta));
+    }
+    if (data.containsKey('completed_count_offset')) {
+      context.handle(
+          _completedCountOffsetMeta,
+          completedCountOffset.isAcceptableOrUnknown(
+              data['completed_count_offset']!, _completedCountOffsetMeta));
+    }
     return context;
   }
 
@@ -2968,6 +2999,10 @@ class $RecurringSeriesTable extends RecurringSeries
           .read(DriftSqlType.int, data['${effectivePrefix}reminder_minutes']),
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      materializeFrom: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}materialize_from'])!,
+      completedCountOffset: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}completed_count_offset'])!,
     );
   }
 
@@ -3013,6 +3048,16 @@ class RecurringSeriesRow extends DataClass
   /// Whether this rule is active. Setting false stops future materialization
   /// without touching historical rows.
   final bool isActive;
+
+  /// Lower bound for materialization and budget virtual projection.
+  /// Kept separate from [startDate] so historical start dates remain the RRULE
+  /// schedule and [countLimit] anchor while skipping unwanted historical bills.
+  final DateTime materializeFrom;
+
+  /// Number of posted occurrences completed prior to a schedule reset.
+  /// Subtracted from [countLimit] during expansion so lifetime count remains
+  /// exact across schedule edits.
+  final int completedCountOffset;
   const RecurringSeriesRow(
       {required this.id,
       required this.rrule,
@@ -3029,7 +3074,9 @@ class RecurringSeriesRow extends DataClass
       required this.autoPost,
       required this.mode,
       this.reminderMinutes,
-      required this.isActive});
+      required this.isActive,
+      required this.materializeFrom,
+      required this.completedCountOffset});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3063,6 +3110,8 @@ class RecurringSeriesRow extends DataClass
       map['reminder_minutes'] = Variable<int>(reminderMinutes);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['materialize_from'] = Variable<DateTime>(materializeFrom);
+    map['completed_count_offset'] = Variable<int>(completedCountOffset);
     return map;
   }
 
@@ -3092,6 +3141,8 @@ class RecurringSeriesRow extends DataClass
           ? const Value.absent()
           : Value(reminderMinutes),
       isActive: Value(isActive),
+      materializeFrom: Value(materializeFrom),
+      completedCountOffset: Value(completedCountOffset),
     );
   }
 
@@ -3117,6 +3168,9 @@ class RecurringSeriesRow extends DataClass
           .fromJson(serializer.fromJson<int>(json['mode'])),
       reminderMinutes: serializer.fromJson<int?>(json['reminderMinutes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      materializeFrom: serializer.fromJson<DateTime>(json['materializeFrom']),
+      completedCountOffset:
+          serializer.fromJson<int>(json['completedCountOffset']),
     );
   }
   @override
@@ -3141,6 +3195,8 @@ class RecurringSeriesRow extends DataClass
           .toJson<int>($RecurringSeriesTable.$convertermode.toJson(mode)),
       'reminderMinutes': serializer.toJson<int?>(reminderMinutes),
       'isActive': serializer.toJson<bool>(isActive),
+      'materializeFrom': serializer.toJson<DateTime>(materializeFrom),
+      'completedCountOffset': serializer.toJson<int>(completedCountOffset),
     };
   }
 
@@ -3160,7 +3216,9 @@ class RecurringSeriesRow extends DataClass
           bool? autoPost,
           RecurringSeriesMode? mode,
           Value<int?> reminderMinutes = const Value.absent(),
-          bool? isActive}) =>
+          bool? isActive,
+          DateTime? materializeFrom,
+          int? completedCountOffset}) =>
       RecurringSeriesRow(
         id: id ?? this.id,
         rrule: rrule ?? this.rrule,
@@ -3180,6 +3238,8 @@ class RecurringSeriesRow extends DataClass
             ? reminderMinutes.value
             : this.reminderMinutes,
         isActive: isActive ?? this.isActive,
+        materializeFrom: materializeFrom ?? this.materializeFrom,
+        completedCountOffset: completedCountOffset ?? this.completedCountOffset,
       );
   RecurringSeriesRow copyWithCompanion(RecurringSeriesCompanion data) {
     return RecurringSeriesRow(
@@ -3205,6 +3265,12 @@ class RecurringSeriesRow extends DataClass
           ? data.reminderMinutes.value
           : this.reminderMinutes,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      materializeFrom: data.materializeFrom.present
+          ? data.materializeFrom.value
+          : this.materializeFrom,
+      completedCountOffset: data.completedCountOffset.present
+          ? data.completedCountOffset.value
+          : this.completedCountOffset,
     );
   }
 
@@ -3226,7 +3292,9 @@ class RecurringSeriesRow extends DataClass
           ..write('autoPost: $autoPost, ')
           ..write('mode: $mode, ')
           ..write('reminderMinutes: $reminderMinutes, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('materializeFrom: $materializeFrom, ')
+          ..write('completedCountOffset: $completedCountOffset')
           ..write(')'))
         .toString();
   }
@@ -3248,7 +3316,9 @@ class RecurringSeriesRow extends DataClass
       autoPost,
       mode,
       reminderMinutes,
-      isActive);
+      isActive,
+      materializeFrom,
+      completedCountOffset);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3268,7 +3338,9 @@ class RecurringSeriesRow extends DataClass
           other.autoPost == this.autoPost &&
           other.mode == this.mode &&
           other.reminderMinutes == this.reminderMinutes &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.materializeFrom == this.materializeFrom &&
+          other.completedCountOffset == this.completedCountOffset);
 }
 
 class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
@@ -3288,6 +3360,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
   final Value<RecurringSeriesMode> mode;
   final Value<int?> reminderMinutes;
   final Value<bool> isActive;
+  final Value<DateTime> materializeFrom;
+  final Value<int> completedCountOffset;
   final Value<int> rowid;
   const RecurringSeriesCompanion({
     this.id = const Value.absent(),
@@ -3306,6 +3380,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.mode = const Value.absent(),
     this.reminderMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.materializeFrom = const Value.absent(),
+    this.completedCountOffset = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecurringSeriesCompanion.insert({
@@ -3325,6 +3401,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     this.mode = const Value.absent(),
     this.reminderMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.materializeFrom = const Value.absent(),
+    this.completedCountOffset = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         rrule = Value(rrule),
@@ -3352,6 +3430,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     Expression<int>? mode,
     Expression<int>? reminderMinutes,
     Expression<bool>? isActive,
+    Expression<DateTime>? materializeFrom,
+    Expression<int>? completedCountOffset,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3371,6 +3451,9 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       if (mode != null) 'mode': mode,
       if (reminderMinutes != null) 'reminder_minutes': reminderMinutes,
       if (isActive != null) 'is_active': isActive,
+      if (materializeFrom != null) 'materialize_from': materializeFrom,
+      if (completedCountOffset != null)
+        'completed_count_offset': completedCountOffset,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3392,6 +3475,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       Value<RecurringSeriesMode>? mode,
       Value<int?>? reminderMinutes,
       Value<bool>? isActive,
+      Value<DateTime>? materializeFrom,
+      Value<int>? completedCountOffset,
       Value<int>? rowid}) {
     return RecurringSeriesCompanion(
       id: id ?? this.id,
@@ -3410,6 +3495,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
       mode: mode ?? this.mode,
       reminderMinutes: reminderMinutes ?? this.reminderMinutes,
       isActive: isActive ?? this.isActive,
+      materializeFrom: materializeFrom ?? this.materializeFrom,
+      completedCountOffset: completedCountOffset ?? this.completedCountOffset,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3467,6 +3554,12 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (materializeFrom.present) {
+      map['materialize_from'] = Variable<DateTime>(materializeFrom.value);
+    }
+    if (completedCountOffset.present) {
+      map['completed_count_offset'] = Variable<int>(completedCountOffset.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3492,6 +3585,8 @@ class RecurringSeriesCompanion extends UpdateCompanion<RecurringSeriesRow> {
           ..write('mode: $mode, ')
           ..write('reminderMinutes: $reminderMinutes, ')
           ..write('isActive: $isActive, ')
+          ..write('materializeFrom: $materializeFrom, ')
+          ..write('completedCountOffset: $completedCountOffset, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7046,6 +7141,8 @@ typedef $$RecurringSeriesTableCreateCompanionBuilder = RecurringSeriesCompanion
   Value<RecurringSeriesMode> mode,
   Value<int?> reminderMinutes,
   Value<bool> isActive,
+  Value<DateTime> materializeFrom,
+  Value<int> completedCountOffset,
   Value<int> rowid,
 });
 typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
@@ -7066,6 +7163,8 @@ typedef $$RecurringSeriesTableUpdateCompanionBuilder = RecurringSeriesCompanion
   Value<RecurringSeriesMode> mode,
   Value<int?> reminderMinutes,
   Value<bool> isActive,
+  Value<DateTime> materializeFrom,
+  Value<int> completedCountOffset,
   Value<int> rowid,
 });
 
@@ -7156,6 +7255,14 @@ class $$RecurringSeriesTableFilterComposer
   ColumnFilters<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<DateTime> get materializeFrom => $composableBuilder(
+      column: $table.materializeFrom,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get completedCountOffset => $composableBuilder(
+      column: $table.completedCountOffset,
+      builder: (column) => ColumnFilters(column));
+
   Expression<bool> scheduledTransactionsViewRefs(
       Expression<bool> Function(
               $$ScheduledTransactionsViewTableFilterComposer f)
@@ -7238,6 +7345,14 @@ class $$RecurringSeriesTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get materializeFrom => $composableBuilder(
+      column: $table.materializeFrom,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get completedCountOffset => $composableBuilder(
+      column: $table.completedCountOffset,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$RecurringSeriesTableAnnotationComposer
@@ -7296,6 +7411,12 @@ class $$RecurringSeriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get materializeFrom => $composableBuilder(
+      column: $table.materializeFrom, builder: (column) => column);
+
+  GeneratedColumn<int> get completedCountOffset => $composableBuilder(
+      column: $table.completedCountOffset, builder: (column) => column);
 
   Expression<T> scheduledTransactionsViewRefs<T extends Object>(
       Expression<T> Function(
@@ -7362,6 +7483,8 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<RecurringSeriesMode> mode = const Value.absent(),
             Value<int?> reminderMinutes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<DateTime> materializeFrom = const Value.absent(),
+            Value<int> completedCountOffset = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion(
@@ -7381,6 +7504,8 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             mode: mode,
             reminderMinutes: reminderMinutes,
             isActive: isActive,
+            materializeFrom: materializeFrom,
+            completedCountOffset: completedCountOffset,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -7400,6 +7525,8 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             Value<RecurringSeriesMode> mode = const Value.absent(),
             Value<int?> reminderMinutes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<DateTime> materializeFrom = const Value.absent(),
+            Value<int> completedCountOffset = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecurringSeriesCompanion.insert(
@@ -7419,6 +7546,8 @@ class $$RecurringSeriesTableTableManager extends RootTableManager<
             mode: mode,
             reminderMinutes: reminderMinutes,
             isActive: isActive,
+            materializeFrom: materializeFrom,
+            completedCountOffset: completedCountOffset,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

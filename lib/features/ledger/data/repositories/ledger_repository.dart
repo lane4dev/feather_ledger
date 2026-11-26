@@ -172,67 +172,31 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduledTransactions() {
-    return _recurringDao.watchAllScheduled().asyncMap((rows) async {
-      final result = <ScheduledTransactionEntity>[];
-      for (var row in rows) {
-        final seriesRow = await _recurringDao.getSeries(row.seriesId);
-        if (seriesRow != null) {
-          result.add(ScheduledTransactionEntity(
-            id: row.id,
-            seriesId: row.seriesId,
-            occurrenceKey: row.occurrenceKey,
-            scheduledDate: row.scheduledDate,
-            amountOverrideMinor: row.amountOverrideMinor,
-            dateOverride: row.dateOverride,
-            memoOverride: row.memoOverride,
-            status: decodeScheduledStatus(row.status),
-            manualOnly: row.manualOnly,
-            transactionId: row.transactionId,
-            recurringTransactionSeries: RecurringTransactionSeriesEntity(
-              id: seriesRow.id,
-              description: seriesRow.description,
-              amountMinor: seriesRow.amountMinor,
-              type: seriesRow.type,
-              categoryId: seriesRow.categoryId,
-              accountId: seriesRow.accountId,
-              frequency: seriesRow.frequency,
-              startDate: seriesRow.startDate,
-              endDate: seriesRow.endDate,
-              interval: seriesRow.interval,
-              limit: seriesRow.countLimit,
-              autoPost: seriesRow.autoPost,
-              reminderMinutes: seriesRow.reminderMinutes,
-              mode: seriesRow.mode,
-              isActive: seriesRow.isActive,
-            ),
-          ));
-        }
-      }
-      return result;
-    });
+    return _recurringDao.watchAllScheduledJoined().map(
+          (rows) => rows
+              .map(
+                (joined) => ScheduledTransactionEntity(
+                  id: joined.scheduled.id,
+                  seriesId: joined.scheduled.seriesId,
+                  occurrenceKey: joined.scheduled.occurrenceKey,
+                  scheduledDate: joined.scheduled.scheduledDate,
+                  amountOverrideMinor: joined.scheduled.amountOverrideMinor,
+                  dateOverride: joined.scheduled.dateOverride,
+                  memoOverride: joined.scheduled.memoOverride,
+                  status: decodeScheduledStatus(joined.scheduled.status),
+                  manualOnly: joined.scheduled.manualOnly,
+                  transactionId: joined.scheduled.transactionId,
+                  recurringTransactionSeries:
+                      _toSeriesEntity(joined.series),
+                ),
+              )
+              .toList(),
+        );
   }
 
-  @override
-  Future<ScheduledTransactionEntity?> getScheduledTransaction(
-      String scheduledId) async {
-    final scheduledRow = await _recurringDao.getScheduled(scheduledId);
-    if (scheduledRow == null) return null;
-
-    final seriesRow = await _recurringDao.getSeries(scheduledRow.seriesId);
-    if (seriesRow == null) return null;
-
-    return ScheduledTransactionEntity(
-      id: scheduledRow.id,
-      seriesId: scheduledRow.seriesId,
-      occurrenceKey: scheduledRow.occurrenceKey,
-      scheduledDate: scheduledRow.scheduledDate,
-      amountOverrideMinor: scheduledRow.amountOverrideMinor,
-      dateOverride: scheduledRow.dateOverride,
-      memoOverride: scheduledRow.memoOverride,
-      status: decodeScheduledStatus(scheduledRow.status),
-      manualOnly: scheduledRow.manualOnly,
-      transactionId: scheduledRow.transactionId,
-      recurringTransactionSeries: RecurringTransactionSeriesEntity(
+  RecurringTransactionSeriesEntity _toSeriesEntity(
+          RecurringSeriesRow seriesRow) =>
+      RecurringTransactionSeriesEntity(
         id: seriesRow.id,
         description: seriesRow.description,
         amountMinor: seriesRow.amountMinor,
@@ -240,6 +204,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
         categoryId: seriesRow.categoryId,
         accountId: seriesRow.accountId,
         frequency: seriesRow.frequency,
+        rrule: seriesRow.rrule,
         startDate: seriesRow.startDate,
         endDate: seriesRow.endDate,
         interval: seriesRow.interval,
@@ -248,7 +213,28 @@ class LedgerRepositoryImpl implements LedgerRepository {
         reminderMinutes: seriesRow.reminderMinutes,
         mode: seriesRow.mode,
         isActive: seriesRow.isActive,
-      ),
+        materializeFrom: seriesRow.materializeFrom,
+        completedCountOffset: seriesRow.completedCountOffset,
+      );
+
+  @override
+  Future<ScheduledTransactionEntity?> getScheduledTransaction(
+      String scheduledId) async {
+    final joined = await _recurringDao.getScheduledJoined(scheduledId);
+    if (joined == null) return null;
+
+    return ScheduledTransactionEntity(
+      id: joined.scheduled.id,
+      seriesId: joined.scheduled.seriesId,
+      occurrenceKey: joined.scheduled.occurrenceKey,
+      scheduledDate: joined.scheduled.scheduledDate,
+      amountOverrideMinor: joined.scheduled.amountOverrideMinor,
+      dateOverride: joined.scheduled.dateOverride,
+      memoOverride: joined.scheduled.memoOverride,
+      status: decodeScheduledStatus(joined.scheduled.status),
+      manualOnly: joined.scheduled.manualOnly,
+      transactionId: joined.scheduled.transactionId,
+      recurringTransactionSeries: _toSeriesEntity(joined.series),
     );
   }
 
@@ -258,47 +244,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
     final seriesRow = await _recurringDao.getSeries(seriesId);
     if (seriesRow == null) return null;
 
-    return RecurringTransactionSeriesEntity(
-      id: seriesRow.id,
-      description: seriesRow.description,
-      amountMinor: seriesRow.amountMinor,
-      type: seriesRow.type,
-      categoryId: seriesRow.categoryId,
-      accountId: seriesRow.accountId,
-      frequency: seriesRow.frequency,
-      startDate: seriesRow.startDate,
-      endDate: seriesRow.endDate,
-      interval: seriesRow.interval,
-      limit: seriesRow.countLimit,
-      autoPost: seriesRow.autoPost,
-      reminderMinutes: seriesRow.reminderMinutes,
-      mode: seriesRow.mode,
-      isActive: seriesRow.isActive,
-    );
+    return _toSeriesEntity(seriesRow);
   }
 
   @override
   Future<List<RecurringTransactionSeriesEntity>> getAllRecurringSeries() async {
     final rows = await _recurringDao.getAllSeries();
-    return rows.map((seriesRow) {
-      return RecurringTransactionSeriesEntity(
-        id: seriesRow.id,
-        description: seriesRow.description,
-        amountMinor: seriesRow.amountMinor,
-        type: seriesRow.type,
-        categoryId: seriesRow.categoryId,
-        accountId: seriesRow.accountId,
-        frequency: seriesRow.frequency,
-        startDate: seriesRow.startDate,
-        endDate: seriesRow.endDate,
-        interval: seriesRow.interval,
-        limit: seriesRow.countLimit,
-        autoPost: seriesRow.autoPost,
-        reminderMinutes: seriesRow.reminderMinutes,
-        mode: seriesRow.mode,
-        isActive: seriesRow.isActive,
-      );
-    }).toList();
+    return rows.map(_toSeriesEntity).toList();
   }
 
   @override
