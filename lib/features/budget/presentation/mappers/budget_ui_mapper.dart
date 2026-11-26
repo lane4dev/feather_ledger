@@ -368,6 +368,10 @@ class BudgetUiMapper {
         lastMonthActualMinor: c.lastMonthActualMinor,
         threeMonthAvgMinor: c.threeMonthAvgMinor,
         committedBaselineMinor: c.committedBaselineMinor,
+        committedShare: c.actualMinor > 0
+            ? (c.committedActualMinor / c.actualMinor).clamp(0.0, 1.0)
+            : 0.0,
+        hasActualSpend: c.actualMinor > 0,
         threeMonthAvgChartValue: _chartValue(c.threeMonthAvgMinor),
         budgetChartValue: hasLimit ? limit / 100.0 : null,
         actualProgress: catActualRatio,

@@ -508,7 +508,7 @@ void main() {
 
     expect(find.text('6-Month Budget vs Actual'), findsOneWidget);
     expect(find.byType(BarChart), findsOneWidget);
-    expect(find.text('All actual spend'), findsOneWidget);
+    expect(find.text('Actual spend'), findsOneWidget);
 
     await pumpMonthlyChart(
         tester, [_chartPoint(_may, budgetMinor: 100000, actualMinor: 45000)]);
@@ -616,6 +616,54 @@ void main() {
     expect(find.text('5/10 00:00 · Cash'), findsOneWidget);
     expect(find.text('5/10 00:00 · Bank'), findsOneWidget);
     expect(find.text('Pending'), findsOneWidget);
+    // Committed vs flexible is the composition card's story; repeating it on
+    // every contribution row adds a label with no decision behind it.
+    expect(find.descendant(of: card, matching: find.text('Committed')),
+        findsNothing);
+    expect(find.descendant(of: card, matching: find.text('Discretionary')),
+        findsNothing);
+  });
+
+  testWidgets(
+      'the app bar carries a circular avatar and a visible adjust action',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary());
+    await pumpDetail(tester, service: service, size: const Size(900, 1200));
+
+    final avatar = tester.widget<Container>(
+      find.byKey(const ValueKey('budget-detail-avatar')),
+    );
+    expect((avatar.decoration! as BoxDecoration).shape, BoxShape.circle);
+    expect(find.text('Adjust budget'), findsOneWidget);
+
+    await tester.tap(find.text('Adjust budget'));
+    await tester.pumpAndSettle();
+    expect(find.text('Set Category Budget · Dining'), findsOneWidget);
+  });
+
+  testWidgets('the progress card headlines projected remaining with one bar',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(pendingMinor: 20000));
+    await pumpDetail(tester, service: service, size: const Size(400, 700));
+
+    // ¥1000 budget − ¥450 spent − ¥200 pending = ¥350 projected left.
+    expect(
+        inProgressCard(find.text('Projected left \$350.00')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('budget-detail-bar-actual')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget-detail-bar-pending')),
+        findsOneWidget);
+
+    final widths = [
+      for (final key in const [
+        'budget-detail-metric-spent',
+        'budget-detail-metric-pending',
+        'budget-detail-metric-budget',
+      ])
+        tester.getSize(find.byKey(ValueKey(key))).width,
+    ];
+    expect(widths[0], closeTo(widths[1], 0.5));
+    expect(widths[1], closeTo(widths[2], 0.5));
   });
 
   testWidgets('the note card opens the shared sheet and cancel keeps the note',
@@ -822,7 +870,7 @@ void main() {
     final mayService = _StubBudgetService(buildSummary(pendingMinor: 20000));
     await pumpDetail(tester, service: mayService, size: const Size(900, 1200));
     expect(inProgressCard(find.text('Pending')), findsOneWidget);
-    expect(inCompositionCard(find.text('Pending')), findsOneWidget);
+    expect(inCompositionCard(find.text('Pending')), findsNothing);
   });
 
   testWidgets('the materialization hint explains high-frequency pending bills',
@@ -922,9 +970,10 @@ void main() {
       }
       expect(inCompositionCard(find.text('Committed')), findsOneWidget);
       expect(
-          inCompositionCard(find.text('Committed \$1500.00')), findsOneWidget);
-      expect(inCompositionCard(find.text('Last mo \$800.00')), findsOneWidget);
-      expect(inCompositionCard(find.text('3-mo avg \$750.00')), findsOneWidget);
+          inCompositionCard(
+              find.text('Committed \$1500.00 · Last mo \$800.00')),
+          findsOneWidget);
+      expect(inCompositionCard(find.text('3-mo avg \$750.00')), findsNothing);
       expect(
         tester.getSize(find.byType(BudgetCategoryCompositionCard)).width,
         lessThanOrEqualTo(config.size.width),

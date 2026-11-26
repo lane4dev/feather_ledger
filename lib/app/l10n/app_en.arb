@@ -898,6 +898,8 @@
   "budgetReviewBaselineRow": "Committed baseline (incl. pending)",
   "budgetTrendLegendActual": "All actual spend",
   "budgetTrendLegendBudget": "Total budget",
+  "budgetTrendLegendCategoryActual": "Actual spend",
+  "budgetTrendLegendCategoryBudget": "Category budget",
   "budgetTrendLegendAverage": "3-month average",
   "budgetTrendTooltipActual": "Actual {amount}",
   "@budgetTrendTooltipActual": {
@@ -953,6 +955,7 @@
   "budgetSectionBudgeted": "Budgeted categories",
   "budgetSectionUnbudgetedActive": "Unbudgeted spending",
   "budgetSetButton": "Set budget",
+  "budgetAdjustButton": "Adjust budget",
   "budgetRowProjectedOver": "Projected over {amount}",
   "@budgetRowProjectedOver": {
     "placeholders": { "amount": { "type": "String" } }

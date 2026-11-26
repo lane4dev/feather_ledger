@@ -181,6 +181,15 @@ class BudgetCategoryRowUiModel {
   final int? threeMonthAvgMinor;
   final int committedBaselineMinor;
 
+  /// Share of this month's actual spend that was committed (0..1). The
+  /// composition card draws it as the fixed half of a two-colour bar; zero
+  /// when the category has no spend at all.
+  final double committedShare;
+
+  /// Whether the category has any actual spend this month. The composition
+  /// bar draws no colour segments when nothing was spent.
+  final bool hasActualSpend;
+
   /// [threeMonthAvgMinor] in chart units (major units, as fl_chart draws them),
   /// or null when there is no average to plot.
   final double? threeMonthAvgChartValue;
@@ -268,6 +277,8 @@ class BudgetCategoryRowUiModel {
     required this.lastMonthActualMinor,
     required this.threeMonthAvgMinor,
     required this.committedBaselineMinor,
+    this.committedShare = 0,
+    this.hasActualSpend = true,
     this.threeMonthAvgChartValue,
     this.budgetChartValue,
     required this.actualProgress,

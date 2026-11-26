@@ -1088,6 +1088,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetTrendLegendBudget => '已设预算总额';
 
   @override
+  String get budgetTrendLegendCategoryActual => '实际支出';
+
+  @override
+  String get budgetTrendLegendCategoryBudget => '分类预算';
+
+  @override
   String get budgetTrendLegendAverage => '3 个月平均';
 
   @override
@@ -1181,6 +1187,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get budgetSetButton => '设预算';
+
+  @override
+  String get budgetAdjustButton => '调预算';
 
   @override
   String budgetRowProjectedOver(String amount) {
@@ -2529,6 +2538,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetTrendLegendBudget => '已设预算总额';
 
   @override
+  String get budgetTrendLegendCategoryActual => '实际支出';
+
+  @override
+  String get budgetTrendLegendCategoryBudget => '分类预算';
+
+  @override
   String get budgetTrendLegendAverage => '3 个月平均';
 
   @override
@@ -2622,6 +2637,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get budgetSetButton => '设预算';
+
+  @override
+  String get budgetAdjustButton => '调预算';
 
   @override
   String budgetRowProjectedOver(String amount) {
@@ -3970,6 +3988,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetTrendLegendBudget => '已設預算總額';
 
   @override
+  String get budgetTrendLegendCategoryActual => '實際支出';
+
+  @override
+  String get budgetTrendLegendCategoryBudget => '分類預算';
+
+  @override
   String get budgetTrendLegendAverage => '3 個月平均';
 
   @override
@@ -4063,6 +4087,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetSetButton => '設預算';
+
+  @override
+  String get budgetAdjustButton => '調預算';
 
   @override
   String budgetRowProjectedOver(String amount) {

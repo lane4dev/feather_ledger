@@ -2189,6 +2189,18 @@ abstract class AppLocalizations {
   /// **'Total budget'**
   String get budgetTrendLegendBudget;
 
+  /// No description provided for @budgetTrendLegendCategoryActual.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual spend'**
+  String get budgetTrendLegendCategoryActual;
+
+  /// No description provided for @budgetTrendLegendCategoryBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Category budget'**
+  String get budgetTrendLegendCategoryBudget;
+
   /// No description provided for @budgetTrendLegendAverage.
   ///
   /// In en, this message translates to:
@@ -2362,6 +2374,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set budget'**
   String get budgetSetButton;
+
+  /// No description provided for @budgetAdjustButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust budget'**
+  String get budgetAdjustButton;
 
   /// No description provided for @budgetRowProjectedOver.
   ///

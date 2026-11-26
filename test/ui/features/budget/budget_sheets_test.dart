@@ -363,7 +363,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Adjust budget'), findsOneWidget);
     expect(service.lastScope, isNull);
   });
 
@@ -487,7 +487,9 @@ void main() {
     await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
     await tester.pumpAndSettle();
     expect(find.text('Delete budget'), findsOneWidget);
-    await tester.tap(find.text('Edit'));
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Adjust budget'));
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
@@ -498,9 +500,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BudgetEditSheet), findsNothing);
     expect(find.text('Old note'), findsOneWidget);
-    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
+    await tester.tap(find.text('Adjust budget'));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.descendant(

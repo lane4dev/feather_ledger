@@ -219,9 +219,10 @@ the month picker.
   card. The `查看全部 >` action sits at the right end of the `主要贡献支出`
   header (same baseline as the title), not at the bottom of the list.
 - L3 rows: no category avatar and no category name — the page already names
-  the category. Subtitle reads `11/29 18:30 · 现金`, followed by the compact
-  `固定`/`待入账` pills on the same line at 400 dp. The card is two lines tall,
-  not three.
+  the category. Subtitle reads `11/29 18:30 · 现金`; only the compact
+  `待入账` pill may follow it on the same line at 400 dp. Fixed/flexible is the
+  composition card's story, so contribution rows carry no such tag. The card
+  is two lines tall, not three.
 - Accessibility: at 320 dp with 1.6x text the row may push its pills onto a
   second metadata line, but no yellow overflow stripes appear and no amount is
   clipped.
@@ -234,4 +235,31 @@ the month picker.
 - Expected: the bar never moves, fades or slides away — it is a static part of
   the shell. The FAB keeps its 16 dp gap above the bar (plus the device's
   bottom inset), and swiping to the next month does not shift either.
+- [ ] pass  [ ] fail — notes:
+
+## 17. L3 category detail and the category budget sheet
+
+- Page: L3 分类详情 (`/budget/category`), open a category with a budget, spend,
+  pending bills and six months of history. Check light and dark at 400 dp,
+  320 dp at 1.6x text, and 900 dp.
+- App bar: the category mark is a 34 dp **circular** tonal badge, not a rounded
+  square. `调预算` is visible at the right end instead of hiding in `⋮`; at
+  320 dp/1.6x it may shrink but never clips. The `⋮` menu offers only
+  `删除预算`; archived categories show neither the action nor the menu.
+- Progress card: the headline is the decision — `预计剩余 ¥xx` when pending
+  bills exist, `剩余 ¥xx` otherwise, `预计超支`/`超支` in warning/expense colour.
+  `已消费 / 待入账 / 预算` sit in three equal-width columns with even gaps, and
+  the 6 dp bar shows a teal actual segment plus a soft purple pending segment
+  in one track (no second bar). A closed month hides the pending column and
+  segment.
+- Composition card: no `待入账` column (the progress card owns it). Two
+  metrics — `固定` and `弹性` — with a 6 dp two-colour share bar, and one
+  reference line `固定底线 ¥xx · 上月实际 ¥xx`. No `近3月均` here; that number
+  belongs to the chart.
+- Contributions: rows show date · account and, for pending bills, only the
+  `待入账` pill. No `固定`/`弹性` tag on any row.
+- Trend chart: y-axis labels are round numbers (`0 / 100 / 200 / 300`, never
+  `79 / 157 / 236`); the legend on this page reads `实际支出` / `分类预算`,
+  while the monthly review keeps `全部实际支出` / `已设预算总额`. Bars stay
+  primary; only a month strictly above its own budget turns expense-coloured.
 - [ ] pass  [ ] fail — notes:

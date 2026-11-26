@@ -253,54 +253,80 @@ class _BudgetCategoryDetailScreenState
               tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: Row(
-              children: [
-                AppIconBadge(
-                  color: Color(row.colorInt),
-                  child: CategoryIcon(
-                    iconKey: row.iconKey,
-                    size: context.metrics.iconSize,
-                    color: Color(row.colorInt),
-                  ),
-                ),
-                SizedBox(width: spacing.sm),
-                Flexible(
-                  child: Text(
-                    row.name,
-                    style: AppTypography.sectionTitle(context),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (row.archived) ...[
-                  SizedBox(width: spacing.xs),
-                  AppBadge(label: l10n.budgetArchivedReadOnly),
-                ],
-              ],
+            title: LayoutBuilder(
+              builder: (context, constraints) {
+                // With a long action label and large text the AppBar can leave
+                // the title almost no room. Keep the avatar, drop the name and
+                // gap rather than overflow the toolbar.
+                final hasRoom = constraints.maxWidth >= 42;
+                return Row(
+                  children: [
+                    Container(
+                      key: const ValueKey('budget-detail-avatar'),
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.lerp(scheme.surfaceContainerLow,
+                            Color(row.colorInt), 0.12),
+                      ),
+                      alignment: Alignment.center,
+                      child: CategoryIcon(
+                        iconKey: row.iconKey,
+                        size: 18,
+                        color: Color(row.colorInt),
+                      ),
+                    ),
+                    if (hasRoom) ...[
+                      SizedBox(width: spacing.sm),
+                      Flexible(
+                        child: Text(
+                          row.name,
+                          style: AppTypography.sectionTitle(context),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                    if (row.archived && constraints.maxWidth >= 120) ...[
+                      SizedBox(width: spacing.xs),
+                      AppBadge(label: l10n.budgetArchivedReadOnly),
+                    ],
+                  ],
+                );
+              },
             ),
             actions: [
-              if (row.isBudgetEditable)
+              if (row.isBudgetEditable) ...[
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 40),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => showBudgetEditSheet(context,
+                          row: row,
+                          currencyCode: currencyCode,
+                          currencySymbol: currencySymbol,
+                          month: widget.month,
+                          isHistoricalMonth: detail.isHistoricalMonth),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(l10n.budgetAdjustButton),
+                      ),
+                    ),
+                  ),
+                ),
                 PopupMenuButton<_BudgetAction>(
                   enabled: !_clearingBudget,
                   icon: const Icon(LucideIcons.ellipsisVertical),
-                  onSelected: (action) {
-                    switch (action) {
-                      case _BudgetAction.edit:
-                        showBudgetEditSheet(context,
-                            row: row,
-                            currencyCode: currencyCode,
-                            currencySymbol: currencySymbol,
-                            month: widget.month,
-                            isHistoricalMonth: detail.isHistoricalMonth);
-                      case _BudgetAction.clear:
-                        _clearBudget(
-                          currencyCode: currencyCode,
-                          detail: detail,
-                        );
-                    }
-                  },
+                  onSelected: (_) => _clearBudget(
+                    currencyCode: currencyCode,
+                    detail: detail,
+                  ),
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                        value: _BudgetAction.edit, child: Text(l10n.edit)),
                     PopupMenuItem(
                         value: _BudgetAction.clear,
                         enabled: row.budgetMinor != null,
@@ -314,6 +340,7 @@ class _BudgetCategoryDetailScreenState
                                         : scheme.error))),
                   ],
                 ),
+              ],
             ],
           ),
           body: SafeArea(
@@ -333,7 +360,6 @@ class _BudgetCategoryDetailScreenState
                 SizedBox(height: spacing.md),
                 BudgetCategoryCompositionCard(
                   row: row,
-                  showPending: showPending,
                   showMaterializationHint: showMaterializationHint,
                 ),
                 if (BudgetTrendChart.shouldShow(row.trend6Months)) ...[
@@ -436,7 +462,7 @@ class _BudgetCategoryDetailScreenState
       );
 }
 
-enum _BudgetAction { edit, clear }
+enum _BudgetAction { clear }
 
 class _ContributionCard extends ConsumerWidget {
   const _ContributionCard(
@@ -460,11 +486,6 @@ class _ContributionCard extends ConsumerWidget {
       showCategoryIcon: false,
       showCategoryName: false,
       trailingTags: [
-        AppBadge(
-            compact: true,
-            label: transaction.isCommitted
-                ? l10n.budgetCommitted
-                : l10n.budgetDiscretionary),
         if (transaction.isPending)
           AppBadge(
               compact: true,

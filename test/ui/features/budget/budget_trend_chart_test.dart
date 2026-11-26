@@ -321,6 +321,47 @@ void main() {
     expect(rods(tester).every((rod) => !rod.backDrawRodData.show), isTrue);
   });
 
+  testWidgets('rounds the y axis to hundred steps instead of thirds of a max',
+      (tester) async {
+    await pumpChart(
+      tester,
+      BudgetTrendChart(
+        points: [
+          point(2026, 3, budgetMinor: 20000, actualMinor: 7900),
+          point(2026, 4, budgetMinor: 20000, actualMinor: 15700),
+          point(2026, 5, budgetMinor: 20000, actualMinor: 23600),
+        ],
+      ),
+    );
+
+    final data = tester.widget<BarChart>(find.byType(BarChart)).data;
+    // ¥236 of spend pads to ¥254.88 and rounds up to a ¥300 axis in ¥100
+    // steps, so the labels read 0 / 100 / 200 / 300.
+    expect(data.maxY, 300);
+    expect(data.gridData.horizontalInterval, 100);
+    expect(data.titlesData.leftTitles.sideTitles.interval, 100);
+  });
+
+  testWidgets(
+      'a single category names its legend actual spend vs category budget',
+      (tester) async {
+    await pumpChart(
+      tester,
+      BudgetTrendChart(
+        mode: BudgetTrendChartMode.category,
+        points: [
+          point(2026, 4, budgetMinor: 20000, actualMinor: 10000),
+          point(2026, 5, budgetMinor: 20000, actualMinor: 24000),
+        ],
+      ),
+    );
+
+    expect(find.text('Actual spend'), findsOneWidget);
+    expect(find.text('Category budget'), findsOneWidget);
+    expect(find.text('All actual spend'), findsNothing);
+    expect(find.text('Total budget'), findsNothing);
+  });
+
   testWidgets(
       'keeps the legacy constructor call shape compiling and renders '
       'in dark mode', (tester) async {

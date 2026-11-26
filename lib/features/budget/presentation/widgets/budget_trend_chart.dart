@@ -85,7 +85,11 @@ class BudgetTrendChart extends StatelessWidget {
       (prev, p) =>
           math.max(prev, math.max(p.actualChartValue, p.budgetChartValue)),
     );
-    final chartMaxY = maxVal <= 0 ? 100.0 : maxVal * 1.18;
+    // Y-axis ticks are rounded to 1/2/5 x 10^n steps so the axis reads
+    // 0 / 100 / 200 / 300 instead of thirds of an arbitrary maximum.
+    final target = maxVal <= 0 ? 100.0 : maxVal * 1.08;
+    final axisInterval = _niceStep(target / 3);
+    final chartMaxY = (target / axisInterval).ceil() * axisInterval;
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,12 +105,16 @@ class BudgetTrendChart extends StatelessWidget {
           children: [
             _LegendItem(
               color: scheme.primary,
-              label: l10n.budgetTrendLegendActual,
+              label: mode == BudgetTrendChartMode.category
+                  ? l10n.budgetTrendLegendCategoryActual
+                  : l10n.budgetTrendLegendActual,
             ),
             if (hasBudget)
               _LegendItem(
                 color: scheme.outline.withValues(alpha: 0.35),
-                label: l10n.budgetTrendLegendBudget,
+                label: mode == BudgetTrendChartMode.category
+                    ? l10n.budgetTrendLegendCategoryBudget
+                    : l10n.budgetTrendLegendBudget,
               ),
             if (averageLine != null)
               _LegendItem(
@@ -158,7 +166,7 @@ class BudgetTrendChart extends StatelessWidget {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                horizontalInterval: chartMaxY / 3,
+                horizontalInterval: axisInterval,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: scheme.outlineVariant.withValues(alpha: 0.35),
                   strokeWidth: 1,
@@ -181,7 +189,7 @@ class BudgetTrendChart extends StatelessWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 34,
-                    interval: chartMaxY / 3,
+                    interval: axisInterval,
                     getTitlesWidget: (value, meta) {
                       // Three light ticks at the grid lines; zero stays bare.
                       if (value <= 0) return const SizedBox.shrink();
@@ -287,6 +295,22 @@ class BudgetTrendChart extends StatelessWidget {
 
     return wrappedInCard ? AppCard(child: content) : content;
   }
+}
+
+/// A 1/2/5 x 10^n step at least as large as [rough].
+double _niceStep(double rough) {
+  if (rough <= 0) return 1;
+  final magnitude =
+      math.pow(10, (math.log(rough) / math.ln10).floor()).toDouble();
+  final normalized = rough / magnitude;
+  final step = normalized <= 1
+      ? 1.0
+      : normalized <= 2
+          ? 2.0
+          : normalized <= 5
+              ? 5.0
+              : 10.0;
+  return step * magnitude;
 }
 
 /// A short axis tick: whole units below a thousand, then `k`.

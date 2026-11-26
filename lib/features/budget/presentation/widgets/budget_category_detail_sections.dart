@@ -22,6 +22,8 @@ class BudgetCategoryProgressCard extends StatelessWidget {
     required this.showPending,
   });
 
+  static const double _barHeight = 6;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -30,49 +32,106 @@ class BudgetCategoryProgressCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final pendingDisplay = showPending ? row.pendingDisplay : null;
     final hasLimit = row.budgetMinor != null && row.budgetMinor! > 0;
+    final headline = _headlineText(l10n, row);
+    final headlineColor = switch (row.mainAmountTone) {
+      BudgetCategoryAmountTone.neutral => scheme.onSurface,
+      BudgetCategoryAmountTone.positive => colors.income,
+      BudgetCategoryAmountTone.warning => colors.warning,
+      BudgetCategoryAmountTone.negative => colors.expense,
+    };
+    final actualColor = row.isOverBudget ? colors.expense : scheme.primary;
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (headline != null) ...[
+            FittedBox(
+              key: const ValueKey('budget-detail-headline'),
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                headline,
+                style: AppTypography.statistic(context)
+                    .copyWith(color: headlineColor),
+              ),
+            ),
+            SizedBox(height: spacing.md),
+          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 3,
                 child: _KvMetric(
+                  key: const ValueKey('budget-detail-metric-spent'),
                   label: l10n.budgetActualSpent,
                   value: row.actualDisplay,
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: _KvMetric(
-                  label: l10n.budgetTotal,
-                  value: row.budgetDisplay ?? '—',
-                ),
-              ),
               if (pendingDisplay != null)
                 Expanded(
-                  flex: 2,
                   child: _KvMetric(
+                    key: const ValueKey('budget-detail-metric-pending'),
                     label: l10n.budgetPendingShort,
                     value: pendingDisplay,
                     color: colors.frequency,
                   ),
                 ),
+              Expanded(
+                child: _KvMetric(
+                  key: const ValueKey('budget-detail-metric-budget'),
+                  label: l10n.budgetTotal,
+                  value: row.budgetDisplay ?? '—',
+                ),
+              ),
             ],
           ),
           if (hasLimit) ...[
             SizedBox(height: spacing.sm),
             ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: row.actualProgress,
-                minHeight: 6,
-                color: row.isOverBudget ? colors.expense : scheme.primary,
-                backgroundColor: scheme.surfaceContainerHighest,
-                semanticsLabel: l10n.budgetOverviewBudgetUsage,
+              borderRadius: BorderRadius.circular(999),
+              child: SizedBox(
+                height: _barHeight,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ColoredBox(
+                          key: const ValueKey('budget-detail-bar'),
+                          color: scheme.surfaceContainerHighest,
+                        ),
+                        if (row.actualProgress > 0)
+                          Positioned(
+                            left: 0,
+                            width: width * row.actualProgress,
+                            top: 0,
+                            bottom: 0,
+                            child: ColoredBox(
+                              key: const ValueKey(
+                                'budget-detail-bar-actual',
+                              ),
+                              color: actualColor,
+                            ),
+                          ),
+                        if (row.pendingProgress > 0)
+                          Positioned(
+                            left: width * row.actualProgress,
+                            width: width * row.pendingProgress,
+                            top: 0,
+                            bottom: 0,
+                            child: ColoredBox(
+                              key: const ValueKey(
+                                'budget-detail-bar-pending',
+                              ),
+                              color: colors.frequency.withValues(alpha: 0.65),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -105,29 +164,36 @@ class BudgetCategoryProgressCard extends StatelessWidget {
   }
 }
 
-/// Committed vs discretionary spend, the pending that still counts, and the
-/// reference figures the next budget decision leans on.
+/// Committed vs discretionary spend, and the two reference figures the next
+/// budget decision leans on.
 ///
-/// The three reference figures are not additive — committed baseline is what
-/// re-commits next month, the other two are last month's actual and the
-/// usable three-month average.
+/// The figures are not additive — the committed baseline is what re-commits
+/// next month, and last month's actual is the comparison that keeps the split
+/// honest. The three-month average stays on the trend chart, where it belongs.
 class BudgetCategoryCompositionCard extends StatelessWidget {
   final BudgetCategoryRowUiModel row;
-  final bool showPending;
   final bool showMaterializationHint;
 
   const BudgetCategoryCompositionCard({
     super.key,
     required this.row,
-    required this.showPending,
     required this.showMaterializationHint,
   });
+
+  static const double _barHeight = 6;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final spacing = context.spacing;
-    final pendingDisplay = showPending ? row.pendingDisplay : null;
+    final scheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
+    final fixedShare = row.committedShare.clamp(0.0, 1.0);
+    final references = [
+      l10n.budgetCommittedRef(row.committedBaselineDisplay),
+      if (row.lastMonthActualDisplay != null)
+        l10n.budgetLastMonthRef(row.lastMonthActualDisplay!),
+    ];
 
     return AppCard(
       child: Column(
@@ -143,55 +209,81 @@ class BudgetCategoryCompositionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _KvMetric(
+                  key: const ValueKey('budget-composition-metric-fixed'),
                   label: l10n.budgetCommitted,
                   value: row.committedActualDisplay,
                 ),
               ),
               Expanded(
                 child: _KvMetric(
+                  key: const ValueKey('budget-composition-metric-flexible'),
                   label: l10n.budgetDiscretionary,
                   value: row.discretionaryActualDisplay,
                 ),
               ),
-              if (pendingDisplay != null)
-                Expanded(
-                  child: _KvMetric(
-                    label: l10n.budgetPendingShort,
-                    value: pendingDisplay,
-                    color: context.colors.frequency,
-                  ),
-                ),
             ],
+          ),
+          SizedBox(height: spacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              height: _barHeight,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  return Stack(
+                    key: const ValueKey('budget-composition-bar'),
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        key: const ValueKey('budget-composition-bar-track'),
+                        color: scheme.surfaceContainerHighest,
+                      ),
+                      if (row.hasActualSpend && fixedShare > 0)
+                        Positioned(
+                          left: 0,
+                          width: width * fixedShare,
+                          top: 0,
+                          bottom: 0,
+                          child: ColoredBox(
+                            key: const ValueKey(
+                              'budget-composition-bar-fixed',
+                            ),
+                            color: scheme.primary,
+                          ),
+                        ),
+                      if (row.hasActualSpend && fixedShare < 1)
+                        Positioned(
+                          left: width * fixedShare,
+                          width: width * (1 - fixedShare),
+                          top: 0,
+                          bottom: 0,
+                          child: ColoredBox(
+                            key: const ValueKey(
+                              'budget-composition-bar-flexible',
+                            ),
+                            color: colors.frequency.withValues(alpha: 0.65),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
           SizedBox(height: spacing.md),
           const FeatherDivider(),
           SizedBox(height: spacing.sm),
-          Wrap(
-            spacing: spacing.md,
-            runSpacing: spacing.xs,
-            children: [
-              Text(
-                l10n.budgetCommittedRef(row.committedBaselineDisplay),
-                style: AppTypography.meta(context),
-              ),
-              if (row.lastMonthActualDisplay != null)
-                Text(
-                  l10n.budgetLastMonthRef(row.lastMonthActualDisplay!),
-                  style: AppTypography.meta(context),
-                ),
-              if (row.threeMonthAvgDisplay != null)
-                Text(
-                  l10n.budgetThreeMoAvgRef(row.threeMonthAvgDisplay!),
-                  style: AppTypography.meta(context),
-                ),
-            ],
+          Text(
+            references.join(' · '),
+            style: AppTypography.meta(context),
           ),
           if (showMaterializationHint) ...[
             SizedBox(height: spacing.sm),
             Text(
               l10n.budgetMaterializedOnlyHint,
-              style: AppTypography.compactLabel(context)
-                  .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: AppTypography.compactLabel(context).copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ],
@@ -200,12 +292,34 @@ class BudgetCategoryCompositionCard extends StatelessWidget {
   }
 }
 
+String? _headlineText(
+  AppLocalizations l10n,
+  BudgetCategoryRowUiModel row,
+) {
+  final amount = row.mainAmountDisplay;
+  if (amount == null) return null;
+  return switch (row.amountLabel) {
+    BudgetCategoryAmountLabel.none => null,
+    BudgetCategoryAmountLabel.remaining => l10n.budgetRowRemaining(amount),
+    BudgetCategoryAmountLabel.projectedRemaining =>
+      l10n.budgetRowProjectedRemaining(amount),
+    BudgetCategoryAmountLabel.projectedOver =>
+      l10n.budgetRowProjectedOver(amount),
+    BudgetCategoryAmountLabel.over => l10n.budgetRowOver(amount),
+    BudgetCategoryAmountLabel.reviewRemaining =>
+      l10n.budgetRowReviewRemaining(amount),
+    BudgetCategoryAmountLabel.reviewOver => l10n.budgetRowReviewOver(amount),
+    BudgetCategoryAmountLabel.planBudget => l10n.budgetRowPlanBudget(amount),
+  };
+}
+
 class _KvMetric extends StatelessWidget {
   final String label;
   final String value;
   final Color? color;
 
   const _KvMetric({
+    super.key,
     required this.label,
     required this.value,
     this.color,

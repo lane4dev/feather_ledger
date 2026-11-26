@@ -1049,6 +1049,10 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetTrendLegendBudget => 'Total budget';
+  @override
+  String get budgetTrendLegendCategoryActual => 'Actual spend';
+  @override
+  String get budgetTrendLegendCategoryBudget => 'Category budget';
 
   @override
   String get budgetTrendLegendAverage => '3-month average';
@@ -1138,6 +1142,8 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetSetButton => 'Set budget';
+  @override
+  String get budgetAdjustButton => 'Adjust budget';
 
   @override
   String budgetRowProjectedOver(String amount) => 'Projected over $amount';
