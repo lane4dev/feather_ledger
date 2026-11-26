@@ -4,11 +4,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/recurrence/distant_past_guard.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart'
+    show ledgerClockProvider;
 
 part 'update_recurring_bill_command.g.dart';
 
@@ -129,7 +133,8 @@ class UpdateRecurringBillCommand {
           (!clearCountLimit &&
               countLimit != null &&
               countLimit != series.countLimit) ||
-          (weekdays != null && !_sameWeekdays(weekdays, existingWeekdays)) ||
+          (weekdays != null &&
+              !DistantPastStartGuard.sameWeekdays(weekdays, existingWeekdays)) ||
           (clearReminder && series.reminderMinutes != null) ||
           (!clearReminder &&
               reminderMinutes != null &&
@@ -156,7 +161,7 @@ class UpdateRecurringBillCommand {
           final targetDayKey = scheduledOccurrenceKey(date);
           final rows =
               await _recurringRepository.scheduledForSeries(series.id);
-          final collides = rows.any((row) {
+          final physicalCollides = rows.any((row) {
             if (row.id == scheduled.id) return false;
             if (row.status ==
                 ScheduledTransactionStatus.skipped.toStorage()) {
@@ -165,6 +170,55 @@ class UpdateRecurringBillCommand {
             final rowEffectiveDate = row.dateOverride ?? row.scheduledDate;
             return scheduledOccurrenceKey(rowEffectiveDate) == targetDayKey;
           });
+          var collides = physicalCollides;
+          if (!collides &&
+              series.mode == RecurringSeriesMode.repeating &&
+              series.isActive) {
+            final localTarget = date.isUtc ? date.toLocal() : date;
+            final targetDayStart = DateTime(
+              localTarget.year,
+              localTarget.month,
+              localTarget.day,
+            );
+            final targetDayEnd = DateTime(
+              localTarget.year,
+              localTarget.month,
+              localTarget.day,
+              23,
+              59,
+              59,
+              999,
+            );
+            final logicalOccurrences = const RecurrenceExpander().expandInRange(
+              series.toRecurrenceRuleSpec(),
+              rangeStart: targetDayStart,
+              rangeEnd: targetDayEnd,
+              includeRangeStart: true,
+              includeRangeEnd: true,
+              respectMaterializeFrom: true,
+            );
+            final physicalByKey = {
+              for (final row in rows) row.occurrenceKey: row,
+            };
+            for (final occ in logicalOccurrences) {
+              if (occ.occurrenceKey != targetDayKey) continue;
+              if (occ.occurrenceKey == scheduled.occurrenceKey) continue;
+              final physical = physicalByKey[occ.occurrenceKey];
+              if (physical == null) {
+                collides = true;
+                break;
+              }
+              final isSkipped = physical.status ==
+                  ScheduledTransactionStatus.skipped.toStorage();
+              final movedAway = physical.dateOverride != null &&
+                  scheduledOccurrenceKey(physical.dateOverride!) !=
+                      targetDayKey;
+              if (!isSkipped && !movedAway) {
+                collides = true;
+                break;
+              }
+            }
+          }
           if (collides) {
             throw const CommandRejected(
               LedgerErrorCode.scheduledDateTaken,
@@ -218,10 +272,16 @@ class UpdateRecurringBillCommand {
       }
 
       final currentDate = scheduled.dateOverride ?? scheduled.scheduledDate;
-      final baseScheduleChanged = !date.isAtSameMomentAs(currentDate) ||
-          nextFrequency != series.frequency ||
-          nextInterval != (series.interval ?? 1) ||
-          !_sameWeekdays(nextWeekdays, existingWeekdays);
+      final baseScheduleChanged = DistantPastStartGuard.hasBaseScheduleChanged(
+        currentDate: currentDate,
+        nextDate: date,
+        currentFrequency: series.frequency,
+        nextFrequency: nextFrequency,
+        currentInterval: series.interval,
+        nextInterval: nextInterval,
+        currentWeekdays: existingWeekdays,
+        nextWeekdays: nextWeekdays,
+      );
       final endConditionChanged = !_sameMoment(nextEndDate, series.endDate) ||
           nextCountLimit != series.countLimit;
 
@@ -347,12 +407,6 @@ class UpdateRecurringBillCommand {
     if (a == null || b == null) return false;
     return a.isAtSameMomentAs(b);
   }
-
-  static bool _sameWeekdays(List<int> a, List<int> b) {
-    final sa = a.toSet();
-    final sb = b.toSet();
-    return sa.length == sb.length && sa.containsAll(sb);
-  }
 }
 
 @riverpod
@@ -360,5 +414,6 @@ UpdateRecurringBillCommand updateRecurringBillCommand(Ref ref) {
   return UpdateRecurringBillCommand(
     ref.watch(recurringRepositoryProvider),
     ref.watch(postingContextResolverProvider),
+    clock: ref.watch(ledgerClockProvider),
   );
 }

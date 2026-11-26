@@ -5,9 +5,11 @@ import 'package:uuid/uuid.dart';
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart'
+    show ledgerClockProvider;
 
 part 'project_recurring_events_command.g.dart';
 
@@ -166,17 +168,7 @@ class ProjectRecurringEventsCommand {
       );
     }
 
-    final spec = RecurrenceRuleSpec.fromStored(
-      mode: series.mode,
-      frequency: series.frequency,
-      interval: series.interval,
-      startDate: series.startDate,
-      endDate: series.endDate,
-      countLimit: series.countLimit,
-      completedCountOffset: series.completedCountOffset,
-      rrule: series.rrule,
-      materializeFrom: series.materializeFrom,
-    );
+    final spec = series.toRecurrenceRuleSpec();
 
     final toInsert = <ScheduledTransactionsViewCompanion>[];
     var insertedOverdue = 0;
@@ -328,5 +320,8 @@ class ProjectRecurringEventsCommand {
 
 @riverpod
 ProjectRecurringEventsCommand projectRecurringEventsCommand(Ref ref) {
-  return ProjectRecurringEventsCommand(ref.watch(recurringRepositoryProvider));
+  return ProjectRecurringEventsCommand(
+    ref.watch(recurringRepositoryProvider),
+    clock: ref.watch(ledgerClockProvider),
+  );
 }

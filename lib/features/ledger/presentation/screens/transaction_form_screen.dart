@@ -30,7 +30,6 @@ import 'package:feather_ledger/shared/presentation/extensions/account_type_exten
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:feather_ledger/features/ledger/domain/recurrence/distant_past_guard.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import '../models/transaction_date_label.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -923,19 +922,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     }
 
     DateTime? materializeFrom;
-    final current = _current;
-    if (current.mode == TransactionFormMode.repeating) {
-      final targetStartDate =
-          current.customRecurrence?.startDate ?? current.date;
-      final now = ref.read(ledgerClockProvider).now();
-      if (DistantPastStartGuard.isDistantPast(targetStartDate, now: now)) {
-        materializeFrom = await DistantPastStartDialog.show(
-          context,
-          startDate: targetStartDate,
-          now: now,
-        );
-        if (materializeFrom == null || !mounted) return;
-      }
+    final now = ref.read(ledgerClockProvider).now();
+    if (vm.needsDistantPastConfirmation(now)) {
+      materializeFrom = await DistantPastStartDialog.show(
+        context,
+        startDate: vm.targetRepeatStartDate,
+        now: now,
+      );
+      if (materializeFrom == null || !mounted) return;
     }
 
     final outcome = await vm.submit(materializeFrom: materializeFrom);

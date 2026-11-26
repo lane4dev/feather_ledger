@@ -54,4 +54,4 @@ final class ProjectRecurringEventsCommandProvider extends $FunctionalProvider<
 }
 
 String _$projectRecurringEventsCommandHash() =>
-    r'1fd85de7daaa2e9bd3740de5d904a2c86adda6be';
+    r'057b035b3d45ad635a793a0dea6e1f5e851c7f3c';

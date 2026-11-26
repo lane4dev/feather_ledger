@@ -2,6 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart'
+    show ledgerClockProvider;
 
 part 'restore_skipped_bill_command.g.dart';
 
@@ -30,5 +32,8 @@ class RestoreSkippedBillCommand {
 
 @riverpod
 RestoreSkippedBillCommand restoreSkippedBillCommand(Ref ref) {
-  return RestoreSkippedBillCommand(ref.watch(recurringRepositoryProvider));
+  return RestoreSkippedBillCommand(
+    ref.watch(recurringRepositoryProvider),
+    clock: ref.watch(ledgerClockProvider),
+  );
 }

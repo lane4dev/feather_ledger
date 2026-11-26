@@ -13,6 +13,7 @@ import 'package:feather_ledger/core/presentation/providers/category_providers.da
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/data/transaction_attachment_store.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
+import 'package:feather_ledger/features/ledger/domain/recurrence/distant_past_guard.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 
@@ -299,6 +300,20 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         ?.where((a) => a.id == state.accountId)
         .firstOrNull;
     return account != null && account.wouldOverdraft(amount);
+  }
+
+  /// Effective start date when creating a repeating series.
+  DateTime get targetRepeatStartDate =>
+      state.customRecurrence?.startDate ?? state.date;
+
+  /// Whether creating a repeating series requires the distant-past start-date
+  /// confirmation dialog (strictly earlier than 2 calendar months before [now]).
+  bool needsDistantPastConfirmation(DateTime now) {
+    if (state.mode != TransactionFormMode.repeating) return false;
+    return DistantPastStartGuard.isDistantPast(
+      targetRepeatStartDate,
+      now: now,
+    );
   }
 
   /// Records or corrects the entry, or creates a planned/repeating recurring

@@ -24,7 +24,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/commands/create_recurring_series_command.dart';
 import '../../domain/entities/ledger_entities.dart';
-import '../../domain/recurrence/distant_past_guard.dart';
 import '../../domain/services/recurring_service.dart';
 import '../models/custom_recurrence.dart';
 import '../models/transaction_tile_ui_model.dart';
@@ -574,24 +573,26 @@ class _RecurringBillFormScreenState
     final isPlannedUpdate = series?.mode == RecurringSeriesMode.planned;
     final isRepeatingUpdate = scope == RecurringScope.updateRule &&
         series?.mode == RecurringSeriesMode.repeating;
-    final baseScheduleChanged = isRepeatingUpdate &&
-        series != null &&
-        (!_date.isAtSameMomentAs(widget.transaction.date) ||
-            _frequency != series.frequency ||
-            _interval != (series.interval ?? 1) ||
-            !_sameWeekdays(_weekdays, _initialWeekdays));
 
     DateTime? materializeFrom;
-    if (baseScheduleChanged) {
-      final now = ref.read(ledgerClockProvider).now();
-      if (DistantPastStartGuard.isDistantPast(_date, now: now)) {
-        materializeFrom = await DistantPastStartDialog.show(
-          context,
-          startDate: _date,
-          now: now,
-        );
-        if (materializeFrom == null || !mounted) return;
-      }
+    final now = ref.read(ledgerClockProvider).now();
+    if (RecurringViewModel.needsDistantPastConfirmation(
+      scope: scope,
+      series: series,
+      currentDate: widget.transaction.date,
+      nextDate: _date,
+      nextFrequency: _frequency,
+      nextInterval: _interval,
+      initialWeekdays: _initialWeekdays,
+      nextWeekdays: _weekdays,
+      now: now,
+    )) {
+      materializeFrom = await DistantPastStartDialog.show(
+        context,
+        startDate: _date,
+        now: now,
+      );
+      if (materializeFrom == null || !mounted) return;
     }
 
     final notifier = ref.read(recurringViewModelProvider.notifier);

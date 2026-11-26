@@ -3,8 +3,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 
 void main() {
   setUpAll(tzdata.initializeTimeZones);

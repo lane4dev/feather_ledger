@@ -74,4 +74,36 @@ abstract final class DistantPastStartGuard {
     }
     return parsed;
   }
+
+  /// Returns `true` when any schedule-anchoring field of a repeating series
+  /// changed (`date`, `frequency`, `interval`, or `WEEKLY` `weekdays`).
+  static bool hasBaseScheduleChanged({
+    required DateTime currentDate,
+    required DateTime nextDate,
+    required String currentFrequency,
+    required String nextFrequency,
+    required int? currentInterval,
+    required int nextInterval,
+    required List<int> currentWeekdays,
+    required List<int> nextWeekdays,
+  }) {
+    final normalizedCurrentFreq = currentFrequency.toUpperCase();
+    final normalizedNextFreq = nextFrequency.toUpperCase();
+    if (!nextDate.isAtSameMomentAs(currentDate) ||
+        normalizedNextFreq != normalizedCurrentFreq ||
+        nextInterval != (currentInterval ?? 1)) {
+      return true;
+    }
+    if (normalizedNextFreq == 'WEEKLY') {
+      return !sameWeekdays(nextWeekdays, currentWeekdays);
+    }
+    return false;
+  }
+
+  /// Compares two ISO weekday lists as sets (order- and duplicate-insensitive).
+  static bool sameWeekdays(List<int> a, List<int> b) {
+    final sa = a.toSet();
+    final sb = b.toSet();
+    return sa.length == sb.length && sa.containsAll(sb);
+  }
 }

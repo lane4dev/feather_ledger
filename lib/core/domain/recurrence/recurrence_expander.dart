@@ -1,7 +1,20 @@
 import 'package:rrule/rrule.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+
+/// Occurrence key for a one-shot planned bill (`(series_id, occurrence_key)`).
+const kPlannedOccurrenceKey = 'single';
+
+/// Semantic occurrence key (local civil `YYYY-MM-DD`) for one rule-generated
+/// instance.
+String scheduledOccurrenceKey(DateTime date) {
+  final local = date.isUtc ? date.toLocal() : date;
+  return RecurrenceExpander.formatCivilDateKey(
+    local.year,
+    local.month,
+    local.day,
+  );
+}
 
 /// Builds a wall-clock [DateTime] for one local civil date and time-of-day.
 typedef LocalDateTimeBuilder = DateTime Function(

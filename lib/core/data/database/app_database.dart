@@ -8,7 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../domain/enums.dart';
 import '../../domain/event_sourcing/event_envelope.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import '../../domain/recurrence/recurrence_expander.dart';
 
 import 'database_file.dart';
 import 'tables.dart';
@@ -222,4 +222,21 @@ LazyDatabase _openConnection() {
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
   return AppDatabase();
+}
+
+/// Shared mapping from a stored [RecurringSeriesRow] to a pure
+/// [RecurrenceRuleSpec], keeping physical materialization, virtual overlay,
+/// on-write materialization, and collision checks on one canonical conversion.
+extension RecurringSeriesRowRecurrenceSpec on RecurringSeriesRow {
+  RecurrenceRuleSpec toRecurrenceRuleSpec() => RecurrenceRuleSpec.fromStored(
+        mode: mode,
+        frequency: frequency,
+        interval: interval,
+        startDate: startDate,
+        endDate: endDate,
+        countLimit: countLimit,
+        completedCountOffset: completedCountOffset,
+        rrule: rrule,
+        materializeFrom: materializeFrom,
+      );
 }

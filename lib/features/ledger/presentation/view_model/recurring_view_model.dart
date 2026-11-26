@@ -1,8 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/recurrence/distant_past_guard.dart';
 import '../../domain/services/recurring_service.dart';
 
 part 'recurring_view_model.g.dart';
@@ -47,6 +49,39 @@ class RecurringViewModel extends _$RecurringViewModel {
 
   int takeLastAutoPostedCount() =>
       ref.read(recurringServiceProvider).takeLastAutoPostedCount();
+
+  /// Whether editing a recurring bill with [scope] changes its repeating base
+  /// schedule to a start date strictly earlier than 2 calendar months before
+  /// [now], requiring the distant-past confirmation dialog.
+  static bool needsDistantPastConfirmation({
+    required RecurringScope scope,
+    required RecurringTransactionSeriesEntity? series,
+    required DateTime currentDate,
+    required DateTime nextDate,
+    required String nextFrequency,
+    required int nextInterval,
+    required List<int> initialWeekdays,
+    required List<int> nextWeekdays,
+    required DateTime now,
+  }) {
+    if (scope != RecurringScope.updateRule ||
+        series == null ||
+        series.mode != RecurringSeriesMode.repeating) {
+      return false;
+    }
+    final baseScheduleChanged = DistantPastStartGuard.hasBaseScheduleChanged(
+      currentDate: currentDate,
+      nextDate: nextDate,
+      currentFrequency: series.frequency,
+      nextFrequency: nextFrequency,
+      currentInterval: series.interval,
+      nextInterval: nextInterval,
+      currentWeekdays: initialWeekdays,
+      nextWeekdays: nextWeekdays,
+    );
+    return baseScheduleChanged &&
+        DistantPastStartGuard.isDistantPast(nextDate, now: now);
+  }
 
   /// Edits a pending bill at one of the two scopes. Moves no money and
   /// writes no event.

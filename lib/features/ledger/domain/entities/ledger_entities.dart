@@ -3,24 +3,14 @@ import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 
+export 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart'
+    show kPlannedOccurrenceKey, scheduledOccurrenceKey;
+
 enum ScheduledTransactionStatus {
   scheduled,
   posted,
   skipped,
   failed,
-}
-
-/// Occurrence key for a one-shot planned bill (`(series_id, occurrence_key)`).
-const kPlannedOccurrenceKey = 'single';
-
-/// Semantic occurrence key (local civil `YYYY-MM-DD`) for one rule-generated
-/// instance.
-String scheduledOccurrenceKey(DateTime date) {
-  final local = date.isUtc ? date.toLocal() : date;
-  final y = local.year.toString().padLeft(4, '0');
-  final m = local.month.toString().padLeft(2, '0');
-  final d = local.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
 }
 
 /// How far an edit reaches into a recurring series.

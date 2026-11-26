@@ -4,10 +4,10 @@ import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
 
 part 'ensure_occurrence_materialized_command.g.dart';
 
@@ -94,17 +94,7 @@ class EnsureOccurrenceMaterializedCommand {
     RecurringSeriesRow series,
     String occurrenceKey,
   ) {
-    final spec = RecurrenceRuleSpec.fromStored(
-      mode: series.mode,
-      frequency: series.frequency,
-      interval: series.interval,
-      startDate: series.startDate,
-      endDate: series.endDate,
-      countLimit: series.countLimit,
-      completedCountOffset: series.completedCountOffset,
-      rrule: series.rrule,
-      materializeFrom: series.materializeFrom,
-    );
+    final spec = series.toRecurrenceRuleSpec();
 
     if (series.mode == RecurringSeriesMode.planned) {
       if (occurrenceKey != kPlannedOccurrenceKey) return null;

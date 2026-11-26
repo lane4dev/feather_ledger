@@ -2,8 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show protected;
 
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 
 import '../app_database.dart';
 import '../tables.dart';
@@ -459,17 +458,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     for (final row in activeSeriesRows) {
       final series = row.readTable(recurringSeries);
       final account = row.readTable(accountsView);
-      final spec = RecurrenceRuleSpec.fromStored(
-        mode: series.mode,
-        frequency: series.frequency,
-        interval: series.interval,
-        startDate: series.startDate,
-        endDate: series.endDate,
-        countLimit: series.countLimit,
-        completedCountOffset: series.completedCountOffset,
-        rrule: series.rrule,
-        materializeFrom: series.materializeFrom,
-      );
+      final spec = series.toRecurrenceRuleSpec();
 
       final occurrences = expander.expandForMonth(
         spec,

@@ -51,4 +51,4 @@ final class RestoreSkippedBillCommandProvider extends $FunctionalProvider<
 }
 
 String _$restoreSkippedBillCommandHash() =>
-    r'4cc2b169eb6b6e9229785933bc2fc3debbb43e28';
+    r'dfdd913d7ec45e297cd726ca7d32fddd86d19d96';

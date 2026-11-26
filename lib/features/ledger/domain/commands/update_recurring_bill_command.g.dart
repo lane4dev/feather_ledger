@@ -52,4 +52,4 @@ final class UpdateRecurringBillCommandProvider extends $FunctionalProvider<
 }
 
 String _$updateRecurringBillCommandHash() =>
-    r'94199565cb7afbd2bf5f340be74ba706be5e34d5';
+    r'7034407c574be312d172f8b4aa0c4f1719e53fd4';

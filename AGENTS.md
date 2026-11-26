@@ -128,7 +128,7 @@ lib/shared/     跨特性的组件与扩展
 这是账本中与预算一起**刻意不做**事件溯源的 CRUD 豁免部分（ADR-0005 / ADR-0006），也是重建存在豁免名单的原因。
 
 - **表结构与身份（ADR-0005，v17）**：`recurring_series` 存规则（`mode`：`planned | repeating`、`frequency`、`interval`、`start_date`、`materialize_from`、`end_date`、`count_limit`、`completed_count_offset`、`rrule`、`auto_post`、`reminder_minutes`、`is_active`）；`scheduled_transactions_view` 存物理实例，主键是独立 **UUID**，配 `UNIQUE(series_id, occurrence_key)`，带 `status`（`scheduled | posted | skipped | failed`）、`manual_only` 及稀疏覆盖列（`amount_override_minor`、`date_override`、`memo_override`）。`occurrence_key` 对 `repeating` 为规则推导的**本地日历日 `YYYY-MM-DD`**（绝非 UTC），对 `planned` 固定为 `'single'`（`kPlannedOccurrenceKey`）。两张表均为 CRUD 豁免表，升级 schema（如 v17 新增 `materialize_from` / `completed_count_offset` 并迁移本地 `occurrence_key`）**不升 `ledgerProjectionVersion`**，重建永不触碰。
-- **统一本地日历日展开内核（`RecurrenceExpander`）**：位于 `features/ledger/domain/recurrence/recurrence_expander.dart`（纯领域、无 DB/时钟副作用），同时被物理物化与预算虚拟投影共享：
+- **统一本地日历日展开内核（`RecurrenceExpander`）**：位于 `core/domain/recurrence/recurrence_expander.dart`（纯领域、无 DB/时钟副作用），同时被物理物化与预算虚拟投影共享：
   - `startDate` 与 `endDate` 按本地 `(year, month, day)` 交给 RRULE 推进，`BYDAY` 按本地星期语义解释，再拼回规则本地时刻生成 `scheduledDate` 与本地 `YYYY-MM-DD` `occurrenceKey`。
   - `endDate` 闭区间截断；`countLimit` 始终代表全生命周期总次数，展开时以 `countLimit - completedCountOffset` 推进剩余期次；`materializeFrom` 是允许物理物化与预算虚拟投影的下界日期，而 `startDate` 始终保留为排期与 `countLimit` 锚点。
 - **层一：自然月对齐的物理物化（`ProjectRecurringEventsCommand`）**：仅面向 `isActive == true` 且关联账户 `!archived && !deleted` 的系列，每个系列在单次数据库事务内批量 `INSERT OR IGNORE`：

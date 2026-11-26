@@ -386,5 +386,98 @@ void main() {
           .first;
       expect(decAfterSkip.findCategory('rent')!.pendingMinor, 350000);
     });
+
+    test(
+        'thisOnly dateOverride rejects colliding with an unmaterialized '
+        'virtual occurrence, but allows landing on a skipped or moved-away '
+        'occurrence date', () async {
+      final seriesId = (await harness.recurringService.createSeries(
+        type: RecurringSeriesKind.expense,
+        amountMinor: 300000,
+        accountId: 'acc-cash',
+        categoryId: 'rent',
+        description: 'Apartment rent',
+        frequency: 'MONTHLY',
+        startDate: DateTime(2026, 5, 1, 9, 0),
+        materializeFrom: DateTime(2026, 5, 15, 0, 0),
+      ) as Success<String>)
+          .value;
+
+      // Materialize M+6 (2026-11-01); M+7 (2026-12-01) and M+8 (2027-01-01)
+      // remain unmaterialized virtual occurrences.
+      final novBill = (await harness.recurringService.ensureMaterialized(
+        seriesId: seriesId,
+        occurrenceKey: '2026-11-01',
+      ) as Success<ScheduledTransactionEntity>)
+          .value;
+
+      // 1. Rescheduling M+6 onto M+7's unmaterialized occurrence date must fail.
+      final collideVirtual = await harness.recurringService.updateBill(
+        novBill.id,
+        scope: RecurringScope.thisOnly,
+        amountMinor: 300000,
+        date: DateTime(2026, 12, 1, 14, 30),
+        categoryId: 'rent',
+        accountId: 'acc-cash',
+        description: 'Apartment rent',
+      );
+      expect(collideVirtual, isA<Failure<void>>());
+      expect(
+        (collideVirtual as Failure).code,
+        LedgerErrorCode.scheduledDateTaken,
+      );
+
+      // 2. Materialize M+7 and skip it -> M+6 can now move onto 2026-12-01.
+      final decBill = (await harness.recurringService.ensureMaterialized(
+        seriesId: seriesId,
+        occurrenceKey: '2026-12-01',
+      ) as Success<ScheduledTransactionEntity>)
+          .value;
+      final skipDec = await harness.recurringService.deleteBill(
+        decBill.id,
+        scope: RecurringScope.thisOnly,
+      );
+      expect(skipDec.isSuccess, isTrue);
+
+      final moveOntoSkipped = await harness.recurringService.updateBill(
+        novBill.id,
+        scope: RecurringScope.thisOnly,
+        amountMinor: 300000,
+        date: DateTime(2026, 12, 1, 14, 30),
+        categoryId: 'rent',
+        accountId: 'acc-cash',
+        description: 'Apartment rent',
+      );
+      expect(moveOntoSkipped.isSuccess, isTrue);
+
+      // 3. Materialize M+8 (2027-01-01) and move it away to 2027-01-05 ->
+      //    M+6 can now move onto 2027-01-01.
+      final janBill = (await harness.recurringService.ensureMaterialized(
+        seriesId: seriesId,
+        occurrenceKey: '2027-01-01',
+      ) as Success<ScheduledTransactionEntity>)
+          .value;
+      final moveJanAway = await harness.recurringService.updateBill(
+        janBill.id,
+        scope: RecurringScope.thisOnly,
+        amountMinor: 300000,
+        date: DateTime(2027, 1, 5, 9, 0),
+        categoryId: 'rent',
+        accountId: 'acc-cash',
+        description: 'Apartment rent',
+      );
+      expect(moveJanAway.isSuccess, isTrue);
+
+      final moveOntoMovedAway = await harness.recurringService.updateBill(
+        novBill.id,
+        scope: RecurringScope.thisOnly,
+        amountMinor: 300000,
+        date: DateTime(2027, 1, 1, 9, 0),
+        categoryId: 'rent',
+        accountId: 'acc-cash',
+        description: 'Apartment rent',
+      );
+      expect(moveOntoMovedAway.isSuccess, isTrue);
+    });
   });
 }

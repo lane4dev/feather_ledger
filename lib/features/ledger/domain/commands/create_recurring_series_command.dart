@@ -3,9 +3,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
-import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/features/ledger/domain/services/posting_context.dart';
 
 part 'create_recurring_series_command.g.dart';
