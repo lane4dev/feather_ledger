@@ -311,9 +311,10 @@ class AppTheme {
       appBarTheme: AppBarThemeData(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        surfaceTintColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        scrolledUnderElevation: 1.5,
+        shadowColor: scheme.shadow.withValues(alpha: dark ? 0.35 : 0.12),
         titleTextStyle:
             typography.titleLarge!.copyWith(color: scheme.onSurface),
       ),

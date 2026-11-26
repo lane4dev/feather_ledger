@@ -201,12 +201,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
             // month switchers have to sit on the same x rather than one
             // centering and one hugging the gutter.
             centerTitle: false,
-            elevation: _scrolled ? 2.0 : 0.0,
-            scrolledUnderElevation: _scrolled ? 2.0 : 0.0,
             backgroundColor:
                 _scrolled ? scheme.surfaceContainer : scheme.surface,
-            surfaceTintColor: scheme.surfaceContainer,
-            shadowColor: scheme.shadow.withValues(alpha: 0.12),
             title: _collapsed
                 ? InkWell(
                     borderRadius: context.metrics.chipBorderRadius,

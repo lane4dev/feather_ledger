@@ -37,6 +37,22 @@ double contrast(Color a, Color b) {
 }
 
 void main() {
+  for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
+    test('${theme.brightness.name} app bar hides its tint and only shadows '
+        'once content scrolls under', () {
+      final appBar = theme.appBarTheme;
+      expect(appBar.elevation, 0);
+      expect(appBar.scrolledUnderElevation, 1.5);
+      expect(appBar.surfaceTintColor, Colors.transparent);
+      expect(
+        appBar.shadowColor,
+        theme.colorScheme.shadow.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.12,
+        ),
+      );
+    });
+  }
+
   testWidgets('segmented control honors reduced motion', (tester) async {
     var selected = 0;
     await tester.pumpWidget(MaterialApp(

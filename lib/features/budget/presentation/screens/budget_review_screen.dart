@@ -88,8 +88,6 @@ class BudgetReviewScreen extends ConsumerWidget {
     return ScrolledTintScaffold(
       appBarBuilder: (context, scrolledUnder) => AppBar(
         backgroundColor: scrolledUnder ? scheme.surfaceContainer : null,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
         leading: AppIconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,

@@ -437,7 +437,15 @@ void main() {
     final ledgerScheme =
         Theme.of(tester.element(find.byType(SliverAppBar))).colorScheme;
     expect(scrolledAppBar.backgroundColor, ledgerScheme.surfaceContainer);
-    expect(scrolledAppBar.scrolledUnderElevation, 2.0);
+    // The bar carries no local elevation override: the shared theme supplies
+    // the 1.5 scrolled-under shadow on both themes.
+    expect(scrolledAppBar.scrolledUnderElevation, isNull);
+    expect(
+      Theme.of(tester.element(find.byType(SliverAppBar)))
+          .appBarTheme
+          .scrolledUnderElevation,
+      1.5,
+    );
     expect(
       find.descendant(
         of: find.byType(LedgerCompactBalance),
@@ -451,7 +459,7 @@ void main() {
     await tester.pumpAndSettle();
     final topAppBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
     expect(topAppBar.backgroundColor, ledgerScheme.surface);
-    expect(topAppBar.scrolledUnderElevation, 0.0);
+    expect(topAppBar.scrolledUnderElevation, isNull);
     await tester.tap(find.byIcon(LucideIcons.eyeOff));
     await tester.pumpAndSettle();
     expect(find.text('¥1195.00'), findsOneWidget);

@@ -121,8 +121,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         backgroundColor: scrolledUnder
             ? Theme.of(context).colorScheme.surfaceContainer
             : null,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
         title: LedgerMonthSwitcher(
           selectedDate: selectedDate,
           onChanged: _changeMonth,

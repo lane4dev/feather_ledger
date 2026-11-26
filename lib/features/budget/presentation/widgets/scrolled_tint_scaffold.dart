@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 /// Scaffold whose app bar takes a shallow container tint once the page scrolls
 /// under it.
 ///
-/// The budget tabs keep a flat, surface-coloured app bar at rest. Material's
-/// own `scrolledUnderElevation` overlay is invisible here because the theme
-/// tints with `surface`, so the tint is derived from the scroll position and
-/// painted by the caller through [appBarBuilder].
+/// The budget tabs keep a flat, surface-coloured app bar at rest. The shared
+/// theme supplies the shallow scrolled-under shadow; the surface tint is
+/// derived from the scroll position and painted by the caller through
+/// [appBarBuilder].
 class ScrolledTintScaffold extends StatefulWidget {
   final PreferredSizeWidget Function(
     BuildContext context,
