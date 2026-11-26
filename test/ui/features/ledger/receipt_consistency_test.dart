@@ -103,13 +103,13 @@ void main() {
               .first;
           final rect = tester.getRect(surface);
           final amountStyle =
-              tester.widget<Text>(find.text('-€1234.56')).style;
+              tester.widget<Text>(find.text('-€1,234.56')).style;
           final editPosition =
               tester.getCenter(find.byIcon(LucideIcons.squarePen)) -
                   rect.topLeft;
           final l10n = AppLocalizations.of(
               tester.element(find.byType(AppReceiptSheet)))!;
-          expect(rect.height, lessThanOrEqualTo(740 * 0.9));
+          expect(rect.height, lessThanOrEqualTo(740 * 0.6 + 0.5));
           final expectedDate = locale.languageCode == 'en'
               ? 'November 1, 2026 09:00'
               : '2026年11月1日 09:00';
@@ -119,7 +119,7 @@ void main() {
             expect(amountStyle, recordedAmountStyle);
             expect(rect.width, recordedWidth);
             expect(editPosition, recordedEditPosition);
-            expect(find.text(l10n.pendingBill), findsOneWidget);
+            expect(find.text(l10n.pendingBill).hitTestable(), findsOneWidget);
             expect(find.text(l10n.postInstance).hitTestable(), findsOneWidget);
             expect(find.byType(AppBottomActionBar), findsOneWidget);
             expect(find.byKey(const ValueKey('transaction-barcode')),

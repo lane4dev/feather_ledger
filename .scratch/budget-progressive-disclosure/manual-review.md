@@ -367,3 +367,31 @@ the month picker.
   until the rule is valid. At 320 dp/1.6x the dialog scrolls instead of
   overflowing.
 - [ ] pass  [ ] fail — notes:
+
+## 22. Receipt transaction detail sheet
+
+- Page: ledger → tap any recorded transaction; repeat on a pending bill, a
+  transfer, and a balance adjustment. Check light and dark at 400 dp, 320 dp at
+  1.6x, and a wide 900 dp window.
+- Paper: the sheet background is transparent, the ticket floats with 16 dp
+  side margins and at least 16 dp above the system gesture inset, and the
+  sawtooth bottom edge is fully visible (never clipped or touching the home
+  indicator). The card's height lands around half to three-fifths of the
+  screen on a 400x900 device; short receipts look compact rather than airy.
+- Tear line: the dotted perforation sits 12–16 dp below the toolbar and the
+  same distance above the amount, with side notches still cutting the paper.
+- Pending amount: `待入账` hangs outside the top-right of e.g. `-¥1,234.56`
+  with no overlap; the amount keeps the exact centre axis of the category
+  badge and name below it. The amount uses tabular digits plus thousands
+  commas. At 320 dp/1.6x the whole group scales down rather than clipping.
+- Category: 34 dp circular icon and `titleLarge` name share one baseline; for
+  `余额调整` / `期初余额` the icon is the neutral `slidersHorizontal` glyph and
+  there is no second `类型` row in the details section.
+- Details: each row is a single line, light-grey label left and dark tabular
+  value right; long notes ellipsize instead of wrapping. Rows are ~36 dp high
+  and there are exactly two hairline dividers — one before the rows, one after
+  them — never one per row.
+- Barcode: 36–40 dp tall, ink at roughly a quarter opacity (heavier but still
+  muted in dark), with a 10.5 sp spaced number under it. The barcode does not
+  out-shout the amount.
+- [ ] pass  [ ] fail — notes:

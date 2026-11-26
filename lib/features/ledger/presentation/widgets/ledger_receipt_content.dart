@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
 import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
@@ -74,38 +73,27 @@ class LedgerReceiptContent extends StatelessWidget {
       _ => Theme.of(context).colorScheme.onSurface,
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Stack(alignment: Alignment.topRight, children: [
-            Padding(
-              padding: EdgeInsets.only(
-                top: status == null ? 0 : context.spacing.sm,
-                right: status == null ? 0 : context.spacing.xl,
-              ),
-              child: Text(
-                transaction.formattedAmount(currencySymbol),
-                style: AppTypography.amountInput(context)
-                    .copyWith(color: amountColor),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            if (status != null) AppBadge(label: status!),
-          ]),
-        ),
+      _ReceiptAmount(
+        amount: _groupThousands(transaction.formattedAmount(currencySymbol)),
+        color: amountColor,
+        status: status,
       ),
       if (transaction.series case final series?) ...[
-        SizedBox(height: context.spacing.sm),
+        SizedBox(height: context.spacing.xs),
         Center(child: RecurringModeLabel(mode: series.mode)),
       ],
-      SizedBox(height: context.spacing.md),
-      if (transaction.category != null || transaction.type.isBalancePurpose)
+      if (transaction.category != null ||
+          transaction.type.isBalancePurpose) ...[
+        SizedBox(height: context.spacing.sm),
         _CategoryHeading(
-            name: transaction.category?.name ??
-                _purposeName(l10n, transaction.type),
-            iconKey: transaction.category?.iconKey,
-            colorInt: transaction.category?.colorInt),
-      SizedBox(height: context.spacing.lg),
+          name: transaction.category?.name ??
+              _purposeName(l10n, transaction.type),
+          iconKey: transaction.category?.iconKey,
+          colorInt: transaction.category?.colorInt,
+          type: transaction.type,
+        ),
+      ],
+      SizedBox(height: context.spacing.md),
       const AppReceiptDivider(),
       AppReceiptRow(
           label: l10n.date,
@@ -120,10 +108,6 @@ class LedgerReceiptContent extends StatelessWidget {
           AppReceiptRow(
               label: l10n.reminder, value: l10n.reminderMinutesValue(minutes)),
       ],
-      if (transaction.type.isBalancePurpose)
-        AppReceiptRow(
-            label: l10n.transactionType,
-            value: _purposeName(l10n, transaction.type)),
       if (transaction.type == TransactionKind.transfer &&
           transaction.toAccount != null) ...[
         AppReceiptRow(
@@ -140,7 +124,21 @@ class LedgerReceiptContent extends StatelessWidget {
             value: transaction.attachments
                 .map((attachment) => attachment.fileName)
                 .join('\n')),
+      const AppReceiptDivider(),
     ]);
+  }
+
+  /// `12,345.67` for the receipt's hero amount. The list rows keep the plain
+  /// formatter; only the paper needs printed grouping.
+  String _groupThousands(String amount) {
+    final dot = amount.indexOf('.');
+    final whole = dot < 0 ? amount : amount.substring(0, dot);
+    final fraction = dot < 0 ? '' : amount.substring(dot);
+    final grouped = whole.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ',',
+    );
+    return '$grouped$fraction';
   }
 
   String _recurrenceLabel(RecurringTransactionSeriesEntity series,
@@ -182,14 +180,111 @@ class LedgerReceiptContent extends StatelessWidget {
       };
 }
 
+class _ReceiptAmount extends StatelessWidget {
+  const _ReceiptAmount({
+    required this.amount,
+    required this.color,
+    this.status,
+  });
+
+  final String amount;
+  final Color color;
+  final String? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final amountText = Text(
+      amount,
+      textAlign: TextAlign.center,
+      style: AppTypography.amountInput(context).copyWith(
+        color: color,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+    if (status == null) {
+      return Center(
+        child: FittedBox(fit: BoxFit.scaleDown, child: amountText),
+      );
+    }
+
+    // The reserved mirror keeps the amount on the sheet's centre axis while
+    // the badge lives outside the digits, never over them.
+    final badge = _ReceiptStatusBadge(label: status!);
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Visibility(
+              visible: false,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: badge,
+            ),
+            SizedBox(width: context.spacing.xs + 2),
+            Padding(
+              padding: EdgeInsets.only(top: context.spacing.xs),
+              child: amountText,
+            ),
+            SizedBox(width: context.spacing.xs + 2),
+            Padding(
+              padding: EdgeInsets.only(top: context.spacing.xs),
+              child: badge,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReceiptStatusBadge extends StatelessWidget {
+  const _ReceiptStatusBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.metrics.compactBadgeHorizontalPadding,
+        vertical: context.metrics.compactBadgeVerticalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.72,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: 10.5,
+          height: 1.15,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSecondaryContainer,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
 class _CategoryHeading extends StatelessWidget {
   const _CategoryHeading({
     required this.name,
+    required this.type,
     this.iconKey,
     this.colorInt,
   });
 
   final String name;
+  final TransactionKind type;
   final String? iconKey;
   final int? colorInt;
 
@@ -197,23 +292,34 @@ class _CategoryHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final categoryColor = colorInt == null ? null : Color(colorInt!);
+    final purpose = type.isBalancePurpose;
+    final accent = categoryColor ?? theme.colorScheme.onSurfaceVariant;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (iconKey != null)
-          CircleAvatar(
-            radius: context.spacing.lg,
-            backgroundColor: categoryColor?.withValues(alpha: 0.16) ??
-                theme.colorScheme.surfaceContainerHighest,
-            foregroundColor: categoryColor ?? theme.colorScheme.onSurface,
-            child: CategoryIcon(iconKey: iconKey!, size: 24),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: purpose
+                ? theme.colorScheme.surfaceContainerHighest
+                : categoryColor?.withValues(alpha: 0.16) ??
+                    theme.colorScheme.surfaceContainerHighest,
           ),
-        if (iconKey != null) SizedBox(width: context.spacing.md),
+          child: Center(
+            child: purpose
+                ? Icon(LucideIcons.slidersHorizontal,
+                    size: 18, color: theme.colorScheme.onSurfaceVariant)
+                : CategoryIcon(iconKey: iconKey ?? '', size: 18, color: accent),
+          ),
+        ),
+        SizedBox(width: context.spacing.sm),
         Flexible(
           child: Text(
             name,
-            style: theme.textTheme.headlineSmall,
+            style: theme.textTheme.titleLarge,
             overflow: TextOverflow.ellipsis,
           ),
         ),

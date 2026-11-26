@@ -103,7 +103,8 @@ void main() {
       );
 
   group('the pending row', () {
-    testWidgets('uses AppBadge.outlined without Opacity muting, and posted rows omit badge',
+    testWidgets(
+        'uses AppBadge.outlined without Opacity muting, and posted rows omit badge',
         (tester) async {
       await tester.pumpWidget(
           wrap(TransactionTile(transaction: tile(isPending: true))));
@@ -152,7 +153,8 @@ void main() {
           inInclusiveRange(60.0, 68.0));
     });
 
-    testWidgets('renders transfer and balance-purpose tiles with dedicated icons',
+    testWidgets(
+        'renders transfer and balance-purpose tiles with dedicated icons',
         (tester) async {
       const bank = AccountEntity(
         id: 'acc_bank',
@@ -202,7 +204,8 @@ void main() {
       expect(find.byIcon(LucideIcons.slidersHorizontal), findsOneWidget);
     });
 
-    testWidgets('skipped row renders muted onSurfaceVariant with strikethrough and compact Skipped badge',
+    testWidgets(
+        'skipped row renders muted onSurfaceVariant with strikethrough and compact Skipped badge',
         (tester) async {
       await tester.pumpWidget(wrap(TransactionTile(
         transaction: tile(
@@ -212,7 +215,7 @@ void main() {
       )));
 
       expect(find.byType(Opacity), findsNothing);
-      expect(find.text('Skipped'), findsOneWidget);
+      expect(find.text('Skipped').hitTestable(), findsOneWidget);
       expect(find.text('Pending'), findsNothing);
       expect(find.byIcon(LucideIcons.circlePause), findsOneWidget);
 
@@ -254,7 +257,7 @@ void main() {
 
       expect(find.byType(Opacity), findsNothing);
       expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
-      expect(find.text('Auto-post failed'), findsOneWidget);
+      expect(find.text('Auto-post failed').hitTestable(), findsOneWidget);
       expect(find.text('Pending'), findsNothing);
 
       final titleText = tester.widget<Text>(find.text('Rent'));
@@ -435,7 +438,7 @@ void main() {
         scheduledStatus: ScheduledTransactionStatus.skipped,
       );
 
-      expect(find.text('Skipped'), findsOneWidget);
+      expect(find.text('Skipped').hitTestable(), findsOneWidget);
       expect(find.byIcon(LucideIcons.pencil), findsNothing);
       expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
       expect(find.text('Post'), findsNothing);
@@ -453,7 +456,7 @@ void main() {
         scheduledStatus: ScheduledTransactionStatus.failed,
       );
 
-      expect(find.text('Auto-post failed'), findsOneWidget);
+      expect(find.text('Auto-post failed').hitTestable(), findsOneWidget);
       expect(find.byIcon(LucideIcons.triangleAlert), findsOneWidget);
 
       await tester.tap(find.text('Retry post'));

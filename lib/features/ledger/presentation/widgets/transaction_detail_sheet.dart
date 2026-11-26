@@ -39,17 +39,23 @@ class TransactionDetailSheet extends ConsumerWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         LedgerReceiptContent(
             transaction: transaction, currencySymbol: currency),
-        SizedBox(height: context.spacing.lg),
+        SizedBox(height: context.spacing.md),
         SizedBox(
           key: const ValueKey('transaction-barcode'),
-          height: 88,
+          height: 38,
           child: CustomPaint(
-              painter: _Code128Painter(
-                  value: receiptNumber, color: theme.colorScheme.onSurface)),
+            painter: _Code128Painter(
+              value: receiptNumber,
+              color: theme.colorScheme.onSurface.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.28 : 0.24,
+              ),
+            ),
+          ),
         ),
         SizedBox(height: context.spacing.sm),
         Text(receiptNumber.split('').join(' '),
             style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 10.5,
                 color: theme.colorScheme.onSurfaceVariant,
                 fontFeatures: const [FontFeature.tabularFigures()]),
             textAlign: TextAlign.center,

@@ -161,10 +161,10 @@ void main() {
     await pumpSheet(
         tester, tile(type: TransactionKind.openingBalance, displaySign: '+'));
 
-    expect(find.text('Initial Balance'), findsNWidgets(2),
-        reason: 'the heading and read-only type explain this system record');
+    expect(find.text('Initial Balance'), findsOneWidget,
+        reason: 'the heading names the purpose; the type row would repeat it');
     expect(find.text('Food'), findsNothing);
-    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Type'), findsNothing);
   });
 
   testWidgets('receipt number and barcode are generated from date and time',

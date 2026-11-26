@@ -15,7 +15,7 @@ Future<T?> showAppReceiptSheet<T>({
     isScrollControlled: true,
     useRootNavigator: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+    backgroundColor: Colors.transparent,
   );
 }
 
@@ -30,10 +30,16 @@ class AppReceiptSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tearY = context.spacing.xl * 2.75;
+    // Handle (28) + a 4dp breath + the 48dp action row. The perforation sits
+    // right below it, so the paper starts without a second header gap.
+    final tearY = context.spacing.xl * 2.5;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.spacing.md, 0, context.spacing.md, context.spacing.sm),
+        context.spacing.md,
+        0,
+        context.spacing.md,
+        context.spacing.md + MediaQuery.paddingOf(context).bottom,
+      ),
       child: PhysicalShape(
         clipper: _ReceiptClipper(
           topRadius: context.spacing.xl,
@@ -47,7 +53,7 @@ class AppReceiptSheet extends StatelessWidget {
         elevation: context.spacing.sm,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.9),
+              maxHeight: MediaQuery.sizeOf(context).height * 0.6),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             SizedBox(
               height: tearY,
@@ -63,13 +69,8 @@ class AppReceiptSheet extends StatelessWidget {
             _Perforation(color: theme.colorScheme.outlineVariant),
             Flexible(
                 child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                  context.spacing.xl,
-                  context.spacing.xl,
-                  context.spacing.xl,
-                  footer == null
-                      ? context.spacing.xl + context.spacing.md
-                      : context.spacing.lg),
+              padding: EdgeInsets.fromLTRB(context.spacing.lg,
+                  context.spacing.md, context.spacing.lg, context.spacing.md),
               child: child,
             )),
             if (footer != null) footer!,
@@ -86,21 +87,39 @@ class AppReceiptRow extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Column(children: [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: context.spacing.md),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-                width: context.spacing.xl * 2,
-                child: Text(label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color:
-                            Theme.of(context).colorScheme.onSurfaceVariant))),
-            Expanded(child: Text(value, style: AppTypography.amount(context))),
-          ]),
-        ),
-        const AppReceiptDivider(),
-      ]);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: context.spacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(width: context.spacing.md),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Perforation extends StatelessWidget {
