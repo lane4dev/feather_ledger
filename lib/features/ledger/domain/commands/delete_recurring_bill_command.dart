@@ -24,34 +24,36 @@ class DeleteRecurringBillCommand {
     required String scheduledId,
     required RecurringScope scope,
   }) async {
-    final row = await _recurringRepository.getScheduled(scheduledId);
-    if (row == null) {
-      throw const CommandRejected(
-        LedgerErrorCode.transactionNotFound,
-        'Scheduled bill not found',
-      );
-    }
-    if (row.status == ScheduledTransactionStatus.posted.toStorage()) {
-      throw const CommandRejected(
-        LedgerErrorCode.scheduledAlreadyPosted,
-        'Posted bills cannot be deleted from here; reverse the transaction instead',
-      );
-    }
-
-    switch (scope) {
-      case RecurringScope.thisOnly:
-        await _recurringRepository.skipIfScheduled(row.id);
-      case RecurringScope.updateRule:
-        final series = await _recurringRepository.getSeries(row.seriesId);
-        if (series == null || series.mode == RecurringSeriesMode.planned) {
-          await _recurringRepository.deleteSeriesWithInstances(row.seriesId);
-          return;
-        }
-        await _recurringRepository.saveSeries(
-          series.toCompanion(true).copyWith(isActive: const Value(false)),
+    await _recurringRepository.transaction(() async {
+      final row = await _recurringRepository.getScheduled(scheduledId);
+      if (row == null) {
+        throw const CommandRejected(
+          LedgerErrorCode.transactionNotFound,
+          'Scheduled bill not found',
         );
-        await _recurringRepository.deletePendingAndSkippedForSeries(series.id);
-    }
+      }
+      if (row.status == ScheduledTransactionStatus.posted.toStorage()) {
+        throw const CommandRejected(
+          LedgerErrorCode.scheduledAlreadyPosted,
+          'Posted bills cannot be deleted from here; reverse the transaction instead',
+        );
+      }
+
+      switch (scope) {
+        case RecurringScope.thisOnly:
+          await _recurringRepository.skipIfScheduled(row.id);
+        case RecurringScope.updateRule:
+          final series = await _recurringRepository.getSeries(row.seriesId);
+          if (series == null || series.mode == RecurringSeriesMode.planned) {
+            await _recurringRepository.deleteSeriesWithInstances(row.seriesId);
+            return;
+          }
+          await _recurringRepository.saveSeries(
+            series.toCompanion(true).copyWith(isActive: const Value(false)),
+          );
+          await _recurringRepository.deletePendingAndSkippedForSeries(series.id);
+      }
+    });
   }
 }
 

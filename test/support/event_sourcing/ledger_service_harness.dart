@@ -175,7 +175,7 @@ class LedgerServiceHarness {
     accountService = AccountService(
       CreateAccountCommand(eventStore, projector),
       RenameAccountCommand(eventStore, projector),
-      AccountLifecycleCommand(db, eventStore, projector),
+      AccountLifecycleCommand(db, eventStore, projector, clock: this.clock),
       WatchAllAccountsQuery(accountRepository),
       GetAccountByIdQuery(accountRepository),
       recordCommand,

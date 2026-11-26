@@ -2,6 +2,8 @@ import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 
 abstract class RecurringRepository {
+  Future<T> transaction<T>(Future<T> Function() action);
+
   Stream<List<ScheduledTransactionEntity>> watchAllScheduled({
     String? currencyCode,
   });

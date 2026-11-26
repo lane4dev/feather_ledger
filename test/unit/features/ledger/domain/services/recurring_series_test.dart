@@ -854,27 +854,105 @@ void main() {
     expect(inheritedEntity.effectiveMemo, 'Rent');
   });
 
-  test('thisOnly allows moving an occurrence onto an already occupied date',
+  test(
+      'thisOnly rejects moving an occurrence onto a date occupied by another non-skipped occurrence',
       () async {
     await seed();
     await createMonthly();
     final pending = (await scheduled())
         .where((s) => s.status == ScheduledTransactionStatus.scheduled)
-        .toList();
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
     final first = pending[0];
     final second = pending[1];
+    final third = pending[2];
 
-    final result = await editBill(
+    // 1. Collision with another scheduled bill (even at a different time on the same local civil day).
+    final sameDayDifferentTime = DateTime(
+      second.date.year,
+      second.date.month,
+      second.date.day,
+      second.date.hour + 3,
+      15,
+    );
+    final collisionWithScheduled = await editBill(
       first,
       scope: RecurringScope.thisOnly,
-      date: second.date,
+      date: sameDayDifferentTime,
     );
-    expect(result, isA<Success<void>>());
+    expect(
+      collisionWithScheduled,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+    );
+    expect(
+      (await harness.db.recurringDao.getScheduled(first.id))!.dateOverride,
+      isNull,
+    );
 
-    final after = (await scheduled())
-        .where((s) => s.date == second.date)
-        .toList();
-    expect(after.map((s) => s.id), containsAll([first.id, second.id]));
+    // 2. Collision with a posted bill on the same civil day.
+    expect(await harness.recurringService.postInstance(second.id),
+        isA<Success<void>>());
+    final collisionWithPosted = await editBill(
+      first,
+      scope: RecurringScope.thisOnly,
+      date: DateTime(second.date.year, second.date.month, second.date.day, 18),
+    );
+    expect(
+      collisionWithPosted,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+    );
+
+    // 3. Collision with another bill's dateOverride on the same civil day.
+    final customDay = DateTime(third.date.year, third.date.month, 15, 10, 0);
+    expect(
+      await editBill(third, scope: RecurringScope.thisOnly, date: customDay),
+      isA<Success<void>>(),
+    );
+    final collisionWithOverride = await editBill(
+      first,
+      scope: RecurringScope.thisOnly,
+      date: DateTime(customDay.year, customDay.month, customDay.day, 21, 0),
+    );
+    expect(
+      collisionWithOverride,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.scheduledDateTaken),
+    );
+
+    // 4. Moving onto a date occupied only by a skipped occurrence IS allowed.
+    expect(
+      await harness.recurringService
+          .deleteBill(third.id, scope: RecurringScope.thisOnly),
+      isA<Success<void>>(),
+    );
+    final ontoSkipped = await editBill(
+      first,
+      scope: RecurringScope.thisOnly,
+      date: customDay,
+    );
+    expect(ontoSkipped, isA<Success<void>>());
+
+    // 5. Moving onto a date occupied by a different series IS allowed.
+    final otherDay = DateTime(first.date.year, first.date.month, 20, 8, 0);
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 12000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Other series',
+      frequency: 'MONTHLY',
+      interval: 1,
+      startDate: otherDay,
+      countLimit: 1,
+    );
+    final ontoOtherSeries = await editBill(
+      first,
+      scope: RecurringScope.thisOnly,
+      date: otherDay,
+    );
+    expect(ontoOtherSeries, isA<Success<void>>());
   });
 
   test('updateRule enforces countLimit >= K + 1 where K = posted + skipped',
@@ -1482,6 +1560,264 @@ void main() {
     expect((await harness.db.recurringDao.getScheduled(items[0].id))?.status,
         'posted',
         reason: 'posted history always preserved');
+  });
+
+  test(
+      'updateRule recomputes completedCountOffset idempotently across repeated schedule edits',
+      () async {
+    await seed();
+    final start = DateTime(2026, 6, 1, 9, 0);
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 10000,
+      accountId: accountId,
+      categoryId: expenseCategoryId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      startDate: start,
+      countLimit: 6,
+    );
+
+    final initial = (await scheduled())
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(initial, hasLength(6));
+
+    // Post the first 3 occurrences (k = 3).
+    for (var i = 0; i < 3; i++) {
+      expect(await harness.recurringService.postInstance(initial[i].id),
+          isA<Success<void>>());
+    }
+
+    // Reject countLimit <= k when changing base schedule.
+    final tooSmall = await harness.recurringService.updateBill(
+      initial[3].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 10000,
+      date: DateTime(2026, 6, 10, 9, 0),
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 3,
+    );
+    expect(
+      tooSmall,
+      isA<Failure<void>>()
+          .having((f) => f.code, 'code', LedgerErrorCode.countLimitTooSmall),
+    );
+
+    // First base-schedule edit: move remaining schedule to Jun 10, keeping countLimit = 6.
+    final edit1 = await harness.recurringService.updateBill(
+      initial[3].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 10000,
+      date: DateTime(2026, 6, 10, 9, 0),
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 6,
+    );
+    expect(edit1, isA<Success<void>>());
+
+    final seriesAfter1 = await seriesRow();
+    expect(seriesAfter1.countLimit, 6);
+    expect(seriesAfter1.completedCountOffset, 3);
+    final rowsAfter1 = await scheduled();
+    final postedAfter1 = rowsAfter1
+        .where((r) => r.status == ScheduledTransactionStatus.posted)
+        .toList();
+    final pendingAfter1 = rowsAfter1
+        .where((r) => r.status == ScheduledTransactionStatus.scheduled)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(postedAfter1, hasLength(3));
+    expect(pendingAfter1, hasLength(3),
+        reason: '3 posted + 3 remaining == countLimit 6');
+    expect(
+      pendingAfter1.map((r) => r.occurrenceKey).toList(),
+      ['2026-06-10', '2026-06-11', '2026-06-12'],
+    );
+
+    // Second consecutive base-schedule edit (no new posts): must NOT double-subtract k.
+    final edit2 = await harness.recurringService.updateBill(
+      pendingAfter1.first.id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 10000,
+      date: DateTime(2026, 6, 20, 9, 0),
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'WEEKLY',
+      interval: 1,
+      countLimit: 6,
+    );
+    expect(edit2, isA<Success<void>>());
+
+    final seriesAfter2 = await seriesRow();
+    expect(seriesAfter2.countLimit, 6);
+    expect(seriesAfter2.completedCountOffset, 3,
+        reason: 'recomputed idempotently from posted rows, not doubled to 6');
+    final rowsAfter2 = await scheduled();
+    final postedAfter2 = rowsAfter2
+        .where((r) => r.status == ScheduledTransactionStatus.posted)
+        .toList();
+    final pendingAfter2 = rowsAfter2
+        .where((r) => r.status == ScheduledTransactionStatus.scheduled)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(postedAfter2, hasLength(3));
+    expect(pendingAfter2, hasLength(3),
+        reason: 'still 3 posted + 3 remaining == countLimit 6');
+    expect(
+      pendingAfter2.map((r) => r.occurrenceKey).toList(),
+      ['2026-06-20', '2026-06-27', '2026-07-04'],
+    );
+
+    // Post one more (now k = 4) and edit schedule a third time.
+    expect(await harness.recurringService.postInstance(pendingAfter2.first.id),
+        isA<Success<void>>());
+    final edit3 = await harness.recurringService.updateBill(
+      pendingAfter2[1].id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 10000,
+      date: DateTime(2026, 7, 1, 9, 0),
+      categoryId: expenseCategoryId,
+      accountId: accountId,
+      description: 'Installment',
+      frequency: 'DAILY',
+      interval: 1,
+      countLimit: 6,
+    );
+    expect(edit3, isA<Success<void>>());
+
+    final seriesAfter3 = await seriesRow();
+    expect(seriesAfter3.countLimit, 6);
+    expect(seriesAfter3.completedCountOffset, 4);
+    final rowsAfter3 = await scheduled();
+    expect(
+      rowsAfter3.where((r) => r.status == ScheduledTransactionStatus.posted),
+      hasLength(4),
+    );
+    final pendingAfter3 = rowsAfter3
+        .where((r) => r.status == ScheduledTransactionStatus.scheduled)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    expect(pendingAfter3, hasLength(2),
+        reason: '4 posted + 2 remaining == countLimit 6');
+    expect(
+      pendingAfter3.map((r) => r.occurrenceKey).toList(),
+      ['2026-07-01', '2026-07-02'],
+    );
+  });
+
+  group('transaction atomicity', () {
+    test('updateRule rolls back series template when deleting pending rows fails',
+        () async {
+      await seed();
+      await createMonthly();
+      final originalSeries = await seriesRow();
+      final instance = await firstScheduled();
+
+      await harness.db.customStatement(
+        'CREATE TRIGGER fail_scheduled_delete '
+        'BEFORE DELETE ON scheduled_transactions_view '
+        "BEGIN SELECT RAISE(ABORT, 'simulated delete failure'); END;",
+      );
+      addTearDown(() async {
+        await harness.db
+            .customStatement('DROP TRIGGER IF EXISTS fail_scheduled_delete;');
+      });
+
+      final result = await harness.recurringService.updateBill(
+        instance.id,
+        scope: RecurringScope.updateRule,
+        amountMinor: 99999,
+        date: instance.date.add(const Duration(days: 3)),
+        categoryId: expenseCategoryId,
+        accountId: accountId,
+        description: 'Should roll back',
+      );
+      expect(result, isA<Failure<void>>());
+
+      final after = await seriesRow();
+      expect(after.amountMinor, originalSeries.amountMinor);
+      expect(after.description, originalSeries.description);
+      expect(after.startDate, originalSeries.startDate);
+      expect(after.completedCountOffset, originalSeries.completedCountOffset);
+    });
+
+    test('updateRule rolls back series template when resetting failed rows fails',
+        () async {
+      await seed();
+      await createFutureMonthly();
+      final originalSeries = await seriesRow();
+      final instance = await firstScheduled();
+      await harness.db.recurringDao.insertOrUpdateScheduled(
+        ScheduledTransactionsViewCompanion(
+          id: Value(instance.id),
+          seriesId: Value(instance.seriesId),
+          occurrenceKey: Value(instance.occurrenceKey),
+          scheduledDate: Value(instance.scheduledDate),
+          status: const Value('failed'),
+          manualOnly: Value(instance.manualOnly),
+        ),
+      );
+
+      await harness.db.customStatement(
+        'CREATE TRIGGER fail_scheduled_update '
+        'BEFORE UPDATE ON scheduled_transactions_view '
+        "BEGIN SELECT RAISE(ABORT, 'simulated update failure'); END;",
+      );
+      addTearDown(() async {
+        await harness.db
+            .customStatement('DROP TRIGGER IF EXISTS fail_scheduled_update;');
+      });
+
+      final result = await harness.recurringService.updateBill(
+        instance.id,
+        scope: RecurringScope.updateRule,
+        amountMinor: 88888,
+        date: instance.date,
+        categoryId: expenseCategoryId,
+        accountId: accountId,
+        description: 'Should roll back',
+      );
+      expect(result, isA<Failure<void>>());
+
+      final after = await seriesRow();
+      expect(after.amountMinor, originalSeries.amountMinor);
+      expect(after.description, originalSeries.description);
+    });
+
+    test(
+        'deleteBill updateRule rolls back series deactivation when deleting pending rows fails',
+        () async {
+      await seed();
+      await createMonthly();
+      final instance = await firstScheduled();
+
+      await harness.db.customStatement(
+        'CREATE TRIGGER fail_scheduled_delete_on_stop '
+        'BEFORE DELETE ON scheduled_transactions_view '
+        "BEGIN SELECT RAISE(ABORT, 'simulated stop delete failure'); END;",
+      );
+      addTearDown(() async {
+        await harness.db.customStatement(
+            'DROP TRIGGER IF EXISTS fail_scheduled_delete_on_stop;');
+      });
+
+      final result = await harness.recurringService
+          .deleteBill(instance.id, scope: RecurringScope.updateRule);
+      expect(result, isA<Failure<void>>());
+
+      final after = await seriesRow();
+      expect(after.isActive, isTrue,
+          reason: 'isActive = false must roll back if row cleanup fails');
+    });
   });
 
   test('stopping a repeating rule deletes scheduled, failed, and skipped rows',

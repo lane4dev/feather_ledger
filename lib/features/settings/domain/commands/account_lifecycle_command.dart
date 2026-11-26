@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_envelope.dart';
 import 'package:feather_ledger/core/domain/event_sourcing/event_store.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/data/event_sourcing/drift_event_store.dart';
@@ -24,10 +26,16 @@ class AccountUsage {
 }
 
 class AccountLifecycleCommand {
-  AccountLifecycleCommand(this._db, this._events, this._projector);
+  AccountLifecycleCommand(
+    this._db,
+    this._events,
+    this._projector, {
+    DomainClock? clock,
+  }) : _clock = clock ?? const SystemClock();
   final AppDatabase _db;
   final EventStore _events;
   final LedgerProjector _projector;
+  final DomainClock _clock;
 
   Future<AccountUsage> usage(String id) async {
     final postings = await (_db.select(_db.transactionPostingsView).join([
@@ -41,10 +49,12 @@ class AccountLifecycleCommand {
               _db.transactionsView.isReversed.equals(false)))
         .get();
     final series = await (_db.select(_db.recurringSeries)
-          ..where((t) => t.accountId.equals(id)))
+          ..where((t) => t.accountId.equals(id) & t.isActive.equals(true)))
         .get();
     var pending = 0;
     var active = 0;
+    final now = _clock.now();
+    final today = DateTime(now.year, now.month, now.day);
     for (final rule in series) {
       final instances = await (_db.select(_db.scheduledTransactionsView)
             ..where((t) => t.seriesId.equals(rule.id)))
@@ -53,8 +63,6 @@ class AccountLifecycleCommand {
           .where((e) => e.status == 'scheduled' || e.status == 'failed')
           .length;
       pending += scheduled;
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
       final end = rule.endDate?.toLocal();
       final endedByDate =
           end != null && DateTime(end.year, end.month, end.day).isBefore(today);
@@ -106,9 +114,10 @@ class AccountLifecycleCommand {
       if ((action == 'archive' && account.archived) ||
           (action == 'restore' && !account.archived)) return;
       if (action == 'archive') {
-        final now = DateTime.now();
+        final now = _clock.now();
         final series = await (_db.select(_db.recurringSeries)
-              ..where((row) => row.accountId.equals(id)))
+              ..where((row) =>
+                  row.accountId.equals(id) & row.isActive.equals(true)))
             .get();
         for (final rule in series) {
           final overdue = await (_db.select(_db.scheduledTransactionsView)
@@ -119,7 +128,7 @@ class AccountLifecycleCommand {
                     row.status.isIn(['scheduled', 'failed'])))
               .get();
           // A pending bill needs a series for its account and template. Keep
-          // overdue bills as one-off plans before removing the original rule.
+          // overdue bills as one-off plans before deactivating the original rule.
           for (final bill in overdue) {
             final planId = const Uuid().v4();
             final effectiveDate = bill.dateOverride ?? bill.scheduledDate;
@@ -127,15 +136,21 @@ class AccountLifecycleCommand {
                 .into(_db.recurringSeries)
                 .insert(rule.toCompanion(true).copyWith(
                       id: Value(planId),
-                      rrule: const Value('FREQ=DAILY;COUNT=1'),
+                      rrule: Value(CreateRecurringSeriesCommand.rruleText(
+                        frequency: 'DAILY',
+                        interval: 1,
+                        endDate: effectiveDate,
+                      )),
                       frequency: const Value('DAILY'),
                       interval: const Value(1),
                       startDate: Value(effectiveDate),
                       endDate: Value(effectiveDate),
-                      countLimit: const Value(1),
+                      countLimit: const Value(null),
                       autoPost: const Value(false),
                       mode: const Value(RecurringSeriesMode.planned),
                       isActive: const Value(true),
+                      materializeFrom: Value(effectiveDate),
+                      completedCountOffset: const Value(0),
                     ));
             await _db.into(_db.scheduledTransactionsView).insert(
                   bill.toCompanion(true).copyWith(
@@ -148,11 +163,13 @@ class AccountLifecycleCommand {
                 );
           }
           await (_db.delete(_db.scheduledTransactionsView)
-                ..where((row) => row.seriesId.equals(rule.id)))
+                ..where((row) =>
+                    row.seriesId.equals(rule.id) &
+                    row.status.isIn(['scheduled', 'failed', 'skipped'])))
               .go();
-          await (_db.delete(_db.recurringSeries)
+          await (_db.update(_db.recurringSeries)
                 ..where((row) => row.id.equals(rule.id)))
-              .go();
+              .write(const RecurringSeriesCompanion(isActive: Value(false)));
         }
       }
       final event = switch (action) {
@@ -307,7 +324,7 @@ class AccountLifecycleCommand {
             .write(ScheduledTransactionsViewCompanion(
                 transactionId: Value(pair.value)));
       }
-    } else if (action == 'deleteAll') {
+    } else if (action == 'deleteAll' || action == 'delete') {
       for (final rule in series) {
         await (_db.delete(_db.scheduledTransactionsView)
               ..where((s) => s.seriesId.equals(rule.id)))

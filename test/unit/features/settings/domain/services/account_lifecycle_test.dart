@@ -364,7 +364,7 @@ void main() {
   });
 
   test(
-      'archiving removes original rules and future bills while keeping overdue bills and posted transactions',
+      'archiving deactivates original rules and removes future/skipped bills while keeping overdue planned bills and posted history',
       () async {
     final id = await account();
     await h.categoryService.createCategory(
@@ -383,9 +383,10 @@ void main() {
         frequency: 'DAILY',
         interval: 1,
         startDate: DateTime.now().subtract(const Duration(hours: 25)),
-        countLimit: 4);
+        countLimit: 5);
     final original = (await h.db.recurringDao.getAllSeries()).single;
-    final before = await h.db.recurringDao.scheduledForSeries(original.id);
+    final before = await h.db.recurringDao.scheduledForSeries(original.id)
+      ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
     final now = DateTime.now();
     DateTime effectiveDate(ScheduledTransactionViewRow row) =>
         row.dateOverride ?? row.scheduledDate;
@@ -394,36 +395,94 @@ void main() {
     final future =
         before.where((row) => effectiveDate(row).isAfter(now)).toList();
     expect(overdue, isNotEmpty);
-    expect(future.length, greaterThanOrEqualTo(2));
+    expect(future.length, greaterThanOrEqualTo(3));
+
+    // Skip one future bill and post the last future bill.
+    expect(
+      await h.recurringService
+          .deleteBill(future.first.id, scope: RecurringScope.thisOnly),
+      isA<Success<void>>(),
+    );
     expect(
         await h.recurringService
             .postInstance(future.last.id, commandId: 'post_future'),
         isA<Success<void>>());
+
     expect(
         await h.accountService
             .archiveAccount(commandId: 'archive', accountId: id),
         isA<Success<void>>());
-    expect(await h.db.recurringDao.getSeries(original.id), isNull);
-    final plans = await h.db.recurringDao.getAllSeries();
+
+    // Original series is preserved as inactive rather than deleted.
+    final deactivatedOriginal = await h.db.recurringDao.getSeries(original.id);
+    expect(deactivatedOriginal, isNotNull);
+    expect(deactivatedOriginal!.isActive, isFalse);
+
+    // Overdue bills become valid one-off planned series: startDate == endDate and countLimit == null.
+    final allSeries = await h.db.recurringDao.getAllSeries();
+    final plans = allSeries.where((s) => s.id != original.id).toList();
     expect(plans, hasLength(overdue.length));
-    expect(plans.every((plan) => plan.countLimit == 1), isTrue);
-    final remaining = await h.db.recurringDao.watchAllScheduled().first;
-    expect(remaining, hasLength(overdue.length));
+    for (final plan in plans) {
+      expect(plan.mode, RecurringSeriesMode.planned);
+      expect(plan.isActive, isTrue);
+      expect(plan.autoPost, isFalse);
+      expect(plan.startDate, plan.endDate);
+      expect(plan.countLimit, isNull,
+          reason: 'endDate and countLimit are mutually exclusive');
+      expect(plan.rrule, isNot(contains('COUNT=')));
+    }
+
+    // Only non-posted (scheduled/failed/skipped) rows on original series are deleted;
+    // historical posted row stays intact so sourceScheduledBillId never dangles.
+    final originalRows =
+        await h.db.recurringDao.scheduledForSeries(original.id);
+    expect(originalRows, hasLength(1));
+    expect(originalRows.single.id, future.last.id);
+    expect(originalRows.single.status, 'posted');
+
+    final postedTx =
+        (await h.ledgerService.watchTransactions(DateTime.now()).first).single;
+    expect(postedTx.sourceScheduledBillId, future.last.id);
+    final resolvedSource =
+        await h.recurringService.getScheduled(postedTx.sourceScheduledBillId!);
+    expect(resolvedSource, isNotNull);
+    expect(resolvedSource!.status, ScheduledTransactionStatus.posted);
+
+    final pendingAfterArchive = (await h.db.recurringDao
+            .watchAllScheduled()
+            .first)
+        .where((bill) => bill.status == 'scheduled' || bill.status == 'failed')
+        .toList();
+    expect(pendingAfterArchive, hasLength(overdue.length));
     expect(
-        remaining.every((bill) =>
-            !effectiveDate(bill).isAfter(now) && bill.status == 'scheduled'),
+        pendingAfterArchive.every((bill) => !effectiveDate(bill).isAfter(now)),
         isTrue);
-    expect(await h.ledgerService.watchTransactions(DateTime.now()).first,
-        hasLength(1));
+
+    // Restoring account does NOT revive the deactivated original series.
     await h.accountService.restoreAccount(commandId: 'restore', accountId: id);
     await h.recurringService.materialize();
-    final restored = await h.db.recurringDao.watchAllScheduled().first;
-    expect(restored, hasLength(overdue.length));
-    expect(restored.every((bill) => !effectiveDate(bill).isAfter(now)), isTrue);
-    expect(await h.db.recurringDao.getSeries(original.id), isNull);
+    expect((await h.db.recurringDao.getSeries(original.id))!.isActive, isFalse);
+    final restoredPending = (await h.db.recurringDao.watchAllScheduled().first)
+        .where((bill) => bill.status == 'scheduled' || bill.status == 'failed')
+        .toList();
+    expect(restoredPending, hasLength(overdue.length));
+    expect(restoredPending.every((bill) => !effectiveDate(bill).isAfter(now)),
+        isTrue);
+
+    // Preserved overdue planned bill can be edited cleanly after restore.
+    final editOverduePlan = await h.recurringService.updateBill(
+      restoredPending.first.id,
+      scope: RecurringScope.updateRule,
+      amountMinor: 250,
+      date: effectiveDate(restoredPending.first).add(const Duration(days: 5)),
+      categoryId: category,
+      accountId: id,
+      description: 'Edited overdue plan',
+    );
+    expect(editOverduePlan, isA<Success<void>>());
   });
 
-  test('archiving removes never-ending rules and future plans permanently',
+  test('archiving deactivates never-ending rules and future plans permanently',
       () async {
     final id = await account();
     await h.categoryService.createCategory(
@@ -448,11 +507,13 @@ void main() {
     }
     expect(await h.db.recurringDao.getAllSeries(), hasLength(2));
     await h.accountService.archiveAccount(commandId: 'archive', accountId: id);
-    expect(await h.db.recurringDao.getAllSeries(), isEmpty);
+    final afterArchiveSeries = await h.db.recurringDao.getAllSeries();
+    expect(afterArchiveSeries.every((s) => !s.isActive), isTrue);
+    expect(await h.db.recurringDao.getMaterializableSeries(), isEmpty);
     expect(await h.db.recurringDao.watchAllScheduled().first, isEmpty);
     await h.accountService.restoreAccount(commandId: 'restore', accountId: id);
     await h.recurringService.materialize();
-    expect(await h.db.recurringDao.getAllSeries(), isEmpty);
+    expect(await h.db.recurringDao.getMaterializableSeries(), isEmpty);
     expect(await h.db.recurringDao.watchAllScheduled().first, isEmpty);
   });
 

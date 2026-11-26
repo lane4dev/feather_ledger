@@ -26,6 +26,10 @@ class RecurringRepositoryImpl implements RecurringRepository {
   ]);
 
   @override
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      _recurringDao.transaction(action);
+
+  @override
   Future<ScheduledTransactionViewRow?> getScheduled(String id) {
     return _recurringDao.getScheduled(id);
   }
@@ -127,8 +131,10 @@ class RecurringRepositoryImpl implements RecurringRepository {
 
   @override
   Future<void> deleteSeriesWithInstances(String seriesId) async {
-    await _recurringDao.deleteScheduledForSeries(seriesId);
-    await _recurringDao.deleteSeries(seriesId);
+    await _recurringDao.transaction(() async {
+      await _recurringDao.deleteScheduledForSeries(seriesId);
+      await _recurringDao.deleteSeries(seriesId);
+    });
   }
 
   ScheduledTransactionEntity _toEntity(ScheduledBillJoinedRow joined) {
