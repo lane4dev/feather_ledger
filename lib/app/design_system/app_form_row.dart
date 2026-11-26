@@ -41,6 +41,16 @@ class AppFormRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Card rows top-align their icon with the label's line box. The label is
+    // bodyLarge; measuring its line height keeps the icon centred on it at
+    // every text scale instead of pinning it to the row's top edge.
+    final labelStyle = Theme.of(context).textTheme.bodyLarge;
+    final labelLineHeight =
+        MediaQuery.textScalerOf(context).scale(labelStyle?.fontSize ?? 16) *
+            (labelStyle?.height ?? 1.5);
+    final iconTop = context.metrics.rowInset +
+        ((labelLineHeight - context.metrics.iconSize) / 2).clamp(0, 24);
+
     final content = Padding(
       padding: _page
           ? context.pagePadding
@@ -56,7 +66,8 @@ class AppFormRow extends StatelessWidget {
                 padding: _page
                     ? EdgeInsets.only(right: context.metrics.pageGutter)
                     : _card
-                        ? EdgeInsets.only(right: context.spacing.md)
+                        ? EdgeInsets.only(
+                            right: context.spacing.md, top: iconTop)
                         : context.metrics.formIconPadding,
                 child: Icon(icon,
                     size: context.metrics.iconSize,
@@ -66,8 +77,7 @@ class AppFormRow extends StatelessWidget {
             if (onTap != null && showChevron)
               Padding(
                 padding: EdgeInsets.only(
-                    top: _page ? 0 : context.metrics.rowInset,
-                    left: context.spacing.xs),
+                    top: _page ? 0 : iconTop, left: context.spacing.xs),
                 child: Icon(LucideIcons.chevronRight,
                     size: context.metrics.iconSize,
                     color: Theme.of(context).colorScheme.onSurfaceVariant),

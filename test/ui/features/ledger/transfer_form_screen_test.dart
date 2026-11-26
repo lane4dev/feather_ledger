@@ -292,6 +292,11 @@ void main() {
     expect(tester.getTopRight(row).dx, screenWidth - AppTheme.spacing.md);
     expect(tester.getTopLeft(find.byIcon(LucideIcons.clock)).dx,
         AppTheme.spacing.md * 2);
+    expect(
+      tester.getCenter(find.byIcon(LucideIcons.clock)).dy,
+      closeTo(tester.getCenter(find.text('Date')).dy, 1),
+      reason: 'the row icon centres on the label, not the row top',
+    );
   });
 
   testWidgets('the empty note says what to write there', (tester) async {
