@@ -553,9 +553,10 @@ class _BudgetContributionsPage extends ConsumerWidget {
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(loaded == null
-            ? l10n.budgetTopTransactionsTitle
-            : l10n.budgetCategorySpendingTitle(loaded.row.name)),
+        title: _ContributionsAppBarTitle(
+          row: loaded?.row,
+          fallbackTitle: l10n.budgetTopTransactionsTitle,
+        ),
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -591,7 +592,6 @@ class _BudgetContributionsPage extends ConsumerWidget {
               spacing.xl,
             ),
             children: [
-              _ContributionsSummary(row: row),
               if (pending.isNotEmpty) ...[
                 SizedBox(height: spacing.md),
                 _ContributionGroupHeader(
@@ -642,56 +642,55 @@ class _BudgetContributionsPage extends ConsumerWidget {
   }
 }
 
-/// The page's one-glance answer: how many entries, and what they add up to.
-///
-/// Its 16 dp gutters are the group cards' gutters, so the icon, the counts and
-/// both cards share one vertical edge.
-class _ContributionsSummary extends StatelessWidget {
-  const _ContributionsSummary({required this.row});
+/// The page title and its one-glance answer share the app bar: the category
+/// name first, then the entry count and total. Keeping the summary here gives
+/// the rows the whole body, while the count and total stay one line away from
+/// the title instead of occupying a band of their own.
+class _ContributionsAppBarTitle extends StatelessWidget {
+  const _ContributionsAppBarTitle(
+      {required this.row, required this.fallbackTitle});
 
-  final BudgetCategoryRowUiModel row;
+  final BudgetCategoryRowUiModel? row;
+  final String fallbackTitle;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final accent = Color(row.colorInt);
+    final row = this.row;
     return Row(
       children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color.lerp(scheme.surfaceContainerLow, accent, 0.12),
-          ),
-          alignment: Alignment.center,
-          child: CategoryIcon(
-            iconKey: row.iconKey,
-            size: 17,
-            color: accent,
-          ),
-        ),
-        SizedBox(width: context.spacing.sm),
-        Expanded(
+        Flexible(
           child: Text(
-            l10n.budgetContributionCount(row.allContributions.length),
+            row == null
+                ? fallbackTitle
+                : l10n.budgetCategorySpendingTitle(row.name),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTypography.meta(context),
           ),
         ),
-        SizedBox(width: context.spacing.sm),
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
-            child: Text(
-              l10n.budgetContributionTotal(row.contributionsTotalDisplay),
-              style: AppTypography.compactAmount(context),
+        if (row != null) ...[
+          SizedBox(width: context.spacing.sm),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.budgetContributionCount(row.allContributions.length),
+                    style: AppTypography.meta(context),
+                  ),
+                  SizedBox(width: context.spacing.xs / 2),
+                  Text(
+                    l10n.budgetContributionTotal(row.contributionsTotalDisplay),
+                    style: AppTypography.compactAmount(context),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -734,7 +733,7 @@ class _ContributionGroupHeader extends StatelessWidget {
 /// One rounded surface per status, with hairlines between its rows.
 ///
 /// The card owns the radius and the colour; [TransactionListTile] owns the row
-/// anatomy. That split is why the rows never drift off the summary bar's edge.
+/// anatomy. That split is why the rows never drift off the card's edge.
 class _ContributionGroup extends StatelessWidget {
   const _ContributionGroup({
     super.key,

@@ -579,10 +579,21 @@ void main() {
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
     expect(find.text('Expense 4'), findsOneWidget);
-    // The page title names the category; the summary bar counts its entries.
+    // The page title names the category; the app bar counts its entries.
     expect(find.text('Dining spending'), findsOneWidget);
     expect(find.text('4 items'), findsOneWidget);
     expect(find.text('Total \$558.33'), findsOneWidget);
+    // The count and total sit in the app bar, after the title.
+    expect(
+        find.descendant(
+            of: find.byType(AppBar), matching: find.text('4 items')),
+        findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(AppBar), matching: find.text('Total \$558.33')),
+        findsOneWidget);
+    expect(tester.getTopLeft(find.text('4 items')).dx,
+        greaterThan(tester.getTopRight(find.text('Dining spending')).dx));
     expect(find.text('Pending'), findsOneWidget);
     expect(find.text('1 item · \$25.00'), findsOneWidget);
     expect(find.text('Posted'), findsOneWidget);
@@ -1249,7 +1260,7 @@ void main() {
         find.byKey(const ValueKey('budget-contribution-group-posted'));
     expect(pendingCard, findsOneWidget);
     expect(postedCard, findsOneWidget);
-    // Both cards and the summary bar share the page's 16 dp gutter.
+    // Both cards share the page's 16 dp gutter.
     expect(tester.getTopLeft(pendingCard).dx, 16);
     expect(tester.getTopLeft(postedCard).dx, 16);
     expect(tester.getTopRight(pendingCard).dx, 1184);

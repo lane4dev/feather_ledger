@@ -311,10 +311,10 @@ the month picker.
   at 1200 dp, 400 dp, and 320 dp at 1.6x text.
 - App bar: title reads `{分类名}支出` (e.g. `餐饮支出`), not
   `主要贡献支出 · 2026年5月`. The back arrow and month context stay legible.
-- Summary bar: sits on the same 16 dp gutters as the two group cards. A 30 dp
-  circular tonal category badge, then `共 N 笔`, then the right-aligned
-  `合计 ¥xx.xx` in tabular figures. Nothing overflows or shrinks to an
-  unreadable size at 320 dp/1.6x.
+- App bar: after `{分类名}支出`, the count (`共 N 笔`) and total
+  (`合计 ¥xx.xx`, tabular) sit on the same line. There is no separate summary
+  band above the cards. Long titles ellipsize; the summary scales down rather
+  than overflowing at 320 dp/1.6x.
 - Groups: `待入账` and `已入账`, each with `N 笔 · ¥xx.xx` on the right. An
   empty group disappears entirely. Both headers and both cards share one left
   edge; cards have an 18 dp radius and `surfaceContainerLow` fill, and rows
