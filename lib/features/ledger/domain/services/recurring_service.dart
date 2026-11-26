@@ -141,6 +141,7 @@ class RecurringService {
   }) =>
       guard(() async {
         final seriesId = const Uuid().v4();
+        final effectiveMode = mode ?? RecurringSeriesMode.repeating;
         await _createSeries.execute(
           id: seriesId,
           type: type,
@@ -157,9 +158,15 @@ class RecurringService {
           weekdays: weekdays,
           autoPost: autoPost,
           reminderMinutes: reminderMinutes,
-          mode: mode ?? RecurringSeriesMode.repeating,
+          mode: effectiveMode,
         );
         await _materialize.execute();
+        if (effectiveMode == RecurringSeriesMode.repeating) {
+          await _recurringRepository.markSeriesManualOnlyBefore(
+            seriesId,
+            _clock.today(),
+          );
+        }
         if (autoPost) {
           _lastSaveAutoPostedCount =
               await catchUpAutoPosted(seriesId: seriesId);
@@ -188,6 +195,7 @@ class RecurringService {
     required String description,
     String? frequency,
     int? interval,
+    DateTime? materializeFrom,
     DateTime? endDate,
     int? countLimit,
     List<int>? weekdays,
@@ -198,7 +206,7 @@ class RecurringService {
     bool clearReminder = false,
   }) =>
       guard(() async {
-        final seriesIdToCatchUp = await _updateBill.execute(
+        final updateResult = await _updateBill.execute(
           scheduledId: scheduledId,
           scope: scope,
           amountMinor: amountMinor,
@@ -208,6 +216,7 @@ class RecurringService {
           description: description,
           frequency: frequency,
           interval: interval,
+          materializeFrom: materializeFrom,
           endDate: endDate,
           countLimit: countLimit,
           weekdays: weekdays,
@@ -218,9 +227,15 @@ class RecurringService {
           clearReminder: clearReminder,
         );
         await _materialize.execute();
-        if (seriesIdToCatchUp != null) {
-          _lastSaveAutoPostedCount =
-              await catchUpAutoPosted(seriesId: seriesIdToCatchUp);
+        if (updateResult.guardPastSeriesId != null) {
+          await _recurringRepository.markSeriesManualOnlyBefore(
+            updateResult.guardPastSeriesId!,
+            _clock.today(),
+          );
+        }
+        if (updateResult.autoPostSeriesId != null) {
+          _lastSaveAutoPostedCount = await catchUpAutoPosted(
+              seriesId: updateResult.autoPostSeriesId);
         } else {
           _lastSaveAutoPostedCount = 0;
         }
@@ -431,6 +446,9 @@ class RecurringService {
 }
 
 @riverpod
+DomainClock ledgerClock(Ref ref) => const SystemClock();
+
+@riverpod
 RecurringService recurringService(Ref ref) {
   return RecurringService(
     ref.watch(createRecurringSeriesCommandProvider),
@@ -443,5 +461,6 @@ RecurringService recurringService(Ref ref) {
     ref.watch(recurringRepositoryProvider),
     restoreSkipped: ref.watch(restoreSkippedBillCommandProvider),
     preferences: ref.watch(preferencesRepositoryProvider).value,
+    clock: ref.watch(ledgerClockProvider),
   );
 }

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -17,9 +18,11 @@ import 'package:feather_ledger/core/presentation/providers/account_providers.dar
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/recurring_bill_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/distant_past_start_dialog.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
@@ -182,7 +185,9 @@ void main() {
         {String currencyCode = 'USD',
         double bottomInset = 0,
         double textScale = 1,
-        RecurringSeriesMode? mode}) async {
+        RecurringSeriesMode? mode,
+        DateTime? billDate,
+        DomainClock? clock}) async {
       final account = AccountEntity(
           id: cash.id,
           name: cash.name,
@@ -191,11 +196,12 @@ void main() {
           balanceMinor: cash.balanceMinor,
           archived: false,
           lastUpdatedEventId: 0);
+      final effectiveDate = billDate ?? tile.date;
       final formTile = TransactionTileUiModel(
           id: tile.id,
           amount: tile.amount,
           type: tile.type,
-          date: tile.date,
+          date: effectiveDate,
           note: tile.note,
           category: tile.category,
           account: account,
@@ -213,9 +219,10 @@ void main() {
                   categoryId: rent.id,
                   accountId: cash.id,
                   frequency: 'MONTHLY',
-                  startDate: tile.date,
-                  endDate:
-                      mode == RecurringSeriesMode.planned ? tile.date : null,
+                  startDate: effectiveDate,
+                  endDate: mode == RecurringSeriesMode.planned
+                      ? effectiveDate
+                      : null,
                   autoPost: mode == RecurringSeriesMode.repeating,
                   mode: mode,
                 ));
@@ -240,6 +247,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            if (clock != null) ledgerClockProvider.overrideWithValue(clock),
             recurringViewModelProvider.overrideWith(() => viewModel),
             accountUiListProvider
                 .overrideWithValue(AsyncData([AccountUiModel.of(account)])),
@@ -540,12 +548,164 @@ void main() {
       expect(find.text('This series already has a bill on that date'),
           findsOneWidget);
     });
+
+    group('distant-past start guard on updateRule', () {
+      final fixedNow = DateTime(2026, 11, 26, 10, 0);
+      final distantPastDate = DateTime(2024, 11, 26, 9, 0);
+
+      Future<void> changeFrequencyToWeekly(WidgetTester tester) async {
+        await tester.tap(find.widgetWithText(LedgerSelectorField, 'Repeat'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(
+          of: find.byType(SimpleDialog),
+          matching: find.text('week'),
+        ));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets(
+          'updateRule with changed base schedule in distant past opens dialog; "from today" passes startOfDay(now)',
+          (tester) async {
+        await pumpForm(
+          tester,
+          mode: RecurringSeriesMode.repeating,
+          billDate: distantPastDate,
+          clock: FixedClock(fixedNow),
+        );
+        await changeFrequencyToWeekly(tester);
+        await save(tester);
+
+        // Scope dialog appears first (thisOnly disabled because repeat changed).
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DistantPastStartDialog), findsOneWidget);
+        expect(viewModel.updated, isEmpty);
+
+        await tester.tap(find.descendant(
+          of: find.byType(DistantPastStartDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(viewModel.updated, hasLength(1));
+        expect(viewModel.updated.single.$2, RecurringScope.updateRule);
+        expect(viewModel.lastMaterializeFrom, DateTime(2026, 11, 26));
+      });
+
+      testWidgets(
+          'updateRule distant-past dialog supports custom backfill days and cancel aborts save',
+          (tester) async {
+        await pumpForm(
+          tester,
+          mode: RecurringSeriesMode.repeating,
+          billDate: distantPastDate,
+          clock: FixedClock(fixedNow),
+        );
+        await changeFrequencyToWeekly(tester);
+        await save(tester);
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        // Cancel first: nothing is saved.
+        expect(find.byType(DistantPastStartDialog), findsOneWidget);
+        await tester.tap(find.descendant(
+          of: find.byType(DistantPastStartDialog),
+          matching: find.widgetWithText(AppButton, 'Cancel'),
+        ));
+        await tester.pumpAndSettle();
+        expect(viewModel.updated, isEmpty);
+
+        // Save again, choose backfill 45 days.
+        await save(tester);
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester
+            .tap(find.text('Backfill last 30 days as pending (manual review)'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(const ValueKey('distant-past-backfill-days')),
+            matching: find.byType(TextFormField),
+          ),
+          '45',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(
+          of: find.byType(DistantPastStartDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(viewModel.updated, hasLength(1));
+        expect(viewModel.lastMaterializeFrom, DateTime(2026, 10, 12));
+      });
+
+      testWidgets(
+          'amount-only updateRule on an old bill without changing base schedule does not open distant-past dialog',
+          (tester) async {
+        await pumpForm(
+          tester,
+          mode: RecurringSeriesMode.repeating,
+          billDate: distantPastDate,
+          clock: FixedClock(fixedNow),
+        );
+        await enterAmount(tester, '6000.00');
+        await save(tester);
+        await tester.tap(find.text('Update repeating rule'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DistantPastStartDialog), findsNothing);
+        expect(viewModel.updated, hasLength(1));
+        expect(viewModel.lastMaterializeFrom, isNull);
+      });
+
+      testWidgets(
+          'thisOnly scope on an old bill never opens distant-past dialog',
+          (tester) async {
+        await pumpForm(
+          tester,
+          mode: RecurringSeriesMode.repeating,
+          billDate: distantPastDate,
+          clock: FixedClock(fixedNow),
+        );
+        await enterAmount(tester, '6000.00');
+        await save(tester);
+        // Narrowest reach (thisOnly) is preselected.
+        await tester.tap(find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(AppButton, 'Save'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DistantPastStartDialog), findsNothing);
+        expect(viewModel.updated, hasLength(1));
+        expect(viewModel.updated.single.$2, RecurringScope.thisOnly);
+        expect(viewModel.lastMaterializeFrom, isNull);
+      });
+    });
   });
 }
 
 class _RecordingRecurringViewModel extends RecurringViewModel {
   final List<(String, RecurringScope, int)> updated = [];
   bool? lastAutoPost;
+  DateTime? lastMaterializeFrom;
   LedgerErrorCode? failure;
 
   @override
@@ -565,6 +725,7 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
     required String description,
     String? frequency,
     int? interval,
+    DateTime? materializeFrom,
     DateTime? endDate,
     int? countLimit,
     List<int>? weekdays,
@@ -576,6 +737,7 @@ class _RecordingRecurringViewModel extends RecurringViewModel {
   }) async {
     if (failure != null) return Failure(failure!, 'rejected');
     lastAutoPost = autoPost;
+    lastMaterializeFrom = materializeFrom;
     updated.add((scheduledId, scope, amountMinor));
     return unitResult;
   }

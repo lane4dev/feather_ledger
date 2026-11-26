@@ -1157,5 +1157,21 @@
     "placeholders": { "month": { "type": "String" } }
   },
   "previousMonth": "Previous month",
-  "nextMonth": "Next month"
+  "nextMonth": "Next month",
+  "distantPastStartTitle": "Start date is more than 2 months ago",
+  "distantPastStartDescription": "Choose how to handle past occurrences. Your start date is still kept to anchor the schedule and total count.",
+  "distantPastOptionFromToday": "Generate from today onward (Recommended)",
+  "distantPastOptionFromTodayHint": "Skip occurrences before today and only generate today and future bills",
+  "distantPastOptionBackfill": "Backfill last {days} days as pending (manual review)",
+  "@distantPastOptionBackfill": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "distantPastOptionBackfillHint": "Past bills before today are marked manual-only (up to 100 bills)",
+  "distantPastBackfillDaysLabel": "Backfill days",
+  "distantPastBackfillDaysUnit": "days",
+  "distantPastBackfillDaysError": "Enter an integer between 1 and 365"
 }

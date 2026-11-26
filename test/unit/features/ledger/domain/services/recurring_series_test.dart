@@ -1262,11 +1262,25 @@ void main() {
   test('catch-up posts the due instances of an auto-posting series, once',
       () async {
     await seed();
-    // Start in EUR so creating the USD series materializes due instances as
-    // pending without posting immediately, then switch back to USD for catch-up.
-    await harness.preferences!.setCurrency('EUR');
-    expect(await createAutoPostingSeries(), isA<Success<void>>());
-    await harness.preferences!.setCurrency('USD');
+    // Seed an existing auto-posting USD series whose bill became due 10 days
+    // ago (distinct from newly-created past series, which latch < today).
+    await harness.db.recurringDao.saveSeries(
+      RecurringSeriesCompanion.insert(
+        id: 'existing-auto-sub',
+        type: RecurringSeriesKind.expense,
+        mode: const Value(RecurringSeriesMode.repeating),
+        amountMinor: 20000,
+        accountId: accountId,
+        categoryId: expenseCategoryId,
+        description: 'Subscription',
+        rrule: 'FREQ=MONTHLY',
+        frequency: 'MONTHLY',
+        interval: const Value(1),
+        startDate: DateTime.now().subtract(const Duration(days: 10)),
+        autoPost: const Value(true),
+      ),
+    );
+    await harness.recurringService.materialize();
 
     final eventsBefore = (await harness.eventStore.readAll()).events.length;
     await harness.recurringService.catchUpAutoPosted();
@@ -1338,36 +1352,33 @@ void main() {
   // — 自动入账资格（创建与更新）———————————————————————————————————————————
 
   test(
-      'creating an auto-post series in active currency with past startDate auto-posts recent due bills while latching >30-day overdue bills manualOnly',
-      () async {
+      'creating an auto-post repeating series with past startDate latches all '
+      'occurrences strictly before today as manualOnly while leaving future '
+      'bills eligible', () async {
     await seed();
-    final cutoff =
-        DateTime.now().subtract(RecurringService.autoPostMaxAge);
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
     await createMonthly(autoPost: true);
 
     final instances = await scheduled();
-    final stale = instances.where((i) => i.date.isBefore(cutoff)).toList();
-    final recentDue = instances
-        .where((i) => !i.date.isBefore(cutoff) && !i.date.isAfter(DateTime.now()))
-        .toList();
-    final future =
-        instances.where((i) => i.date.isAfter(DateTime.now())).toList();
-    expect(stale, isNotEmpty, reason: 'fixture precondition');
-    expect(recentDue, isNotEmpty, reason: 'fixture precondition');
+    final beforeToday =
+        instances.where((i) => i.date.isBefore(startOfToday)).toList();
+    final future = instances.where((i) => i.date.isAfter(now)).toList();
+    expect(beforeToday, isNotEmpty, reason: 'fixture precondition');
     expect(future, isNotEmpty, reason: 'fixture precondition');
 
     expect(
-        stale.every((i) =>
+        beforeToday.every((i) =>
             i.status == ScheduledTransactionStatus.scheduled && i.manualOnly),
         isTrue,
-        reason: 'bills older than 30 days are latched manualOnly by circuit breaker');
-    expect(
-        recentDue.every((i) =>
-            i.status == ScheduledTransactionStatus.posted && !i.manualOnly),
-        isTrue,
-        reason: 'recent due bills within 30 days auto-post immediately');
+        reason:
+            'newly created repeating bills strictly before today are latched manualOnly');
     expect(future.every((i) => !i.manualOnly), isTrue);
-    expect(harness.recurringService.takeLastAutoPostedCount(), recentDue.length);
+    final dueToday = instances
+        .where(
+            (i) => !i.date.isBefore(startOfToday) && !i.date.isAfter(now))
+        .toList();
+    expect(harness.recurringService.takeLastAutoPostedCount(), dueToday.length);
   });
 
   test('editing a still-future bill keeps manualOnly false', () async {
@@ -1460,22 +1471,27 @@ void main() {
   });
 
   test(
-      'updateRule enables autoPost immediately for due bills and reports count',
+      'updateRule enables autoPost immediately for due bills of an existing series and reports count',
       () async {
     await seed();
     final start = DateTime.now().subtract(const Duration(days: 5));
-    await harness.recurringService.createSeries(
-      type: RecurringSeriesKind.expense,
-      amountMinor: 10000,
-      accountId: accountId,
-      categoryId: expenseCategoryId,
-      description: 'Manual past',
-      frequency: 'DAILY',
-      interval: 1,
-      startDate: start,
-      autoPost: false,
-      mode: RecurringSeriesMode.repeating,
+    await harness.db.recurringDao.saveSeries(
+      RecurringSeriesCompanion.insert(
+        id: 'existing-manual-past',
+        type: RecurringSeriesKind.expense,
+        mode: const Value(RecurringSeriesMode.repeating),
+        amountMinor: 10000,
+        accountId: accountId,
+        categoryId: expenseCategoryId,
+        description: 'Manual past',
+        rrule: 'FREQ=DAILY',
+        frequency: 'DAILY',
+        interval: const Value(1),
+        startDate: start,
+        autoPost: const Value(false),
+      ),
     );
+    await harness.recurringService.materialize();
     final first = (await scheduled()).first;
 
     final updated = await harness.recurringService.updateBill(
@@ -1911,6 +1927,7 @@ void main() {
         'restoring a due skipped bill on manual series keeps manualOnly = false',
         () async {
       await seed();
+      final now = DateTime.now();
       await harness.recurringService.createSeries(
         type: RecurringSeriesKind.expense,
         amountMinor: 10000,
@@ -1919,7 +1936,7 @@ void main() {
         description: 'Manual',
         frequency: 'MONTHLY',
         interval: 1,
-        startDate: DateTime.now().subtract(const Duration(days: 2)),
+        startDate: DateTime(now.year, now.month, now.day),
       );
       final due = await firstScheduled();
       await harness.recurringService

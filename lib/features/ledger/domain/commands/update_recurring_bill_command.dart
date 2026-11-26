@@ -12,6 +12,25 @@ import 'package:feather_ledger/features/ledger/domain/services/posting_context.d
 
 part 'update_recurring_bill_command.g.dart';
 
+/// Post-update actions requested by [UpdateRecurringBillCommand.execute].
+class UpdateRecurringBillResult {
+  /// Non-null when `updateRule` leaves `autoPost` enabled so the caller can
+  /// trigger an immediate catch-up pass for this series in the active currency.
+  final String? autoPostSeriesId;
+
+  /// Non-null when `updateRule` on a repeating series changed the base
+  /// schedule (or `materializeFrom`), so newly materialized occurrences strictly
+  /// before `startOfDay(now)` must be latched `manualOnly = true`.
+  final String? guardPastSeriesId;
+
+  const UpdateRecurringBillResult({
+    this.autoPostSeriesId,
+    this.guardPastSeriesId,
+  });
+
+  static const UpdateRecurringBillResult none = UpdateRecurringBillResult();
+}
+
 /// Edits a pending bill under one of the two v15 scopes:
 /// - `thisOnly`: stores sparse override columns (`amountOverrideMinor`,
 ///   `dateOverride`, `memoOverride`) directly on the UUID instance row.
@@ -28,10 +47,10 @@ class UpdateRecurringBillCommand {
     DomainClock? clock,
   }) : _clock = clock ?? const SystemClock();
 
-  /// Returns `series.id` when `updateRule` leaves `autoPost` enabled so the
-  /// caller can trigger an immediate catch-up pass for this series in the
-  /// active currency.
-  Future<String?> execute({
+  /// Returns an [UpdateRecurringBillResult] describing whether newly
+  /// materialized past occurrences must be latched `manualOnly` and whether
+  /// `autoPost` catch-up should run for this series.
+  Future<UpdateRecurringBillResult> execute({
     required String scheduledId,
     required RecurringScope scope,
     required int amountMinor,
@@ -41,6 +60,7 @@ class UpdateRecurringBillCommand {
     required String description,
     String? frequency,
     int? interval,
+    DateTime? materializeFrom,
     DateTime? endDate,
     int? countLimit,
     List<int>? weekdays,
@@ -169,7 +189,7 @@ class UpdateRecurringBillCommand {
             transactionId: Value(scheduled.transactionId),
           ),
         );
-        return null;
+        return UpdateRecurringBillResult.none;
       }
 
       final effectiveAutoPost = autoPost ?? series.autoPost;
@@ -254,6 +274,13 @@ class UpdateRecurringBillCommand {
         weekdays: nextWeekdays,
       );
 
+      final nextMaterializeFrom = series.mode == RecurringSeriesMode.planned
+          ? nextStartDate
+          : (materializeFrom ??
+              (baseScheduleChanged ? nextStartDate : series.materializeFrom));
+      final materializeFromChanged =
+          !_sameMoment(nextMaterializeFrom, series.materializeFrom);
+
       await _recurringRepository.saveSeries(
         RecurringSeriesCompanion(
           id: Value(series.id),
@@ -272,8 +299,7 @@ class UpdateRecurringBillCommand {
           reminderMinutes: Value(nextReminderMinutes),
           mode: Value(series.mode),
           isActive: Value(series.isActive),
-          materializeFrom: Value(
-              baseScheduleChanged ? nextStartDate : series.materializeFrom),
+          materializeFrom: Value(nextMaterializeFrom),
           completedCountOffset: Value(nextCompletedCountOffset),
         ),
       );
@@ -295,17 +321,24 @@ class UpdateRecurringBillCommand {
             transactionId: Value(scheduled.transactionId),
           ),
         );
-        return effectiveAutoPost ? series.id : null;
+        return UpdateRecurringBillResult(
+          autoPostSeriesId: effectiveAutoPost ? series.id : null,
+        );
       }
 
       if (baseScheduleChanged) {
         await _recurringRepository.deletePendingAndSkippedForSeries(series.id);
-      } else if (endConditionChanged) {
+      } else if (endConditionChanged || materializeFromChanged) {
         await _recurringRepository.deletePendingForSeries(series.id);
       } else {
         await _recurringRepository.resetFailedToScheduledForSeries(series.id);
       }
-      return effectiveAutoPost ? series.id : null;
+      return UpdateRecurringBillResult(
+        autoPostSeriesId: effectiveAutoPost ? series.id : null,
+        guardPastSeriesId: (baseScheduleChanged || materializeFromChanged)
+            ? series.id
+            : null,
+      );
     });
   }
 

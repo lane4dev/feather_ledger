@@ -118,6 +118,10 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
             const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
   }
 
+  /// Marks scheduled bills of [seriesId] whose effective date is strictly
+  /// earlier than [cutoff] as `manualOnly = true` (leaving bills at or after
+  /// [cutoff], such as same-day due occurrences when [cutoff] is
+  /// `startOfDay(now)`, eligible for auto-posting).
   Future<int> markSeriesManualOnlyBefore(String seriesId, DateTime cutoff) =>
       (update(scheduledTransactionsView)
             ..where((t) =>
@@ -125,7 +129,7 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
                 t.status.equals('scheduled') &
                 t.manualOnly.equals(false) &
                 coalesce([t.dateOverride, t.scheduledDate])
-                    .isSmallerOrEqualValue(cutoff)))
+                    .isSmallerThanValue(cutoff)))
           .write(const ScheduledTransactionsViewCompanion(
               manualOnly: Value(true)));
 
