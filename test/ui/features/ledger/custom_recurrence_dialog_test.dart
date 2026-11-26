@@ -56,4 +56,32 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('the end date lines up with the option label', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.lightTheme,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Center(
+          child: CustomRecurrenceDialog(
+        initial: CustomRecurrence(
+            frequency: 'MONTHLY',
+            interval: 1,
+            startDate: DateTime(2026, 11, 14),
+            weekdays: const []),
+      )),
+    ));
+    await tester.pumpAndSettle();
+
+    final until = find.byWidgetPredicate(
+        (widget) => widget is Radio<int> && widget.value == 1);
+    await tester.tap(until);
+    await tester.pumpAndSettle();
+
+    final label = tester.getTopLeft(find.text('On date'));
+    final picker =
+        tester.getTopLeft(find.byKey(const ValueKey('repeat-end-date')));
+    expect(picker.dx, closeTo(label.dx, 0.5));
+    expect(picker.dy, greaterThan(label.dy));
+  });
 }

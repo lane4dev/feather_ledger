@@ -261,9 +261,15 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
                             contentPadding: EdgeInsets.zero,
                           ),
                           if (ending == 1)
-                            SizedBox(
-                              width: double.infinity,
+                            Padding(
+                              // The date field belongs to "On date", so it
+                              // starts under that label rather than under the
+                              // radio glyph: 40 dp leading + 16 dp title gap.
+                              padding: EdgeInsets.only(
+                                  left: 40 + context.spacing.md,
+                                  top: context.spacing.xs),
                               child: _SoftPickerButton(
+                                key: const ValueKey('repeat-end-date'),
                                 icon: LucideIcons.calendar,
                                 label: date.format(end),
                                 onTap: () => _pickDate(false),
@@ -331,7 +337,10 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
 /// the compact number fields, with a small icon to say which is which.
 class _SoftPickerButton extends StatelessWidget {
   const _SoftPickerButton(
-      {required this.icon, required this.label, required this.onTap});
+      {super.key,
+      required this.icon,
+      required this.label,
+      required this.onTap});
 
   final IconData icon;
   final String label;
