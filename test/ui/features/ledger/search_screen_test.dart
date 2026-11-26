@@ -340,6 +340,24 @@ void main() {
     expect(find.byKey(const ValueKey('search-clear')), findsNothing);
   });
 
+  testWidgets('the field is the app bar title, between back and filter',
+      (tester) async {
+    viewModel.results = Stream.value(resultsOf([_tile(amount: -1234)]));
+    await pumpScreen(tester);
+
+    final field = find.byType(TextField);
+    expect(find.descendant(of: find.byType(AppBar), matching: field),
+        findsOneWidget);
+
+    // Level with the leading back button, and left of the filter action.
+    expect(tester.getCenter(field).dy,
+        closeTo(tester.getCenter(find.byIcon(LucideIcons.arrowLeft)).dy, 2));
+    expect(tester.getTopLeft(field).dx,
+        greaterThan(tester.getTopLeft(find.byIcon(LucideIcons.arrowLeft)).dx));
+    expect(tester.getTopRight(field).dx,
+        lessThan(tester.getTopLeft(find.byIcon(LucideIcons.filter)).dx));
+  });
+
   testWidgets('hits group by month, each month in its own card',
       (tester) async {
     final now = DateTime.now();

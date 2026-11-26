@@ -55,6 +55,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onPressed: () => context.pop(),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         ),
+        // The field is the app bar's title, so it sits between back and
+        // filter instead of claiming a row of its own above the results.
+        titleSpacing: context.spacing.xs,
+        title: _SearchField(
+          controller: _queryController,
+          hintText: l10n.searchHint,
+          clearTooltip: l10n.searchClear,
+          onChanged: (value) =>
+              ref.read(searchViewModelProvider.notifier).setQuery(value),
+          onClear: () {
+            _queryController.clear();
+            ref.read(searchViewModelProvider.notifier).setQuery('');
+          },
+        ),
         actions: [
           AppIconButton(
             icon: const Icon(LucideIcons.filter),
@@ -65,51 +79,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                context.spacing.md,
-                context.spacing.sm,
-                context.spacing.md,
-                context.spacing.sm,
-              ),
-              child: _SearchField(
-                controller: _queryController,
-                hintText: l10n.searchHint,
-                clearTooltip: l10n.searchClear,
-                onChanged: (value) =>
-                    ref.read(searchViewModelProvider.notifier).setQuery(value),
-                onClear: () {
-                  _queryController.clear();
-                  ref.read(searchViewModelProvider.notifier).setQuery('');
+        child: !hasQuery
+            ? const SizedBox.shrink()
+            : resultsAsync.when(
+                data: (results) {
+                  if (results.isEmpty) {
+                    return Center(child: Text(l10n.noSearchResults));
+                  }
+                  return _ResultsList(
+                    ref: ref,
+                    tiles: results.tiles,
+                    currencySymbol: currency,
+                    query: filter.query!,
+                  );
                 },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) =>
+                    Center(child: Text(l10n.errorPrefix(error.toString()))),
               ),
-            ),
-            Expanded(
-              child: !hasQuery
-                  ? const SizedBox.shrink()
-                  : resultsAsync.when(
-                      data: (results) {
-                        if (results.isEmpty) {
-                          return Center(child: Text(l10n.noSearchResults));
-                        }
-                        return _ResultsList(
-                          ref: ref,
-                          tiles: results.tiles,
-                          currencySymbol: currency,
-                          query: filter.query!,
-                        );
-                      },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(
-                        child: Text(l10n.errorPrefix(error.toString())),
-                      ),
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }
