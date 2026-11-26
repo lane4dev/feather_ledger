@@ -626,6 +626,17 @@ void main() {
     expect(find.text('1 item · \$25.00'), findsOneWidget);
     expect(find.text('Posted'), findsOneWidget);
     expect(find.text('3 items · \$533.33'), findsOneWidget);
+    final pendingCard =
+        find.byKey(const ValueKey('budget-contribution-group-pending'));
+    final postedCard =
+        find.byKey(const ValueKey('budget-contribution-group-posted'));
+    expect(pendingCard, findsOneWidget);
+    expect(postedCard, findsOneWidget);
+    for (final headerSummary in ['1 item · \$25.00', '3 items · \$533.33']) {
+      expect(tester.getTopRight(find.text(headerSummary)).dx,
+          tester.getTopRight(pendingCard).dx,
+          reason: headerSummary);
+    }
     // Pending rows carry the Fixed tag instead of repeating the group title.
     expect(find.text('Committed'), findsOneWidget);
     expect(find.byKey(const ValueKey('budget-contribution-group-pending')),
@@ -1296,6 +1307,11 @@ void main() {
     expect(tester.getTopLeft(postedCard).dx, 16);
     expect(tester.getTopRight(pendingCard).dx, 1184);
     expect(tester.getTopRight(postedCard).dx, 1184);
+    // Each group's count and total end on the card's right edge.
+    for (final headerSummary in ['1 item · \$25.00', '3 items · \$533.33']) {
+      expect(tester.getTopRight(find.text(headerSummary)).dx, 1184,
+          reason: headerSummary);
+    }
 
     // Pending rows trade the status pill for Fixed; posted rows carry neither.
     expect(find.text('Pending'), findsOneWidget);

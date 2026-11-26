@@ -317,7 +317,8 @@ the month picker.
   count and total are bold; the title keeps the theme's regular weight. There is no
   separate summary band above the cards. Long titles ellipsize; the summary
   scales down rather than overflowing at 320 dp/1.6x.
-- Groups: `待入账` and `已入账`, each with `N 笔 · ¥xx.xx` on the right. An
+- Groups: `待入账` and `已入账`, each with `N 笔 · ¥xx.xx` flush with the
+  card's right edge (not merely somewhere in the right half). An
   empty group disappears entirely. Both headers and both cards share one left
   edge; cards have an 18 dp radius and `surfaceContainerLow` fill, and rows
   never float directly on the page background.

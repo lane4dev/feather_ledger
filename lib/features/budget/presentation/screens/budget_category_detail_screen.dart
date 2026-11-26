@@ -718,28 +718,38 @@ class _ContributionGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .labelLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-        SizedBox(width: context.spacing.sm),
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
-            child: Text(summary, style: AppTypography.meta(context)),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // The summary is non-flex so the label absorbs the leftover width and
+        // the summary lands on the card's right edge. Its cap keeps it from
+        // starving the label on a narrow phone.
+        return Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(width: context.spacing.sm),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.6,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(summary, style: AppTypography.meta(context)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
