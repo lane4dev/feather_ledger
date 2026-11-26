@@ -54,4 +54,4 @@ final class WatchTransactionBudgetHintQueryProvider extends $FunctionalProvider<
 }
 
 String _$watchTransactionBudgetHintQueryHash() =>
-    r'ee1949b53e9fefa00cf5d2983fa890ef94700591';
+    r'924e96dd163ed828d4e94cea2074a237561fd490';

@@ -353,33 +353,21 @@ class _PlanHint extends StatelessWidget {
             l10n.budgetPlanHintFixedBills(model.fixedBillsDisplay),
           BudgetPlanHintPart.noBillsYet => l10n.budgetPlanHintNoBills,
         });
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              LucideIcons.calendar,
-              size: context.metrics.inlineIconSize,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            SizedBox(width: context.spacing.xs),
-            Expanded(
-              child: Text(
-                clauses.join(' · '),
-                style: AppTypography.meta(context),
-              ),
-            ),
-          ],
+        Icon(
+          LucideIcons.calendar,
+          size: context.metrics.inlineIconSize,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-        if (model.showMaterializedHint) ...[
-          SizedBox(height: context.spacing.xs),
-          Text(
-            l10n.budgetMaterializedOnlyHint,
+        SizedBox(width: context.spacing.xs),
+        Expanded(
+          child: Text(
+            clauses.join(' · '),
             style: AppTypography.meta(context),
           ),
-        ],
+        ),
       ],
     );
   }

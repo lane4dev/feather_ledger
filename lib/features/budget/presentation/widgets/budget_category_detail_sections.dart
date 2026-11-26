@@ -172,12 +172,10 @@ class BudgetCategoryProgressCard extends StatelessWidget {
 /// honest. The three-month average stays on the trend chart, where it belongs.
 class BudgetCategoryCompositionCard extends StatelessWidget {
   final BudgetCategoryRowUiModel row;
-  final bool showMaterializationHint;
 
   const BudgetCategoryCompositionCard({
     super.key,
     required this.row,
-    required this.showMaterializationHint,
   });
 
   static const double _barHeight = 6;
@@ -278,14 +276,6 @@ class BudgetCategoryCompositionCard extends StatelessWidget {
             references.join(' · '),
             style: AppTypography.meta(context),
           ),
-          if (showMaterializationHint) ...[
-            SizedBox(height: spacing.sm),
-            Text(
-              l10n.budgetMaterializedOnlyHint,
-              style: AppTypography.compactLabel(context).copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
         ],
       ),
     );

@@ -249,7 +249,6 @@ class _BudgetCategoryDetailScreenState
         // A closed month has no bills left to arrive: actual only.
         final showPending =
             !detail.isHistoricalMonth && row.pendingDisplay != null;
-        final showMaterializationHint = detail.showMaterializationHint;
         final spacing = context.spacing;
         final scheme = Theme.of(context).colorScheme;
 
@@ -370,7 +369,6 @@ class _BudgetCategoryDetailScreenState
                 SizedBox(height: spacing.md),
                 BudgetCategoryCompositionCard(
                   row: row,
-                  showMaterializationHint: showMaterializationHint,
                 ),
                 if (BudgetTrendChart.shouldShow(row.trend6Months)) ...[
                   SizedBox(height: spacing.md),

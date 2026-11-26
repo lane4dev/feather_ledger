@@ -79,8 +79,6 @@ void main() {
       hasAnyBudget: totalBudgetMinor > 0,
       hasUnbudgetedActivity: unbudgeted.isNotEmpty,
       hasLeftoverPendingInReview: hasLeftoverPendingInReview,
-      hasHighFrequencyPending: false,
-      isFarFutureMaterializedOnly: false,
       budgetedCategories: budgeted ?? const [],
       unbudgetedActiveCategories: unbudgeted,
       remainingActiveCategories: const [],

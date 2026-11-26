@@ -205,8 +205,6 @@ class BudgetUiMapper {
         currencySymbol,
       ),
       hasLeftoverPendingInReview: summary.hasLeftoverPendingInReview,
-      hasHighFrequencyMaterializationHint: summary.hasHighFrequencyPending ||
-          summary.isFarFutureMaterializedOnly,
       mainLabel: mainLabel,
       mainAmount: BalanceDisplayParts.parse(
         summary.hasAnyBudget
@@ -595,6 +593,9 @@ class BudgetUiMapper {
     return BudgetContributionTxUiModel(
       id: tx.transactionId,
       isPending: tx.isPending,
+      seriesId: tx.seriesId,
+      occurrenceKey: tx.occurrenceKey,
+      isVirtual: tx.isVirtual,
       title: tx.description,
       dateDisplay: dayFormat.format(tx.occurredAt),
       amountDisplay:

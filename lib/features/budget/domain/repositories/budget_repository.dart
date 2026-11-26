@@ -12,13 +12,15 @@ abstract class BudgetRepository {
 
   Stream<BudgetMonthPendingRaw> watchMonthPendingExpenses(
     String currencyCode,
-    YearMonth month,
-  );
+    YearMonth month, {
+    bool includeVirtual = true,
+  });
 
   Stream<CategoryBudgetHint> watchCategoryBudgetHint({
     required String currencyCode,
     required YearMonth month,
     required String categoryId,
+    bool includeVirtual = true,
   });
 
   Future<CategoryEntity?> getCategoryById(String categoryId);

@@ -30,9 +30,14 @@ class BudgetRepositoryImpl implements BudgetRepository {
   @override
   Stream<BudgetMonthPendingRaw> watchMonthPendingExpenses(
     String currencyCode,
-    YearMonth month,
-  ) {
-    return _budgetDao.watchMonthPendingExpenses(currencyCode, month.ym);
+    YearMonth month, {
+    bool includeVirtual = true,
+  }) {
+    return _budgetDao.watchMonthPendingExpenses(
+      currencyCode,
+      month.ym,
+      includeVirtual: includeVirtual,
+    );
   }
 
   @override
@@ -40,9 +45,15 @@ class BudgetRepositoryImpl implements BudgetRepository {
     required String currencyCode,
     required YearMonth month,
     required String categoryId,
+    bool includeVirtual = true,
   }) {
     return _budgetDao
-        .watchCategoryBudgetHint(currencyCode, month.ym, categoryId)
+        .watchCategoryBudgetHint(
+          currencyCode,
+          month.ym,
+          categoryId,
+          includeVirtual: includeVirtual,
+        )
         .map(
           (raw) => CategoryBudgetHint(
             currencyCode: raw.currencyCode,

@@ -26,10 +26,14 @@ class WatchMonthBudgetQuery {
     required String currencyCode,
     required YearMonth month,
   }) {
+    final includeVirtual = month >= YearMonth.fromDate(_clock.now());
     final summaryStream =
         _repository.watchMonthBudgetSummary(currencyCode, month);
-    final pendingStream =
-        _repository.watchMonthPendingExpenses(currencyCode, month);
+    final pendingStream = _repository.watchMonthPendingExpenses(
+      currencyCode,
+      month,
+      includeVirtual: includeVirtual,
+    );
 
     return _combineLatest2(
       summaryStream,

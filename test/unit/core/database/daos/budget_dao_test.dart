@@ -629,8 +629,10 @@ void main() {
       expect(pending.bills.map((b) => b.scheduledBillId), ['b-1', 'b-2']);
       expect(pending.bills[0].amountMinor, 320000);
       expect(pending.bills[0].accountName, 'Acc acc-ok');
+      expect(pending.bills[0].isVirtual, isFalse);
+      expect(pending.bills[0].occurrenceKey, '2026-05-01');
       expect(pending.bills[1].amountMinor, 300000);
-      expect(pending.hasHighFrequencyActiveSeries, isFalse);
+      expect(pending.bills[1].isVirtual, isFalse);
     });
 
     test(
@@ -670,6 +672,55 @@ void main() {
       final juneHint =
           await dao.watchCategoryBudgetHint('CNY', 202606, 'dining').first;
       expect(juneHint.effectiveBudgetMinor, isNull);
+    });
+
+    test(
+        'watchMonthPendingExpenses and watchCategoryBudgetHint respect '
+        'includeVirtual flag (overlay vs physical-only review)', () async {
+      await seedAccount(id: 'acc-ok', currencyCode: 'CNY');
+      await seedCategory(id: 'rent');
+
+      await db.into(db.recurringSeries).insert(
+            RecurringSeriesCompanion.insert(
+              id: 's-rent',
+              rrule: 'FREQ=MONTHLY;INTERVAL=1',
+              startDate: DateTime(2026, 4, 1, 9, 0),
+              materializeFrom: Value(DateTime(2026, 4, 1, 9, 0)),
+              frequency: 'MONTHLY',
+              amountMinor: 300000,
+              description: 'Rent',
+              categoryId: 'rent',
+              accountId: 'acc-ok',
+              type: RecurringSeriesKind.expense,
+              mode: const Value(RecurringSeriesMode.repeating),
+            ),
+          );
+
+      // With includeVirtual: true -> virtual bill emitted for unmaterialized 202611
+      final virtualPending = await dao
+          .watchMonthPendingExpenses('CNY', 202611, includeVirtual: true)
+          .first;
+      expect(virtualPending.bills.length, 1);
+      expect(virtualPending.bills.single.isVirtual, isTrue);
+      expect(virtualPending.bills.single.seriesId, 's-rent');
+      expect(virtualPending.bills.single.occurrenceKey, '2026-11-01');
+      expect(virtualPending.bills.single.amountMinor, 300000);
+
+      final virtualHint = await dao
+          .watchCategoryBudgetHint('CNY', 202611, 'rent', includeVirtual: true)
+          .first;
+      expect(virtualHint.pendingMinor, 300000);
+
+      // With includeVirtual: false -> physical-only (0 when unmaterialized)
+      final physicalOnly = await dao
+          .watchMonthPendingExpenses('CNY', 202611, includeVirtual: false)
+          .first;
+      expect(physicalOnly.bills, isEmpty);
+
+      final physicalHint = await dao
+          .watchCategoryBudgetHint('CNY', 202611, 'rent', includeVirtual: false)
+          .first;
+      expect(physicalHint.pendingMinor, 0);
     });
   });
 }

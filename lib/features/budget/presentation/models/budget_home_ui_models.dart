@@ -150,14 +150,9 @@ class BudgetPlanHintUiModel {
   /// The fixed bills of the month, already formatted with its symbol.
   final String fixedBillsDisplay;
 
-  /// Whether the month's pending money is only materialised bills, which is
-  /// worth naming under the hint.
-  final bool showMaterializedHint;
-
   const BudgetPlanHintUiModel({
     required this.parts,
     required this.fixedBillsDisplay,
-    required this.showMaterializedHint,
   });
 
   factory BudgetPlanHintUiModel.from(BudgetScreenUiModel screen) {
@@ -174,8 +169,6 @@ class BudgetPlanHintUiModel {
           BudgetPlanHintPart.noBillsYet,
       ],
       fixedBillsDisplay: screen.overview.committedBaselineDisplay,
-      showMaterializedHint:
-          screen.overview.hasHighFrequencyMaterializationHint,
     );
   }
 

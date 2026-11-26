@@ -86,8 +86,6 @@ void main() {
         hasAnyBudget: true,
         hasUnbudgetedActivity: true,
         hasLeftoverPendingInReview: false,
-        hasHighFrequencyPending: true,
-        isFarFutureMaterializedOnly: false,
         budgetedCategories: [
           CategoryBudgetSummary(
             categoryId: 'dining',
@@ -166,7 +164,6 @@ void main() {
       expect(ui.overview.actualRatio, closeTo(0.4, 0.001));
       expect(ui.overview.pendingRatio, closeTo(0.2, 0.001));
       expect(ui.overview.hasUnbudgetedSpend, isTrue);
-      expect(ui.overview.hasHighFrequencyMaterializationHint, isTrue);
 
       final row = ui.budgetedRows.single;
       expect(row.budgetDisplay, '¥3000.00');
@@ -177,6 +174,65 @@ void main() {
       expect(row.trend6Months.single.budgetChartValue, 3000.0);
       expect(row.trend6Months.single.actualChartValue, 1200.0);
       expect(row.topContributions.single.amountDisplay, '-¥10.00');
+    });
+
+    test('forwards virtual pending bill metadata to contribution UI model', () {
+      final virtualTx = BudgetContributionTx(
+        transactionId: 'virtual:s-rent:2026-11-01',
+        sourceScheduledBillId: null,
+        scheduledBillId: null,
+        seriesId: 's-rent',
+        occurrenceKey: '2026-11-01',
+        isVirtual: true,
+        description: 'Rent',
+        occurredAt: DateTime(2026, 11, 1, 9, 0),
+        amountMinor: 30000,
+        isPending: true,
+        accountName: 'Cash',
+      );
+      final summary = _summary(
+        mode: BudgetMode.plan,
+        budgetedCategories: [
+          CategoryBudgetSummary(
+            categoryId: 'rent',
+            categoryName: 'Rent',
+            iconKey: 'home',
+            colorInt: 0xFF1565C0,
+            isArchived: false,
+            archiveYm: null,
+            budgetMinor: 50000,
+            hasFutureRulesAfter: false,
+            committedActualMinor: 0,
+            discretionaryActualMinor: 0,
+            actualMinor: 0,
+            pendingMinor: 30000,
+            projectedRemainingMinor: 20000,
+            lastMonthActualMinor: null,
+            threeMonthAvgMinor: null,
+            committedBaselineMinor: 30000,
+            isAnomaly: false,
+            anomalyDeltaRatio: null,
+            riskLevel: BudgetRiskLevel.inBudget,
+            sixMonthTrend: const [],
+            topTransactions: [virtualTx],
+            allTransactions: [virtualTx],
+            reviewNote: null,
+          ),
+        ],
+      );
+
+      final ui = const BudgetUiMapper().mapScreen(
+        summary,
+        currencySymbol: '¥',
+        locale: 'en',
+      );
+      final contrib = ui.budgetedRows.single.allContributions.single;
+      expect(contrib.id, 'virtual:s-rent:2026-11-01');
+      expect(contrib.isPending, isTrue);
+      expect(contrib.isCommitted, isTrue);
+      expect(contrib.seriesId, 's-rent');
+      expect(contrib.occurrenceKey, '2026-11-01');
+      expect(contrib.isVirtual, isTrue);
     });
   });
 
@@ -816,8 +872,6 @@ MonthBudgetSummary _summary({
     hasAnyBudget: hasAnyBudget,
     hasUnbudgetedActivity: unbudgetedActualMinor > 0,
     hasLeftoverPendingInReview: mode == BudgetMode.review,
-    hasHighFrequencyPending: false,
-    isFarFutureMaterializedOnly: mode == BudgetMode.plan,
     budgetedCategories: budgetedCategories ?? [_cat()],
     unbudgetedActiveCategories: unbudgetedActiveCategories,
     remainingActiveCategories: remainingActiveCategories,
