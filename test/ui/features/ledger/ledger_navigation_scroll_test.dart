@@ -77,8 +77,8 @@ void main() {
     expect(find.byIcon(LucideIcons.eyeOff), findsOneWidget);
     expect(find.byType(ReportsScreen), findsNothing);
 
-    final card = find.byKey(
-        tester.widget<LedgerHeader>(find.byType(LedgerHeader)).cardKey!);
+    final card = find
+        .byKey(tester.widget<LedgerHeader>(find.byType(LedgerHeader)).cardKey!);
     final cardRect = tester.getRect(card);
     await tester.tap(find.text('Total Balance'));
     await tester.pump();
@@ -110,7 +110,8 @@ void main() {
 
     await tester.tap(find.text('Total Balance'));
     await tester.pumpAndSettle();
-    expect(find.text(DateFormat.yMMMM('en').format(ledgerMonth)), findsOneWidget);
+    expect(
+        find.text(DateFormat.yMMMM('en').format(ledgerMonth)), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
@@ -157,7 +158,8 @@ void main() {
     }
   });
 
-  testWidgets('deleting the last records restores navigation', (tester) async {
+  testWidgets('deleting the last records leaves navigation in place',
+      (tester) async {
     final harness = LedgerServiceHarness();
     addTearDown(harness.close);
     final changes = StreamController<List<LedgerDayGroup>>.broadcast();
@@ -195,7 +197,7 @@ void main() {
     final controller = tester.widget<LedgerTransactionList>(list).controller;
     await tester.drag(list, const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
     changes.add([]);
     await tester.pumpAndSettle();
     expect(controller.offset, 0);
@@ -272,7 +274,8 @@ void main() {
     }
   });
 
-  testWidgets('ledger scrolling hides and restores navigation', (tester) async {
+  testWidgets('ledger scrolling keeps the navigation bar in place',
+      (tester) async {
     tester.view.padding = const FakeViewPadding(bottom: 24);
     tester.view.viewPadding = const FakeViewPadding(bottom: 24);
     addTearDown(tester.view.resetPadding);
@@ -308,51 +311,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
     final buttonPosition = tester.getTopLeft(find.byType(FloatingActionButton));
-    final visibleTop = tester.getTopLeft(find.byType(NavigationBar)).dy;
+    final navTop = tester.getTopLeft(find.byType(NavigationBar)).dy;
+
+    Future<void> expectChromeInPlace() async {
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(tester.getTopLeft(find.byType(NavigationBar)).dy, navTop);
+      expect(
+          tester.getTopLeft(find.byType(FloatingActionButton)), buttonPosition);
+    }
+
     await tester.drag(
         find.byType(LedgerTransactionList), const Offset(0, -500));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(
-        tester.getTopLeft(find.byType(FloatingActionButton)), buttonPosition);
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(tester.getTopLeft(find.byType(NavigationBar)).dy,
-        greaterThan(visibleTop));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
-    expect(
-        tester.getTopLeft(find.byType(FloatingActionButton)), buttonPosition);
+    await expectChromeInPlace();
     await tester.drag(find.byType(PageView), const Offset(-700, 0));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsOneWidget);
+    await expectChromeInPlace();
     await tester.drag(
         find.byType(LedgerTransactionList), const Offset(0, -500));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
+    await expectChromeInPlace();
     await tester.drag(find.byType(PageView), const Offset(700, 0));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsOneWidget);
+    await expectChromeInPlace();
     await tester.drag(
         find.byType(LedgerTransactionList), const Offset(0, -150));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
+    await expectChromeInPlace();
     await tester.drag(find.byType(LedgerTransactionList), const Offset(0, 150));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsOneWidget);
+    await expectChromeInPlace();
     await tester.drag(
         find.byType(LedgerTransactionList), const Offset(0, -150));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
+    await expectChromeInPlace();
     await tester.tap(find.byType(LedgerCompactBalance));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsOneWidget);
-    await tester.drag(
-        find.byType(LedgerTransactionList), const Offset(0, -500));
-    await tester.pumpAndSettle();
-    expect(find.byType(NavigationBar), findsNothing);
+    await expectChromeInPlace();
     router.go('/more');
     await tester.pumpAndSettle();
+    // The More tab has no FAB, but the bar keeps its place.
     expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.getTopLeft(find.byType(NavigationBar)).dy, navTop);
     router.go('/accounts_management');
     await tester.pumpAndSettle();
     expect(
@@ -363,7 +356,8 @@ void main() {
         tester.getTopLeft(find.byType(FloatingActionButton)), buttonPosition);
   });
 
-  testWidgets('bottom navigation renders 3 tabs with solid ledger book icon and fab styling',
+  testWidgets(
+      'bottom navigation renders 3 tabs with solid ledger book icon and fab styling',
       (tester) async {
     final harness = LedgerServiceHarness();
     addTearDown(harness.close);
@@ -588,8 +582,8 @@ void main() {
             });
             return Stream.value(days);
           }),
-          ledgerMonthlySummaryProvider.overrideWith((ref, month) => Stream.value(
-              const MonthlySummaryUiModel(
+          ledgerMonthlySummaryProvider.overrideWith((ref, month) =>
+              Stream.value(const MonthlySummaryUiModel(
                   displayBalance: r'$500.00',
                   displayIncome: r'$0.00',
                   displayExpense: r'$152.50'))),
@@ -644,17 +638,18 @@ void main() {
         expect(find.byType(NavigationBar), findsOneWidget);
         assertLastAmountClearsChrome(expectNavBarVisible: true);
 
-        // 2. Scroll down by drag so NavigationBar hides; amount still clears FAB.
+        // 2. Scroll down by drag: the bar stays put, the amount still clears
+        // both the FAB and the bar.
         controller.jumpTo(0);
         await tester.pumpAndSettle();
         for (var step = 0; step < 5; step++) {
           await tester.drag(listFinder, const Offset(0, -600));
           await tester.pumpAndSettle();
         }
-        expect(find.byType(NavigationBar), findsNothing);
-        assertLastAmountClearsChrome(expectNavBarVisible: false);
+        expect(find.byType(NavigationBar), findsOneWidget);
+        assertLastAmountClearsChrome(expectNavBarVisible: true);
 
-        // 3. Slight scroll up restores NavigationBar; amount still clears both.
+        // 3. Slight scroll up keeps it visible too.
         await tester.drag(listFinder, const Offset(0, 40));
         await tester.pumpAndSettle();
         expect(find.byType(NavigationBar), findsOneWidget);

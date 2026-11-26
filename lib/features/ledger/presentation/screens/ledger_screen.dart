@@ -14,16 +14,6 @@ import '../widgets/ledger_header.dart';
 import '../widgets/ledger_transaction_list.dart';
 import '../widgets/overdue_materialization_banner.dart';
 
-/// Asks the app shell to reveal its navigation bar.
-class LedgerShowNavigationNotification extends Notification {
-  const LedgerShowNavigationNotification();
-}
-
-/// Notifies the app shell when the ledger moves to another month.
-class LedgerMonthChangedNotification extends LedgerShowNavigationNotification {
-  const LedgerMonthChangedNotification();
-}
-
 class LedgerScreen extends ConsumerStatefulWidget {
   const LedgerScreen({super.key});
 
@@ -57,7 +47,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     if (controller != null && controller.hasClients && controller.offset != 0) {
       controller.jumpTo(0);
     }
-    const LedgerShowNavigationNotification().dispatch(context);
   }
 
   void _syncHeader(DateTime month, double headerHeight) {
@@ -111,7 +100,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
     final current = ref.read(ledgerViewModelProvider).selectedDate;
     if (current.year == date.year && current.month == date.month) return;
 
-    const LedgerMonthChangedNotification().dispatch(context);
     final navigation = ++_monthNavigation;
     _programmaticMonthChange = true;
     ref.read(ledgerViewModelProvider.notifier).setMonth(date);
@@ -282,7 +270,6 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
               final current = ref.read(ledgerViewModelProvider).selectedDate;
               if (current.year != date.year || current.month != date.month) {
                 ref.read(ledgerViewModelProvider.notifier).setMonth(date);
-                const LedgerMonthChangedNotification().dispatch(context);
               }
               _syncHeader(date, headerHeight);
               WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -226,3 +226,12 @@ the month picker.
   second metadata line, but no yellow overflow stripes appear and no amount is
   clipped.
 - [ ] pass  [ ] fail — notes:
+
+## 16. Ledger bar stays put while scrolling
+
+- Page: ledger, any month with more than a screen of records
+- Look at: the bottom navigation bar while flinging the list up and down
+- Expected: the bar never moves, fades or slides away — it is a static part of
+  the shell. The FAB keeps its 16 dp gap above the bar (plus the device's
+  bottom inset), and swiping to the next month does not shift either.
+- [ ] pass  [ ] fail — notes:

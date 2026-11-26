@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -162,116 +161,47 @@ class ScaffoldWithNavBar extends StatefulWidget {
 }
 
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
-  bool _ledgerNavigationVisible = true;
-  ScrollDirection _ledgerScrollDirection = ScrollDirection.idle;
-
-  bool _onScroll(ScrollNotification notification) {
-    if (widget.navigationShell.currentIndex != 0 ||
-        notification.metrics.axis != Axis.vertical) return false;
-
-    if (notification is UserScrollNotification) {
-      _ledgerScrollDirection = notification.direction;
-    }
-    bool? visible;
-    if (notification.metrics.pixels <= notification.metrics.minScrollExtent) {
-      visible = true;
-    } else if (notification is UserScrollNotification ||
-        notification is ScrollUpdateNotification &&
-            notification.dragDetails != null) {
-      if (_ledgerScrollDirection == ScrollDirection.reverse) visible = false;
-      if (_ledgerScrollDirection == ScrollDirection.forward) visible = true;
-    }
-    if (visible != null && visible != _ledgerNavigationVisible) {
-      setState(() => _ledgerNavigationVisible = visible!);
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       extendBody: widget.navigationShell.currentIndex == 0,
-      body: NotificationListener<LedgerShowNavigationNotification>(
-        onNotification: (_) {
-          if (!_ledgerNavigationVisible) {
-            setState(() => _ledgerNavigationVisible = true);
-          }
-          return false;
+      body: widget.navigationShell.currentIndex == 0
+          // The shell's Scaffold strips the bottom inset from its body because
+          // the bar sits there, but pages still lay out above the bar and the
+          // floating action buttons must clear the device inset as well.
+          ? MediaQuery(
+              data: MediaQuery.of(context), child: widget.navigationShell)
+          : widget.navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: widget.navigationShell.currentIndex,
+        onDestinationSelected: (index) {
+          widget.navigationShell.goBranch(
+            index,
+            initialLocation: index == widget.navigationShell.currentIndex,
+          );
         },
-        child: NotificationListener<ScrollNotification>(
-          onNotification: _onScroll,
-          child: widget.navigationShell.currentIndex == 0
-              ? MediaQuery(
-                  // The shell overlays its navigation bar. Descendant pages use
-                  // the device inset, not the bar's changing animated height.
-                  data: MediaQuery.of(context),
-                  child: widget.navigationShell,
-                )
-              : widget.navigationShell,
-        ),
-      ),
-      bottomNavigationBar: TweenAnimationBuilder<double>(
-        tween: Tween<double>(
-          end: widget.navigationShell.currentIndex != 0 ||
-                  _ledgerNavigationVisible
-              ? 1
-              : 0,
-        ),
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOut,
-        builder: (context, value, child) => ClipRect(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            heightFactor: value,
-            child: Offstage(
-              offstage: value == 0,
-              child: IgnorePointer(
-                ignoring: value < 1,
-                child: ExcludeSemantics(
-                  excluding: value < 1,
-                  child: FractionalTranslation(
-                    translation: Offset(0, 1 - value),
-                    child: Opacity(opacity: value, child: child),
-                  ),
-                ),
-              ),
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(LucideIcons.book),
+            selectedIcon: const _SolidBookIcon(
+              key: ValueKey('ledger-selected-book-icon'),
             ),
+            label: l10n.ledgerTitle,
           ),
-        ),
-        child: NavigationBar(
-          selectedIndex: widget.navigationShell.currentIndex,
-          onDestinationSelected: (index) {
-            if (!_ledgerNavigationVisible) {
-              setState(() => _ledgerNavigationVisible = true);
-            }
-            widget.navigationShell.goBranch(
-              index,
-              initialLocation: index == widget.navigationShell.currentIndex,
-            );
-          },
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(LucideIcons.book),
-              selectedIcon: const _SolidBookIcon(
-                key: ValueKey('ledger-selected-book-icon'),
-              ),
-              label: l10n.ledgerTitle,
+          NavigationDestination(
+            icon: const Icon(LucideIcons.wallet),
+            selectedIcon: const _SolidWalletIcon(
+              key: ValueKey('budget-selected-wallet-icon'),
             ),
-            NavigationDestination(
-              icon: const Icon(LucideIcons.wallet),
-              selectedIcon: const _SolidWalletIcon(
-                key: ValueKey('budget-selected-wallet-icon'),
-              ),
-              label: l10n.budget,
-            ),
-            NavigationDestination(
-              icon: const Icon(LucideIcons.ellipsis),
-              label: l10n.more,
-            ),
-          ],
-        ),
+            label: l10n.budget,
+          ),
+          NavigationDestination(
+            icon: const Icon(LucideIcons.ellipsis),
+            label: l10n.more,
+          ),
+        ],
       ),
     );
   }
