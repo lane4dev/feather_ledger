@@ -304,3 +304,26 @@ the month picker.
   this-and-following wording, and the amount is bold. `删除预算` is a capsule
   `errorContainer` button; `取消` stays a quiet text button.
 - [ ] pass  [ ] fail — notes:
+
+## 20. L3 → all contributions (支出明细)
+
+- Page: budget L3 detail → `主要贡献支出` → `查看全部`; check light and dark
+  at 1200 dp, 400 dp, and 320 dp at 1.6x text.
+- App bar: title reads `{分类名}支出` (e.g. `餐饮支出`), not
+  `主要贡献支出 · 2026年5月`. The back arrow and month context stay legible.
+- Summary bar: sits on the same 16 dp gutters as the two group cards. A 30 dp
+  circular tonal category badge, then `共 N 笔`, then the right-aligned
+  `合计 ¥xx.xx` in tabular figures. Nothing overflows or shrinks to an
+  unreadable size at 320 dp/1.6x.
+- Groups: `待入账` and `已入账`, each with `N 笔 · ¥xx.xx` on the right. An
+  empty group disappears entirely. Both headers and both cards share one left
+  edge; cards have an 18 dp radius and `surfaceContainerLow` fill, and rows
+  never float directly on the page background.
+- Rows: one status group card with hairline `outlineVariant` separators at
+  40 %; each row is 60–64 dp at 1.0x. Pending rows show a `固定` tag (for
+  recurring bills) but never a second `待入账` pill. Posted rows show no
+  status pill. Subtitle reads `MM/dd HH:mm · 现金`; amount is tabular.
+- Interaction: posted rows still open the edit form; pending rows still open
+  the scheduled-bill editor. Tapping the app bar back returns to L3 with the
+  note draft intact.
+- [ ] pass  [ ] fail — notes:

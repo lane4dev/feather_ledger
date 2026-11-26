@@ -476,10 +476,21 @@ enum _BudgetAction { clear }
 
 class _ContributionCard extends ConsumerWidget {
   const _ContributionCard(
-      {required this.transaction, required this.categoryName});
+      {required this.transaction,
+      required this.categoryName,
+      this.showPendingTag = true,
+      this.showCommittedTag = false});
 
   final BudgetContributionTxUiModel transaction;
   final String categoryName;
+
+  /// The contributions page groups by status, so its rows do not repeat the
+  /// group title as a pill. The detail page's top-three still does.
+  final bool showPendingTag;
+
+  /// The pending group is made of recurring bills; `Fixed` is the one tag that
+  /// tells them apart from a one-off bill, so it replaces the status pill.
+  final bool showCommittedTag;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -495,12 +506,15 @@ class _ContributionCard extends ConsumerWidget {
       amountColor: context.colors.expense,
       showCategoryIcon: false,
       showCategoryName: false,
+      dense: true,
       trailingTags: [
-        if (transaction.isPending)
+        if (showPendingTag && transaction.isPending)
           AppBadge(
               compact: true,
               label: l10n.budgetPendingShort,
               color: context.colors.frequency),
+        if (showCommittedTag && transaction.isCommitted)
+          AppBadge(compact: true, label: l10n.budgetCommitted),
       ],
       onTap: () async {
         final notifier = ref.read(budgetViewModelProvider.notifier);
@@ -531,6 +545,7 @@ class _BudgetContributionsPage extends ConsumerWidget {
       categoryId: categoryId,
       locale: Localizations.localeOf(context).toString(),
     )));
+    final loaded = detailAsync.asData?.value;
     return Scaffold(
       appBar: AppBar(
         leading: AppIconButton(
@@ -538,7 +553,9 @@ class _BudgetContributionsPage extends ConsumerWidget {
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(l10n.budgetTopTransactionsTitle),
+        title: Text(loaded == null
+            ? l10n.budgetTopTransactionsTitle
+            : l10n.budgetCategorySpendingTitle(loaded.row.name)),
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -558,24 +575,204 @@ class _BudgetContributionsPage extends ConsumerWidget {
         data: (detail) {
           if (detail == null) return const SizedBox.shrink();
           final row = detail.row;
-          return ListView.separated(
-            padding: context.pagePadding
-                .add(EdgeInsets.symmetric(vertical: context.spacing.md)),
-            itemCount: row.allContributions.isEmpty
-                ? 2
-                : row.allContributions.length + 1,
-            separatorBuilder: (_, __) => SizedBox(height: context.spacing.sm),
-            itemBuilder: (context, index) => index == 0
-                ? Text(row.titleDisplay,
-                    style: AppTypography.sectionTitle(context))
-                : row.allContributions.isEmpty
-                    ? Text(l10n.budgetNoTransactionsInMonth,
-                        style: AppTypography.meta(context))
-                    : _ContributionCard(
-                        transaction: row.allContributions[index - 1],
-                        categoryName: row.name),
+          final pending = row.allContributions
+              .where((transaction) => transaction.isPending)
+              .toList(growable: false);
+          final posted = row.allContributions
+              .where((transaction) => !transaction.isPending)
+              .toList(growable: false);
+          final spacing = context.spacing;
+
+          return ListView(
+            padding: EdgeInsets.fromLTRB(
+              spacing.md,
+              spacing.xs,
+              spacing.md,
+              spacing.xl,
+            ),
+            children: [
+              _ContributionsSummary(row: row),
+              if (pending.isNotEmpty) ...[
+                SizedBox(height: spacing.md),
+                _ContributionGroupHeader(
+                  label: l10n.budgetContributionGroupPending,
+                  summary: l10n.budgetContributionGroupSummary(
+                    pending.length,
+                    row.pendingContributionsTotalDisplay,
+                  ),
+                ),
+                SizedBox(height: spacing.sm),
+                _ContributionGroup(
+                  key: const ValueKey('budget-contribution-group-pending'),
+                  transactions: pending,
+                  categoryName: row.name,
+                  showCommittedTag: true,
+                ),
+              ],
+              if (posted.isNotEmpty) ...[
+                SizedBox(height: spacing.md),
+                _ContributionGroupHeader(
+                  label: l10n.budgetContributionGroupPosted,
+                  summary: l10n.budgetContributionGroupSummary(
+                    posted.length,
+                    row.postedContributionsTotalDisplay,
+                  ),
+                ),
+                SizedBox(height: spacing.sm),
+                _ContributionGroup(
+                  key: const ValueKey('budget-contribution-group-posted'),
+                  transactions: posted,
+                  categoryName: row.name,
+                ),
+              ],
+              if (row.allContributions.isEmpty) ...[
+                SizedBox(height: spacing.md),
+                AppCard(
+                  child: Text(
+                    l10n.budgetNoTransactionsInMonth,
+                    style: AppTypography.meta(context),
+                  ),
+                ),
+              ],
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// The page's one-glance answer: how many entries, and what they add up to.
+///
+/// Its 16 dp gutters are the group cards' gutters, so the icon, the counts and
+/// both cards share one vertical edge.
+class _ContributionsSummary extends StatelessWidget {
+  const _ContributionsSummary({required this.row});
+
+  final BudgetCategoryRowUiModel row;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final accent = Color(row.colorInt);
+    return Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color.lerp(scheme.surfaceContainerLow, accent, 0.12),
+          ),
+          alignment: Alignment.center,
+          child: CategoryIcon(
+            iconKey: row.iconKey,
+            size: 17,
+            color: accent,
+          ),
+        ),
+        SizedBox(width: context.spacing.sm),
+        Expanded(
+          child: Text(
+            l10n.budgetContributionCount(row.allContributions.length),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.meta(context),
+          ),
+        ),
+        SizedBox(width: context.spacing.sm),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              l10n.budgetContributionTotal(row.contributionsTotalDisplay),
+              style: AppTypography.compactAmount(context),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContributionGroupHeader extends StatelessWidget {
+  const _ContributionGroupHeader({required this.label, required this.summary});
+
+  final String label;
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        SizedBox(width: context.spacing.sm),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(summary, style: AppTypography.meta(context)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One rounded surface per status, with hairlines between its rows.
+///
+/// The card owns the radius and the colour; [TransactionListTile] owns the row
+/// anatomy. That split is why the rows never drift off the summary bar's edge.
+class _ContributionGroup extends StatelessWidget {
+  const _ContributionGroup({
+    super.key,
+    required this.transactions,
+    required this.categoryName,
+    this.showCommittedTag = false,
+  });
+
+  final List<BudgetContributionTxUiModel> transactions;
+  final String categoryName;
+  final bool showCommittedTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < transactions.length; i++) ...[
+            if (i > 0)
+              FeatherDivider(
+                indent: context.metrics.compactGutter,
+                endIndent: context.metrics.compactGutter,
+                color: scheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            _ContributionCard(
+              transaction: transactions[i],
+              categoryName: categoryName,
+              showPendingTag: false,
+              showCommittedTag: showCommittedTag,
+            ),
+          ],
+        ],
       ),
     );
   }

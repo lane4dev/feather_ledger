@@ -261,6 +261,18 @@ class BudgetUiMapper {
           : (catWithPendingRatio - catActualRatio)
               .clamp(0.0, 1.0 - catActualRatio);
 
+      final contributions = c.contributions;
+      var pendingContributionsMinor = 0;
+      var postedContributionsMinor = 0;
+      for (final tx in contributions) {
+        final amount = tx.amountMinor.abs();
+        if (tx.isPending) {
+          pendingContributionsMinor += amount;
+        } else {
+          postedContributionsMinor += amount;
+        }
+      }
+
       final variance = c.variance;
       final varianceDisplay = variance == null
           ? null
@@ -387,9 +399,17 @@ class BudgetUiMapper {
         topContributions: c.topTransactions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
             .toList(),
-        allContributions: c.contributions
+        allContributions: contributions
             .map((tx) => _mapContribution(tx, currencySymbol, dayFormat))
             .toList(),
+        contributionsTotalDisplay: formatMinorWithSymbol(
+          pendingContributionsMinor + postedContributionsMinor,
+          currencySymbol,
+        ),
+        pendingContributionsTotalDisplay:
+            formatMinorWithSymbol(pendingContributionsMinor, currencySymbol),
+        postedContributionsTotalDisplay:
+            formatMinorWithSymbol(postedContributionsMinor, currencySymbol),
         mode: mode,
         amountLabel: amountLabel,
         mainAmountDisplay: mainAmountDisplay,
@@ -579,6 +599,7 @@ class BudgetUiMapper {
       dateDisplay: dayFormat.format(tx.occurredAt),
       amountDisplay:
           formatMinorWithSymbol(-tx.amountMinor.abs(), currencySymbol),
+      amountMinor: tx.amountMinor.abs(),
       isCommitted: tx.isCommitted,
       accountName: tx.accountName,
     );

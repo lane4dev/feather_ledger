@@ -30,6 +30,7 @@ class TransactionListTile extends StatelessWidget {
     this.showCategoryName = true,
     this.highlightQuery,
     this.trailingTags = const [],
+    this.dense = false,
   });
 
   static const double iconBubbleSize = 40;
@@ -71,6 +72,11 @@ class TransactionListTile extends StatelessWidget {
   /// line instead of taking a third one.
   final List<Widget> trailingTags;
 
+  /// Tightens the vertical padding from 12 dp to 9 dp. Used by the budget
+  /// contributions page, whose rows must read as a dense ledger (60–64 dp)
+  /// rather than search results.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -88,7 +94,7 @@ class TransactionListTile extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: context.metrics.compactGutter,
-          vertical: context.metrics.rowInset,
+          vertical: dense ? 9 : context.metrics.rowInset,
         ),
         child: Row(
           children: [

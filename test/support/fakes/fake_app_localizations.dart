@@ -1274,6 +1274,20 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get budgetTopTransactionsTitle => 'Top contributing expenses';
+  @override
+  String budgetCategorySpendingTitle(String category) => '$category spending';
+  @override
+  String budgetContributionCount(int count) =>
+      count == 1 ? '1 item' : '$count items';
+  @override
+  String budgetContributionTotal(String amount) => 'Total $amount';
+  @override
+  String budgetContributionGroupSummary(int count, String amount) =>
+      '${count == 1 ? '1 item' : '$count items'} · $amount';
+  @override
+  String get budgetContributionGroupPending => 'Pending';
+  @override
+  String get budgetContributionGroupPosted => 'Posted';
 
   @override
   String get budgetNoTransactionsInMonth =>

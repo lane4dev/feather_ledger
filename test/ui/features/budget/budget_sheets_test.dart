@@ -27,6 +27,7 @@ import 'package:feather_ledger/features/ledger/data/repositories/ledger_reposito
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/shared/presentation/widgets/transaction_list_tile.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 
 class _StubBudgetService implements BudgetService {
@@ -578,9 +579,20 @@ void main() {
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
     expect(find.text('Expense 4'), findsOneWidget);
-    // The page title is the mapper's, month included — not reassembled here.
-    expect(find.text('Dining · May 2026'), findsWidgets);
+    // The page title names the category; the summary bar counts its entries.
+    expect(find.text('Dining spending'), findsOneWidget);
+    expect(find.text('4 items'), findsOneWidget);
+    expect(find.text('Total \$558.33'), findsOneWidget);
     expect(find.text('Pending'), findsOneWidget);
+    expect(find.text('1 item · \$25.00'), findsOneWidget);
+    expect(find.text('Posted'), findsOneWidget);
+    expect(find.text('3 items · \$533.33'), findsOneWidget);
+    // Pending rows carry the Fixed tag instead of repeating the group title.
+    expect(find.text('Committed'), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget-contribution-group-pending')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('budget-contribution-group-posted')),
+        findsOneWidget);
     expect(find.textContaining('Cash'), findsWidgets);
     await tester.tap(find.text('Expense 2'));
     await tester.pumpAndSettle();
@@ -1174,5 +1186,88 @@ void main() {
       scheme.surfaceContainerHighest,
     );
     expect(find.text('Dining budget'), findsOneWidget);
+  });
+  for (final config in const [
+    (size: Size(400, 700), scale: 1.0, dark: true),
+    (size: Size(320, 740), scale: 1.6, dark: false),
+  ]) {
+    testWidgets(
+        'the contributions page fits ${config.size.width.toInt()}dp at '
+        '${config.scale}x ${config.dark ? 'dark' : 'light'}', (tester) async {
+      final service = _StubBudgetService(buildSummary(includeMore: true));
+      await pumpDetail(
+        tester,
+        service: service,
+        size: config.size,
+        textScale: config.scale,
+        theme: config.dark ? AppTheme.darkTheme : AppTheme.lightTheme,
+      );
+      await tester.scrollUntilVisible(
+        find.text('View all'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('View all'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('View all'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Dining spending'), findsOneWidget);
+      expect(find.text('4 items'), findsOneWidget);
+      expect(find.text('Total \$558.33'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+      expect(find.text('Posted'), findsOneWidget);
+
+      final pendingCard =
+          find.byKey(const ValueKey('budget-contribution-group-pending'));
+      final postedCard =
+          find.byKey(const ValueKey('budget-contribution-group-posted'));
+      expect(tester.getTopLeft(pendingCard).dx, 16);
+      expect(tester.getTopRight(pendingCard).dx, config.size.width - 16);
+      expect(tester.getTopLeft(postedCard).dx, 16);
+      expect(tester.getTopRight(postedCard).dx, config.size.width - 16);
+      expect(find.byType(TransactionListTile), findsNWidgets(4));
+    });
+  }
+
+  testWidgets('the contributions page groups by status on one card edge',
+      (tester) async {
+    final service = _StubBudgetService(buildSummary(includeMore: true));
+    await pumpDetail(tester, service: service, size: const Size(1200, 2400));
+    await tester.ensureVisible(find.text('View all'));
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dining spending'), findsOneWidget);
+    expect(find.text('4 items'), findsOneWidget);
+    expect(find.text('Total \$558.33'), findsOneWidget);
+
+    final pendingCard =
+        find.byKey(const ValueKey('budget-contribution-group-pending'));
+    final postedCard =
+        find.byKey(const ValueKey('budget-contribution-group-posted'));
+    expect(pendingCard, findsOneWidget);
+    expect(postedCard, findsOneWidget);
+    // Both cards and the summary bar share the page's 16 dp gutter.
+    expect(tester.getTopLeft(pendingCard).dx, 16);
+    expect(tester.getTopLeft(postedCard).dx, 16);
+    expect(tester.getTopRight(pendingCard).dx, 1184);
+    expect(tester.getTopRight(postedCard).dx, 1184);
+
+    // Pending rows trade the status pill for Fixed; posted rows carry neither.
+    expect(find.text('Pending'), findsOneWidget);
+    expect(find.text('Committed'), findsOneWidget);
+    expect(find.byType(TransactionListTile), findsNWidgets(4));
+    for (final row in tester
+        .widgetList<TransactionListTile>(find.byType(TransactionListTile))) {
+      expect(row.showCategoryIcon, isFalse);
+      expect(row.showCategoryName, isFalse);
+    }
+    final heights = [
+      for (var i = 0; i < 4; i++)
+        tester.getSize(find.byType(TransactionListTile).at(i)).height,
+    ];
+    expect(heights.every((height) => height >= 60 && height <= 64), isTrue);
   });
 }

@@ -1351,6 +1351,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetTopTransactionsTitle => '主要贡献支出';
 
   @override
+  String budgetCategorySpendingTitle(String category) {
+    return '$category支出';
+  }
+
+  @override
+  String budgetContributionCount(int count) {
+    return '共 $count 笔';
+  }
+
+  @override
+  String budgetContributionTotal(String amount) {
+    return '合计 $amount';
+  }
+
+  @override
+  String budgetContributionGroupSummary(int count, String amount) {
+    return '$count 笔 · $amount';
+  }
+
+  @override
+  String get budgetContributionGroupPending => '待入账';
+
+  @override
+  String get budgetContributionGroupPosted => '已入账';
+
+  @override
   String get budgetViewAll => '查看全部';
 
   @override
@@ -2806,6 +2832,32 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetTopTransactionsTitle => '主要贡献支出';
 
   @override
+  String budgetCategorySpendingTitle(String category) {
+    return '$category支出';
+  }
+
+  @override
+  String budgetContributionCount(int count) {
+    return '共 $count 笔';
+  }
+
+  @override
+  String budgetContributionTotal(String amount) {
+    return '合计 $amount';
+  }
+
+  @override
+  String budgetContributionGroupSummary(int count, String amount) {
+    return '$count 笔 · $amount';
+  }
+
+  @override
+  String get budgetContributionGroupPending => '待入账';
+
+  @override
+  String get budgetContributionGroupPosted => '已入账';
+
+  @override
   String get budgetViewAll => '查看全部';
 
   @override
@@ -4259,6 +4311,32 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetTopTransactionsTitle => '主要貢獻支出';
+
+  @override
+  String budgetCategorySpendingTitle(String category) {
+    return '$category支出';
+  }
+
+  @override
+  String budgetContributionCount(int count) {
+    return '共 $count 筆';
+  }
+
+  @override
+  String budgetContributionTotal(String amount) {
+    return '合計 $amount';
+  }
+
+  @override
+  String budgetContributionGroupSummary(int count, String amount) {
+    return '$count 筆 · $amount';
+  }
+
+  @override
+  String get budgetContributionGroupPending => '待入帳';
+
+  @override
+  String get budgetContributionGroupPosted => '已入帳';
 
   @override
   String get budgetViewAll => '查看全部';

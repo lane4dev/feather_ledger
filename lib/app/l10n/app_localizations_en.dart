@@ -1420,6 +1420,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetTopTransactionsTitle => 'Top contributing expenses';
 
   @override
+  String budgetCategorySpendingTitle(String category) {
+    return '$category spending';
+  }
+
+  @override
+  String budgetContributionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String budgetContributionTotal(String amount) {
+    return 'Total $amount';
+  }
+
+  @override
+  String budgetContributionGroupSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0 · $amount';
+  }
+
+  @override
+  String get budgetContributionGroupPending => 'Pending';
+
+  @override
+  String get budgetContributionGroupPosted => 'Posted';
+
+  @override
   String get budgetViewAll => 'View all';
 
   @override

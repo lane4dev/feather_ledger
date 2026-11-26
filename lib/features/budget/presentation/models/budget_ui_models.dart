@@ -44,6 +44,10 @@ class BudgetContributionTxUiModel {
   final String title;
   final String dateDisplay;
   final String amountDisplay;
+
+  /// The contribution's size, always positive. Summed for the contributions
+  /// page headers; formatting still happens in the mapper.
+  final int amountMinor;
   final bool isCommitted;
   final String accountName;
 
@@ -53,6 +57,7 @@ class BudgetContributionTxUiModel {
     required this.title,
     required this.dateDisplay,
     required this.amountDisplay,
+    this.amountMinor = 0,
     required this.isCommitted,
     this.accountName = '',
   });
@@ -207,6 +212,13 @@ class BudgetCategoryRowUiModel {
   final List<BudgetContributionTxUiModel> topContributions;
   final List<BudgetContributionTxUiModel> allContributions;
 
+  /// Preformatted totals for the contributions page's summary bar and its two
+  /// group headers. They live on the row because formatting belongs to the
+  /// mapper, and because the page must not add up strings.
+  final String contributionsTotalDisplay;
+  final String pendingContributionsTotalDisplay;
+  final String postedContributionsTotalDisplay;
+
   /// Which month phase the row is drawn for. Track and review rows open the
   /// category's detail; plan rows open the budget editor.
   final BudgetMode mode;
@@ -290,6 +302,9 @@ class BudgetCategoryRowUiModel {
     required this.trend6Months,
     required this.topContributions,
     this.allContributions = const [],
+    this.contributionsTotalDisplay = '',
+    this.pendingContributionsTotalDisplay = '',
+    this.postedContributionsTotalDisplay = '',
     this.mode = BudgetMode.track,
     this.amountLabel = BudgetCategoryAmountLabel.none,
     this.mainAmountDisplay,

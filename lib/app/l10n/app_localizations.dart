@@ -2611,6 +2611,42 @@ abstract class AppLocalizations {
   /// **'Top contributing expenses'**
   String get budgetTopTransactionsTitle;
 
+  /// No description provided for @budgetCategorySpendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} spending'**
+  String budgetCategorySpendingTitle(String category);
+
+  /// No description provided for @budgetContributionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String budgetContributionCount(int count);
+
+  /// No description provided for @budgetContributionTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total {amount}'**
+  String budgetContributionTotal(String amount);
+
+  /// No description provided for @budgetContributionGroupSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}} · {amount}'**
+  String budgetContributionGroupSummary(int count, String amount);
+
+  /// No description provided for @budgetContributionGroupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get budgetContributionGroupPending;
+
+  /// No description provided for @budgetContributionGroupPosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Posted'**
+  String get budgetContributionGroupPosted;
+
   /// No description provided for @budgetViewAll.
   ///
   /// In en, this message translates to:
