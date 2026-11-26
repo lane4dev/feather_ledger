@@ -16,6 +16,7 @@ import 'package:feather_ledger/features/ledger/data/repositories/recurring_repos
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
+import 'package:feather_ledger/features/ledger/domain/commands/ensure_occurrence_materialized_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/restore_skipped_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
@@ -95,6 +96,7 @@ class RecurringService {
   final GetScheduledTransactionQuery _getScheduled;
   final RecurringRepository _recurringRepository;
   final RestoreSkippedBillCommand _restoreSkipped;
+  final EnsureOccurrenceMaterializedCommand _ensureMaterialized;
   final prefs_api.PreferencesRepository? _preferences;
   final DomainClock _clock;
   int _lastSaveAutoPostedCount = 0;
@@ -109,10 +111,13 @@ class RecurringService {
     this._getScheduled,
     this._recurringRepository, {
     RestoreSkippedBillCommand? restoreSkipped,
+    EnsureOccurrenceMaterializedCommand? ensureMaterialized,
     prefs_api.PreferencesRepository? preferences,
     DomainClock? clock,
   })  : _restoreSkipped =
             restoreSkipped ?? RestoreSkippedBillCommand(_recurringRepository),
+        _ensureMaterialized = ensureMaterialized ??
+            EnsureOccurrenceMaterializedCommand(_recurringRepository),
         _preferences = preferences,
         _clock = clock ?? const SystemClock();
 
@@ -177,6 +182,17 @@ class RecurringService {
 
   Future<Result<void>> restoreSkippedBill(String scheduledId) =>
       guard(() => _restoreSkipped.execute(scheduledId));
+
+  /// Idempotently materializes one logical occurrence `(seriesId, occurrenceKey)`
+  /// into a physical `scheduled` row and returns the resolved entity.
+  Future<Result<ScheduledTransactionEntity>> ensureMaterialized({
+    required String seriesId,
+    required String occurrenceKey,
+  }) =>
+      guard(() => _ensureMaterialized.execute(
+            seriesId: seriesId,
+            occurrenceKey: occurrenceKey,
+          ));
 
   Future<Result<void>> updateBill(
     String scheduledId, {
@@ -442,6 +458,7 @@ RecurringService recurringService(Ref ref) {
     ref.watch(getScheduledTransactionQueryProvider),
     ref.watch(recurringRepositoryProvider),
     restoreSkipped: ref.watch(restoreSkippedBillCommandProvider),
+    ensureMaterialized: ref.watch(ensureOccurrenceMaterializedCommandProvider),
     preferences: ref.watch(preferencesRepositoryProvider).value,
   );
 }

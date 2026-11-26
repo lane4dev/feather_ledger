@@ -29,8 +29,10 @@ import 'package:feather_ledger/features/budget/presentation/widgets/budget_note_
 import 'package:feather_ledger/features/budget/presentation/widgets/budget_trend_chart.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 
 const _may = YearMonth(2026, 5);
 
@@ -132,6 +134,56 @@ const _diningCategory = CategoryEntity(
   colorInt: 0xFFE65100,
   type: CategoryType.expense,
 );
+
+class _StubRecurringService implements RecurringService {
+  final List<({String seriesId, String occurrenceKey})> materializeCalls = [];
+  final List<({String scheduledId, RecurringScope scope})> deleteCalls = [];
+  Result<ScheduledTransactionEntity>? materializeResult;
+
+  @override
+  Future<Result<ScheduledTransactionEntity>> ensureMaterialized({
+    required String seriesId,
+    required String occurrenceKey,
+  }) async {
+    materializeCalls.add((seriesId: seriesId, occurrenceKey: occurrenceKey));
+    if (materializeResult != null) return materializeResult!;
+    return Result.success(
+      ScheduledTransactionEntity(
+        id: 'mat-uuid-1',
+        seriesId: seriesId,
+        occurrenceKey: occurrenceKey,
+        scheduledDate: DateTime(2026, 11, 1, 9, 0),
+        kind: TransactionKind.expense,
+        category: _diningCategory,
+        account: _cashAccount,
+        recurringTransactionSeries: RecurringTransactionSeriesEntity(
+          id: seriesId,
+          description: 'Monthly Rent',
+          amountMinor: 300000,
+          type: RecurringSeriesKind.expense,
+          categoryId: _diningCategory.id,
+          accountId: _cashAccount.id,
+          frequency: 'MONTHLY',
+          startDate: DateTime(2026, 5, 1, 9, 0),
+          autoPost: false,
+          mode: RecurringSeriesMode.repeating,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> deleteBill(
+    String scheduledId, {
+    required RecurringScope scope,
+  }) async {
+    deleteCalls.add((scheduledId: scheduledId, scope: scope));
+    return unitResult;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class _StubLedgerRepository implements LedgerRepository {
   @override
@@ -320,6 +372,7 @@ void main() {
     YearMonth month = _may,
     double textScale = 1.0,
     ThemeData? theme,
+    RecurringService? recurringService,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -360,6 +413,8 @@ void main() {
         budgetClockProvider
             .overrideWithValue(FixedClock(DateTime(2026, 5, 15))),
         budgetServiceProvider.overrideWithValue(service),
+        if (recurringService != null)
+          recurringServiceProvider.overrideWithValue(recurringService),
         ledgerRepositoryProvider.overrideWithValue(_StubLedgerRepository()),
         ledgerCurrencyProvider.overrideWithValue('USD'),
         displayCurrencySymbolProvider.overrideWithValue('\$'),
@@ -572,6 +627,169 @@ void main() {
     await tester.tap(find.text('Gym'));
     await tester.pumpAndSettle();
     expect(find.text('Editing bill bill-4'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping a far-future virtual pending bill materializes it and opens '
+      'PendingBillSheet with edit and skip flows', (tester) async {
+    final recurring = _StubRecurringService();
+    const nov2026 = YearMonth(2026, 11);
+    final service = _StubBudgetService(buildSummary(
+      month: nov2026,
+      actualMinor: 0,
+      pendingMinor: 300000,
+      committedBaselineMinor: 300000,
+      contributions: [
+        BudgetContributionTx(
+          transactionId: 'virtual:series-rent:2026-11-01',
+          sourceScheduledBillId: null,
+          scheduledBillId: null,
+          seriesId: 'series-rent',
+          occurrenceKey: '2026-11-01',
+          isVirtual: true,
+          description: 'Monthly Rent',
+          occurredAt: DateTime(2026, 11, 1, 9, 0),
+          amountMinor: 300000,
+          isPending: true,
+          accountName: 'Cash',
+        ),
+      ],
+    ));
+    final router = await pumpDetail(
+      tester,
+      service: service,
+      month: nov2026,
+      size: const Size(900, 1200),
+      recurringService: recurring,
+    );
+
+    await tester.tap(find.text('Monthly Rent'));
+    await tester.pumpAndSettle();
+
+    expect(recurring.materializeCalls, [
+      (seriesId: 'series-rent', occurrenceKey: '2026-11-01'),
+    ]);
+    expect(find.byType(PendingBillSheet), findsOneWidget);
+
+    // Edit action from PendingBillSheet routes to /ledger/edit-bill with the
+    // newly materialized UUID.
+    await tester.tap(find.byIcon(LucideIcons.squarePen));
+    await tester.pumpAndSettle();
+    expect(find.text('Editing bill mat-uuid-1'), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+
+    // Tapping again opens PendingBillSheet where the user can skip the bill.
+    await tester.tap(find.text('Monthly Rent'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PendingBillSheet), findsOneWidget);
+
+    await tester.tap(find.descendant(
+      of: find.byType(PendingBillSheet),
+      matching: find.byIcon(LucideIcons.ellipsisVertical),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip this bill'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+
+    expect(recurring.deleteCalls, [
+      (scheduledId: 'mat-uuid-1', scope: RecurringScope.thisOnly),
+    ]);
+    expect(find.byType(PendingBillSheet), findsNothing);
+  });
+
+  testWidgets(
+      'tapping a virtual pending bill shows localized SnackBar when '
+      'materialization is rejected', (tester) async {
+    final recurring = _StubRecurringService()
+      ..materializeResult = const Result.failure(
+        LedgerErrorCode.recurringSeriesStopped,
+        'Series stopped',
+      );
+    const nov2026 = YearMonth(2026, 11);
+    final service = _StubBudgetService(buildSummary(
+      month: nov2026,
+      actualMinor: 0,
+      pendingMinor: 300000,
+      committedBaselineMinor: 300000,
+      contributions: [
+        BudgetContributionTx(
+          transactionId: 'virtual:series-rent:2026-11-01',
+          sourceScheduledBillId: null,
+          scheduledBillId: null,
+          seriesId: 'series-rent',
+          occurrenceKey: '2026-11-01',
+          isVirtual: true,
+          description: 'Monthly Rent',
+          occurredAt: DateTime(2026, 11, 1, 9, 0),
+          amountMinor: 300000,
+          isPending: true,
+          accountName: 'Cash',
+        ),
+      ],
+    ));
+    await pumpDetail(
+      tester,
+      service: service,
+      month: nov2026,
+      size: const Size(900, 1200),
+      recurringService: recurring,
+    );
+
+    await tester.tap(find.text('Monthly Rent'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PendingBillSheet), findsNothing);
+    expect(find.text('This recurring rule has been stopped'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping a virtual pending bill from View all contributions materializes '
+      'it and opens PendingBillSheet', (tester) async {
+    final recurring = _StubRecurringService();
+    const nov2026 = YearMonth(2026, 11);
+    final service = _StubBudgetService(buildSummary(
+      month: nov2026,
+      actualMinor: 0,
+      pendingMinor: 400000,
+      committedBaselineMinor: 400000,
+      contributions: [
+        for (var i = 1; i <= 4; i++)
+          BudgetContributionTx(
+            transactionId: 'virtual:series-week:2026-11-0$i',
+            sourceScheduledBillId: null,
+            scheduledBillId: null,
+            seriesId: 'series-week',
+            occurrenceKey: '2026-11-0$i',
+            isVirtual: true,
+            description: 'Weekly Bill $i',
+            occurredAt: DateTime(2026, 11, i, 9, 0),
+            amountMinor: 100000,
+            isPending: true,
+            accountName: 'Cash',
+          ),
+      ],
+    ));
+    await pumpDetail(
+      tester,
+      service: service,
+      month: nov2026,
+      size: const Size(900, 1200),
+      recurringService: recurring,
+    );
+
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Weekly Bill 4'));
+    await tester.pumpAndSettle();
+
+    expect(recurring.materializeCalls, [
+      (seriesId: 'series-week', occurrenceKey: '2026-11-04'),
+    ]);
+    expect(find.byType(PendingBillSheet), findsOneWidget);
   });
 
   testWidgets('contributions share one card with a meta-only subtitle',

@@ -7,10 +7,12 @@ import 'package:feather_ledger/app/design_system/app_badge.dart';
 import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
+import 'package:feather_ledger/app/design_system/app_receipt_sheet.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
@@ -472,7 +474,7 @@ class _BudgetCategoryDetailScreenState
 
 enum _BudgetAction { clear }
 
-class _ContributionCard extends ConsumerWidget {
+class _ContributionCard extends ConsumerStatefulWidget {
   const _ContributionCard(
       {required this.transaction,
       required this.categoryName,
@@ -491,11 +493,72 @@ class _ContributionCard extends ConsumerWidget {
   final bool showCommittedTag;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ContributionCard> createState() => _ContributionCardState();
+}
+
+class _ContributionCardState extends ConsumerState<_ContributionCard> {
+  bool _opening = false;
+
+  Future<void> _onTap() async {
+    if (_opening) return;
+    final transaction = widget.transaction;
+    final notifier = ref.read(budgetViewModelProvider.notifier);
+
+    if (transaction.isPending && transaction.isVirtual) {
+      final seriesId = transaction.seriesId;
+      final occurrenceKey = transaction.occurrenceKey;
+      if (seriesId == null || occurrenceKey == null) return;
+      _opening = true;
+      try {
+        final result = await notifier.materializeVirtualPendingBill(
+          seriesId: seriesId,
+          occurrenceKey: occurrenceKey,
+        );
+        if (!mounted) return;
+        switch (result) {
+          case Failure(:final code):
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(code.message(AppLocalizations.of(context)!))),
+            );
+          case Success(:final value):
+            final currencySymbol = ref.read(displayCurrencySymbolProvider);
+            await showAppReceiptSheet<void>(
+              context: context,
+              builder: (_) => PendingBillSheet(
+                transaction: value,
+                currencySymbol: currencySymbol,
+              ),
+            );
+        }
+      } finally {
+        _opening = false;
+      }
+      return;
+    }
+
+    _opening = true;
+    try {
+      final tile = transaction.isPending
+          ? await notifier.loadPendingBillForEdit(transaction.id)
+          : await notifier.loadTransactionForEdit(transaction.id);
+      if (!mounted || tile == null) return;
+      await context.push<void>(
+        transaction.isPending ? '/ledger/edit-bill' : '/ledger/edit',
+        extra: tile,
+      );
+    } finally {
+      _opening = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final transaction = widget.transaction;
     return TransactionListTile(
-      title:
-          transaction.title.trim().isEmpty ? categoryName : transaction.title,
+      title: transaction.title.trim().isEmpty
+          ? widget.categoryName
+          : transaction.title,
       accountLabel:
           transaction.accountName.isEmpty ? null : transaction.accountName,
       dateText: transaction.dateDisplay,
@@ -506,24 +569,15 @@ class _ContributionCard extends ConsumerWidget {
       showCategoryName: false,
       dense: true,
       trailingTags: [
-        if (showPendingTag && transaction.isPending)
+        if (widget.showPendingTag && transaction.isPending)
           AppBadge(
               compact: true,
               label: l10n.budgetPendingShort,
               color: context.colors.frequency),
-        if (showCommittedTag && transaction.isCommitted)
+        if (widget.showCommittedTag && transaction.isCommitted)
           AppBadge(compact: true, label: l10n.budgetCommitted),
       ],
-      onTap: () async {
-        final notifier = ref.read(budgetViewModelProvider.notifier);
-        final tile = transaction.isPending
-            ? await notifier.loadPendingBillForEdit(transaction.id)
-            : await notifier.loadTransactionForEdit(transaction.id);
-        if (!context.mounted || tile == null) return;
-        await context.push<void>(
-            transaction.isPending ? '/ledger/edit-bill' : '/ledger/edit',
-            extra: tile);
-      },
+      onTap: _onTap,
     );
   }
 }

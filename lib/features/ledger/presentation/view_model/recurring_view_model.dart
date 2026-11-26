@@ -34,6 +34,17 @@ class RecurringViewModel extends _$RecurringViewModel {
   Future<Result<void>> restoreSkippedBill(String scheduledId) =>
       ref.read(recurringServiceProvider).restoreSkippedBill(scheduledId);
 
+  /// Idempotently materializes a virtual occurrence `(seriesId, occurrenceKey)`
+  /// into a physical pending bill row before opening bill actions or edits.
+  Future<Result<ScheduledTransactionEntity>> ensureMaterialized({
+    required String seriesId,
+    required String occurrenceKey,
+  }) =>
+      ref.read(recurringServiceProvider).ensureMaterialized(
+            seriesId: seriesId,
+            occurrenceKey: occurrenceKey,
+          );
+
   int takeLastAutoPostedCount() =>
       ref.read(recurringServiceProvider).takeLastAutoPostedCount();
 

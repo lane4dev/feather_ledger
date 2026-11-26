@@ -295,6 +295,16 @@ class RecordingRecurringService implements RecurringService {
       unitResult;
 
   @override
+  Future<Result<ScheduledTransactionEntity>> ensureMaterialized({
+    required String seriesId,
+    required String occurrenceKey,
+  }) async =>
+      const Failure(
+        LedgerErrorCode.transactionNotFound,
+        'ensureMaterialized not stubbed on RecordingRecurringService',
+      );
+
+  @override
   Future<int> markPreRestoreManualOnly([DateTime? restoreTime]) async => 0;
 
   @override

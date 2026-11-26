@@ -100,6 +100,30 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     return into(scheduledTransactionsView).insertOnConflictUpdate(entry);
   }
 
+  Future<void> insertScheduledOrIgnore(
+      ScheduledTransactionsViewCompanion entry) {
+    return into(scheduledTransactionsView).insert(
+      entry,
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  Future<void> verifySeriesAccountActive(String accountId) async {
+    final account = await db.accountDao.getAccountById(accountId);
+    if (account == null || account.deleted) {
+      throw const CommandRejected(
+        LedgerErrorCode.accountNotFound,
+        'Account not found',
+      );
+    }
+    if (account.archived) {
+      throw const CommandRejected(
+        LedgerErrorCode.accountArchived,
+        'Account is archived',
+      );
+    }
+  }
+
   Future<int> skipIfScheduled(String id) => (update(scheduledTransactionsView)
         ..where((t) =>
             t.id.equals(id) &
@@ -340,6 +364,17 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
   Future<ScheduledBillJoinedRow?> getScheduledJoined(String id) async {
     final query = _joinedScheduledQuery()
       ..where(scheduledTransactionsView.id.equals(id));
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapJoinedRow(row);
+  }
+
+  Future<ScheduledBillJoinedRow?> getScheduledJoinedByOccurrence(
+    String seriesId,
+    String occurrenceKey,
+  ) async {
+    final query = _joinedScheduledQuery()
+      ..where(scheduledTransactionsView.seriesId.equals(seriesId) &
+          scheduledTransactionsView.occurrenceKey.equals(occurrenceKey));
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapJoinedRow(row);
   }

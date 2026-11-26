@@ -5,9 +5,11 @@ import 'package:feather_ledger/core/data/repositories/account_repository.dart';
 import 'package:feather_ledger/core/data/repositories/category_repository.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/ledger_repository.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/presentation/mappers/transaction_ui_mapper.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
+import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 
 import '../../domain/entities/budget_entities.dart';
 import '../../domain/services/budget_service.dart';
@@ -107,6 +109,37 @@ class BudgetViewModel extends _$BudgetViewModel {
     final repo = ref.read(ledgerRepositoryProvider);
     final scheduled = await repo.getScheduledTransaction(scheduledBillId);
     if (scheduled == null) return null;
+    return _toPendingTile(scheduled);
+  }
+
+  Future<Result<TransactionTileUiModel>> materializeVirtualPendingBill({
+    required String seriesId,
+    required String occurrenceKey,
+  }) async {
+    final result = await ref
+        .read(recurringViewModelProvider.notifier)
+        .ensureMaterialized(
+          seriesId: seriesId,
+          occurrenceKey: occurrenceKey,
+        );
+    switch (result) {
+      case Failure(:final code, :final message):
+        return Result.failure(code, message);
+      case Success(:final value):
+        final tile = await _toPendingTile(value);
+        if (tile == null) {
+          return const Result.failure(
+            LedgerErrorCode.transactionNotFound,
+            'Scheduled bill metadata not found',
+          );
+        }
+        return Result.success(tile);
+    }
+  }
+
+  Future<TransactionTileUiModel?> _toPendingTile(
+    ScheduledTransactionEntity scheduled,
+  ) async {
     final categoryId = scheduled.category?.id ??
         scheduled.recurringTransactionSeries?.categoryId;
     final accountId = scheduled.account?.id ??

@@ -21,13 +21,23 @@ abstract class RecurringRepository {
 
   Future<ScheduledTransactionEntity?> getScheduledEntity(String id);
 
+  Future<ScheduledTransactionEntity?> getScheduledEntityByOccurrence(
+    String seriesId,
+    String occurrenceKey,
+  );
+
   Future<ScheduledTransactionViewRow?> getScheduled(String id);
 
   Future<RecurringSeriesRow?> getSeries(String id);
 
+  Future<void> verifySeriesAccountActive(String accountId);
+
   Future<List<ScheduledTransactionViewRow>> scheduledForSeries(String seriesId);
 
   Future<void> insertOrUpdateScheduled(
+      ScheduledTransactionsViewCompanion entry);
+
+  Future<void> insertScheduledOrIgnore(
       ScheduledTransactionsViewCompanion entry);
 
   Future<int> skipIfScheduled(String id);

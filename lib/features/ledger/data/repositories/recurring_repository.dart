@@ -41,8 +41,25 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Future<ScheduledTransactionEntity?> getScheduledEntityByOccurrence(
+    String seriesId,
+    String occurrenceKey,
+  ) async {
+    final row = await _recurringDao.getScheduledJoinedByOccurrence(
+      seriesId,
+      occurrenceKey,
+    );
+    return row == null ? null : _toEntity(row);
+  }
+
+  @override
   Future<RecurringSeriesRow?> getSeries(String id) {
     return _recurringDao.getSeries(id);
+  }
+
+  @override
+  Future<void> verifySeriesAccountActive(String accountId) {
+    return _recurringDao.verifySeriesAccountActive(accountId);
   }
 
   @override
@@ -55,6 +72,12 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<void> insertOrUpdateScheduled(
       ScheduledTransactionsViewCompanion entry) {
     return _recurringDao.insertOrUpdateScheduled(entry);
+  }
+
+  @override
+  Future<void> insertScheduledOrIgnore(
+      ScheduledTransactionsViewCompanion entry) {
+    return _recurringDao.insertScheduledOrIgnore(entry);
   }
 
   @override
