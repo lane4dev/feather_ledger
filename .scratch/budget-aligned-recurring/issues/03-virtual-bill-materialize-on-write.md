@@ -1,6 +1,7 @@
 # 03: 远期虚拟账单按需落库与预算详情交互
 
 Triage: ready-for-agent
+Status: resolved
 
 **Blocked by:** 02 · 预算双层 Overlay 虚拟投影与移除降级提示
 
@@ -10,8 +11,8 @@ Triage: ready-for-agent
 
 ## 验收标准
 
-- [ ] `RecurringService` 新增幂等按需落库能力（按 `(seriesId, occurrenceKey)` 在事务内校验系列活跃、账户有效且该期属于规则合法发生日且满足 `>= materializeFrom`，随后 `insertOrIgnore` 生成标准 `scheduled` UUID 行并返回该实例实体；若已存在物理行则直接返回已有实例）。
-- [ ] 当目标系列已停用、账户已归档/删除或该期不存在于规则排期中时，按需落库通过标准 `Result<T>` 返回对应 `LedgerErrorCode`，不产生脏行。
-- [ ] 在预算分类详情页（L3）的贡献流水列表中，点击任意远期虚拟待入账账单时触发按需落库，并无缝打开既有待入账操作抽屉或单期编辑表单；用户完成单期改价、跨月改期或跳过后，预算详情页与月度总览实时刷新为最新金额或剔除该期。
-- [ ] 通过 `LedgerServiceHarness` 端到端验证对 M+6 远期虚拟项按需落库（连续调用两次幂等返回同一 UUID）、执行 `thisOnly` 改价/改期/跳过后 `BudgetService` 立即反映变化；补充预算分类详情页组件测试覆盖点击远期虚拟账单进入编辑/跳过流程。
-- [ ] `flutter analyze` 无新增错误或警告，全部相关单测与组件测试通过。
+- [x] `RecurringService` 新增幂等按需落库能力（按 `(seriesId, occurrenceKey)` 在事务内校验系列活跃、账户有效且该期属于规则合法发生日且满足 `>= materializeFrom`，随后 `insertOrIgnore` 生成标准 `scheduled` UUID 行并返回该实例实体；若已存在物理行则直接返回已有实例）。
+- [x] 当目标系列已停用、账户已归档/删除或该期不存在于规则排期中时，按需落库通过标准 `Result<T>` 返回对应 `LedgerErrorCode`，不产生脏行。
+- [x] 在预算分类详情页（L3）的贡献流水列表中，点击任意远期虚拟待入账账单时触发按需落库，并无缝打开既有待入账操作抽屉或单期编辑表单；用户完成单期改价、跨月改期或跳过后，预算详情页与月度总览实时刷新为最新金额或剔除该期。
+- [x] 通过 `LedgerServiceHarness` 端到端验证对 M+6 远期虚拟项按需落库（连续调用两次幂等返回同一 UUID）、执行 `thisOnly` 改价/改期/跳过后 `BudgetService` 立即反映变化；补充预算分类详情页组件测试覆盖点击远期虚拟账单进入编辑/跳过流程。
+- [x] `flutter analyze` 无新增错误或警告，全部相关单测与组件测试通过。
