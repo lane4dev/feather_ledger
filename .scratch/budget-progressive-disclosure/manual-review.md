@@ -245,7 +245,9 @@ the month picker.
 - App bar: the category mark is a 34 dp **circular** tonal badge, not a rounded
   square. `调预算` is visible at the right end instead of hiding in `⋮`; at
   320 dp/1.6x it may shrink but never clips. The `⋮` menu offers only
-  `删除预算`; archived categories show neither the action nor the menu.
+  `删除预算`, and only when the category actually has a budget. Unbudgeted
+  (`计划外`) and archived categories show `调预算` alone — no `⋮`, no
+  `删除预算`, and tapping nothing opens an empty dialog.
 - Progress card: the headline is the decision — `预计剩余 ¥xx` when pending
   bills exist, `剩余 ¥xx` otherwise, `预计超支`/`超支` in warning/expense colour.
   `已消费 / 待入账 / 预算` sit in three equal-width columns with even gaps, and

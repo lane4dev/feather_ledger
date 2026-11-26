@@ -328,27 +328,28 @@ class _BudgetCategoryDetailScreenState
                     ),
                   ),
                 ),
-                PopupMenuButton<_BudgetAction>(
-                  enabled: !_clearingBudget,
-                  icon: const Icon(LucideIcons.ellipsisVertical),
-                  onSelected: (_) => _clearBudget(
-                    currencyCode: currencyCode,
-                    detail: detail,
+                // An unbudgeted category has nothing to delete. Offering a
+                // one-item menu whose only entry is the action this row
+                // cannot perform is a dead end, so the menu disappears with
+                // the budget; `调预算` remains the way in.
+                if (row.budgetMinor != null)
+                  PopupMenuButton<_BudgetAction>(
+                    enabled: !_clearingBudget,
+                    icon: const Icon(LucideIcons.ellipsisVertical),
+                    onSelected: (_) => _clearBudget(
+                      currencyCode: currencyCode,
+                      detail: detail,
+                    ),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                          value: _BudgetAction.clear,
+                          child: Text(l10n.budgetClearAction,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(color: scheme.error))),
+                    ],
                   ),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                        value: _BudgetAction.clear,
-                        enabled: row.budgetMinor != null,
-                        child: Text(l10n.budgetClearAction,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelLarge
-                                ?.copyWith(
-                                    color: row.budgetMinor == null
-                                        ? scheme.onSurfaceVariant
-                                        : scheme.error))),
-                  ],
-                ),
               ],
             ],
           ),

@@ -839,6 +839,12 @@ void main() {
     expect(marker, findsNothing);
     expect(find.text('Old note'), findsNothing);
     expect(find.text("Jot down this category's review"), findsOneWidget);
+
+    // With no budget left there is nothing to delete, so the overflow menu
+    // (whose only item is 删除预算) leaves the app bar. 调预算 stays.
+    expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
+    expect(find.text('Delete budget'), findsNothing);
+    expect(find.text('Adjust budget'), findsOneWidget);
   });
 
   testWidgets('a note arriving from the stream never overwrites a live draft',

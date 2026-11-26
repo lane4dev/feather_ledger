@@ -352,18 +352,17 @@ void main() {
     expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
   });
 
-  testWidgets('clear is disabled for a category without a budget',
+  testWidgets('a category without a budget offers no delete action',
       (tester) async {
     final service = _StubBudgetService(buildSummary(unbudgeted: true));
     await pumpDetail(tester, service: service, size: const Size(400, 700));
 
-    await tester.tap(find.byIcon(LucideIcons.ellipsisVertical));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete budget'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AlertDialog), findsNothing);
+    // There is no budget to remove, so the overflow menu itself is absent:
+    // 调预算 is the only way to give the category a budget.
+    expect(find.byIcon(LucideIcons.ellipsisVertical), findsNothing);
+    expect(find.text('Delete budget'), findsNothing);
     expect(find.text('Adjust budget'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
     expect(service.lastScope, isNull);
   });
 
