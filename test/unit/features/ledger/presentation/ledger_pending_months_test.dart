@@ -37,7 +37,7 @@ void main() {
     );
 
     // A monthly series starting next month produces upcoming bills across
-    // multiple future months within the 90-day lookahead, none of which
+    // multiple future months within the calendar-month lookahead, none of which
     // the picker may hide.
     final now = DateTime.now();
     final start = DateTime(now.year, now.month + 1, 1);

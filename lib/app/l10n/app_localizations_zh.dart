@@ -1069,9 +1069,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetOverviewBaselineShare => '基线占比';
 
   @override
-  String get budgetMaterializedOnlyHint => '待入账仅含已物化排期账单。';
-
-  @override
   String get budgetTrendTitle => '近 6 个月预算 vs 实际';
 
   @override
@@ -2588,9 +2585,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get budgetOverviewBaselineShare => '基线占比';
 
   @override
-  String get budgetMaterializedOnlyHint => '仅统计已生成的周期账单。';
-
-  @override
   String get budgetTrendTitle => '近 6 个月预算 vs 实际';
 
   @override
@@ -4105,9 +4099,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get budgetOverviewBaselineShare => '基線佔比';
-
-  @override
-  String get budgetMaterializedOnlyHint => '僅統計已生成的週期帳單。';
 
   @override
   String get budgetTrendTitle => '近 6 個月預算 vs 實際';

@@ -1032,10 +1032,6 @@ class FakeAppLocalizations implements AppLocalizations {
   String get budgetOverviewBaselineShare => 'Baseline share';
 
   @override
-  String get budgetMaterializedOnlyHint =>
-      'Includes materialized pending bills only.';
-
-  @override
   String get budgetTrendTitle => '6-Month Budget vs Actual';
   @override
   String get budgetReviewTitle => 'Monthly Review & Trends';

@@ -6,7 +6,7 @@
 - Flutter/Dart，严格 MVVM、Riverpod（codegen）、Drift/SQLite、GoRouter、基于 ARB 的本地化、报表用 fl_chart。
 - 权威工程原则见 `.specify/memory/constitution.md`，改代码前必须先阅读并遵守。
 - 特性规格与计划位于 `specs/`。当前的事件溯源工作见 `specs/003-event-sourced-ledger/`。
-- `CONTEXT.md`（仓库根目录）是统一语言（ubiquitous language）——命名新概念或新类型前先读它。已决策记录在 `docs/adr/`（0001：聚合根跑在写路径上；0002：posting context 是独立接缝）；审计与研究在 `docs/reports/` 和 `docs/research/`。
+- `CONTEXT.md`（仓库根目录）是统一语言（ubiquitous language）——命名新概念或新类型前先读它。已决策记录在 `docs/adr/`（0001：聚合根跑在写路径上；0002：posting context 是独立接缝；0003：余额用途无分类；0004：账本最小金额单位；0005：预约账单 UUID 身份与二元作用域编辑；0006：预算阶梯时间轴与 CRUD 豁免边界）；审计与研究在 `docs/reports/` 和 `docs/research/`。
 
 ## 架构定位
 
@@ -42,7 +42,7 @@ lib/shared/     跨特性的组件与扩展
 
 特性内部：
 
-- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。**例外**：周期链路的两个命令（创建系列/删除账单）直接写 CRUD 豁免表、不发事件、因此也没有 `commandId`。
+- `domain/commands/` —— 写用例。发出领域事件，经 `DriftEventStore.append` 持久化，并由 `LedgerProjectorImpl` 在同一个数据库事务内投影。**例外**：周期链路与预算链路的写命令直接写 CRUD 豁免表、不发事件、因此也没有 `commandId`（只有将待入账转为真实交易的 `ConvertScheduledToPostedCommand` 发事件并消费 `commandId`）。
 - `domain/queries/` —— 读用例，流式读取 Drift 视图。
 - `domain/services/` —— 组合命令 + 查询的门面（`LedgerService`、`AccountService`、`CategoryService`、`RecurringService`、`BackupService`、`TransactionExportService`）；UI 消费的入口。ledger 还有 `PostingContextResolver`（`domain/services/posting_context.dart`），即每个写入方都要经过的接缝：在构建聚合前校验账户/分类（ADR-0002）。
 - `domain/model/` —— 聚合根及其组成部分（`Transaction`、`Posting`）；另有 `domain/value_objects/`（含 `TransactionFilter`）、`domain/entities/`、`domain/export/`（`transaction_csv.dart`，纯函数）、`domain/projections/`（投影器接口，实现放在 `data/projections/`）。
@@ -125,76 +125,33 @@ lib/shared/     跨特性的组件与扩展
 
 ## 周期与预约交易
 
-这是账本中唯一**刻意不做**事件溯源的部分，也是重建存在豁免名单的原因。
+这是账本中与预算一起**刻意不做**事件溯源的 CRUD 豁免部分（ADR-0005 / ADR-0006），也是重建存在豁免名单的原因。
 
-- `recurring_series` 存规则（frequency、interval、start/end、count、autoPost）；`scheduled_transactions_view`
-  存物化出来的实例，状态为 `scheduled | posted | skipped | failed`。两者都是 CRUD 表 —— 直接写入，
-  永不重建，投影器永不触碰。`autoPost`（v5 加列，addColumn-only 迁移、默认 `false` 回填旧行；CRUD
-  豁免表不重建，所以**不升** `ledgerProjectionVersion`）标记订阅系列：到期实例由应用在启动时入账。
-- `ProjectRecurringEventsCommand` 用 `package:rrule` 按**滚动 90 天窗口、夹在 [3, 12]** 物化实例：
-  填满窗口；窗口内不足 3 个就继续向后取到 3 个（上限再放 3 年，兜住每年规则）；任何时候不物化超过 12 个。
-  于是 每月→3、每周→12、每年→3、每日→12，不需要按频率写规则。id 形如
-  `'${series.id}_${date.millisecondsSinceEpoch}'`，因此重复执行是幂等的 —— **不要改这个 id，也不要改
-  日期归一化方式**，否则每次运行都会凭空多出一整套账单。已经被用户 posted / skipped 的实例既不计数、
-  也不复活。**`getInstances` 的 `before:` 必须传**：它只在 `before` / `until` / `count` / 年份 9999
-  处停止，改用 `.where` 过滤会让一个今年开始的月度系列跑 ~95,600 步才产出视野内的 ~20 个实例（实测
-  每系列 ~37 秒，而本命令跑在启动路径上）。生成器还断言 `before >= start`，起始日晚于上界的系列必须短路。
-- `ConvertScheduledToPostedCommand` 是通往事件溯源世界的桥：一个实例变成真正的 `TransactionRecorded`，
-  **并且**它的状态在同一个 append 事务里翻转。
-- 这里的金额与币种代码同样遵循最小单位规则（`amountMinor`）。
-- `RecurringService` 是这条链路唯一的服务入口（`createSeries` / `deleteBill` /
-  `postInstance` / `materialize` / `watchSeries` / `watchScheduled` / `catchUpAutoPosted`）；
-  三个写命令直接写 CRUD 表，不发事件，因此也**没有 `commandId`**（幂等键没有消费者——
-  `catchUpAutoPosted` 是例外：它转手 `postInstance` 并传**确定性**的 `'autopost-<instanceId>'`）。
-- 创建系列后立刻物化，`main.dart` 启动时也物化一次（幂等，且失败不阻断启动），随后跑
-  `catchUpAutoPosted`：把自动入账系列里**已到期**的 `scheduled` 实例逐个转正。它与 materialize
-  一样**await**（首帧会读它写的交易）；双重幂等（状态翻转与 append 同事务 + 确定性 commandId
-  在 append 时去重），失败的那笔留在待入账列表里——那条 tile 就是报告——不挡其他实例。
-- **周期没有自己的页面。** 规则在交易表单里设置：新建收支的**模式选择器**（默认 / 计划 / 订阅 / 重复，
-  `TransactionFormMode`，住在 `transaction_form_view_state.dart`，经 `setMode` 拥有频率——
-  进系列模式播种 MONTHLY、离开归 NEVER，picker 不提供「不重复」）决定「重复」行是否出现；
-  `interval` 固定为 1。保存时「先记账、后建系列」，`startDate` 取所选日期的下一次发生。**计划**不记账、
-  只建一条一次性系列（`startDate == endDate`，`CreateRecurringSeriesCommand` 只拒*早于*起点的
-  end date；UNTIL 闭区间 ⇒ 恰好一个实例），表单因此在该模式下隐藏附件行（系列行带不了文件）；
-  系列失败**就是**保存失败（没有「先记账」可保）。**订阅**与重复同形，仅多 `autoPost: true`。
-  模式选择器只对 `canRepeat`（新建 + 非转账）渲染，待入账账单直接**混在账本列表里**
-  按天分组展示：降透明度 + 时钟图标 + 「待入账」标签，点开是记入 / 编辑 / 删除。编辑是右上角的铅笔、
-  删除是它旁边的**溢出菜单**，与已入账交易的详情抽屉**共用同一个 `LedgerDeleteMenu`** —— 同一个手势、
-  同一个角落、同一个错误色，两者的入口因此不会各自漂移。`RecurringViewModel`
-  只持有这些写动作，没有状态 —— 实例本身经 `ledgerMonthlyTransactionsProvider` 进列表。
-  曾经存在的 `/more/recurring`、`/recurring_management`、`RecurringListScreen`、
-  `RecurringSeriesFormSheet` 都已删除。
-- **删除有三个作用域**（`DeleteRecurringBillCommand`），区别不在「删掉哪一行」而在**对系列做了什么**——
-  因为账单是由规则重新推导出来的，只删行的话下次物化会让它原样长回来：
-  - `thisOnly` 把实例置为 `skipped`。那个状态就是**物化拒绝复活的墓碑**，规则继续走，被删的那一期不会
-    再出现。
-  - `thisAndFollowing` 把系列的 `endDate` 设到**该账单的前一天**（`until` 是闭区间，同一天会让它当场
-    长回来），再硬删从该日起的 `scheduled` 实例。已入账的实例不动 —— 那笔钱真的动了。
-  - `all` 删掉系列本身连同它全部实例行。**已入账的交易不受影响**：它们是 `TransactionRecorded` 事件、
-    自成一体的账，跟着消失的只是包在它们外面的排期外壳。
-  - 三个作用域都不写事件、不动钱，所以也没有 `commandId`。删除一个**已入账**的实例会被拒
-    （`scheduledAlreadyPosted`）—— 那是冲正，是另一件事、另一个入口。
-  - 曾经的「停用」与「跳过」已被这三个作用域吸收：跳过的语义就是 `thisOnly`，停用的语义就是
-    `thisAndFollowing` 少删几行，两个入口并存等于同一件事说两遍。
-- **编辑与删除共用同一组作用域**（`RecurringScope`：`thisOnly` / `thisAndFollowing` / `all`），
-  由同一个 `RecurringScopeDialog` 提问。删除没有表单，所以**先问后做**；编辑**先编辑、保存时才问**
-  （问的是「这次改动影响到哪」）。
-  一行实例只存 `date` 与 `amountMinor`；分类 / 账户 / 描述属于系列、读取时才解析出来。于是编辑表单
-  **永远给全部字段**（保存前还不知道答案，不能按未定的答案藏字段），而对话框在用户改过那三个字段时
-  **把「仅该项记录」置灰并说明原因** —— 而不是收下改动再丢掉一半。这是 Google Calendar 遇到同一个
-  墙时的做法（「不能只改这一次的日历」）。
-  - `thisOnly` 改金额就地改；改日期则在新日期上新建一行、并在**原日期留一个 `skipped` 墓碑**
-    （否则规则下次物化会把它放回去）。若新日期上这条规则本来就有账单一律拒绝（`scheduledDateTaken`）——
-    否则会变成同一天两笔，其中一笔还瞒着物化。
-  - `thisAndFollowing` 是**拆分**：旧系列结束在该账单前一天，从新值起一条新系列，并把旧系列已入账的
-    日期在新系列里补成墓碑（那天的钱已经动过，不能再出一笔）。
-  - `all` 重写系列模板，并**删掉待入账行重新物化**——行的 id 编码了日期，档期一平移旧 id 就全过期，
-    而过期的 id 在物化看来就是「缺失」，会把每个日期再记一遍。
-  - 编辑**已入账**的实例同样被拒（`scheduledAlreadyPosted`）：那是冲正，另一个入口。
-- **待入账是「还没发生」**：它不进入余额、月度合计或搜索（搜索只读 `transactions_view`，实例不在其中），
-  只在展示层出现。它变成真实交易的唯一路径仍是 `ConvertScheduledToPostedCommand`。
-- 实例 id 由 `scheduledInstanceId(seriesId, date)` 唯一决定（`domain/entities/ledger_entities.dart`）。
-  物化与编辑都靠它幂等 / 判重，**改它的形状等于把每一笔账单翻倍**。
+- **表结构与身份（ADR-0005，v17）**：`recurring_series` 存规则（`mode`：`planned | repeating`、`frequency`、`interval`、`start_date`、`materialize_from`、`end_date`、`count_limit`、`completed_count_offset`、`rrule`、`auto_post`、`reminder_minutes`、`is_active`）；`scheduled_transactions_view` 存物理实例，主键是独立 **UUID**，配 `UNIQUE(series_id, occurrence_key)`，带 `status`（`scheduled | posted | skipped | failed`）、`manual_only` 及稀疏覆盖列（`amount_override_minor`、`date_override`、`memo_override`）。`occurrence_key` 对 `repeating` 为规则推导的**本地日历日 `YYYY-MM-DD`**（绝非 UTC），对 `planned` 固定为 `'single'`（`kPlannedOccurrenceKey`）。两张表均为 CRUD 豁免表，升级 schema（如 v17 新增 `materialize_from` / `completed_count_offset` 并迁移本地 `occurrence_key`）**不升 `ledgerProjectionVersion`**，重建永不触碰。
+- **统一本地日历日展开内核（`RecurrenceExpander`）**：位于 `features/ledger/domain/recurrence/recurrence_expander.dart`（纯领域、无 DB/时钟副作用），同时被物理物化与预算虚拟投影共享：
+  - `startDate` 与 `endDate` 按本地 `(year, month, day)` 交给 RRULE 推进，`BYDAY` 按本地星期语义解释，再拼回规则本地时刻生成 `scheduledDate` 与本地 `YYYY-MM-DD` `occurrenceKey`。
+  - `endDate` 闭区间截断；`countLimit` 始终代表全生命周期总次数，展开时以 `countLimit - completedCountOffset` 推进剩余期次；`materializeFrom` 是允许物理物化与预算虚拟投影的下界日期，而 `startDate` 始终保留为排期与 `countLimit` 锚点。
+- **层一：自然月对齐的物理物化（`ProjectRecurringEventsCommand`）**：仅面向 `isActive == true` 且关联账户 `!archived && !deleted` 的系列，每个系列在单次数据库事务内批量 `INSERT OR IGNORE`：
+  - **Phase 0（休眠重启历史回填上限）**：回填 `[max(materializeFrom, startOfMonth(nowYm - 11)), now]`（最多 12 个自然月）内缺失的历史期次，单系列硬上限 **100 条（最近优先）**；返回 `MaterializationSummary`（`newlyMaterializedOverdueCount`、`hasTruncatedHistory`），供会话级 `OverdueMaterializationBanner` 提示。
+  - **Phase 1（自然月对齐前瞻窗口）**：完整物化 `(now, endOfMonth(nowYm + 2)]`（当月 + 未来 2 个完整自然月），**无 `maxKeep = 3` 截断**，单系列设 `120` 条前瞻安全阀（足以覆盖 3 个自然月的每日规则）。
+  - **Phase 2（低频保底）**：若 `(now, horizonEnd]` 内无任何待入账 `scheduled` 实例，继续向后探测并保底物化最近 **`minKeep = 1`** 期（如年付规则）。`planned` 系列幂等插入 `'single'`。
+- **层二：预算按需虚拟投影（Overlay）与按需落库（Materialize-on-Write）**：
+  - 预算读路径（`BudgetDao` / `BudgetRepositoryImpl` / `BudgetCalculator`）在 **Track / Plan**（`targetYm >= nowYm`）下用同一个 `RecurrenceExpander` 展开活跃支出系列，按 `(seriesId, occurrenceKey)` 与物理行叠加：命中 `posted` / `skipped` 则忽略（防重复计算），命中 `scheduled` / `failed` 则按稀疏覆盖列（含跨月 `dateOverride`）计算，未命中则合成虚拟待入账项计入 `pendingMinor` 与贡献列表；**Review**（`targetYm < nowYm`）绝不展开虚拟期次。记账表单实时预算提示（`watchTransactionBudgetHint`）复用同一 Overlay，已彻底移除 `hasHighFrequencyPending` / `isFarFutureMaterializedOnly` 降级标记与提示。
+  - 点击预算详情页中的远期虚拟待入账项时，先经 `RecurringService.ensureMaterialized`（`EnsureOccurrenceMaterializedCommand`）在单事务内按 `(seriesId, occurrenceKey)` 幂等落库为标准 `scheduled` UUID 行，随后无缝复用既有 UUID 编辑/跳过路径。
+- **桥接事件溯源、创建语义与远过去护栏**：
+  - `ConvertScheduledToPostedCommand` 是通往事件溯源的唯一桥：把实例转为 `TransactionRecorded`（携带 `sourceScheduledBillId`）并在同一 append 事务内翻转状态。
+  - **周期没有独立管理页**。交易表单模式选择器（`TransactionFormMode`：`defaultMode` / `planned` / `repeating`，`autoPost` 作为 `planned` / `repeating` 上的开关，重复 + 自动入账在 UI 呈现为「订阅」）只在 `canRepeat`（新建 + 非转账 + 非余额用途）时渲染。**新建系列永不把首期直接记为临时交易**：无论 `planned` 还是 `repeating`，保存时只建系列，首期统一经物化与入账流程落账，确保每笔周期实账都带 `sourceScheduledBillId`（预算归类为固定支出）。
+  - **远过去起点确认（`DistantPastStartGuard`）**：新建 `repeating` 或 `updateRule` 变更基础排期使 `startDate` 严格早于「今日减 2 个自然月」时，保存前弹出两选项确认框：①「仅从今天起生成（推荐）」（`materializeFrom = startOfDay(now)`）；②「补齐最近 N 天待入账（手动核对）」（默认 30 天，允许 `1..365`，早于 `startOfDay(now)` 的历史期次全部标 `manualOnly = true`）。近过去（2 个月内且早于今日）不弹窗，但落库的历史期次同样标 `manualOnly = true`（仅当日已到期期次可即时自动入账）。
+- **启动补课与自动入账熔断**：
+  - `RecurringService` 是唯一服务入口（`createSeries` / `updateBill` / `deleteBill` / `restoreSkipped` / `ensureMaterialized` / `postInstance` / `materialize` / `catchUpAutoPosted` / `settleCurrencyBacklog` / `watchSeries` / `watchScheduled`）。
+  - `main.dart` 启动时 `await materialize()`，首帧后执行 `catchUpAutoPosted()`（仅当前币种、确定性 `'autopost-<instanceId>'` 幂等键；批量入账结束后统一收尾执行 **1 次** `materialize()`，避免逐笔全库物化）。
+  - **两道自动入账熔断**：超过 **`autoPostMaxAge = 30 days`** 的逾期自动入账实例，以及 30 天内待自动入账总数超过 **`autoPostBulkBreakerLimit = 10`** 笔的积压批次，均不静默扣款，直接标为 `manualOnly = true` 交由用户手动核对。
+- **二元作用域编辑与删除（`RecurringScope`：`thisOnly` / `updateRule`，ADR-0005）**：
+  - `thisOnly`：编辑仅写该 UUID 行的稀疏覆盖列（`amountOverrideMinor` / `dateOverride` / `memoOverride`），不改 UUID 与 `occurrence_key`，修改 `dateOverride` 若与同系列其他非 `skipped` 实例撞同日则拒（`scheduledDateTaken`）；删除置为 `skipped` 墓碑（可经 `RestoreSkippedBillCommand` 恢复）。
+  - `updateRule`：编辑在单事务内更新系列模板；当基础排期（频率/起点等）变更时，将 `completed_count_offset` 幂等重算为当前已 `posted` 行数 `k`（校验 `count_limit >= k + 1`），清理未入账与已跳过行并重新物化；删除对 `planned` 物理删除系列与实例，对 `repeating` 置 `isActive = false` 并删除非 `posted` 行（保留历史 `posted` 行与 `sourceScheduledBillId` 关联）。
+  - 已入账（`posted`）实例的编辑/删除一律拒（`scheduledAlreadyPosted`）—— 必须走交易冲正入口。
+  - **账户归档**：保留已到期未处理账单为一次性 `planned` 待办（`startDate == endDate`、`countLimit == null`），将原系列置 `isActive = false` 并仅删除非 `posted` 行（保留历史 `posted` 行；恢复账户不重新激活停用系列）。
+- **待入账不进账户余额、月度快照或搜索**：它在账本列表与预算 Track/Plan 视图中展示，本地提醒按最近到期优先并严格遵守 60 条系统待发通知上限。金额同样遵循正整数最小单位规则（`amountMinor`）。
 
 ## 金额约定（重要）
 
@@ -296,7 +253,7 @@ lib/shared/     跨特性的组件与扩展
 - **三种 kind 共用一个表单**：`transaction_form_screen.dart` 承载收入/支出/转账（用户能选的就这三种，账本自己造的两种余额用途只在这条表单上**以只读形式**出现）。kind 决定**哪些字段存在** —— 转账有两个账户、没有分类；收支有一个账户、一个分类。不适用的字段根本不渲染，因此「带分类的转账」「只有一个账户的转账」不是这个表单能进入的状态。**不要**把它改回按 kind 拆成两个屏幕，也不要让某个 kind 渲染它承载不了的字段。
 - 路由只有 `/ledger/add` 与 `/ledger/edit`：kind 由表单**自己的类型选择器**决定，或（编辑时）由 `extra` 里的交易决定。**转账没有独立入口**——账本页右上角的转账按钮已移除，转账在表单里面选。不要为某个 kind 再加一个路由或快捷入口。
 - `LedgerTypeSelector` 收一个 `kinds` 列表：交易表单传默认三种（**用户能选的只有这三种**）。模式选择器
-  （默认/计划/订阅/重复）与「重复」行都**只在 `canRepeat`**（新建 + 非 transfer + 非余额用途）时渲染 ——
+  （默认/计划/重复，配 `autoPost` 开关）与「重复」行都**只在 `canRepeat`**（新建 + 非 transfer + 非余额用途）时渲染 ——
   一个系列只有一个账户，transfer 对它不可表达（ADR-0002），编辑不碰系列。频率属于模式（见「周期与预约交易」节）。
 - **两种余额用途不是"用户能选的 kind"，所以表单不为它们渲染选择器**：编辑一条 `openingBalance` / `balanceAdjustment` 时，kind 那一行、分类那一行、账户选择器都换成只读的 `LedgerDetailRow`（账户不能改、分类不存在、"重复"也不给）。往一个只认三种的表单里塞第四种会当场炸——`SegmentedButton` 的 `selected` 必须在 `segments` 里。
 - 「到」账户的候选按「从」账户的币种过滤，让跨币种组合**不可选**而不是写完再拒。同账户同理（候选排除 + 一条兜底校验）。
@@ -391,8 +348,9 @@ lib/shared/     跨特性的组件与扩展
 - **Drift `schemaVersion` 与重建版本号是两回事，但改列时两个都要动。** `schemaVersion` 从 1 升到 2 是因为
   `accounts_view` 多了 `include_in_totals`（`onUpgrade` 里 `addColumn`）；`ledgerProjectionVersion` 升到 3
   则是让每一次启动都重推一遍——**迁移因此是自愈的**：不管 ALTER 留下了什么，投影都会从事件重新导出。
-  **例外先例（v5）**：`recurring_series` 加 `auto_post` 时只升了 `schemaVersion`（addColumn + 默认值回填），
-  **没升** `ledgerProjectionVersion` —— 那张表是 CRUD 豁免、不从事件重建，重推版本号纯属空转。
+  **例外先例（v5、v17）**：`recurring_series` 加 `auto_post`（v5）以及加 `materialize_from` / `completed_count_offset`
+  并迁移本地 `occurrence_key`（v17）时只升了 `schemaVersion`，
+  **没升** `ledgerProjectionVersion` —— 那两张表是 CRUD 豁免、不从事件重建，重推版本号纯属空转。
   ⚠️ `onUpgrade` **只能用 `addColumn`，绝不能 `deleteTable`/`createTable`**：`LedgerRebuildService.isStale()`
   是四个视图版本号汇成列表后 `.any(...)`，**空表返回 false**，派生表被删空就再也不会触发重建，账本会在事件
   存储完好的情况**永久空白且不报错**。回归测试：`test/unit/core/database/app_database_test.dart` 里那条

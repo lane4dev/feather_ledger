@@ -30,8 +30,8 @@ _Avoid_: deletion, cancellation, void, undo
 Withdrawing an account or category from active use while preserving every historical reference to it.
 An archived account can be restored and still participates in totals according to its inclusion setting.
 When an account is archived, already-due pending bills are preserved as one-off planned bills, and
-its recurring rules and future pending bills are removed; restoring the account does not revive those
-removed rules.
+its recurring rules are deactivated while future pending and skipped bills are removed (preserving
+historical posted bill rows); restoring the account does not revive those deactivated rules.
 Not a delete.
 _Avoid_: delete, deactivate, soft delete
 
@@ -78,9 +78,9 @@ _Avoid_: transaction mode, payment source
 
 **Manual-only bill**:
 A pending bill that must be handled by the user rather than posted automatically (for example, a bill
-due before a backup restore, kept manual on currency switch-back, or restored from a skipped state
-while already due under an auto-posting rule). Rescheduling a manual-only bill to a future date
-clears this mark.
+due before a backup restore, kept manual on currency switch-back, backfilled in the past, downgraded
+by the auto-post circuit breaker, or restored from a skipped state while already due under an
+auto-posting rule). Rescheduling a manual-only bill to a future date clears this mark.
 _Avoid_: failed bill, skipped bill
 
 **Entry mode**:
@@ -195,9 +195,10 @@ curtailed within the month.
 _Avoid_: variable spend, unscheduled spend
 
 **Pending bill exposure**:
-Scheduled or failed expense bills falling due in a current or future month. Included in projected
-remaining budget and overrun risk alerts during tracking and planning, and excluded from actuals in
-historical review.
+Scheduled or failed expense bills falling due in a current or future month — combining physically
+materialized bills with on-demand virtual occurrences expanded from active recurring series in
+tracking and planning mode. Included in projected remaining budget and overrun risk alerts during
+tracking and planning, and excluded from actuals in historical review.
 _Avoid_: projected actual, unpaid expense
 
 **Budget compliance** (实耗达标):

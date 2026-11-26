@@ -2147,12 +2147,6 @@ abstract class AppLocalizations {
   /// **'Baseline share'**
   String get budgetOverviewBaselineShare;
 
-  /// No description provided for @budgetMaterializedOnlyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Only generated recurring bills are included.'**
-  String get budgetMaterializedOnlyHint;
-
   /// No description provided for @budgetTrendTitle.
   ///
   /// In en, this message translates to:

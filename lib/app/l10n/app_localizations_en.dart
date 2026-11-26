@@ -1137,10 +1137,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetOverviewBaselineShare => 'Baseline share';
 
   @override
-  String get budgetMaterializedOnlyHint =>
-      'Only generated recurring bills are included.';
-
-  @override
   String get budgetTrendTitle => '6-Month Budget vs Actual';
 
   @override
