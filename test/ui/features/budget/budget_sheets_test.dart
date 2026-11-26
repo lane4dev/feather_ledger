@@ -581,32 +581,46 @@ void main() {
     expect(find.text('Expense 4'), findsOneWidget);
     // The page title names the category; the app bar counts its entries.
     expect(find.text('Dining spending'), findsOneWidget);
-    expect(find.text('4 items'), findsOneWidget);
-    expect(find.text('Total \$558.33'), findsOneWidget);
+    expect(find.textContaining('4 items', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Total \$558.33', findRichText: true),
+        findsOneWidget);
     // The count and total sit in the app bar, after the title.
     expect(
         find.descendant(
-            of: find.byType(AppBar), matching: find.text('4 items')),
+            of: find.byType(AppBar),
+            matching: find.textContaining('4 items', findRichText: true)),
         findsOneWidget);
     expect(
         find.descendant(
-            of: find.byType(AppBar), matching: find.text('Total \$558.33')),
+            of: find.byType(AppBar),
+            matching:
+                find.textContaining('Total \$558.33', findRichText: true)),
         findsOneWidget);
-    expect(tester.getTopLeft(find.text('4 items')).dx,
+    expect(
+        tester
+            .getTopLeft(find.textContaining('4 items', findRichText: true))
+            .dx,
         greaterThan(tester.getTopRight(find.text('Dining spending')).dx));
-    // The count and total sit on the title's bottom edge, all in bold.
-    final titleBottom = tester.getBottomLeft(find.text('Dining spending')).dy;
-    expect(tester.getBottomLeft(find.text('4 items')).dy,
-        closeTo(titleBottom, 0.5));
-    expect(tester.getBottomLeft(find.text('Total \$558.33')).dy,
-        closeTo(titleBottom, 0.5));
+    final titleRow = tester
+        .widgetList<Row>(find.ancestor(
+            of: find.text('Dining spending'), matching: find.byType(Row)))
+        .first;
+    expect(titleRow.crossAxisAlignment, CrossAxisAlignment.baseline);
+    expect(titleRow.textBaseline, TextBaseline.alphabetic);
+    final summaryFinder =
+        find.byKey(const ValueKey('budget-contributions-summary'));
     // The title keeps the theme's regular weight; only the summary is bold.
     expect(tester.widget<Text>(find.text('Dining spending')).style?.fontWeight,
         isNot(FontWeight.w700));
-    for (final text in ['4 items', 'Total \$558.33']) {
-      expect(tester.widget<Text>(find.text(text)).style?.fontWeight,
-          FontWeight.w700,
-          reason: text);
+    final summary = tester.widget<Text>(summaryFinder);
+    final spans = (summary.textSpan! as TextSpan)
+        .children!
+        .cast<TextSpan>()
+        .where((span) => (span.text ?? '').trim().isNotEmpty)
+        .toList();
+    expect(spans, hasLength(2));
+    for (final span in spans) {
+      expect(span.style?.fontWeight, FontWeight.w700, reason: span.text);
     }
     expect(find.text('Pending'), findsOneWidget);
     expect(find.text('1 item · \$25.00'), findsOneWidget);
@@ -1239,8 +1253,10 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Dining spending'), findsOneWidget);
-      expect(find.text('4 items'), findsOneWidget);
-      expect(find.text('Total \$558.33'), findsOneWidget);
+      expect(
+          find.textContaining('4 items', findRichText: true), findsOneWidget);
+      expect(find.textContaining('Total \$558.33', findRichText: true),
+          findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
       expect(find.text('Posted'), findsOneWidget);
 
@@ -1265,8 +1281,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Dining spending'), findsOneWidget);
-    expect(find.text('4 items'), findsOneWidget);
-    expect(find.text('Total \$558.33'), findsOneWidget);
+    expect(find.textContaining('4 items', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Total \$558.33', findRichText: true),
+        findsOneWidget);
 
     final pendingCard =
         find.byKey(const ValueKey('budget-contribution-group-pending'));

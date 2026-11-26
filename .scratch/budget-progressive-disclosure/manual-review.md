@@ -312,9 +312,9 @@ the month picker.
 - App bar: title reads `{分类名}支出` (e.g. `餐饮支出`), not
   `主要贡献支出 · 2026年5月`. The back arrow and month context stay legible.
 - App bar: after `{分类名}支出`, the count (`共 N 笔`) and total
-  (`合计 ¥xx.xx`, tabular) sit on the same line, their bottoms flush with the
-  title's bottom edge. The count and total are bold; the title keeps the
-  theme's regular weight. There is no
+  (`合计 ¥xx.xx`, tabular) sit on the same line and share the title's
+  alphabetic baseline, so the glyphs line up despite the smaller type. The
+  count and total are bold; the title keeps the theme's regular weight. There is no
   separate summary band above the cards. Long titles ellipsize; the summary
   scales down rather than overflowing at 320 dp/1.6x.
 - Groups: `待入账` and `已入账`, each with `N 笔 · ¥xx.xx` on the right. An

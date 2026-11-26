@@ -658,7 +658,8 @@ class _ContributionsAppBarTitle extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final row = this.row;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
         Flexible(
           child: Text(
@@ -675,24 +676,31 @@ class _ContributionsAppBarTitle extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    l10n.budgetContributionCount(row.allContributions.length),
-                    style: AppTypography.meta(context).copyWith(
-                      fontWeight: FontWeight.w700,
+              child: Text.rich(
+                key: const ValueKey('budget-contributions-summary'),
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: l10n
+                          .budgetContributionCount(row.allContributions.length),
+                      style: AppTypography.meta(context).copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: context.spacing.xs / 2),
-                  Text(
-                    l10n.budgetContributionTotal(row.contributionsTotalDisplay),
-                    style: AppTypography.compactAmount(context).copyWith(
-                      fontWeight: FontWeight.w700,
+                    TextSpan(
+                      text: '  ',
+                      style: AppTypography.meta(context),
                     ),
-                  ),
-                ],
+                    TextSpan(
+                      text: l10n.budgetContributionTotal(
+                          row.contributionsTotalDisplay),
+                      style: AppTypography.compactAmount(context).copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
               ),
             ),
           ),
