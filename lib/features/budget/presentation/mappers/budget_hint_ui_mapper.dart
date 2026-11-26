@@ -28,7 +28,8 @@ class BudgetHintUiMapper {
       );
     }
 
-    if (mode == TransactionFormMode.planned && targetYm < nowYm) {
+    final isSeriesMode = mode != TransactionFormMode.defaultMode;
+    if (isSeriesMode && targetYm < nowYm) {
       return const BudgetHintUiModel(
         status: BudgetHintStatus.pastPlanned,
         primaryAmountDisplay: '',
@@ -55,10 +56,8 @@ class BudgetHintUiMapper {
       );
     }
 
-    final deltaActual =
-        mode == TransactionFormMode.planned ? 0 : inputAmountMinor;
-    final deltaPending =
-        mode == TransactionFormMode.planned ? inputAmountMinor : 0;
+    final deltaActual = isSeriesMode ? 0 : inputAmountMinor;
+    final deltaPending = isSeriesMode ? inputAmountMinor : 0;
 
     final afterActual = baseActual + deltaActual;
     final afterPending = basePending + deltaPending;

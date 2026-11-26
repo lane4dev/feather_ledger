@@ -83,6 +83,35 @@ void main() {
         currencySymbol: '¥',
       );
       expect(pastPlanned.status, BudgetHintStatus.pastPlanned);
+
+      final pastRepeating = mapper.map(
+        hint: baseHint,
+        categoryId: 'dining',
+        mode: TransactionFormMode.repeating,
+        inputAmountMinor: 10000,
+        selectedAccountIncludeInTotals: true,
+        targetYm: const YearMonth(2026, 4),
+        nowYm: const YearMonth(2026, 5),
+        original: null,
+        currencySymbol: '¥',
+      );
+      expect(pastRepeating.status, BudgetHintStatus.pastPlanned);
+
+      // Repeating contributes to pending exposure, not immediate actual spend:
+      // actual stays 600 <= 1000, while actual(600) + pending(200 + 500) = 1300 -> atRisk.
+      final repeatingAtRisk = mapper.map(
+        hint: baseHint,
+        categoryId: 'dining',
+        mode: TransactionFormMode.repeating,
+        inputAmountMinor: 50000,
+        selectedAccountIncludeInTotals: true,
+        targetYm: const YearMonth(2026, 5),
+        nowYm: const YearMonth(2026, 5),
+        original: null,
+        currencySymbol: '¥',
+      );
+      expect(repeatingAtRisk.status, BudgetHintStatus.atRisk);
+      expect(repeatingAtRisk.primaryAmountDisplay, '¥300.00');
     });
 
     test('computes withinBudget, atRisk, overBudget, and unset states', () {

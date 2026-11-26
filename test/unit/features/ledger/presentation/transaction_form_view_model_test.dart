@@ -550,7 +550,8 @@ void main() {
   });
 
   group('the repeat rule', () {
-    test('saving with a rule records the entry, then starts the series',
+    test(
+        'saving a repeating entry creates only the series starting on the chosen date',
         () async {
       final vm = form(container());
       vm.setAmountText('500.00');
@@ -561,18 +562,16 @@ void main() {
       final outcome = await vm.submit();
 
       expect(outcome, isA<TransactionFormSaved>());
-      expect(ledger.addedTransactions, hasLength(1),
-          reason: 'the money moved whether or not the schedule did');
+      expect(ledger.addedTransactions, isEmpty,
+          reason:
+              'a repeating rule must not post the first occurrence as an ad-hoc transaction');
       final series = recurring.created.single;
       expect(series['frequency'], 'MONTHLY');
       expect(series['interval'], 1);
       expect(series['autoPost'], isFalse,
           reason: '重复 confirms each bill with the user 记入');
-      // The first occurrence *after* the one just recorded.
-      expect(
-        series['startDate'],
-        TransactionFormViewModel.nextOccurrence(vm.state.date, 'MONTHLY'),
-      );
+      expect(series['startDate'], vm.state.date,
+          reason: 'the series starts on the chosen date, not one period later');
     });
 
     test('the note names the series, falling back to the category', () async {
@@ -596,7 +595,8 @@ void main() {
       expect(recurring.created.last['description'], 'Flat');
     });
 
-    test('a series that cannot start does not lose the entry', () async {
+    test('a repeating entry that fails is a failed save with nothing recorded',
+        () async {
       recurring.failure = LedgerErrorCode.unknownEvent;
       final vm = form(container());
       vm.setAmountText('500.00');
@@ -606,11 +606,29 @@ void main() {
 
       final outcome = await vm.submit();
 
-      expect(outcome, isA<TransactionFormSavedSeriesFailed>());
-      expect((outcome as TransactionFormSavedSeriesFailed).code,
+      expect(outcome, isA<TransactionFormSaveFailed>());
+      expect((outcome as TransactionFormSaveFailed).code,
           LedgerErrorCode.unknownEvent);
-      expect(ledger.addedTransactions, hasLength(1),
-          reason: 'the record is legitimate on its own');
+      expect(ledger.addedTransactions, isEmpty);
+      expect(recurring.created, isEmpty);
+    });
+
+    test('series modes skip overdraft check and hide attachments', () {
+      final vm = form(container());
+      vm.setAmountText('2000.00'); // exceeds Cash balance of 1000.00
+      vm.selectAccount('acc_cash');
+      vm.attachFiles([XFile('/tmp/receipt.pdf')]);
+      expect(vm.wouldOverdraft(), isTrue);
+      expect(vm.state.showsAttachments, isTrue);
+
+      vm.setMode(TransactionFormMode.repeating);
+      expect(vm.wouldOverdraft(), isFalse);
+      expect(vm.state.showsAttachments, isFalse);
+      expect(vm.state.pendingAttachments, isEmpty);
+
+      vm.setMode(TransactionFormMode.planned);
+      expect(vm.wouldOverdraft(), isFalse);
+      expect(vm.state.showsAttachments, isFalse);
     });
 
     test(

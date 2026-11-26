@@ -213,7 +213,7 @@ class TransactionFormViewState {
 
   /// Whether the attachment row shows. A series row cannot carry attachments,
   /// and an invisible picked-files list would be a leak.
-  bool get showsAttachments => mode != TransactionFormMode.planned;
+  bool get showsAttachments => mode == TransactionFormMode.defaultMode;
 
   /// Whether saving creates a recurring series (重复).
   bool get wantsSeries => mode == TransactionFormMode.repeating;

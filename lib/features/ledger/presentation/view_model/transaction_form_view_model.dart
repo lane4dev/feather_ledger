@@ -25,26 +25,18 @@ part 'transaction_form_view_model.g.dart';
 /// How a save ended.
 ///
 /// The view model never touches a snackbar, a dialog or a route: it says what
-/// happened and the screen decides how to say it. Three cases, because the
-/// fourth question — "this will overdraw the account, continue?" — is asked
+/// happened and the screen decides how to say it. Two cases, because the
+/// overdraft question — "this will overdraw the account, continue?" — is asked
 /// *before* the write, not after it, and lives as [wouldOverdraft].
 sealed class TransactionFormOutcome {
   const TransactionFormOutcome();
 }
 
-/// Recorded. A series, if one was asked for, exists.
+/// Recorded (or, for planned/repeating modes, the series was created).
 final class TransactionFormSaved extends TransactionFormOutcome {
   final int autoPostedCount;
 
   const TransactionFormSaved({this.autoPostedCount = 0});
-}
-
-/// Recorded, but the series could not be started. The money moved and the
-/// schedule did not: reported separately, and the form still closes.
-final class TransactionFormSavedSeriesFailed extends TransactionFormOutcome {
-  final LedgerErrorCode code;
-
-  const TransactionFormSavedSeriesFailed(this.code);
 }
 
 /// Nothing was recorded, and anything imported on the way has been discarded.
@@ -184,13 +176,25 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
 
   void setNote(String note) => state = state.copyWith(note: note);
 
-  void setDate(DateTime date) => state = state.copyWith(date: date);
+  void setDate(DateTime date) => state = state.copyWith(
+        date: date,
+        customRecurrence: state.customRecurrence == null
+            ? null
+            : CustomRecurrence(
+                frequency: state.customRecurrence!.frequency,
+                interval: state.customRecurrence!.interval,
+                startDate: date,
+                weekdays: state.customRecurrence!.weekdays,
+                endDate: state.customRecurrence!.endDate,
+                countLimit: state.customRecurrence!.countLimit,
+              ),
+      );
 
   void setRepeat(String frequency) =>
       state = state.copyWith(repeat: frequency, customRecurrence: null);
 
-  void setCustomRecurrence(CustomRecurrence rule) =>
-      state = state.copyWith(repeat: 'CUSTOM', customRecurrence: rule);
+  void setCustomRecurrence(CustomRecurrence rule) => state = state.copyWith(
+      repeat: 'CUSTOM', customRecurrence: rule, date: rule.startDate);
 
   void selectCategory(String id) => state = state.copyWith(categoryId: id);
 
@@ -198,8 +202,8 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
 
   /// The mode owns the frequency: a series mode always has one (MONTHLY floor,
   /// never "does not repeat" — the mode already answered that), and the other
-  /// modes never do. Entering 计划 also drops picked files: a series cannot
-  /// carry them, and an invisible list is a leak.
+  /// modes never do. Entering a series mode (计划 / 重复) also drops picked
+  /// files: a series cannot carry them, and an invisible list is a leak.
   void setMode(TransactionFormMode mode) {
     if (mode == state.mode) return;
     final wantsFrequency = mode == TransactionFormMode.repeating;
@@ -217,9 +221,9 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
               ? 'MONTHLY'
               : state.repeat)
           : TransactionFormViewState.repeatNever,
-      pendingAttachments: mode == TransactionFormMode.planned
-          ? const []
-          : state.pendingAttachments,
+      pendingAttachments: mode == TransactionFormMode.defaultMode
+          ? state.pendingAttachments
+          : const [],
     );
   }
 
@@ -281,8 +285,8 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// own money, so it is left alone until that is decided.
   bool wouldOverdraft() {
     final amount = state.amountMinor;
-    if (state.mode == TransactionFormMode.planned) {
-      return false; // no money moves
+    if (state.mode != TransactionFormMode.defaultMode) {
+      return false; // series modes create a schedule, not an ad-hoc movement
     }
     if (state.type != TransactionKind.expense ||
         state.accountId == null ||
@@ -297,8 +301,8 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     return account != null && account.wouldOverdraft(amount);
   }
 
-  /// Records or corrects the entry, and starts its series if one was asked
-  /// for. The screen validates the form first; this re-checks the amount so
+  /// Records or corrects the entry, or creates a planned/repeating recurring
+  /// series. The screen validates the form first; this re-checks the amount so
   /// that a caller which skipped validation cannot reach a command with junk.
   Future<TransactionFormOutcome> submit() async {
     final form = state;
@@ -307,12 +311,15 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
       return const TransactionFormSaveFailed(LedgerErrorCode.invalidAmount);
     }
 
-    // 计划: nothing is recorded and nothing moves. The series *is* the save —
-    // a one-shot rule whose single instance is the bill being planned — so a
-    // failure here is the save failing, and no attachments are imported (the
-    // row that would carry them is never created).
-    if (form.mode == TransactionFormMode.planned) {
-      final series = await _createPlannedSeries(form, amountMinor);
+    // 计划 / 重复: nothing is recorded as an ad-hoc transaction. The series
+    // *is* the save, starting on the chosen date — the first occurrence stays
+    // pending unless `autoPost` is enabled and the occurrence is already due
+    // (in which case `createSeries` posts it via ConvertScheduledToPostedCommand
+    // with `sourceScheduledBillId` intact).
+    if (form.mode != TransactionFormMode.defaultMode) {
+      final series = form.mode == TransactionFormMode.planned
+          ? await _createPlannedSeries(form, amountMinor)
+          : await _startSeries(form, amountMinor);
       final count = series is Success
           ? ref.read(recurringServiceProvider).takeLastAutoPostedCount()
           : 0;
@@ -395,22 +402,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
       return TransactionFormSaveFailed(code);
     }
 
-    // Only once the money is recorded. If this fails the entry stands — it is a
-    // real movement either way, and unwinding it because a schedule could not
-    // be created would destroy a correct record to tidy up a separate one.
-    if (!form.canRepeat ||
-        !form.wantsSeries ||
-        form.repeat == TransactionFormViewState.repeatNever) {
-      return const TransactionFormSaved();
-    }
-    final series = await _startSeries(form, amountMinor);
-    final count = series is Success
-        ? ref.read(recurringServiceProvider).takeLastAutoPostedCount()
-        : 0;
-    return switch (series) {
-      Failure(:final code) => TransactionFormSavedSeriesFailed(code),
-      Success() => TransactionFormSaved(autoPostedCount: count),
-    };
+    return const TransactionFormSaved();
   }
 
   /// Moves picked files into app-private storage before the entry refers to
@@ -428,10 +420,8 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     await ref.read(transactionAttachmentStoreProvider).discard(attachments);
   }
 
-  /// Turns the entry into a series as well.
-  ///
-  /// Created after the transaction, and a failure here is not rolled back —
-  /// see [submit].
+  /// 重复: creates the recurring series starting on the chosen date (or custom
+  /// recurrence start date). Does not record an immediate ad-hoc transaction.
   Future<Result<void>> _startSeries(
     TransactionFormViewState form,
     int amountMinor,
@@ -446,8 +436,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           description: _seriesDescription(form),
           frequency: form.customRecurrence?.frequency ?? form.repeat,
           interval: form.customRecurrence?.interval ?? 1,
-          startDate: form.customRecurrence?.startDate ??
-              nextOccurrence(form.date, form.repeat),
+          startDate: form.customRecurrence?.startDate ?? form.date,
           endDate: form.customRecurrence?.endDate,
           countLimit: form.customRecurrence?.countLimit,
           weekdays: form.customRecurrence?.weekdays ?? const [],
@@ -502,33 +491,4 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         TransactionFormMode.defaultMode =>
           throw StateError('a default entry creates no series'),
       };
-
-  /// The first occurrence *after* the one being recorded — the entry the user
-  /// is making now is the current period, so the series picks up from the next
-  /// and the two never overlap.
-  ///
-  /// Calendar arithmetic, so 31 Jan rolls to 28/29 Feb rather than spilling
-  /// into March.
-  static DateTime nextOccurrence(DateTime from, String frequency) {
-    if (frequency == 'DAILY') {
-      return DateTime(from.year, from.month, from.day + 1, from.hour,
-          from.minute, from.second, from.millisecond, from.microsecond);
-    }
-    if (frequency == 'WEEKLY') {
-      return DateTime(from.year, from.month, from.day + 7, from.hour,
-          from.minute, from.second, from.millisecond, from.microsecond);
-    }
-    final month = frequency == 'YEARLY' ? from.month : from.month + 1;
-    final year = frequency == 'YEARLY' ? from.year + 1 : from.year;
-    final lastDay = DateTime(year, month + 1, 0).day;
-    return DateTime(
-        year,
-        month,
-        from.day > lastDay ? lastDay : from.day,
-        from.hour,
-        from.minute,
-        from.second,
-        from.millisecond,
-        from.microsecond);
-  }
 }

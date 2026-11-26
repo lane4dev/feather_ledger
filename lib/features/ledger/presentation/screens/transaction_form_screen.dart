@@ -737,8 +737,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final state =
         ref.read(transactionFormViewModelProvider(widget.transaction));
     final existing = state.customRecurrence;
-    final start = TransactionFormViewModel.nextOccurrence(
-        state.date, state.repeat == 'CUSTOM' ? 'MONTHLY' : state.repeat);
+    final start = state.date;
     final selected = await showDialog<CustomRecurrence>(
         context: context,
         builder: (_) => CustomRecurrenceDialog(
@@ -926,11 +925,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     switch (outcome) {
       case TransactionFormSaveFailed(:final code):
         _report(code.message(l10n));
-      case TransactionFormSavedSeriesFailed(:final code):
-        // The snackbar first: it lives on the messenger above this route, so
-        // it survives the pop. The entry itself was recorded.
-        _report(l10n.repeatSetupFailed(code.message(l10n)));
-        context.pop();
       case TransactionFormSaved(:final autoPostedCount):
         if (autoPostedCount > 0) {
           _report(l10n.autoPostedCountMessage(autoPostedCount));

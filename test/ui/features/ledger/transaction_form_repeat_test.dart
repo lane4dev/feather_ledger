@@ -420,22 +420,22 @@ void main() {
     });
   }
 
-  testWidgets('saving with a rule records the entry, then starts the series',
+  testWidgets(
+      'saving a repeating entry creates only the series starting on the chosen date',
       (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
+    expect(find.text('Attachments'), findsOneWidget);
     await chooseMode(tester, 'Repeating');
+    expect(find.text('Attachments'), findsNothing);
     await tester.enterText(find.byType(TextFormField).last, 'Rent');
 
     await save(tester);
 
-    // The movement that happened…
-    expect(ledger.addedTransactions, hasLength(1));
-    expect(ledger.addedTransactions.single['amountMinor'], 50000);
-    expect(ledger.addedTransactions.single['type'], TransactionKind.expense);
+    // No ad-hoc movement — the series starts on the chosen day and its first
+    // occurrence waits in the pending list (unless auto-post is enabled).
+    expect(ledger.addedTransactions, isEmpty);
 
-    // …and the rule for the ones that have not, at the MONTHLY the mode
-    // seeded (the row showed "month" without the picker being opened).
     expect(recurring.created, hasLength(1));
     final series = recurring.created.single;
     expect(series['frequency'], 'MONTHLY');
@@ -446,19 +446,16 @@ void main() {
     expect(series['autoPost'], isFalse,
         reason: '重复 waits for the user 记入, instance by instance');
 
-    // The series starts one period AFTER the entry just recorded, so the two
-    // never describe the same month.
-    final recorded = ledger.addedTransactions.single['date']! as DateTime;
+    final now = DateTime.now();
     final start = series['startDate']! as DateTime;
     expect(DateTime(start.year, start.month, start.day),
-        DateTime(recorded.year, recorded.month + 1, recorded.day));
-    expect(start.hour, recorded.hour);
-    expect(start.minute, recorded.minute);
+        DateTime(now.year, now.month, now.day));
 
     await teardownTree(tester);
   });
 
-  testWidgets('picking a frequency re-anchors the series', (tester) async {
+  testWidgets('picking a frequency keeps the series anchored on the chosen date',
+      (tester) async {
     await pumpForm(tester);
     await fillExpense(tester);
     await chooseMode(tester, 'Repeating');
@@ -466,11 +463,12 @@ void main() {
 
     await save(tester);
 
-    expect(ledger.addedTransactions, hasLength(1));
+    expect(ledger.addedTransactions, isEmpty);
     expect(recurring.created.single['frequency'], 'WEEKLY');
-    final recorded = ledger.addedTransactions.single['date']! as DateTime;
-    expect(recurring.created.single['startDate'],
-        recorded.add(const Duration(days: 7)));
+    final now = DateTime.now();
+    final start = recurring.created.single['startDate']! as DateTime;
+    expect(DateTime(start.year, start.month, start.day),
+        DateTime(now.year, now.month, now.day));
 
     await teardownTree(tester);
   });
@@ -504,10 +502,7 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('a failed rule does not lose the recorded entry', (tester) async {
-    // The two are separate aggregates. Unwinding a real movement because a
-    // schedule could not be created would destroy a correct record to tidy up
-    // a different problem.
+  testWidgets('a repeating entry that fails is a failed save', (tester) async {
     recurring.failure = LedgerErrorCode.categoryTypeMismatch;
 
     await pumpForm(tester);
@@ -516,8 +511,9 @@ void main() {
 
     await save(tester);
 
-    expect(ledger.addedTransactions, hasLength(1), reason: 'the entry stands');
-    expect(find.textContaining('Saved. The repeat could not be set up'),
+    expect(ledger.addedTransactions, isEmpty);
+    expect(recurring.created, isEmpty);
+    expect(find.text('Category type does not match the transaction type'),
         findsOneWidget);
 
     await teardownTree(tester);
@@ -531,16 +527,14 @@ void main() {
 
     await save(tester);
 
-    expect(ledger.addedTransactions, hasLength(1));
+    expect(ledger.addedTransactions, isEmpty);
     final series = recurring.created.single;
     expect(series['frequency'], 'MONTHLY');
     expect(series['autoPost'], isFalse);
-    final recorded = ledger.addedTransactions.single['date']! as DateTime;
+    final now = DateTime.now();
     final start = series['startDate']! as DateTime;
     expect(DateTime(start.year, start.month, start.day),
-        DateTime(recorded.year, recorded.month + 1, recorded.day));
-    expect(start.hour, recorded.hour);
-    expect(start.minute, recorded.minute);
+        DateTime(now.year, now.month, now.day));
 
     await teardownTree(tester);
   });
