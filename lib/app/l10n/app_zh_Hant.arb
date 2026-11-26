@@ -897,5 +897,14 @@
   "monthIncome": "{month}收入",
   "monthExpense": "{month}支出",
   "previousMonth": "上個月",
-  "nextMonth": "下個月"
+  "nextMonth": "下個月",
+  "distantPastStartTitle": "起始日期早於兩個月前",
+  "distantPastStartDescription": "請選擇如何處理歷史期次。原始起始日期仍會保留作為排期與總期數錨點。",
+  "distantPastOptionFromToday": "僅從今天起生成（推薦）",
+  "distantPastOptionFromTodayHint": "跳過今天之前的歷史期次，僅生成今天及以後的帳單",
+  "distantPastOptionBackfill": "補齊最近 {days} 天待入帳（手動核對）",
+  "distantPastOptionBackfillHint": "早於今天的期次均標為僅手動入帳，不會自動扣款（最多 100 條）",
+  "distantPastBackfillDaysLabel": "補齊天數",
+  "distantPastBackfillDaysUnit": "天",
+  "distantPastBackfillDaysError": "請輸入 1 到 365 之間的整數"
 }

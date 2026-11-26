@@ -1491,6 +1491,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get nextMonth => '下个月';
+
+  @override
+  String get distantPastStartTitle => '起始日期早于两个月前';
+
+  @override
+  String get distantPastStartDescription => '请选择如何处理历史期次。原始起始日期仍会保留作为排期与总期数锚点。';
+
+  @override
+  String get distantPastOptionFromToday => '仅从今天起生成（推荐）';
+
+  @override
+  String get distantPastOptionFromTodayHint => '跳过今天之前的历史期次，仅生成今天及以后的账单';
+
+  @override
+  String distantPastOptionBackfill(int days) {
+    return '补齐最近 $days 天待入账（手动核对）';
+  }
+
+  @override
+  String get distantPastOptionBackfillHint =>
+      '早于今天的期次均标为仅手动入账，不会自动扣款（最多 100 条）';
+
+  @override
+  String get distantPastBackfillDaysLabel => '补齐天数';
+
+  @override
+  String get distantPastBackfillDaysUnit => '天';
+
+  @override
+  String get distantPastBackfillDaysError => '请输入 1 到 365 之间的整数';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2980,6 +3010,36 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get nextMonth => '下个月';
+
+  @override
+  String get distantPastStartTitle => '起始日期早于两个月前';
+
+  @override
+  String get distantPastStartDescription => '请选择如何处理历史期次。原始起始日期仍会保留作为排期与总期数锚点。';
+
+  @override
+  String get distantPastOptionFromToday => '仅从今天起生成（推荐）';
+
+  @override
+  String get distantPastOptionFromTodayHint => '跳过今天之前的历史期次，仅生成今天及以后的账单';
+
+  @override
+  String distantPastOptionBackfill(int days) {
+    return '补齐最近 $days 天待入账（手动核对）';
+  }
+
+  @override
+  String get distantPastOptionBackfillHint =>
+      '早于今天的期次均标为仅手动入账，不会自动扣款（最多 100 条）';
+
+  @override
+  String get distantPastBackfillDaysLabel => '补齐天数';
+
+  @override
+  String get distantPastBackfillDaysUnit => '天';
+
+  @override
+  String get distantPastBackfillDaysError => '请输入 1 到 365 之间的整数';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4469,4 +4529,34 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get nextMonth => '下個月';
+
+  @override
+  String get distantPastStartTitle => '起始日期早於兩個月前';
+
+  @override
+  String get distantPastStartDescription => '請選擇如何處理歷史期次。原始起始日期仍會保留作為排期與總期數錨點。';
+
+  @override
+  String get distantPastOptionFromToday => '僅從今天起生成（推薦）';
+
+  @override
+  String get distantPastOptionFromTodayHint => '跳過今天之前的歷史期次，僅生成今天及以後的帳單';
+
+  @override
+  String distantPastOptionBackfill(int days) {
+    return '補齊最近 $days 天待入帳（手動核對）';
+  }
+
+  @override
+  String get distantPastOptionBackfillHint =>
+      '早於今天的期次均標為僅手動入帳，不會自動扣款（最多 100 條）';
+
+  @override
+  String get distantPastBackfillDaysLabel => '補齊天數';
+
+  @override
+  String get distantPastBackfillDaysUnit => '天';
+
+  @override
+  String get distantPastBackfillDaysError => '請輸入 1 到 365 之間的整數';
 }

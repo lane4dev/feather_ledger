@@ -8,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
+import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
@@ -20,10 +22,12 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/features/ledger/presentation/models/transaction_tile_ui_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/transaction_form_screen.dart';
+import 'package:feather_ledger/features/ledger/presentation/view_model/transaction_form_view_model.dart';
 import 'package:feather_ledger/features/budget/domain/entities/budget_entities.dart';
 import 'package:feather_ledger/features/budget/presentation/view_model/transaction_budget_hint_provider.dart';
 import '../../../support/fakes/recording_services.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/distant_past_start_dialog.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_form_row.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
@@ -69,6 +73,7 @@ void main() {
   Future<void> pumpForm(
     WidgetTester tester, {
     TransactionTileUiModel? transaction,
+    DomainClock? clock,
   }) async {
     // The form is taller than a phone once the repeat row is on it. A tall
     // test viewport keeps every control on screen, so the taps below reach
@@ -98,6 +103,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          if (clock != null) ledgerClockProvider.overrideWithValue(clock),
           // The budget hint banner would open a real database from a form
           // test that has no budget fixture; an empty stream keeps it idle.
           transactionBudgetHintProvider.overrideWith(
@@ -596,6 +602,159 @@ void main() {
         findsOneWidget);
 
     await teardownTree(tester);
+  });
+
+  group('distant-past start date guard', () {
+    final fixedNow = DateTime(2026, 11, 26, 10, 0);
+
+    Future<void> setFormDate(WidgetTester tester, DateTime date) async {
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(TransactionFormScreen)),
+      );
+      container.read(transactionFormViewModelProvider(null).notifier).setDate(date);
+      await settle(tester);
+    }
+
+    testWidgets(
+        'distant-past repeating start opens two-option dialog; "from today" passes startOfDay(now) while keeping startDate',
+        (tester) async {
+      await pumpForm(tester, clock: FixedClock(fixedNow));
+      await fillExpense(tester);
+      await chooseMode(tester, 'Repeating');
+      final distantStart = DateTime(2024, 11, 26, 9, 0);
+      await setFormDate(tester, distantStart);
+
+      await save(tester);
+
+      expect(find.byType(DistantPastStartDialog), findsOneWidget);
+      expect(find.byType(Radio<DistantPastStartOption>), findsNWidgets(2));
+      expect(find.text('Generate from today onward (Recommended)'),
+          findsOneWidget);
+      expect(find.text('Backfill last 30 days as pending (manual review)'),
+          findsOneWidget);
+      expect(recurring.created, isEmpty,
+          reason: 'must wait for confirmation before saving');
+
+      await tester.tap(find.descendant(
+        of: find.byType(DistantPastStartDialog),
+        matching: find.widgetWithText(AppButton, 'Save'),
+      ));
+      await settle(tester);
+
+      expect(recurring.created, hasLength(1));
+      expect(recurring.created.single['startDate'], distantStart);
+      expect(
+          recurring.created.single['materializeFrom'], DateTime(2026, 11, 26));
+      await teardownTree(tester);
+    });
+
+    testWidgets(
+        'backfill option validates 1..365 and passes max(startDate, startOfDay(now - N))',
+        (tester) async {
+      await pumpForm(tester, clock: FixedClock(fixedNow));
+      await fillExpense(tester);
+      await chooseMode(tester, 'Repeating');
+      final distantStart = DateTime(2024, 11, 26, 9, 0);
+      await setFormDate(tester, distantStart);
+
+      await save(tester);
+      expect(find.byType(DistantPastStartDialog), findsOneWidget);
+
+      await tester
+          .tap(find.text('Backfill last 30 days as pending (manual review)'));
+      await settle(tester);
+
+      final daysField = find.descendant(
+        of: find.byKey(const ValueKey('distant-past-backfill-days')),
+        matching: find.byType(TextFormField),
+      );
+      final dialogSave = find.descendant(
+        of: find.byType(DistantPastStartDialog),
+        matching: find.widgetWithText(AppButton, 'Save'),
+      );
+
+      // Invalid: 0
+      await tester.enterText(daysField, '0');
+      await settle(tester);
+      expect(find.text('Enter an integer between 1 and 365'), findsOneWidget);
+      expect(tester.widget<AppButton>(dialogSave).onPressed, isNull);
+
+      // Invalid: 366
+      await tester.enterText(daysField, '366');
+      await settle(tester);
+      expect(find.text('Enter an integer between 1 and 365'), findsOneWidget);
+      expect(tester.widget<AppButton>(dialogSave).onPressed, isNull);
+
+      // Valid: 45
+      await tester.enterText(daysField, '45');
+      await settle(tester);
+      expect(find.text('Enter an integer between 1 and 365'), findsNothing);
+      expect(find.text('Backfill last 45 days as pending (manual review)'),
+          findsOneWidget);
+      expect(tester.widget<AppButton>(dialogSave).onPressed, isNotNull);
+
+      await tester.tap(dialogSave);
+      await settle(tester);
+
+      expect(recurring.created, hasLength(1));
+      expect(recurring.created.single['startDate'], distantStart);
+      expect(
+          recurring.created.single['materializeFrom'], DateTime(2026, 10, 12));
+      await teardownTree(tester);
+    });
+
+    testWidgets('cancelling the distant-past dialog aborts save completely',
+        (tester) async {
+      await pumpForm(tester, clock: FixedClock(fixedNow));
+      await fillExpense(tester);
+      await chooseMode(tester, 'Repeating');
+      await setFormDate(tester, DateTime(2024, 11, 26, 9, 0));
+
+      await save(tester);
+      expect(find.byType(DistantPastStartDialog), findsOneWidget);
+
+      await tester.tap(find.descendant(
+        of: find.byType(DistantPastStartDialog),
+        matching: find.widgetWithText(AppButton, 'Cancel'),
+      ));
+      await settle(tester);
+
+      expect(find.byType(DistantPastStartDialog), findsNothing);
+      expect(recurring.created, isEmpty);
+      expect(ledger.addedTransactions, isEmpty);
+      await teardownTree(tester);
+    });
+
+    testWidgets(
+        'within-2-months past repeating start and distant-past planned save without showing dialog',
+        (tester) async {
+      await pumpForm(tester, clock: FixedClock(fixedNow));
+      await fillExpense(tester);
+      await chooseMode(tester, 'Repeating');
+      // Exact 2-month boundary: 2026-09-26 is NOT strictly earlier than 2 months ago.
+      final boundaryStart = DateTime(2026, 9, 26, 9, 0);
+      await setFormDate(tester, boundaryStart);
+
+      await save(tester);
+      expect(find.byType(DistantPastStartDialog), findsNothing);
+      expect(recurring.created, hasLength(1));
+      expect(recurring.created.single['startDate'], boundaryStart);
+      expect(recurring.created.single['materializeFrom'], isNull);
+      await teardownTree(tester);
+
+      // Planned mode with distant past also skips the dialog.
+      recurring = RecordingRecurringService();
+      await pumpForm(tester, clock: FixedClock(fixedNow));
+      await fillExpense(tester);
+      await chooseMode(tester, 'Planned');
+      await setFormDate(tester, DateTime(2024, 1, 1, 9, 0));
+
+      await save(tester);
+      expect(find.byType(DistantPastStartDialog), findsNothing);
+      expect(recurring.created, hasLength(1));
+      expect(recurring.created.single['materializeFrom'], isNull);
+      await teardownTree(tester);
+    });
   });
 }
 

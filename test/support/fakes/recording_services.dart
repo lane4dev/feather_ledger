@@ -256,6 +256,7 @@ class RecordingRecurringService implements RecurringService {
     required String description,
     String? frequency,
     int? interval,
+    DateTime? materializeFrom,
     DateTime? endDate,
     int? countLimit,
     List<int>? weekdays,

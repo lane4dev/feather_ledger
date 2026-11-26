@@ -1386,4 +1386,37 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get nextMonth => 'Next month';
+
+  @override
+  String get distantPastStartTitle => 'Start date is more than 2 months ago';
+
+  @override
+  String get distantPastStartDescription =>
+      'Choose how to handle past occurrences. Your start date is still kept to anchor the schedule and total count.';
+
+  @override
+  String get distantPastOptionFromToday =>
+      'Generate from today onward (Recommended)';
+
+  @override
+  String get distantPastOptionFromTodayHint =>
+      'Skip occurrences before today and only generate today and future bills';
+
+  @override
+  String distantPastOptionBackfill(int days) =>
+      'Backfill last $days days as pending (manual review)';
+
+  @override
+  String get distantPastOptionBackfillHint =>
+      'Past bills before today are marked manual-only (up to 100 bills)';
+
+  @override
+  String get distantPastBackfillDaysLabel => 'Backfill days';
+
+  @override
+  String get distantPastBackfillDaysUnit => 'days';
+
+  @override
+  String get distantPastBackfillDaysError =>
+      'Enter an integer between 1 and 365';
 }

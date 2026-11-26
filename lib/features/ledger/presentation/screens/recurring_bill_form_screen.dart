@@ -24,10 +24,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../domain/commands/create_recurring_series_command.dart';
 import '../../domain/entities/ledger_entities.dart';
+import '../../domain/recurrence/distant_past_guard.dart';
+import '../../domain/services/recurring_service.dart';
 import '../models/custom_recurrence.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../models/transaction_date_label.dart';
 import '../widgets/custom_recurrence_dialog.dart';
+import '../widgets/distant_past_start_dialog.dart';
 import '../widgets/ledger_note_field.dart';
 import '../theme/ledger_theme.dart';
 import '../view_model/recurring_view_model.dart';
@@ -571,6 +574,26 @@ class _RecurringBillFormScreenState
     final isPlannedUpdate = series?.mode == RecurringSeriesMode.planned;
     final isRepeatingUpdate = scope == RecurringScope.updateRule &&
         series?.mode == RecurringSeriesMode.repeating;
+    final baseScheduleChanged = isRepeatingUpdate &&
+        series != null &&
+        (!_date.isAtSameMomentAs(widget.transaction.date) ||
+            _frequency != series.frequency ||
+            _interval != (series.interval ?? 1) ||
+            !_sameWeekdays(_weekdays, _initialWeekdays));
+
+    DateTime? materializeFrom;
+    if (baseScheduleChanged) {
+      final now = ref.read(ledgerClockProvider).now();
+      if (DistantPastStartGuard.isDistantPast(_date, now: now)) {
+        materializeFrom = await DistantPastStartDialog.show(
+          context,
+          startDate: _date,
+          now: now,
+        );
+        if (materializeFrom == null || !mounted) return;
+      }
+    }
+
     final notifier = ref.read(recurringViewModelProvider.notifier);
     final result = await notifier.updateBill(
       widget.transaction.id,
@@ -582,6 +605,7 @@ class _RecurringBillFormScreenState
       description: _note.text.trim(),
       frequency: isRepeatingUpdate ? _frequency : null,
       interval: isRepeatingUpdate ? _interval : null,
+      materializeFrom: materializeFrom,
       weekdays: isRepeatingUpdate ? _weekdays : null,
       endDate: isRepeatingUpdate ? _endDate : null,
       countLimit: isRepeatingUpdate ? _countLimit : null,

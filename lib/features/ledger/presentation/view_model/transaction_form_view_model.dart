@@ -304,7 +304,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// Records or corrects the entry, or creates a planned/repeating recurring
   /// series. The screen validates the form first; this re-checks the amount so
   /// that a caller which skipped validation cannot reach a command with junk.
-  Future<TransactionFormOutcome> submit() async {
+  Future<TransactionFormOutcome> submit({DateTime? materializeFrom}) async {
     final form = state;
     final amountMinor = form.amountMinor;
     if (amountMinor == null) {
@@ -319,7 +319,11 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
     if (form.mode != TransactionFormMode.defaultMode) {
       final series = form.mode == TransactionFormMode.planned
           ? await _createPlannedSeries(form, amountMinor)
-          : await _startSeries(form, amountMinor);
+          : await _startSeries(
+              form,
+              amountMinor,
+              materializeFrom: materializeFrom,
+            );
       final count = series is Success
           ? ref.read(recurringServiceProvider).takeLastAutoPostedCount()
           : 0;
@@ -424,8 +428,9 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
   /// recurrence start date). Does not record an immediate ad-hoc transaction.
   Future<Result<void>> _startSeries(
     TransactionFormViewState form,
-    int amountMinor,
-  ) {
+    int amountMinor, {
+    DateTime? materializeFrom,
+  }) {
     return ref.read(recurringServiceProvider).createSeries(
           type: form.type == TransactionKind.income
               ? RecurringSeriesKind.income
@@ -437,6 +442,7 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
           frequency: form.customRecurrence?.frequency ?? form.repeat,
           interval: form.customRecurrence?.interval ?? 1,
           startDate: form.customRecurrence?.startDate ?? form.date,
+          materializeFrom: materializeFrom,
           endDate: form.customRecurrence?.endDate,
           countLimit: form.customRecurrence?.countLimit,
           weekdays: form.customRecurrence?.weekdays ?? const [],

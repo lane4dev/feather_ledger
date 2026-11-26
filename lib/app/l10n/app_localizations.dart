@@ -2826,6 +2826,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next month'**
   String get nextMonth;
+
+  /// No description provided for @distantPastStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date is more than 2 months ago'**
+  String get distantPastStartTitle;
+
+  /// No description provided for @distantPastStartDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to handle past occurrences. Your start date is still kept to anchor the schedule and total count.'**
+  String get distantPastStartDescription;
+
+  /// No description provided for @distantPastOptionFromToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate from today onward (Recommended)'**
+  String get distantPastOptionFromToday;
+
+  /// No description provided for @distantPastOptionFromTodayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip occurrences before today and only generate today and future bills'**
+  String get distantPastOptionFromTodayHint;
+
+  /// No description provided for @distantPastOptionBackfill.
+  ///
+  /// In en, this message translates to:
+  /// **'Backfill last {days} days as pending (manual review)'**
+  String distantPastOptionBackfill(int days);
+
+  /// No description provided for @distantPastOptionBackfillHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Past bills before today are marked manual-only (up to 100 bills)'**
+  String get distantPastOptionBackfillHint;
+
+  /// No description provided for @distantPastBackfillDaysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backfill days'**
+  String get distantPastBackfillDaysLabel;
+
+  /// No description provided for @distantPastBackfillDaysUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get distantPastBackfillDaysUnit;
+
+  /// No description provided for @distantPastBackfillDaysError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an integer between 1 and 365'**
+  String get distantPastBackfillDaysError;
 }
 
 class _AppLocalizationsDelegate

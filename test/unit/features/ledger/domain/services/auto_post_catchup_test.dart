@@ -5,7 +5,6 @@ import 'package:feather_ledger/core/data/database/app_database.dart';
 import 'package:feather_ledger/core/data/repositories/preferences_repository.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
-import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/convert_scheduled_to_posted_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/create_recurring_series_command.dart';
 import 'package:feather_ledger/features/ledger/domain/commands/delete_recurring_bill_command.dart';
@@ -90,27 +89,33 @@ void main() {
         .id;
   }
 
-  Future<Result<void>> createAutoSeries(
+  Future<void> seedExistingAutoSeries(
     String accountId, {
     String description = 'Rent',
     RecurringSeriesMode mode = RecurringSeriesMode.repeating,
     DateTime? startDate,
-  }) {
+  }) async {
     final start =
         startDate ?? DateTime.now().subtract(const Duration(days: 10));
-    return harness.recurringService.createSeries(
-      type: RecurringSeriesKind.expense,
-      amountMinor: 20000,
-      accountId: accountId,
-      categoryId: expenseCategoryId,
-      description: description,
-      frequency: 'MONTHLY',
-      interval: 1,
-      startDate: start,
-      endDate: mode == RecurringSeriesMode.planned ? start : null,
-      autoPost: true,
-      mode: mode,
+    final seriesId = 'series_${accountId}_${description.hashCode}';
+    await harness.db.recurringDao.saveSeries(
+      RecurringSeriesCompanion.insert(
+        id: seriesId,
+        type: RecurringSeriesKind.expense,
+        mode: Value(mode),
+        amountMinor: 20000,
+        accountId: accountId,
+        categoryId: expenseCategoryId,
+        description: description,
+        rrule: 'FREQ=MONTHLY',
+        frequency: 'MONTHLY',
+        interval: const Value(1),
+        startDate: start,
+        endDate: Value(mode == RecurringSeriesMode.planned ? start : null),
+        autoPost: const Value(true),
+      ),
     );
+    await harness.recurringService.materialize();
   }
 
   Future<List<ScheduledTransactionEntity>> scheduled() =>
@@ -126,8 +131,8 @@ void main() {
     // Create both series while another currency is active so due bills remain
     // pending (manualOnly = false) across both USD and JPY before restore.
     await preferences.setCurrency('EUR');
-    await createAutoSeries(usdAccountId, description: 'USD rent');
-    await createAutoSeries(jpyAccountId, description: 'JPY rent');
+    await seedExistingAutoSeries(usdAccountId, description: 'USD rent');
+    await seedExistingAutoSeries(jpyAccountId, description: 'JPY rent');
     await preferences.setCurrency('USD');
 
     final changed = await harness.recurringService.markPreRestoreManualOnly(
@@ -153,8 +158,8 @@ void main() {
   test('catchUpAutoPosted only posts the current currency', () async {
     await seedAccounts();
     await preferences.setCurrency('EUR');
-    await createAutoSeries(usdAccountId, description: 'USD rent');
-    await createAutoSeries(jpyAccountId, description: 'JPY rent');
+    await seedExistingAutoSeries(usdAccountId, description: 'USD rent');
+    await seedExistingAutoSeries(jpyAccountId, description: 'JPY rent');
     await preferences.setCurrency('USD');
 
     final posted = await harness.recurringService.catchUpAutoPosted();
@@ -177,8 +182,8 @@ void main() {
       () async {
     await seedAccounts();
     await preferences.setCurrency('EUR');
-    await createAutoSeries(usdAccountId, description: 'USD rent');
-    await createAutoSeries(jpyAccountId, description: 'JPY rent');
+    await seedExistingAutoSeries(usdAccountId, description: 'USD rent');
+    await seedExistingAutoSeries(jpyAccountId, description: 'JPY rent');
     // A manual repeating series in the same currency must not appear.
     await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
@@ -207,8 +212,8 @@ void main() {
       () async {
     await seedAccounts();
     await preferences.setCurrency('EUR');
-    await createAutoSeries(usdAccountId, description: 'USD rent');
-    await createAutoSeries(jpyAccountId, description: 'JPY rent');
+    await seedExistingAutoSeries(usdAccountId, description: 'USD rent');
+    await seedExistingAutoSeries(jpyAccountId, description: 'JPY rent');
     await preferences.setCurrency('USD');
 
     // postAll: true settles the USD backlog immediately.
@@ -239,7 +244,7 @@ void main() {
       () async {
     await seedAccounts();
     await preferences.setCurrency('EUR');
-    await createAutoSeries(usdAccountId, description: 'USD rent');
+    await seedExistingAutoSeries(usdAccountId, description: 'USD rent');
     await preferences.setCurrency('USD');
 
     // Remove the category the series files under: posting now fails inside
@@ -265,7 +270,7 @@ void main() {
       () async {
     await seedAccounts();
     await preferences.setCurrency('EUR');
-    await createAutoSeries(
+    await seedExistingAutoSeries(
       usdAccountId,
       description: 'Past planned',
       mode: RecurringSeriesMode.planned,
