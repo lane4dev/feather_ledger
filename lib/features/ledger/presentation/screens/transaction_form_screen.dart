@@ -4,6 +4,7 @@ import 'package:feather_ledger/features/ledger/data/notifications/recurring_remi
 import '../widgets/custom_reminder_dialog.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import '../widgets/ledger_note_field.dart';
 import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
@@ -19,7 +20,6 @@ import 'package:feather_ledger/app/design_system/app_button.dart';
 import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/entities/category.dart';
-import 'package:feather_ledger/features/ledger/domain/model/transaction.dart';
 import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
@@ -153,6 +153,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     // are narrowed rather than letting the pair be chosen and refused. The
     // list is empty until a source is picked, which is also the honest answer.
     final toAccountOptions = state.transferDestinations(activeAccounts);
+    final canSave = state.amountMinor != null &&
+        (!state.type.requiresCategory || state.categoryId != null);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -170,18 +172,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            // No horizontal padding: it would clip every row's ripple a page
-            // margin short of the edge. The rows inset their own contents
-            // (LedgerFormRow) and everything else in the column is wrapped in
-            // [_inset].
             padding: EdgeInsets.symmetric(vertical: context.spacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Transaction kind and amount describe the same action, so
-                // they intentionally read as one compact primary module. A
-                // balance purpose has no kind to pick — what it is states
-                // itself further down, under the account it happened in.
                 if (!state.isBalancePurpose)
                   _inset(
                     state.isEditing
@@ -197,258 +191,221 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         : LedgerTypeSelector(
                             selectedType: state.type,
                             onSelectionChanged: vm.setType,
+                            widthFactor: 1,
+                            flat: true,
                           ),
                   ),
-                SizedBox(height: context.spacing.xl),
-
-                // The large amount gets the same visual prominence as an event
-                // title while keeping its numeric validation in LedgerAmountInput.
+                SizedBox(height: context.spacing.md),
                 _inset(
-                  LedgerAmountInput(
-                    controller: _amountController,
-                    onChanged: vm.setAmountText,
-                    type: state.type,
-                    currencySymbol: currencySymbol,
-                    autofocus: !state.isEditing,
+                  _AmountModeCard(
+                    amount: LedgerAmountInput(
+                      controller: _amountController,
+                      onChanged: vm.setAmountText,
+                      type: state.type,
+                      currencySymbol: currencySymbol,
+                      autofocus: !state.isEditing,
+                    ),
+                    modeSelector: state.canRepeat
+                        ? _TransactionFormModeSelector(
+                            selected: state.mode,
+                            onSelected: vm.setMode,
+                            l10n: l10n,
+                          )
+                        : null,
                   ),
                 ),
+                SizedBox(height: context.spacing.md),
 
-                if (state.canRepeat) ...[
-                  SizedBox(height: context.spacing.md),
-                  _inset(
-                    _TransactionFormModeSelector(
-                      selected: state.mode,
-                      onSelected: vm.setMode,
-                      l10n: l10n,
-                    ),
-                  ),
-                ],
-                SizedBox(height: context.spacing.lg),
-
-                _inset(const FeatherDivider()),
-                SizedBox(height: context.spacing.sm),
-
-                // Time information stays together: when it happened,
-                // then whether it will happen again.
-                LedgerFormRow(
-                  icon: LucideIcons.clock,
-                  onTap: _pickDateTime,
-                  child: LedgerSelectorField(
-                    label: l10n.date,
-                    labelWidth: labelWidth,
-                    text: transactionDateLabel(
-                      date: state.date,
-                      today: DateTime.now(),
-                      locale: locale,
-                      l10n: l10n,
-                    ),
-                  ),
-                ),
-
-                if (state.showsRepeatRow) ...[
-                  const SizedBox(height: 8),
-                  _repeatRow(l10n, labelWidth, state),
-                ],
-
-                if (state.showsAutoPostRow) ...[
-                  const SizedBox(height: 8),
-                  LedgerFormRow(
-                    icon: LucideIcons.refreshCw,
-                    onTap: () => vm.setAutoPost(!state.autoPost),
-                    showChevron: false,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.autoPostWhenDue,
-                            style: Theme.of(context).textTheme.bodyLarge,
+                // Core entry: what it was for, where it moved, when it
+                // happened. Category leads because it is the field that names
+                // the entry and unlocks the budget hint underneath.
+                _inset(
+                  _FormCard(
+                    children: [
+                      if (!state.isTransfer && !state.isBalancePurpose)
+                        _categoryRow(
+                          l10n: l10n,
+                          labelWidth: labelWidth,
+                          categoriesAsync: categoriesAsync,
+                          state: state,
+                        ),
+                      if (state.isBalancePurpose) ...[
+                        LedgerFormRow(
+                          card: true,
+                          icon: LucideIcons.wallet,
+                          child: LedgerSelectorField(
+                            alignEnd: true,
+                            label: l10n.account,
+                            labelWidth: labelWidth,
+                            text: state.original!.account.name,
                           ),
                         ),
-                        Switch.adaptive(
-                          value: state.autoPost,
-                          onChanged: vm.setAutoPost,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                if (state.canRepeat &&
-                    state.mode != TransactionFormMode.defaultMode) ...[
-                  const SizedBox(height: 8),
-                  LedgerFormRow(
-                    icon: LucideIcons.bell,
-                    onTap: () => _pickReminder(state.reminderMinutes),
-                    child: LedgerSelectorField(
-                      label: l10n.reminder,
-                      labelWidth: labelWidth,
-                      text: _reminderLabel(l10n, state.reminderMinutes),
-                    ),
-                  ),
-                ],
-
-                SizedBox(height: context.spacing.sm),
-                _inset(const FeatherDivider()),
-                SizedBox(height: context.spacing.sm),
-
-                // Where the money moved, then what it was for: an account is
-                // the one field every kind has, and the category names the
-                // entry rather than the movement. A transfer keeps its
-                // explicit two accounts and has no category at all.
-                if (state.isBalancePurpose) ...[
-                  LedgerFormRow(
-                    icon: LucideIcons.wallet,
-                    child: LedgerSelectorField(
-                      label: l10n.account,
-                      labelWidth: labelWidth,
-                      text: state.original!.account.name,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // The kind, stated rather than offered: the ledger made this
-                  // entry, so only the amount and the date are the user's to
-                  // change. It sits under the account because that is what it
-                  // is about — this account, this kind of entry.
-                  LedgerFormRow(
-                    icon: LucideIcons.badgeInfo,
-                    child: LedgerSelectorField(
-                      label: l10n.transactionType,
-                      labelWidth: labelWidth,
-                      text: state.type == TransactionKind.openingBalance
-                          ? l10n.initialBalance
-                          : l10n.accountBalanceAdjustmentDescription,
-                    ),
-                  ),
-                ] else
-                  _accountRow(
-                    fieldKey: ValueKey('account-${state.type}'),
-                    icon: state.isTransfer
-                        ? LucideIcons.arrowUp
-                        : LucideIcons.wallet,
-                    // A transfer's debit leg is its "from" side, and saying so is
-                    // the whole point of the screen — the same labels the detail
-                    // sheet uses.
-                    label: state.isTransfer ? l10n.transferFrom : l10n.account,
-                    labelWidth: labelWidth,
-                    options: activeAccounts,
-                    selectedId: state.accountId,
-                    onSelected: vm.selectAccount,
-                  ),
-
-                if (state.isTransfer) ...[
-                  const SizedBox(height: 8),
-                  _accountRow(
-                    fieldKey: ValueKey('to-account-${state.accountId}'),
-                    icon: LucideIcons.arrowDown,
-                    label: l10n.transferTo,
-                    labelWidth: labelWidth,
-                    options: toAccountOptions,
-                    selectedId: state.toAccountId,
-                    onSelected: vm.selectToAccount,
-                    // Defence in depth: the options already exclude it, but the
-                    // aggregate is the real guard and this keeps an unreachable
-                    // state from becoming reachable through a refactor.
-                    extraValidator: (value) =>
-                        value != null && value == state.accountId
-                            ? l10n.errorSameAccountTransfer
-                            : null,
-                  ),
-                ],
-
-                if (!state.isTransfer && !state.isBalancePurpose) ...[
-                  const SizedBox(height: 8),
-                  // The FormField is pulled out of the stream's branches so
-                  // the row — and with it the tap target and the icon column —
-                  // is the same widget in every state. Inside `.when`, the
-                  // loading branch would lose its icon and shift the bar left.
-                  FormField<String>(
-                    // A fresh error slot when the kind changes: a failed save
-                    // leaves an error on this row, and the value that failed
-                    // has nothing to do with the kind that just replaced it.
-                    key: ValueKey('category-${state.type}'),
-                    validator: (_) =>
-                        state.categoryId == null ? l10n.required : null,
-                    builder: (field) => LedgerFormRow(
-                      icon: LucideIcons.layoutGrid,
-                      onTap: categoriesAsync.value == null
-                          ? null
-                          : () => _pickCategory(
-                                categoriesAsync.value!
-                                    .where((c) => c.type == state.categoryType)
-                                    .toList(),
-                              ),
-                      child: categoriesAsync.when(
-                        data: (categories) {
-                          final selected = categories
-                              .where((c) => c.id == state.categoryId)
-                              .firstOrNull;
-                          return LedgerSelectorField(
-                            label: l10n.category,
+                        LedgerFormRow(
+                          card: true,
+                          icon: LucideIcons.badgeInfo,
+                          child: LedgerSelectorField(
+                            alignEnd: true,
+                            label: l10n.transactionType,
                             labelWidth: labelWidth,
-                            text: selected?.name ??
-                                (field.hasError && state.categoryId == null
-                                    ? l10n.required
-                                    : l10n.select),
-                            textStyle: selected == null
-                                ? theme.textTheme.bodyLarge?.copyWith(
-                                    color: field.hasError &&
-                                            state.categoryId == null
-                                        ? theme.colorScheme.error
-                                        : theme.hintColor)
-                                : null,
-                          );
-                        },
-                        loading: () => const LinearProgressIndicator(),
-                        error: (_, __) => const SizedBox(),
+                            text: state.type == TransactionKind.openingBalance
+                                ? l10n.initialBalance
+                                : l10n.accountBalanceAdjustmentDescription,
+                          ),
+                        ),
+                      ] else ...[
+                        _accountRow(
+                          fieldKey: ValueKey('account-${state.type}'),
+                          icon: state.isTransfer
+                              ? LucideIcons.arrowUp
+                              : LucideIcons.wallet,
+                          label: state.isTransfer
+                              ? l10n.transferFrom
+                              : l10n.account,
+                          labelWidth: labelWidth,
+                          options: activeAccounts,
+                          selectedId: state.accountId,
+                          onSelected: vm.selectAccount,
+                        ),
+                        if (state.isTransfer)
+                          _accountRow(
+                            fieldKey: ValueKey('to-account-${state.accountId}'),
+                            icon: LucideIcons.arrowDown,
+                            label: l10n.transferTo,
+                            labelWidth: labelWidth,
+                            options: toAccountOptions,
+                            selectedId: state.toAccountId,
+                            onSelected: vm.selectToAccount,
+                            extraValidator: (value) =>
+                                value != null && value == state.accountId
+                                    ? l10n.errorSameAccountTransfer
+                                    : null,
+                          ),
+                      ],
+                      LedgerFormRow(
+                        card: true,
+                        icon: LucideIcons.clock,
+                        onTap: _pickDateTime,
+                        child: LedgerSelectorField(
+                          alignEnd: true,
+                          label: l10n.date,
+                          labelWidth: labelWidth,
+                          text: transactionDateLabel(
+                            date: state.date,
+                            today: DateTime.now(),
+                            locale: locale,
+                            l10n: l10n,
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+
+                if (state.type == TransactionKind.expense &&
+                    state.categoryId != null) ...[
+                  SizedBox(height: context.spacing.sm),
+                  _inset(
+                    TransactionBudgetHintBanner(
+                      currencyCode: currencyKey,
+                      currencySymbol: currencySymbol,
+                      month: YearMonth.fromDate(state.date),
+                      categoryId: state.categoryId!,
+                      mode: state.mode,
+                      inputAmountMinor: state.amountMinor ?? 0,
+                      selectedAccountIncludeInTotals: (state
+                              .selectedAccount(accountsAsync.value ??
+                                  const <AccountUiModel>[])
+                              ?.account
+                              .includeInTotals) ??
+                          true,
+                      original: state.original,
                     ),
                   ),
-                  if (state.type == TransactionKind.expense &&
-                      state.categoryId != null) ...[
-                    const SizedBox(height: 8),
-                    _inset(
-                      TransactionBudgetHintBanner(
-                        currencyCode: currencyKey,
-                        currencySymbol: currencySymbol,
-                        month: YearMonth.fromDate(state.date),
-                        categoryId: state.categoryId!,
-                        mode: state.mode,
-                        inputAmountMinor: state.amountMinor ?? 0,
-                        selectedAccountIncludeInTotals: (state
-                                    .selectedAccount(
-                                      accountsAsync.value ??
-                                          const <AccountUiModel>[],
-                                    )
-                                    ?.account
-                                    .includeInTotals) ??
-                            true,
-                        original: state.original,
+                ],
+
+                // The schedule is a second card, and it grows out of the
+                // core rather than appearing beside it: the switch between
+                // modes is a change of shape, so the page eases into it.
+                AnimatedSize(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  curve: Curves.easeInOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: state.showsRepeatRow ||
+                          state.showsAutoPostRow ||
+                          (state.canRepeat &&
+                              state.mode != TransactionFormMode.defaultMode)
+                      ? Padding(
+                          padding: EdgeInsets.only(top: context.spacing.md),
+                          child: _inset(
+                            _FormCard(
+                              children: [
+                                if (state.showsRepeatRow)
+                                  _repeatRow(l10n, labelWidth, state),
+                                if (state.showsAutoPostRow)
+                                  LedgerFormRow(
+                                    card: true,
+                                    icon: LucideIcons.zap,
+                                    onTap: () =>
+                                        vm.setAutoPost(!state.autoPost),
+                                    showChevron: false,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            l10n.autoPostWhenDue,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge,
+                                          ),
+                                        ),
+                                        Switch.adaptive(
+                                          value: state.autoPost,
+                                          onChanged: vm.setAutoPost,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (state.canRepeat &&
+                                    state.mode !=
+                                        TransactionFormMode.defaultMode)
+                                  LedgerFormRow(
+                                    card: true,
+                                    icon: LucideIcons.bell,
+                                    onTap: () =>
+                                        _pickReminder(state.reminderMinutes),
+                                    child: LedgerSelectorField(
+                                      alignEnd: true,
+                                      label: l10n.reminder,
+                                      labelWidth: labelWidth,
+                                      text: _reminderLabel(
+                                          l10n, state.reminderMinutes),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
+                SizedBox(height: context.spacing.md),
+
+                // Everything that is context rather than the movement itself.
+                _inset(
+                  _FormCard(
+                    children: [
+                      LedgerNoteField(
+                        card: true,
+                        controller: _noteController,
+                        labelWidth: labelWidth,
+                        onChanged: vm.setNote,
                       ),
-                    ),
-                  ],
-                ],
-
-                SizedBox(height: context.spacing.sm),
-                _inset(const FeatherDivider()),
-                SizedBox(height: context.spacing.sm),
-
-                // 6. Note. Named in the same column as every other field, and
-                //    typed from the same edge as every other value — it is a
-                //    value like the rest, not a right-aligned caption.
-                LedgerNoteField(
-                    controller: _noteController,
-                    labelWidth: labelWidth,
-                    onChanged: vm.setNote),
-
-                SizedBox(height: context.spacing.sm),
-
-                // Files are listed in-place like Calendar attachments. They are
-                // imported only when Save is pressed, so cancelling is clean.
-                // A 计划 saves a series row, which carries no attachments.
-                if (state.showsAttachments) ...[
-                  _attachmentRow(l10n, labelWidth, state),
-                  SizedBox(height: context.spacing.sm),
-                ],
+                      if (state.showsAttachments)
+                        _attachmentRow(l10n, labelWidth, state),
+                    ],
+                  ),
+                ),
 
                 SizedBox(height: context.spacing.xl),
               ],
@@ -459,7 +416,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
           ? null
           : AppBottomActionBar(
-              child: AppButton(onPressed: _submit, child: Text(l10n.save))),
+              padding: EdgeInsets.fromLTRB(
+                context.spacing.md,
+                context.spacing.sm,
+                context.spacing.md,
+                MediaQuery.viewInsetsOf(context).bottom + context.spacing.sm,
+              ),
+              child: AppButton(
+                  onPressed: canSave ? _submit : null, child: Text(l10n.save))),
     );
   }
 
@@ -479,9 +443,62 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   /// [LedgerFormRow]s. A row insets itself so that its ripple can reach the
   /// edge; anything else has to be inset from out here.
   Widget _inset(Widget child) => Padding(
-        padding: LedgerTheme.pageInset(context),
-        child: child,
-      );
+      padding: EdgeInsets.symmetric(horizontal: context.spacing.md),
+      child: child);
+
+  /// The category field, with its value's own icon on the right.
+  Widget _categoryRow({
+    required AppLocalizations l10n,
+    required double labelWidth,
+    required AsyncValue<List<CategoryEntity>> categoriesAsync,
+    required TransactionFormViewState state,
+  }) {
+    final theme = Theme.of(context);
+    return FormField<String>(
+      key: ValueKey('category-${state.type}'),
+      validator: (_) => state.categoryId == null ? l10n.required : null,
+      builder: (field) => LedgerFormRow(
+        card: true,
+        icon: LucideIcons.layoutGrid,
+        onTap: categoriesAsync.value == null
+            ? null
+            : () => _pickCategory(
+                  categoriesAsync.value!
+                      .where((c) => c.type == state.categoryType)
+                      .toList(),
+                ),
+        child: categoriesAsync.when(
+          data: (categories) {
+            final selected =
+                categories.where((c) => c.id == state.categoryId).firstOrNull;
+            return LedgerSelectorField(
+              alignEnd: true,
+              leading: selected == null
+                  ? null
+                  : _CategoryValueIcon(
+                      iconKey: selected.iconKey,
+                      color: Color(selected.colorInt),
+                    ),
+              label: l10n.category,
+              labelWidth: labelWidth,
+              text: selected?.name ??
+                  (field.hasError && state.categoryId == null
+                      ? l10n.required
+                      : l10n.select),
+              textStyle: selected == null
+                  ? theme.textTheme.bodyLarge?.copyWith(
+                      color: field.hasError && state.categoryId == null
+                          ? theme.colorScheme.error
+                          : theme.hintColor)
+                  : null,
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (_, __) => const SizedBox(),
+        ),
+      ),
+    );
+  }
 
   Widget _attachmentRow(
     AppLocalizations l10n,
@@ -500,6 +517,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         // their own — a tap on a name is not a request for another file — and
         // their remove buttons must not sit inside the picker's tap target.
         LedgerFormRow(
+          card: true,
           icon: LucideIcons.paperclip,
           onTap: _pickAttachments,
           child: LedgerSelectorField(
@@ -511,31 +529,28 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 : null,
           ),
         ),
-        // The icon column's width (24 icon + 24 padding), so the names line up
-        // under the field's name rather than under the icon.
-        _inset(
-          Padding(
-            padding: EdgeInsets.only(
-                left: context.metrics.iconSize + context.metrics.pageGutter),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...existing.map(
-                  (entry) => _attachmentItem(
-                    entry.$2.fileName,
-                    onRemove: () => _vm.removeAttachmentAt(entry.$1),
-                    removeTooltip: l10n.removeAttachment,
-                  ),
+        // Align under the field's name: card inset + icon + icon gap.
+        Padding(
+          padding: EdgeInsets.only(
+              left: context.metrics.iconSize + context.spacing.md * 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...existing.map(
+                (entry) => _attachmentItem(
+                  entry.$2.fileName,
+                  onRemove: () => _vm.removeAttachmentAt(entry.$1),
+                  removeTooltip: l10n.removeAttachment,
                 ),
-                ...pending.map(
-                  (entry) => _attachmentItem(
-                    entry.$2.name,
-                    onRemove: () => _vm.removePendingAt(entry.$1),
-                    removeTooltip: l10n.removeAttachment,
-                  ),
+              ),
+              ...pending.map(
+                (entry) => _attachmentItem(
+                  entry.$2.name,
+                  onRemove: () => _vm.removePendingAt(entry.$1),
+                  removeTooltip: l10n.removeAttachment,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -675,9 +690,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     TransactionFormViewState state,
   ) =>
       LedgerFormRow(
+        card: true,
         icon: LucideIcons.repeat,
         onTap: () => _pickRepeat(state.repeat),
         child: LedgerSelectorField(
+          alignEnd: true,
           label: l10n.repeat,
           labelWidth: labelWidth,
           text: _repeatOptionLabel(l10n, state.repeat),
@@ -782,6 +799,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         final selected =
             options.where((a) => a.account.id == selectedId).firstOrNull;
         return LedgerFormRow(
+          card: true,
           icon: icon,
           onTap: () async {
             final result = await showModalBottomSheet<String>(
@@ -817,6 +835,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             if (result != null) onSelected(result);
           },
           child: LedgerSelectorField(
+            alignEnd: true,
+            leading: selected == null
+                ? null
+                : _AccountValueIcon(type: selected.account.type),
             label: label,
             labelWidth: labelWidth,
             text: selected?.account.name ??
@@ -946,7 +968,6 @@ class _TransactionFormModeSelector extends StatelessWidget {
       ],
       selected: selected,
       onSelected: onSelected,
-      scrollable: true,
     );
   }
 
@@ -955,4 +976,105 @@ class _TransactionFormModeSelector extends StatelessWidget {
         TransactionFormMode.planned => l10n.transactionModePlanned,
         TransactionFormMode.repeating => l10n.transactionModeRepeating,
       };
+}
+
+/// One grouped surface inside the transaction form.
+class _FormCard extends StatelessWidget {
+  const _FormCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard.day(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0)
+              FeatherDivider(
+                indent: context.spacing.md,
+                endIndent: context.spacing.md,
+                color: scheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            children[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The amount and the repeat mode live on one surface: they are two parts of
+/// the same decision, and the card gives the number a quiet stage.
+class _AmountModeCard extends StatelessWidget {
+  const _AmountModeCard({required this.amount, this.modeSelector});
+
+  final Widget amount;
+  final Widget? modeSelector;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(context.spacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Center(child: amount),
+          if (modeSelector != null) ...[
+            SizedBox(height: context.spacing.md),
+            Center(child: modeSelector),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryValueIcon extends StatelessWidget {
+  const _CategoryValueIcon({required this.iconKey, required this.color});
+
+  final String iconKey;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color.alphaBlend(
+          color.withValues(alpha: 0.16),
+          Theme.of(context).colorScheme.surfaceContainerHighest,
+        ),
+      ),
+      child: CategoryIcon(iconKey: iconKey, size: 14, color: color),
+    );
+  }
+}
+
+class _AccountValueIcon extends StatelessWidget {
+  const _AccountValueIcon({required this.type});
+
+  final AccountType type;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: scheme.secondaryContainer,
+      ),
+      child: Icon(type.icon, size: 14, color: scheme.onSecondaryContainer),
+    );
+  }
 }

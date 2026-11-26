@@ -8,13 +8,21 @@ class LedgerFormRow extends StatelessWidget {
       required this.icon,
       required this.child,
       this.onTap,
-      this.showChevron = true});
+      this.showChevron = true,
+      this.card = false});
   final IconData icon;
   final Widget child;
   final VoidCallback? onTap;
   final bool showChevron;
 
+  /// Rows inside a grouped card use the card's inset instead of the page
+  /// margin.
+  final bool card;
+
   @override
-  Widget build(BuildContext context) => AppFormRow.page(
-      icon: icon, onTap: onTap, showChevron: showChevron, child: child);
+  Widget build(BuildContext context) => card
+      ? AppFormRow.card(
+          icon: icon, onTap: onTap, showChevron: showChevron, child: child)
+      : AppFormRow.page(
+          icon: icon, onTap: onTap, showChevron: showChevron, child: child);
 }

@@ -27,6 +27,13 @@ class LedgerSelectorField extends StatelessWidget {
   final TextStyle? textStyle;
   final String? errorText;
 
+  /// An optional 22–24 dp value icon drawn immediately before the text.
+  final Widget? leading;
+
+  /// Pins the value to the row's trailing edge, against the chevron. The note
+  /// field keeps its value on the leading edge because it is an input.
+  final bool alignEnd;
+
   const LedgerSelectorField({
     super.key,
     this.label,
@@ -34,6 +41,8 @@ class LedgerSelectorField extends StatelessWidget {
     required this.text,
     this.textStyle,
     this.errorText,
+    this.leading,
+    this.alignEnd = false,
   }) : assert(label == null || labelWidth != null,
             'a labelled field needs the column width its form measured');
 
@@ -66,12 +75,33 @@ class LedgerSelectorField extends StatelessWidget {
                 const SizedBox(width: LedgerTheme.formLabelGap),
               ],
               Expanded(
-                child: Text(
-                  text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textStyle ?? theme.textTheme.bodyLarge,
-                ),
+                child: alignEnd
+                    ? Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (leading != null) ...[
+                              leading!,
+                              SizedBox(width: context.spacing.sm),
+                            ],
+                            Flexible(
+                              child: Text(
+                                text,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textStyle ?? theme.textTheme.bodyLarge,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Text(
+                        text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textStyle ?? theme.textTheme.bodyLarge,
+                      ),
               ),
             ],
           ),

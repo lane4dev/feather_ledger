@@ -25,8 +25,8 @@ import 'package:feather_ledger/features/budget/presentation/view_model/transacti
 import '../../../support/fakes/recording_services.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_form_row.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
-import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 
 /// Setting a repeat rule on a new entry (spec 004, US2 / D3).
 ///
@@ -139,6 +139,13 @@ void main() {
         matching: find.text(text),
       );
 
+  /// Taps a row by its label rather than by its position: the form groups
+  /// category first, so positional indexes move whenever the layout does.
+  Finder selectorRow(String label) => find.ancestor(
+        of: find.text(label),
+        matching: find.byType(LedgerFormRow),
+      );
+
   /// Fills in an expense: amount, category, account — in default mode, where
   /// the fields are date, account, category (the frequency row only exists in
   /// a series mode, and every test that fills the form starts there).
@@ -150,11 +157,11 @@ void main() {
       ),
       '500.00',
     );
-    await tester.tap(find.byType(LedgerSelectorField).at(1)); // account
+    await tester.tap(selectorRow('Account'));
     await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
+    await tester.tap(selectorRow('Category'));
     await settle(tester);
     await tester.tap(find.text('Rent'));
     await settle(tester);
@@ -181,10 +188,10 @@ void main() {
     await settle(tester);
   }
 
-  /// Opens the repeat picker — the row right after the date selector, which
-  /// only exists once a series mode has put it there.
+  /// Opens the repeat picker — the row in the schedule card, which only
+  /// exists once a series mode has put it there.
   Future<void> chooseRepeat(WidgetTester tester, String label) async {
-    await tester.tap(find.byType(LedgerSelectorField).at(1));
+    await tester.tap(selectorRow('Repeat'));
     await settle(tester);
     await tester.tap(inDialog(label));
     await settle(tester);
@@ -209,6 +216,24 @@ void main() {
     await teardownTree(tester);
   });
 
+  testWidgets(
+      'the schedule card only appears for a series, with a zap for auto-post',
+      (tester) async {
+    await pumpForm(tester);
+    expect(find.byType(AnimatedSize), findsOneWidget);
+    expect(find.byIcon(LucideIcons.zap), findsNothing);
+
+    await chooseMode(tester, 'Repeating');
+    expect(find.byIcon(LucideIcons.repeat), findsOneWidget);
+    expect(find.byIcon(LucideIcons.zap), findsOneWidget,
+        reason: 'auto-post is not the same idea as repeat');
+    expect(find.text('Auto-post'), findsOneWidget);
+
+    await chooseMode(tester, 'Default');
+    expect(find.text('Auto-post'), findsNothing);
+    await teardownTree(tester);
+  });
+
   testWidgets('the repeat picker is a dialog, with the rule in force marked',
       (tester) async {
     // Four plain options in the middle of a form is a menu, not a sheet: the
@@ -217,7 +242,7 @@ void main() {
     // repeat" is not among them — the mode already answered that.
     await pumpForm(tester);
     await chooseMode(tester, 'Repeating');
-    await tester.tap(find.byType(LedgerSelectorField).at(1));
+    await tester.tap(selectorRow('Repeat'));
     await settle(tester);
 
     expect(find.byType(SimpleDialog), findsOneWidget);

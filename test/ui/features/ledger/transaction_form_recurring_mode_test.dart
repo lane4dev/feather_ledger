@@ -21,7 +21,6 @@ import 'package:feather_ledger/features/budget/domain/entities/budget_entities.d
 import 'package:feather_ledger/features/budget/presentation/view_model/transaction_budget_hint_provider.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
-import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 
 import '../../../support/fakes/recording_services.dart';
@@ -146,7 +145,7 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('required account and category errors appear in the value hint',
+  testWidgets('save waits for the required account and category',
       (tester) async {
     await pumpForm(tester);
     await tester.enterText(
@@ -156,17 +155,25 @@ void main() {
       ),
       '500.00',
     );
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-    await settle(tester);
+    await tester.pump();
 
-    final fields = tester
-        .widgetList<LedgerSelectorField>(find.byType(LedgerSelectorField));
-    for (final label in ['Account', 'Category']) {
-      final field = fields.singleWhere((field) => field.label == label);
-      expect(field.text, 'Required');
-      expect(field.errorText, isNull);
-    }
+    // An amount alone is not enough: the required fields are still empty, so
+    // the primary action is off rather than an error the user has to dismiss.
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save'))
+          .onPressed,
+      isNull,
+    );
     expect(ledger.addedTransactions, isEmpty);
+
+    await fillExpense(tester);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save'))
+          .onPressed,
+      isNotNull,
+    );
     await teardownTree(tester);
   });
 

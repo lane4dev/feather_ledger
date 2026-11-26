@@ -13,15 +13,20 @@ class LedgerNoteField extends StatelessWidget {
       {super.key,
       required this.controller,
       required this.labelWidth,
-      this.onChanged});
+      this.onChanged,
+      this.card = false});
   final TextEditingController controller;
   final double labelWidth;
   final ValueChanged<String>? onChanged;
+
+  /// Uses the grouped-card inset instead of the page margin.
+  final bool card;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return LedgerFormRow(
+      card: card,
       icon: LucideIcons.stickyNote,
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(

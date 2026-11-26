@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 
 class LedgerTypeSelector extends StatelessWidget {
   final TransactionKind selectedType;
@@ -20,6 +21,9 @@ class LedgerTypeSelector extends StatelessWidget {
   /// makes the segments fill that width instead of sizing to their labels.
   final double? widthFactor;
 
+  /// Uses a flat tonal selection rather than the raised iOS-style pill.
+  final bool flat;
+
   const LedgerTypeSelector({
     super.key,
     required this.selectedType,
@@ -30,12 +34,24 @@ class LedgerTypeSelector extends StatelessWidget {
       TransactionKind.transfer,
     ],
     this.widthFactor,
+    this.flat = false,
   }) : assert(widthFactor == null || (widthFactor > 0 && widthFactor <= 1));
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final tint = switch (selectedType) {
+      TransactionKind.income => context.colors.income,
+      TransactionKind.expense => context.colors.expense,
+      _ => scheme.primary,
+    };
     return AppSegmentedControl<TransactionKind>(
+      flat: flat,
+      selectionColor: flat
+          ? Color.alphaBlend(
+              tint.withValues(alpha: 0.16), scheme.surfaceContainerHighest)
+          : null,
       segments: [
         for (final kind in kinds)
           ButtonSegment(

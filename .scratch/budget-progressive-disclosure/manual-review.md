@@ -330,3 +330,40 @@ the month picker.
   the scheduled-bill editor. Tapping the app bar back returns to L3 with the
   note draft intact.
 - [ ] pass  [ ] fail — notes:
+
+## 21. Add transaction form + custom repeat dialog
+
+- Page: ledger FAB → add entry; check light and dark at 400 dp, 320 dp at
+  1.6x, and a wide 900 dp window.
+- Kind control: `收入 / 支出 / 转账` spans the content width, 16 dp from each
+  screen edge and flush with `保存`. The selected segment is a flat tonal
+  wash (income teal, expense orange, transfer primary) with no raised block or
+  drop shadow. Changing kind does not move the outer edges.
+- Amount card: amount and `默认 | 计划 | 重复` sit in one 20 dp
+  `surfaceContainerLow` card, centred. The `¥` is smaller and muted; digits
+  are tabular and do not reflow the symbol when typing. The mode chips stay on
+  one line at 400 dp and wrap/scale without overflow at 320 dp/1.6x.
+- Save: with no amount, a zero amount, or an expense/income with no category,
+  `保存` is a soft disabled capsule. It turns teal only once the amount parses
+  and the required category is chosen. A transfer with both legs missing can
+  still be submitted (amount present) and shows `Required` in each leg.
+- Groups: three `surfaceContainerLow` cards with 18 dp radius and 12 dp
+  between them. Core card order is `分类 → 账户 → 日期`, with the category's
+  22 dp circular icon and name ending against the chevron; account and date
+  values are right-aligned too. Hairline `outlineVariant` separators at 40 %
+  are inset, not full-bleed.
+- Budget hint: selecting an expense category puts `TransactionBudgetHintBanner`
+  immediately below the core card, aligned to the card's 16 dp gutters.
+- Schedule card: appears only for `计划` / `重复`, expands with the
+  `AnimatedSize` motion (no jump, no clipped divider), and holds `重复`,
+  `自动入账` with the lightning `zap` icon (visually distinct from the repeat
+  arrows), and `提醒` when a rule exists. `默认` hides the whole card.
+- Supplement card: `备注` remains left-aligned free text; `附件` shows the
+  add-attachment value and its list stays inside the card.
+- Custom repeat dialog: frequency number and unit dropdown share one
+  `surfaceContainerHighest` rounded fill with no underline; start date/time
+  are borderless `surfaceContainerLow` blocks with calendar/clock icons; the
+  actions are right-aligned `取消` text + capsule `保存`, with `保存` disabled
+  until the rule is valid. At 320 dp/1.6x the dialog scrolls instead of
+  overflowing.
+- [ ] pass  [ ] fail — notes:

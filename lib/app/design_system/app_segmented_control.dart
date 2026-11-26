@@ -9,12 +9,23 @@ class AppSegmentedControl<T> extends StatefulWidget {
       required this.segments,
       required this.selected,
       required this.onSelected,
-      this.widthFactor});
+      this.widthFactor,
+      this.flat = false,
+      this.selectionColor});
 
   final List<ButtonSegment<T>> segments;
   final T selected;
   final ValueChanged<T> onSelected;
   final double? widthFactor;
+
+  /// Drops the raised selection block for a flat tonal fill. Used by the
+  /// transaction form, where the control is a segmented field rather than a
+  /// floating choice.
+  final bool flat;
+
+  /// The flat selection's fill. The form passes a soft semantic tint so the
+  /// kind being recorded is legible before the first character is typed.
+  final Color? selectionColor;
 
   @override
   State<AppSegmentedControl<T>> createState() => _AppSegmentedControlState<T>();
@@ -95,11 +106,13 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
                       states.contains(WidgetState.pressed)
                           ? scheme.surface.withValues(alpha: 0)
                           : null),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                      (states) => states.contains(WidgetState.disabled)
+                  foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                      states.contains(WidgetState.disabled)
                           ? scheme.onSurface.withValues(alpha: 0.38)
                           : isSelected
-                              ? scheme.onSecondaryContainer
+                              ? (widget.flat
+                                  ? scheme.onSurface
+                                  : scheme.onSecondaryContainer)
                               : scheme.onSurfaceVariant),
                   textStyle: WidgetStatePropertyAll(theme.textTheme.bodyLarge),
                   padding: WidgetStatePropertyAll(EdgeInsets.symmetric(
@@ -149,9 +162,11 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
                       child: IgnorePointer(
                         child: Material(
                           key: const ValueKey('segment-selection'),
-                          color: scheme.secondaryContainer,
-                          elevation: metrics.subtleElevation,
-                          shadowColor: scheme.shadow,
+                          color: widget.selectionColor ??
+                              scheme.secondaryContainer,
+                          elevation: widget.flat ? 0 : metrics.subtleElevation,
+                          shadowColor:
+                              widget.flat ? Colors.transparent : scheme.shadow,
                           surfaceTintColor: scheme.surface.withValues(alpha: 0),
                           shape: RoundedRectangleBorder(
                               borderRadius: metrics.selectionBorderRadius),

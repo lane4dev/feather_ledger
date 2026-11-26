@@ -11,24 +11,42 @@ class AppFormRow extends StatelessWidget {
       required this.child,
       this.onTap,
       this.showChevron = true})
-      : _page = false;
+      : _page = false,
+        _card = false;
   const AppFormRow.page(
       {super.key,
       required this.icon,
       required this.child,
       this.onTap,
       this.showChevron = true})
-      : _page = true;
+      : _page = true,
+        _card = false;
+
+  /// A row inside a grouped card: 16 dp side padding, a 12 dp icon gap, and
+  /// no page margin — the card already supplies the edge.
+  const AppFormRow.card(
+      {super.key,
+      this.icon,
+      required this.child,
+      this.onTap,
+      this.showChevron = true})
+      : _page = false,
+        _card = true;
   final IconData? icon;
   final Widget child;
   final VoidCallback? onTap;
   final bool showChevron;
   final bool _page;
+  final bool _card;
 
   @override
   Widget build(BuildContext context) {
     final content = Padding(
-      padding: _page ? context.pagePadding : EdgeInsets.zero,
+      padding: _page
+          ? context.pagePadding
+          : _card
+              ? EdgeInsets.symmetric(horizontal: context.spacing.md)
+              : EdgeInsets.zero,
       child: Row(
           crossAxisAlignment:
               _page ? CrossAxisAlignment.center : CrossAxisAlignment.start,
@@ -37,7 +55,9 @@ class AppFormRow extends StatelessWidget {
               Padding(
                 padding: _page
                     ? EdgeInsets.only(right: context.metrics.pageGutter)
-                    : context.metrics.formIconPadding,
+                    : _card
+                        ? EdgeInsets.only(right: context.spacing.md)
+                        : context.metrics.formIconPadding,
                 child: Icon(icon,
                     size: context.metrics.iconSize,
                     color: Theme.of(context).colorScheme.onSurfaceVariant),

@@ -93,6 +93,7 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
         (ending != 1 || !end.isBefore(start));
     return AlertDialog(
       title: Text(l10n.customRepeat),
+      actionsAlignment: MainAxisAlignment.end,
       content: SingleChildScrollView(
           child: SizedBox(
               width: 360,
@@ -121,25 +122,46 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
                       ),
                       SizedBox(width: context.spacing.sm),
                       Expanded(
-                          child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: frequency,
-                        items: [
-                          DropdownMenuItem(
-                              value: 'DAILY', child: Text(l10n.frequencyDaily)),
-                          DropdownMenuItem(
-                              value: 'WEEKLY',
-                              child: Text(l10n.frequencyWeekly)),
-                          DropdownMenuItem(
-                              value: 'MONTHLY',
-                              child: Text(l10n.frequencyMonthly)),
-                          DropdownMenuItem(
-                              value: 'YEARLY',
-                              child: Text(l10n.frequencyYearly)),
-                        ],
-                        onChanged: (value) =>
-                            setState(() => frequency = value!),
-                      )),
+                        child: Container(
+                          height: context.metrics.controlHeight,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: context.spacing.md),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            borderRadius: context.metrics.controlBorderRadius,
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              isDense: true,
+                              value: frequency,
+                              icon: Icon(LucideIcons.chevronDown,
+                                  size: context.metrics.iconSize,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                              items: [
+                                DropdownMenuItem(
+                                    value: 'DAILY',
+                                    child: Text(l10n.frequencyDaily)),
+                                DropdownMenuItem(
+                                    value: 'WEEKLY',
+                                    child: Text(l10n.frequencyWeekly)),
+                                DropdownMenuItem(
+                                    value: 'MONTHLY',
+                                    child: Text(l10n.frequencyMonthly)),
+                                DropdownMenuItem(
+                                    value: 'YEARLY',
+                                    child: Text(l10n.frequencyYearly)),
+                              ],
+                              onChanged: (value) =>
+                                  setState(() => frequency = value!),
+                            ),
+                          ),
+                        ),
+                      ),
                     ]),
                     if (frequency == 'WEEKLY') ...[
                       SizedBox(height: context.spacing.sm),
@@ -201,24 +223,23 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
                     SizedBox(height: context.spacing.sm),
                     Row(children: [
                       Expanded(
-                          flex: 3,
-                          child: AppButton.outlined(
-                            onPressed: () => _pickDate(true),
-                            child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(date.format(start))),
-                          )),
-                      SizedBox(width: context.spacing.xs),
+                        flex: 3,
+                        child: _SoftPickerButton(
+                          icon: LucideIcons.calendar,
+                          label: date.format(start),
+                          onTap: () => _pickDate(true),
+                        ),
+                      ),
+                      SizedBox(width: context.spacing.sm),
                       Expanded(
-                          flex: 2,
-                          child: AppButton.outlined(
-                            onPressed: _pickTime,
-                            child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(MaterialLocalizations.of(context)
-                                    .formatTimeOfDay(
-                                        TimeOfDay.fromDateTime(start)))),
-                          )),
+                        flex: 2,
+                        child: _SoftPickerButton(
+                          icon: LucideIcons.clock,
+                          label: MaterialLocalizations.of(context)
+                              .formatTimeOfDay(TimeOfDay.fromDateTime(start)),
+                          onTap: _pickTime,
+                        ),
+                      ),
                     ]),
                     SizedBox(height: context.spacing.lg),
                     Text(l10n.repeatEnds,
@@ -242,9 +263,10 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
                           if (ending == 1)
                             SizedBox(
                               width: double.infinity,
-                              child: AppButton.outlined(
-                                onPressed: () => _pickDate(false),
-                                child: Text(date.format(end)),
+                              child: _SoftPickerButton(
+                                icon: LucideIcons.calendar,
+                                label: date.format(end),
+                                onTap: () => _pickDate(false),
                               ),
                             ),
                           Row(children: [
@@ -284,7 +306,7 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
       actions: [
         AppButton.text(
             onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        AppButton.text(
+        AppButton(
             onPressed: valid
                 ? () => Navigator.pop(
                     context,
@@ -301,6 +323,52 @@ class _CustomRecurrenceDialogState extends State<CustomRecurrenceDialog> {
                 : null,
             child: Text(l10n.save)),
       ],
+    );
+  }
+}
+
+/// A borderless tonal field for a date or a time: the same quiet surface as
+/// the compact number fields, with a small icon to say which is which.
+class _SoftPickerButton extends StatelessWidget {
+  const _SoftPickerButton(
+      {required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerLow,
+      borderRadius: context.metrics.controlBorderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: context.metrics.controlHeight,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: context.spacing.md),
+            child: Row(
+              children: [
+                Icon(icon,
+                    size: context.metrics.inlineIconSize,
+                    color: scheme.onSurfaceVariant),
+                SizedBox(width: context.spacing.sm),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(label,
+                        style: Theme.of(context).textTheme.bodyLarge),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

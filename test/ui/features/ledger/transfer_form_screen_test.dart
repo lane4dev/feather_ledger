@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/design_system/app_card.dart';
 import 'package:feather_ledger/app/design_system/app_segmented_control.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/core/domain/entities/account.dart';
@@ -20,6 +21,7 @@ import 'package:feather_ledger/features/budget/domain/entities/budget_entities.d
 import 'package:feather_ledger/features/budget/presentation/view_model/transaction_budget_hint_provider.dart';
 import '../../../support/fakes/recording_services.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_form_row.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -170,9 +172,13 @@ void main() {
         matching: find.text(text),
       );
 
+  /// Opens the from/to account picker by its row label. The grouped form puts
+  /// the category first, so a positional index is no longer stable.
   Future<void> openPicker(WidgetTester tester, int index) async {
-    // Date is now the first selector; account pickers follow it.
-    await tester.tap(find.byType(LedgerSelectorField).at(index + 1));
+    await tester.tap(find.ancestor(
+      of: find.text(index == 0 ? 'From' : 'To'),
+      matching: find.byType(LedgerFormRow),
+    ));
     await settle(tester);
   }
 
@@ -224,8 +230,48 @@ void main() {
     final screenWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
 
-    expect(selectorWidth / screenWidth, inInclusiveRange(0.60, 0.75));
+    expect(selectorWidth / screenWidth, inInclusiveRange(0.90, 0.96),
+        reason: 'the kind control spans the page gutters, flush with Save');
 
+    await teardownTree(tester);
+  });
+
+  testWidgets('the form groups category, account and date in one card',
+      (tester) async {
+    await pumpForm(tester);
+
+    expect(find.byType(AppCard), findsNWidgets(2),
+        reason: 'the core field card and the note/attachments card');
+    expect(tester.getTopLeft(find.text('Category')).dy,
+        lessThan(tester.getTopLeft(find.text('Account')).dy));
+    expect(tester.getTopLeft(find.text('Account')).dy,
+        lessThan(tester.getTopLeft(find.text('Date')).dy));
+
+    // The selected value carries the category's own icon and sits against the
+    // chevron, not at a fixed left inset.
+    await tester.tap(find.ancestor(
+        of: find.text('Category'), matching: find.byType(LedgerFormRow)));
+    await settle(tester);
+    await tester.tap(find.text('Food'));
+    await settle(tester);
+    expect(tester.getTopLeft(find.text('Food')).dx,
+        greaterThan(tester.getTopLeft(find.text('Date')).dx));
+  });
+
+  testWidgets('the grouped form fits a narrow screen at large text',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await pumpForm(tester);
+    expect(tester.takeException(), isNull);
+
+    await selectKind(tester, 'Transfer');
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     await teardownTree(tester);
   });
 
@@ -240,13 +286,12 @@ void main() {
       matching: find.byType(InkWell),
     );
 
-    // The page does not pad its rows: the row pads its own contents, so the
-    // tap target reaches both edges of the screen while the field keeps the
-    // page's margin. Padding from the outside would clip the ripple.
-    expect(tester.getTopLeft(row).dx, 0);
-    expect(tester.getTopRight(row).dx, screenWidth);
+    // Rows live inside a grouped card: the ripple reaches the card's edges
+    // while the contents keep the card's 16dp inset.
+    expect(tester.getTopLeft(row).dx, AppTheme.spacing.md);
+    expect(tester.getTopRight(row).dx, screenWidth - AppTheme.spacing.md);
     expect(tester.getTopLeft(find.byIcon(LucideIcons.clock)).dx,
-        AppTheme.spacing.lg);
+        AppTheme.spacing.md * 2);
   });
 
   testWidgets('the empty note says what to write there', (tester) async {
@@ -490,12 +535,14 @@ void main() {
       ),
       '30.00',
     );
-    // Default mode has no frequency row: date, account, category.
-    await tester.tap(find.byType(LedgerSelectorField).at(1)); // account
+    // Default mode groups category, account and date.
+    await tester.tap(find.ancestor(
+        of: find.text('Account'), matching: find.byType(LedgerFormRow)));
     await settle(tester);
     await tester.tap(inSheet('Cash'));
     await settle(tester);
-    await tester.tap(find.byType(LedgerSelectorField).at(2)); // category
+    await tester.tap(find.ancestor(
+        of: find.text('Category'), matching: find.byType(LedgerFormRow)));
     await settle(tester);
     await tester.tap(find.text('Food'));
     await settle(tester);
@@ -521,8 +568,9 @@ void main() {
       ),
       '250.00',
     );
+    await tester.pump();
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await settle(tester);
 
     expect(find.text('Required'), findsWidgets,
