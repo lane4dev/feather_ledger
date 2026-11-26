@@ -179,7 +179,6 @@ void main() {
       remaining: [
         budgetCategory(id: 'utils', name: 'Utilities', month: budgetTestJune)
       ],
-      hasHighFrequencyPending: true,
     );
 
     await pumpBudgetScreen(
@@ -216,7 +215,7 @@ void main() {
     expect(find.textContaining('Fixed bills \$2100.00'), findsOneWidget);
     expect(
       find.text('Only generated recurring bills are included.'),
-      findsOneWidget,
+      findsNothing,
     );
     // The hint says "this month", so it carries the calendar marker.
     expect(

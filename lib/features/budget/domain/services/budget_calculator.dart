@@ -20,9 +20,6 @@ abstract final class BudgetCalculator {
             ? BudgetMode.review
             : BudgetMode.track;
 
-    final horizonYm = YearMonth.fromDate(now.add(const Duration(days: 90)));
-    final isFarFuture = targetYm > horizonYm;
-
     final sixMonths = List<YearMonth>.generate(
       6,
       (i) => targetYm.addMonths(i - 5),
@@ -243,8 +240,12 @@ abstract final class BudgetCalculator {
           for (final bill in pendingByCat[cat.id] ?? const [])
             BudgetContributionTx(
               transactionId: bill.scheduledBillId,
-              sourceScheduledBillId: bill.scheduledBillId,
-              scheduledBillId: bill.scheduledBillId,
+              sourceScheduledBillId:
+                  bill.isVirtual ? null : bill.scheduledBillId,
+              scheduledBillId: bill.isVirtual ? null : bill.scheduledBillId,
+              seriesId: bill.seriesId,
+              occurrenceKey: bill.occurrenceKey,
+              isVirtual: bill.isVirtual,
               description: bill.description,
               occurredAt: bill.effectiveDate,
               amountMinor: bill.amountMinor,
@@ -418,9 +419,6 @@ abstract final class BudgetCalculator {
       hasAnyBudget: budgetedCount > 0,
       hasUnbudgetedActivity: unbudgetedActive.isNotEmpty,
       hasLeftoverPendingInReview: hasLeftoverPendingInReview,
-      hasHighFrequencyPending:
-          mode != BudgetMode.review && pending.hasHighFrequencyActiveSeries,
-      isFarFutureMaterializedOnly: isFarFuture && mode == BudgetMode.plan,
       budgetedCategories: List.unmodifiable(budgeted),
       unbudgetedActiveCategories: List.unmodifiable(unbudgetedActive),
       remainingActiveCategories: List.unmodifiable(remainingActive),

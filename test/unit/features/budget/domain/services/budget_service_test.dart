@@ -30,7 +30,7 @@ void main() {
       ClearCategoryBudgetCommand(repo, clock: clock),
       SaveReviewNoteCommand(repo, clock: clock),
       WatchMonthBudgetQuery(repo, clock: clock),
-      WatchTransactionBudgetHintQuery(repo),
+      WatchTransactionBudgetHintQuery(repo, clock: clock),
       repo,
     );
   });

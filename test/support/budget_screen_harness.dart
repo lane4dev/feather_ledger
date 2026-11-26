@@ -161,7 +161,6 @@ MonthBudgetSummary monthBudgetSummary(
   List<BudgetAttributionItem> overBudget = const [],
   List<BudgetAttributionItem> underBudget = const [],
   String? note,
-  bool hasHighFrequencyPending = false,
   DateTime? now,
 }) {
   final resolvedMode = _modeOf(month, now);
@@ -246,8 +245,6 @@ MonthBudgetSummary monthBudgetSummary(
     hasAnyBudget: budgetedCount > 0,
     hasUnbudgetedActivity: unbudgetedActual + unbudgetedPending > 0,
     hasLeftoverPendingInReview: closed && budgetedPending > 0,
-    hasHighFrequencyPending: hasHighFrequencyPending,
-    isFarFutureMaterializedOnly: false,
     budgetedCategories: budgetedRows,
     unbudgetedActiveCategories: unbudgetedRows,
     remainingActiveCategories: remainingRows,

@@ -41,6 +41,9 @@ class BudgetTrendPointUiModel {
 class BudgetContributionTxUiModel {
   final String id;
   final bool isPending;
+  final String? seriesId;
+  final String? occurrenceKey;
+  final bool isVirtual;
   final String title;
   final String dateDisplay;
   final String amountDisplay;
@@ -54,6 +57,9 @@ class BudgetContributionTxUiModel {
   const BudgetContributionTxUiModel({
     required this.id,
     required this.isPending,
+    this.seriesId,
+    this.occurrenceKey,
+    this.isVirtual = false,
     required this.title,
     required this.dateDisplay,
     required this.amountDisplay,
@@ -370,7 +376,6 @@ class BudgetOverviewUiModel {
   final String committedActualDisplay;
   final String discretionaryActualDisplay;
   final bool hasLeftoverPendingInReview;
-  final bool hasHighFrequencyMaterializationHint;
 
   /// What the main amount measures this mode — the hero's label.
   final BudgetOverviewMainLabel mainLabel;
@@ -423,7 +428,6 @@ class BudgetOverviewUiModel {
     required this.committedActualDisplay,
     required this.discretionaryActualDisplay,
     required this.hasLeftoverPendingInReview,
-    required this.hasHighFrequencyMaterializationHint,
     required this.mainLabel,
     required this.mainAmount,
     required this.isMainAmountNegative,
@@ -524,14 +528,9 @@ class BudgetCategoryDetailUiModel {
   /// page drops every pending figure.
   final bool isHistoricalMonth;
 
-  /// The month's pending money is only materialised bills, which the
-  /// composition card says out loud.
-  final bool showMaterializationHint;
-
   const BudgetCategoryDetailUiModel({
     required this.row,
     required this.monthDisplay,
     required this.isHistoricalMonth,
-    required this.showMaterializationHint,
   });
 }

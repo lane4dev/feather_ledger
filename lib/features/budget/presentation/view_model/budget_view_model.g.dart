@@ -357,7 +357,7 @@ final class BudgetCategoryDetailProvider extends $FunctionalProvider<
 }
 
 String _$budgetCategoryDetailHash() =>
-    r'd6b61a34f27f29f3d5d2dab39af963ea8053d746';
+    r'3845a3f9c6ff9e68ac14dca30e49b2a989dfd640';
 
 /// The category detail page's view model: one row out of the month's model,
 /// or null once that category has no row in this month.

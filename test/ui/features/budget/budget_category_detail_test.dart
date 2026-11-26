@@ -232,8 +232,6 @@ MonthBudgetSummary buildSummary({
   List<BudgetTrendPoint>? sixMonthTrend,
   List<BudgetTrendPoint>? monthTrend,
   List<BudgetContributionTx>? contributions,
-  bool hasHighFrequencyPending = false,
-  bool isFarFutureMaterializedOnly = false,
 }) {
   final contributions_ = contributions ?? _defaultContributions();
   final dining = CategoryBudgetSummary(
@@ -292,8 +290,6 @@ MonthBudgetSummary buildSummary({
     hasAnyBudget: budgetMinor != null,
     hasUnbudgetedActivity: false,
     hasLeftoverPendingInReview: false,
-    hasHighFrequencyPending: hasHighFrequencyPending,
-    isFarFutureMaterializedOnly: isFarFutureMaterializedOnly,
     budgetedCategories: archived || budgetMinor == null ? const [] : [dining],
     unbudgetedActiveCategories:
         !archived && budgetMinor == null ? [dining] : const [],
@@ -889,20 +885,12 @@ void main() {
     expect(inCompositionCard(find.text('Pending')), findsNothing);
   });
 
-  testWidgets('the materialization hint explains high-frequency pending bills',
+  testWidgets('category detail never renders the removed materialized-only hint',
       (tester) async {
     final hint = find.text('Only generated recurring bills are included.');
-    final plain = _StubBudgetService(buildSummary());
-    await pumpDetail(tester, service: plain, size: const Size(900, 1200));
+    final service = _StubBudgetService(buildSummary(pendingMinor: 20000));
+    await pumpDetail(tester, service: service, size: const Size(900, 1200));
     expect(hint, findsNothing);
-
-    final materialized = _StubBudgetService(buildSummary(
-      pendingMinor: 20000,
-      hasHighFrequencyPending: true,
-    ));
-    await pumpDetail(tester,
-        service: materialized, size: const Size(900, 1200));
-    expect(hint, findsOneWidget);
   });
 
   final richSummary = buildSummary(
@@ -913,7 +901,6 @@ void main() {
     threeMonthAvgMinor: 75000,
     isAnomaly: true,
     anomalyDeltaRatio: 3.0,
-    hasHighFrequencyPending: true,
     contributions: [
       BudgetContributionTx(
         transactionId: 'tx-1',

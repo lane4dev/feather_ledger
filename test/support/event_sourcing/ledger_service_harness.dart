@@ -158,7 +158,7 @@ class LedgerServiceHarness {
       ClearCategoryBudgetCommand(budgetRepository, clock: this.clock),
       SaveReviewNoteCommand(budgetRepository, clock: this.clock),
       WatchMonthBudgetQuery(budgetRepository, clock: this.clock),
-      WatchTransactionBudgetHintQuery(budgetRepository),
+      WatchTransactionBudgetHintQuery(budgetRepository, clock: this.clock),
       budgetRepository,
     );
     ledgerService = LedgerService(

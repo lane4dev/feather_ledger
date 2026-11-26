@@ -679,8 +679,6 @@ MonthBudgetSummary _summary({
     hasAnyBudget: budgetedCategories.isNotEmpty,
     hasUnbudgetedActivity: unbudgetedActiveCategories.isNotEmpty,
     hasLeftoverPendingInReview: false,
-    hasHighFrequencyPending: false,
-    isFarFutureMaterializedOnly: mode == BudgetMode.plan,
     budgetedCategories: budgetedCategories,
     unbudgetedActiveCategories: unbudgetedActiveCategories,
     remainingActiveCategories: const [],

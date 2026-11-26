@@ -133,6 +133,9 @@ class BudgetContributionTx {
   final String transactionId;
   final String? sourceScheduledBillId;
   final String? scheduledBillId;
+  final String? seriesId;
+  final String? occurrenceKey;
+  final bool isVirtual;
   final String description;
   final DateTime occurredAt;
   final int amountMinor;
@@ -143,6 +146,9 @@ class BudgetContributionTx {
     required this.transactionId,
     required this.sourceScheduledBillId,
     required this.scheduledBillId,
+    this.seriesId,
+    this.occurrenceKey,
+    this.isVirtual = false,
     required this.description,
     required this.occurredAt,
     required this.amountMinor,
@@ -159,6 +165,9 @@ class BudgetContributionTx {
           other.transactionId == transactionId &&
           other.sourceScheduledBillId == sourceScheduledBillId &&
           other.scheduledBillId == scheduledBillId &&
+          other.seriesId == seriesId &&
+          other.occurrenceKey == occurrenceKey &&
+          other.isVirtual == isVirtual &&
           other.description == description &&
           other.occurredAt == occurredAt &&
           other.amountMinor == amountMinor &&
@@ -170,6 +179,9 @@ class BudgetContributionTx {
         transactionId,
         sourceScheduledBillId,
         scheduledBillId,
+        seriesId,
+        occurrenceKey,
+        isVirtual,
         description,
         occurredAt,
         amountMinor,

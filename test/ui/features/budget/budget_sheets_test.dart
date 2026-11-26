@@ -232,8 +232,6 @@ void main() {
       hasAnyBudget: true,
       hasUnbudgetedActivity: false,
       hasLeftoverPendingInReview: false,
-      hasHighFrequencyPending: false,
-      isFarFutureMaterializedOnly: false,
       budgetedCategories: archived || unbudgeted ? const [] : [dining],
       unbudgetedActiveCategories: unbudgeted ? [dining] : const [],
       remainingActiveCategories: archived ? [dining] : const [],

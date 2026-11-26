@@ -180,8 +180,6 @@ AsyncValue<BudgetCategoryDetailUiModel?> budgetCategoryDetail(
       row: row,
       monthDisplay: screen.monthDisplay,
       isHistoricalMonth: request.month < YearMonth.fromDate(today),
-      showMaterializationHint:
-          screen.overview.hasHighFrequencyMaterializationHint,
     );
   });
 }

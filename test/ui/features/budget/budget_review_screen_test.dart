@@ -201,8 +201,6 @@ void main() {
       hasAnyBudget: true,
       hasUnbudgetedActivity: true,
       hasLeftoverPendingInReview: hasLeftoverPendingInReview,
-      hasHighFrequencyPending: false,
-      isFarFutureMaterializedOnly: false,
       budgetedCategories: [dining],
       unbudgetedActiveCategories: [medical],
       remainingActiveCategories: const [],

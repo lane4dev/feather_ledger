@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show protected;
 
 import 'package:feather_ledger/core/domain/enums.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/recurrence/recurrence_expander.dart';
 
 import '../app_database.dart';
 import '../tables.dart';
@@ -73,10 +75,12 @@ class BudgetMonthRawSummary {
   });
 }
 
-/// Raw pending expense bill row for a target month.
+/// Raw pending expense bill row (physical or virtual overlay) for a target month.
 class BudgetPendingBillRaw {
   final String scheduledBillId;
   final String seriesId;
+  final String occurrenceKey;
+  final bool isVirtual;
   final String categoryId;
   final String description;
   final int amountMinor;
@@ -89,6 +93,8 @@ class BudgetPendingBillRaw {
   const BudgetPendingBillRaw({
     required this.scheduledBillId,
     required this.seriesId,
+    this.occurrenceKey = '',
+    this.isVirtual = false,
     required this.categoryId,
     required this.description,
     required this.amountMinor,
@@ -103,11 +109,9 @@ class BudgetPendingBillRaw {
 /// Raw payload emitted by [BudgetDao.watchMonthPendingExpenses].
 class BudgetMonthPendingRaw {
   final List<BudgetPendingBillRaw> bills;
-  final bool hasHighFrequencyActiveSeries;
 
   const BudgetMonthPendingRaw({
     required this.bills,
-    required this.hasHighFrequencyActiveSeries,
   });
 }
 
@@ -293,10 +297,17 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
 
   /// Stream 2: watches pending (`scheduled` or `failed`) expense bills for
   /// [currencyCode] falling in local calendar month [targetYm].
+  ///
+  /// When [includeVirtual] is true (Track / Plan modes: `targetYm >= nowYm`),
+  /// active expense recurring series are expanded via [RecurrenceExpander] and
+  /// overlaid against physical rows keyed by `(seriesId, occurrenceKey)`.
+  /// When false (Review mode: `targetYm < nowYm`), only physical `scheduled` /
+  /// `failed` rows are returned.
   Stream<BudgetMonthPendingRaw> watchMonthPendingExpenses(
     String currencyCode,
-    int targetYm,
-  ) {
+    int targetYm, {
+    bool includeVirtual = true,
+  }) {
     final trigger = db.customSelect(
       'SELECT 1',
       readsFrom: {
@@ -307,14 +318,35 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     ).watch();
 
     return trigger.asyncMap(
-      (_) => _loadMonthPendingExpenses(currencyCode, targetYm),
+      (_) => _loadMonthPendingExpenses(
+        currencyCode,
+        targetYm,
+        includeVirtual: includeVirtual,
+      ),
     );
   }
 
   Future<BudgetMonthPendingRaw> _loadMonthPendingExpenses(
     String currencyCode,
-    int targetYm,
-  ) async {
+    int targetYm, {
+    required bool includeVirtual,
+  }) async {
+    final bills = await _loadPendingExpenseBills(
+      currencyCode: currencyCode,
+      targetYm: targetYm,
+      includeVirtual: includeVirtual,
+    );
+    return BudgetMonthPendingRaw(bills: bills);
+  }
+
+  /// Shared overlay loader used by both [watchMonthPendingExpenses] and
+  /// [watchCategoryBudgetHint] so monthly totals and live form hints never drift.
+  Future<List<BudgetPendingBillRaw>> _loadPendingExpenseBills({
+    required String currencyCode,
+    required int targetYm,
+    required bool includeVirtual,
+    String? categoryId,
+  }) async {
     final targetYear = targetYm ~/ 100;
     final targetMonth = targetYm % 100;
     final monthStart = DateTime(targetYear, targetMonth, 1);
@@ -325,7 +357,20 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       scheduledTransactionsView.scheduledDate,
     ]);
 
-    final query = select(scheduledTransactionsView).join([
+    var physicalPredicate =
+        recurringSeries.type.equals(RecurringSeriesKind.expense.index) &
+            accountsView.currencyCode.equals(currencyCode) &
+            accountsView.includeInTotals.equals(true) &
+            accountsView.deleted.equals(false) &
+            scheduledTransactionsView.status.isIn(['scheduled', 'failed']) &
+            effectiveDateExpr.isBiggerOrEqualValue(monthStart) &
+            effectiveDateExpr.isSmallerThanValue(monthEndExclusive);
+    if (categoryId != null) {
+      physicalPredicate =
+          physicalPredicate & recurringSeries.categoryId.equals(categoryId);
+    }
+
+    final physicalQuery = select(scheduledTransactionsView).join([
       innerJoin(
         recurringSeries,
         recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId),
@@ -335,20 +380,12 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         accountsView.id.equalsExp(recurringSeries.accountId),
       ),
     ])
-      ..where(
-        recurringSeries.type.equals(RecurringSeriesKind.expense.index) &
-            accountsView.currencyCode.equals(currencyCode) &
-            accountsView.includeInTotals.equals(true) &
-            accountsView.deleted.equals(false) &
-            scheduledTransactionsView.status.isIn(['scheduled', 'failed']) &
-            effectiveDateExpr.isBiggerOrEqualValue(monthStart) &
-            effectiveDateExpr.isSmallerThanValue(monthEndExclusive),
-      )
+      ..where(physicalPredicate)
       ..orderBy([OrderingTerm.asc(effectiveDateExpr)]);
 
-    final rows = await query.get();
+    final physicalRows = await physicalQuery.get();
     final bills = <BudgetPendingBillRaw>[];
-    for (final row in rows) {
+    for (final row in physicalRows) {
       final scheduled = row.readTable(scheduledTransactionsView);
       final series = row.readTable(recurringSeries);
       final effectiveDate =
@@ -356,6 +393,8 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       bills.add(BudgetPendingBillRaw(
         scheduledBillId: scheduled.id,
         seriesId: series.id,
+        occurrenceKey: scheduled.occurrenceKey,
+        isVirtual: false,
         categoryId: series.categoryId,
         description: scheduled.memoOverride ?? series.description,
         amountMinor:
@@ -368,31 +407,107 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       ));
     }
 
-    final highFreqSeries = await (select(recurringSeries).join([
+    if (!includeVirtual) {
+      return bills;
+    }
+
+    var activeSeriesPredicate = recurringSeries.isActive.equals(true) &
+        recurringSeries.type.equals(RecurringSeriesKind.expense.index) &
+        accountsView.currencyCode.equals(currencyCode) &
+        accountsView.includeInTotals.equals(true) &
+        accountsView.deleted.equals(false) &
+        accountsView.archived.equals(false);
+    if (categoryId != null) {
+      activeSeriesPredicate =
+          activeSeriesPredicate & recurringSeries.categoryId.equals(categoryId);
+    }
+
+    final activeSeriesRows = await (select(recurringSeries).join([
       innerJoin(
         accountsView,
         accountsView.id.equalsExp(recurringSeries.accountId),
-        useColumns: false,
       ),
     ])
-          ..where(
-            recurringSeries.isActive.equals(true) &
-                recurringSeries.type.equals(RecurringSeriesKind.expense.index) &
-                recurringSeries.frequency.isIn(['DAILY', 'WEEKLY']) &
-                recurringSeries.startDate
-                    .isSmallerThanValue(monthEndExclusive) &
-                (recurringSeries.endDate.isNull() |
-                    recurringSeries.endDate.isBiggerOrEqualValue(monthStart)) &
-                accountsView.currencyCode.equals(currencyCode) &
-                accountsView.includeInTotals.equals(true) &
-                accountsView.deleted.equals(false),
-          ))
+          ..where(activeSeriesPredicate))
         .get();
 
-    return BudgetMonthPendingRaw(
-      bills: bills,
-      hasHighFrequencyActiveSeries: highFreqSeries.isNotEmpty,
-    );
+    if (activeSeriesRows.isEmpty) {
+      return bills;
+    }
+
+    final activeSeriesIds = [
+      for (final row in activeSeriesRows) row.readTable(recurringSeries).id,
+    ];
+    final ymPrefix = '${targetYear.toString().padLeft(4, '0')}-'
+        '${targetMonth.toString().padLeft(2, '0')}-';
+
+    // Any physical row for (seriesId, occurrenceKey) — whether posted, skipped,
+    // scheduled/failed in-month (already added above), or dateOverridden to
+    // another month — suppresses virtual generation for that occurrence.
+    final overlayPhysicalRows = await (select(scheduledTransactionsView)
+          ..where((s) =>
+              s.seriesId.isIn(activeSeriesIds) &
+              (s.occurrenceKey.like('$ymPrefix%') |
+                  s.occurrenceKey.equals(kPlannedOccurrenceKey))))
+        .get();
+
+    final existingKeys = <(String, String)>{
+      for (final row in overlayPhysicalRows) (row.seriesId, row.occurrenceKey),
+    };
+
+    const expander = RecurrenceExpander();
+    for (final row in activeSeriesRows) {
+      final series = row.readTable(recurringSeries);
+      final account = row.readTable(accountsView);
+      final spec = RecurrenceRuleSpec.fromStored(
+        mode: series.mode,
+        frequency: series.frequency,
+        interval: series.interval,
+        startDate: series.startDate,
+        endDate: series.endDate,
+        countLimit: series.countLimit,
+        completedCountOffset: series.completedCountOffset,
+        rrule: series.rrule,
+        materializeFrom: series.materializeFrom,
+      );
+
+      final occurrences = expander.expandForMonth(
+        spec,
+        targetYear,
+        targetMonth,
+        respectMaterializeFrom: true,
+      );
+
+      for (final occ in occurrences) {
+        if (existingKeys.contains((series.id, occ.occurrenceKey))) {
+          continue;
+        }
+        bills.add(BudgetPendingBillRaw(
+          scheduledBillId: 'virtual:${series.id}:${occ.occurrenceKey}',
+          seriesId: series.id,
+          occurrenceKey: occ.occurrenceKey,
+          isVirtual: true,
+          categoryId: series.categoryId,
+          description: series.description,
+          amountMinor: series.amountMinor.abs(),
+          effectiveDate: occ.scheduledDate,
+          status: 'scheduled',
+          accountId: series.accountId,
+          frequency: series.frequency,
+          accountName: account.name,
+        ));
+      }
+    }
+
+    bills.sort((a, b) {
+      final dateCmp = a.effectiveDate.compareTo(b.effectiveDate);
+      if (dateCmp != 0) return dateCmp;
+      final seriesCmp = a.seriesId.compareTo(b.seriesId);
+      if (seriesCmp != 0) return seriesCmp;
+      return a.occurrenceKey.compareTo(b.occurrenceKey);
+    });
+
+    return bills;
   }
 
   /// Stream 3: ultra-lightweight single-category hint stream for
@@ -400,8 +515,9 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
   Stream<BudgetCategoryHintRaw> watchCategoryBudgetHint(
     String currencyCode,
     int targetYm,
-    String categoryId,
-  ) {
+    String categoryId, {
+    bool includeVirtual = true,
+  }) {
     final trigger = db.customSelect(
       'SELECT 1',
       readsFrom: {
@@ -416,15 +532,21 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     ).watch();
 
     return trigger.asyncMap(
-      (_) => _loadCategoryBudgetHint(currencyCode, targetYm, categoryId),
+      (_) => _loadCategoryBudgetHint(
+        currencyCode,
+        targetYm,
+        categoryId,
+        includeVirtual: includeVirtual,
+      ),
     );
   }
 
   Future<BudgetCategoryHintRaw> _loadCategoryBudgetHint(
     String currencyCode,
     int targetYm,
-    String categoryId,
-  ) async {
+    String categoryId, {
+    required bool includeVirtual,
+  }) async {
     final targetYear = targetYm ~/ 100;
     final targetMonth = targetYm % 100;
     final monthStart = DateTime(targetYear, targetMonth, 1);
@@ -481,38 +603,15 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       actualMinor += row.readTable(transactionPostingsView).amountMinor.abs();
     }
 
-    final effectiveDateExpr = coalesce<DateTime>([
-      scheduledTransactionsView.dateOverride,
-      scheduledTransactionsView.scheduledDate,
-    ]);
-    final pendingQuery = select(scheduledTransactionsView).join([
-      innerJoin(
-        recurringSeries,
-        recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId),
-      ),
-      innerJoin(
-        accountsView,
-        accountsView.id.equalsExp(recurringSeries.accountId),
-        useColumns: false,
-      ),
-    ])
-      ..where(
-        recurringSeries.categoryId.equals(categoryId) &
-            recurringSeries.type.equals(RecurringSeriesKind.expense.index) &
-            accountsView.currencyCode.equals(currencyCode) &
-            accountsView.includeInTotals.equals(true) &
-            accountsView.deleted.equals(false) &
-            scheduledTransactionsView.status.isIn(['scheduled', 'failed']) &
-            effectiveDateExpr.isBiggerOrEqualValue(monthStart) &
-            effectiveDateExpr.isSmallerThanValue(monthEndExclusive),
-      );
-    final pendingRows = await pendingQuery.get();
+    final pendingBills = await _loadPendingExpenseBills(
+      currencyCode: currencyCode,
+      targetYm: targetYm,
+      includeVirtual: includeVirtual,
+      categoryId: categoryId,
+    );
     var pendingMinor = 0;
-    for (final row in pendingRows) {
-      final scheduled = row.readTable(scheduledTransactionsView);
-      final series = row.readTable(recurringSeries);
-      pendingMinor +=
-          (scheduled.amountOverrideMinor ?? series.amountMinor).abs();
+    for (final bill in pendingBills) {
+      pendingMinor += bill.amountMinor;
     }
 
     return BudgetCategoryHintRaw(

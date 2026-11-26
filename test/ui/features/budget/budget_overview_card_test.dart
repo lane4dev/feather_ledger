@@ -524,8 +524,6 @@ MonthBudgetSummary _summary({
     hasAnyBudget: hasAnyBudget,
     hasUnbudgetedActivity: unbudgetedActiveCategories.isNotEmpty,
     hasLeftoverPendingInReview: mode == BudgetMode.review,
-    hasHighFrequencyPending: false,
-    isFarFutureMaterializedOnly: mode == BudgetMode.plan,
     budgetedCategories: budgetedCategories ?? [_cat()],
     unbudgetedActiveCategories: unbudgetedActiveCategories,
     remainingActiveCategories: const [],

@@ -117,7 +117,6 @@ void main() {
               effectiveDate: DateTime(2026, 5, 4),
               amountMinor: 400)
         ],
-        hasHighFrequencyActiveSeries: false,
       );
       final tracked = BudgetCalculator.compute(
               currencyCode: 'CNY',
@@ -154,7 +153,6 @@ void main() {
       );
       const pending = BudgetMonthPendingRaw(
         bills: [],
-        hasHighFrequencyActiveSeries: false,
       );
       final now = DateTime(2026, 5, 10);
 
@@ -248,7 +246,6 @@ void main() {
             amountMinor: 20000,
           ),
         ],
-        hasHighFrequencyActiveSeries: false,
       );
 
       final summary = BudgetCalculator.compute(
@@ -333,7 +330,6 @@ void main() {
         raw: raw,
         pending: const BudgetMonthPendingRaw(
           bills: [],
-          hasHighFrequencyActiveSeries: false,
         ),
         targetYm: const YearMonth(2026, 5),
         now: DateTime(2026, 5, 15),
@@ -349,7 +345,6 @@ void main() {
         raw: raw,
         pending: const BudgetMonthPendingRaw(
           bills: [],
-          hasHighFrequencyActiveSeries: false,
         ),
         targetYm: const YearMonth(2026, 3),
         now: DateTime(2026, 5, 15),
@@ -388,7 +383,6 @@ void main() {
         raw: raw,
         pending: const BudgetMonthPendingRaw(
           bills: [],
-          hasHighFrequencyActiveSeries: false,
         ),
         targetYm: const YearMonth(2026, 4),
         now: DateTime(2026, 5, 1),
@@ -401,7 +395,6 @@ void main() {
         raw: raw,
         pending: const BudgetMonthPendingRaw(
           bills: [],
-          hasHighFrequencyActiveSeries: false,
         ),
         targetYm: const YearMonth(2026, 5),
         now: DateTime(2026, 5, 1),
@@ -448,7 +441,6 @@ void main() {
             amountMinor: 50000,
           ),
         ],
-        hasHighFrequencyActiveSeries: false,
       );
 
       final summary = BudgetCalculator.compute(

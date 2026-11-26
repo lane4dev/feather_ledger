@@ -189,8 +189,6 @@ class MonthBudgetSummary {
   final bool hasAnyBudget;
   final bool hasUnbudgetedActivity;
   final bool hasLeftoverPendingInReview;
-  final bool hasHighFrequencyPending;
-  final bool isFarFutureMaterializedOnly;
 
   final List<CategoryBudgetSummary> budgetedCategories;
   final List<CategoryBudgetSummary> unbudgetedActiveCategories;
@@ -227,8 +225,6 @@ class MonthBudgetSummary {
     required this.hasAnyBudget,
     required this.hasUnbudgetedActivity,
     required this.hasLeftoverPendingInReview,
-    required this.hasHighFrequencyPending,
-    required this.isFarFutureMaterializedOnly,
     required this.budgetedCategories,
     required this.unbudgetedActiveCategories,
     required this.remainingActiveCategories,
