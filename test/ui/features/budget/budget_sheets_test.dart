@@ -600,11 +600,10 @@ void main() {
         closeTo(titleBottom, 0.5));
     expect(tester.getBottomLeft(find.text('Total \$558.33')).dy,
         closeTo(titleBottom, 0.5));
-    for (final text in [
-      'Dining spending',
-      '4 items',
-      'Total \$558.33',
-    ]) {
+    // The title keeps the theme's regular weight; only the summary is bold.
+    expect(tester.widget<Text>(find.text('Dining spending')).style?.fontWeight,
+        isNot(FontWeight.w700));
+    for (final text in ['4 items', 'Total \$558.33']) {
       expect(tester.widget<Text>(find.text(text)).style?.fontWeight,
           FontWeight.w700,
           reason: text);

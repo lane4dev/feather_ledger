@@ -667,10 +667,6 @@ class _ContributionsAppBarTitle extends StatelessWidget {
                 : l10n.budgetCategorySpendingTitle(row.name),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         if (row != null) ...[
