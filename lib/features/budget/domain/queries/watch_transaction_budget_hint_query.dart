@@ -6,6 +6,7 @@ import '../../data/repositories/budget_repository_impl.dart';
 import '../entities/budget_entities.dart';
 import '../services/budget_service.dart';
 import '../value_objects/budget_value_objects.dart';
+import 'watch_month_budget_query.dart';
 
 part 'watch_transaction_budget_hint_query.g.dart';
 
@@ -23,7 +24,7 @@ class WatchTransactionBudgetHintQuery {
     required YearMonth month,
     required String categoryId,
   }) {
-    final includeVirtual = month >= YearMonth.fromDate(_clock.now());
+    final includeVirtual = budgetIncludesVirtualPending(month, _clock.now());
     return _repository.watchCategoryBudgetHint(
       currencyCode: currencyCode,
       month: month,
