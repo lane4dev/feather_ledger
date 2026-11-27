@@ -28,8 +28,7 @@ void main() {
     displayExpense: r'$200.00',
   );
 
-  Widget wrap(Widget child, {bool showBalance = true}) =>
-      ProviderScope(
+  Widget wrap(Widget child, {bool showBalance = true}) => ProviderScope(
         overrides: [
           balanceVisibilityControllerProvider
               .overrideWith(() => _FixedVisibility(showBalance)),
@@ -227,13 +226,15 @@ void main() {
         label: 'dark 360 zh_Hans',
         theme: AppTheme.darkTheme,
         width: 360.0,
-        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+        locale:
+            const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
       ),
       (
         label: 'light 800 zh_Hant',
         theme: AppTheme.lightTheme,
         width: 800.0,
-        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+        locale:
+            const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ),
       (
         label: 'dark 800 zh',
@@ -273,7 +274,6 @@ void main() {
 
         final ctx = tester.element(find.byType(LedgerHeader));
         final l10n = AppLocalizations.of(ctx)!;
-        final scheme = Theme.of(ctx).colorScheme;
         final semantics = Theme.of(ctx).extension<AppSemanticColors>()!;
         final monthAbbr =
             DateFormat.MMM(entry.locale.toString()).format(targetMonth);
@@ -313,18 +313,18 @@ void main() {
         expect(tiers.length, 3);
         expect(tiers[0].text, r'$');
         expect(tiers[0].style?.fontSize, LedgerTheme.balanceSymbolSize);
-        expect(tiers[0].style?.color, scheme.onSurfaceVariant);
+        expect(tiers[0].style?.color, LedgerTheme.overviewMutedInk(ctx));
         expect(tiers[1].text, '1,234');
         expect(tiers[1].style?.fontSize, LedgerTheme.balanceWholeSize);
         expect(tiers[1].style?.fontWeight, FontWeight.w700);
-        expect(tiers[1].style?.color, scheme.onSurface);
+        expect(tiers[1].style?.color, LedgerTheme.overviewInk(ctx));
         expect(
           tiers[1].style?.fontFeatures,
           contains(const FontFeature.tabularFigures()),
         );
         expect(tiers[2].text, '.56');
         expect(tiers[2].style?.fontSize, LedgerTheme.balanceFractionSize);
-        expect(tiers[2].style?.color, scheme.onSurfaceVariant);
+        expect(tiers[2].style?.color, LedgerTheme.overviewMutedInk(ctx));
 
         // The month's spending rides alongside the balance.
         expect(find.byType(LedgerBalanceSparkline), findsOneWidget);
@@ -352,12 +352,12 @@ void main() {
         );
         expect(
           incomeAmountText.style?.color,
-          scheme.onSurface,
+          LedgerTheme.overviewInk(ctx),
           reason: 'the figures sit on the card itself, not on a tinted box',
         );
         expect(
           expenseAmountText.style?.color,
-          scheme.onSurface,
+          LedgerTheme.overviewInk(ctx),
           reason: 'the figures sit on the card itself, not on a tinted box',
         );
         // The kind still has its colour — on the icon disc behind the arrow.
@@ -369,7 +369,8 @@ void main() {
                   w is Container &&
                   w.decoration is BoxDecoration &&
                   (w.decoration! as BoxDecoration).color ==
-                      semantics.incomeContainer,
+                      LedgerTheme.overviewChipFill(
+                          ctx, semantics.incomeContainer),
             ),
           ),
           findsOneWidget,
@@ -451,7 +452,8 @@ void main() {
         l10n.showOverviewAmounts,
       );
       expect(find.textContaining('****'), findsNWidgets(3));
-      expect(find.text(summary.displayBalance, findRichText: true), findsNothing);
+      expect(
+          find.text(summary.displayBalance, findRichText: true), findsNothing);
       expect(find.text(summary.displayIncome), findsNothing);
       expect(find.text(summary.displayExpense), findsNothing);
     });
@@ -462,12 +464,14 @@ void main() {
       (width: 360.0, locale: const Locale('en')),
       (
         width: 360.0,
-        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+        locale:
+            const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
       ),
       (width: 800.0, locale: const Locale('en')),
       (
         width: 800.0,
-        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+        locale:
+            const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ),
       (width: 800.0, locale: const Locale('zh')),
     ]) {
@@ -627,7 +631,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('collapsed app bar renders month title hierarchy and tonal balance capsule',
+  testWidgets(
+      'collapsed app bar renders month title hierarchy and tonal balance capsule',
       (tester) async {
     await tester.pumpWidget(wrap(
       LedgerAppBarTitle(

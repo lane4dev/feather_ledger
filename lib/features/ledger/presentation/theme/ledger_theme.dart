@@ -22,17 +22,21 @@ class LedgerTheme {
   /// cast over the surface rather than a second surface of their own.
   static const double overviewTintAlpha = 0.5;
   static const double overviewTintAlphaDark = 0.42;
+
   /// The bottom-right end. The card fades back into the plain surface, which
   /// is what keeps it from reading as a flat slab of colour.
   static const double overviewFloorAlpha = 0.06;
+
   /// The corner glow: present enough to catch the eye, never a spotlight.
   static const double overviewGlowAlpha = 0.10;
   static const double overviewGlowRadius = 1.05;
+
   /// The hairline. White picks out an edge on light surfaces; on dark ones it
   /// has to be nearly nothing or it reads as a chrome trim.
   static const double overviewBorderAlpha = 0.65;
   static const double overviewBorderAlphaDark = 0.07;
   static const double overviewBorderWidth = 1.0;
+
   /// Small enough to read as punctuation after the label, not as a button.
   static const double overviewChevronSize = 18.0;
 
@@ -61,7 +65,18 @@ class LedgerTheme {
   static LinearGradient overviewBackdrop(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final tintAlpha = dark ? overviewTintAlphaDark : overviewTintAlpha;
+    if (!dark) {
+      // The light theme's hero is a physical brand card in deep teal: it is
+      // the one surface that deliberately does not follow the white-card
+      // hierarchy, so it reads as the account's headline rather than another
+      // panel in the stack.
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF124F63), Color(0xFF1B3645)],
+      );
+    }
+    const tintAlpha = overviewTintAlphaDark;
     final top = Color.alphaBlend(
       scheme.primaryContainer.withValues(alpha: tintAlpha),
       scheme.surfaceContainerHigh,
@@ -82,6 +97,17 @@ class LedgerTheme {
   /// own — it simply runs out.
   static RadialGradient overviewGlow(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    if (!dark) {
+      return RadialGradient(
+        center: const Alignment(0.82, -1.0),
+        radius: overviewGlowRadius,
+        colors: [
+          const Color(0xFF9BE3F0).withValues(alpha: 0.14),
+          const Color(0xFF9BE3F0).withValues(alpha: 0),
+        ],
+      );
+    }
     return RadialGradient(
       center: const Alignment(0.82, -1.0),
       radius: overviewGlowRadius,
@@ -92,10 +118,72 @@ class LedgerTheme {
     );
   }
 
+  /// The light hero's lift off the page. Dark keeps its flat plate.
+  static List<BoxShadow>? overviewShadow(BuildContext context) {
+    if (Theme.of(context).brightness == Brightness.dark) return null;
+    return const [
+      BoxShadow(
+        color: Color(0x29124F63),
+        blurRadius: 16,
+        offset: Offset(0, 6),
+      ),
+    ];
+  }
+
+  /// Foreground roles while painting on the brand card. On light they are the
+  /// card's own white ink, not the scheme's on-surface pair, which would be
+  /// unreadable on deep teal.
+  static Color overviewInk(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.onSurface
+          : Colors.white;
+
+  static Color overviewMutedInk(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.onSurfaceVariant
+          : Colors.white.withValues(alpha: 0.72);
+
+  static Color overviewFooterSurface(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Theme.of(context).brightness == Brightness.dark
+        ? scheme.surface.withValues(alpha: footerBarAlphaDark)
+        : Colors.white.withValues(alpha: 0.08);
+  }
+
+  static Color overviewFooterDivider(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Theme.of(context).brightness == Brightness.dark
+        ? scheme.outlineVariant.withValues(alpha: footerDividerAlpha)
+        : Colors.white.withValues(alpha: 0.18);
+  }
+
+  /// The icon disc inside the footer bar keeps the kind's colour on dark and
+  /// becomes a translucent white lift on the brand card.
+  static Color overviewChipFill(BuildContext context, Color darkColor) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? darkColor
+          : Colors.white.withValues(alpha: 0.14);
+
+  static Color overviewChipInk(BuildContext context, Color darkColor) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? darkColor
+          : Colors.white;
+
+  /// The expense sparkline is a soft coral glow on the teal card.
+  static Color overviewSparkline(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).extension<AppSemanticColors>()!.expense
+          : const Color(0xFFFFA28F);
+
+  static Color overviewSparklineAxis(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6)
+          : Colors.white.withValues(alpha: 0.22);
+
   static Color overviewBorder(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return const Color(0xFFFFFFFF).withValues(
-      alpha: dark ? overviewBorderAlphaDark : overviewBorderAlpha,
+      alpha: dark ? overviewBorderAlphaDark : 0.12,
     );
   }
 

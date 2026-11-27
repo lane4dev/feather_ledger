@@ -137,10 +137,14 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
           : Expanded(child: button);
     }
 
+    final light = Theme.of(context).brightness == Brightness.light;
     final control = DecoratedBox(
       decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: metrics.controlBorderRadius),
+          color: light ? scheme.surfaceContainer : scheme.surfaceContainerLow,
+          borderRadius: metrics.controlBorderRadius,
+          border: light
+              ? Border.all(color: AppTheme.cardBorder, width: 0.5)
+              : null),
       child: ClipRRect(
         borderRadius: metrics.controlBorderRadius,
         child: Padding(

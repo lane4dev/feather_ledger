@@ -399,9 +399,9 @@ void main() {
 
     final navContext = tester.element(find.byType(NavigationBar));
     final navTheme = NavigationBarTheme.of(navContext);
-    final scheme = Theme.of(navContext).colorScheme;
-    expect(navTheme.backgroundColor, scheme.surfaceContainer);
-    expect(navTheme.indicatorColor, scheme.secondaryContainer);
+    // Light mode: white bar, pale cyan selected pill, deep-teal accent.
+    expect(navTheme.backgroundColor, const Color(0xFFFFFFFF));
+    expect(navTheme.indicatorColor, const Color(0xFFDFF0F7));
 
     // Selected Ledger tab shows solid book CustomPaint in onSecondaryContainer;
     // unselected tabs show Lucide outline icons.
@@ -437,13 +437,13 @@ void main() {
     final selectedBookTheme = IconTheme.of(
       tester.element(find.byKey(const ValueKey('ledger-selected-book-icon'))),
     );
-    expect(selectedBookTheme.color, scheme.onSecondaryContainer);
+    expect(selectedBookTheme.color, const Color(0xFF0F4C5C));
 
     // FAB styling & navigation to /ledger/add.
     final fabTheme = Theme.of(tester.element(find.byType(FloatingActionButton)))
         .floatingActionButtonTheme;
-    expect(fabTheme.backgroundColor, scheme.primaryContainer);
-    expect(fabTheme.foregroundColor, scheme.onPrimaryContainer);
+    expect(fabTheme.backgroundColor, const Color(0xFF14637A));
+    expect(fabTheme.foregroundColor, const Color(0xFFFFFFFF));
     expect(
       find.descendant(
         of: find.byType(FloatingActionButton),

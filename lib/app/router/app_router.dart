@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
+import 'package:feather_ledger/app/theme/app_theme.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/ledger_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/recurring_bill_form_screen.dart';
 import 'package:feather_ledger/features/ledger/presentation/screens/search_screen.dart';
@@ -174,34 +175,46 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
           ? MediaQuery(
               data: MediaQuery.of(context), child: widget.navigationShell)
           : widget.navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          widget.navigationShell.goBranch(
-            index,
-            initialLocation: index == widget.navigationShell.currentIndex,
-          );
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(LucideIcons.book),
-            selectedIcon: const _SolidBookIcon(
-              key: ValueKey('ledger-selected-book-icon'),
+      bottomNavigationBar: DecoratedBox(
+        decoration: Theme.of(context).brightness == Brightness.dark
+            ? const BoxDecoration()
+            : const BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: AppTheme.navDivider,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+        child: NavigationBar(
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: (index) {
+            widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            );
+          },
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(LucideIcons.book),
+              selectedIcon: const _SolidBookIcon(
+                key: ValueKey('ledger-selected-book-icon'),
+              ),
+              label: l10n.ledgerTitle,
             ),
-            label: l10n.ledgerTitle,
-          ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.wallet),
-            selectedIcon: const _SolidWalletIcon(
-              key: ValueKey('budget-selected-wallet-icon'),
+            NavigationDestination(
+              icon: const Icon(LucideIcons.wallet),
+              selectedIcon: const _SolidWalletIcon(
+                key: ValueKey('budget-selected-wallet-icon'),
+              ),
+              label: l10n.budget,
             ),
-            label: l10n.budget,
-          ),
-          NavigationDestination(
-            icon: const Icon(LucideIcons.ellipsis),
-            label: l10n.more,
-          ),
-        ],
+            NavigationDestination(
+              icon: const Icon(LucideIcons.ellipsis),
+              label: l10n.more,
+            ),
+          ],
+        ),
       ),
     );
   }

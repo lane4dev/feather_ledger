@@ -117,9 +117,8 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       expense: Color.lerp(expense, other.expense, t) ?? expense,
       frequency: Color.lerp(frequency, other.frequency, t) ?? frequency,
       warning: Color.lerp(warning, other.warning, t) ?? warning,
-      incomeContainer:
-          Color.lerp(incomeContainer, other.incomeContainer, t) ??
-              incomeContainer,
+      incomeContainer: Color.lerp(incomeContainer, other.incomeContainer, t) ??
+          incomeContainer,
       onIncomeContainer:
           Color.lerp(onIncomeContainer, other.onIncomeContainer, t) ??
               onIncomeContainer,
@@ -136,6 +135,31 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
 class AppTheme {
   static const spacing = AppSpacing(xs: 4, sm: 8, md: 16, lg: 24, xl: 32);
   static const metrics = AppMetrics();
+
+  // Light surfaces are deliberately inverted from the tonal ladder: the page
+  // is a cool grey canvas and cards are pure white floating on it. The dark
+  // palette keeps Material's tonal relationship untouched.
+  static const _lightCanvas = Color(0xFFF3F5F8);
+  static const _lightCard = Color(0xFFFFFFFF);
+  static const _lightSunken = Color(0xFFEDF1F5);
+  static const _lightContainerHigh = Color(0xFFE8EDF3);
+  static const _lightContainerHighest = Color(0xFFDFE7EF);
+  static const _lightOutlineVariant = Color(0xFFE1E7EE);
+  static const _lightFab = Color(0xFF14637A);
+  static const _lightNavIndicator = Color(0xFFDFF0F7);
+  static const _lightNavSelected = Color(0xFF0F4C5C);
+
+  /// The pending pill's quiet slate palette in light mode. Public so the
+  /// design-system tests can name the tokens instead of repeating hexes.
+  static const statusPillSurface = Color(0xFFEEF2F6);
+
+  /// Hairline that separates the white light-mode nav bar from the canvas.
+  static const navDivider = Color(0xFFE4E9F0);
+
+  /// The faint edge that makes a white card legible on the grey canvas.
+  static const cardBorder = Color(0xFFE6ECF2);
+  static const statusPillBorder = Color(0xFFD3DCE6);
+  static const statusPillInk = Color(0xFF52606D);
 
   static const _semanticsLight = AppSemanticColors(
     income: Color(0xFF0F766E),
@@ -269,9 +293,10 @@ class AppTheme {
     ColorScheme? dynamicScheme,
   }) {
     final dark = brightness == Brightness.dark;
-    final scheme = dynamicScheme == null
+    final baseScheme = dynamicScheme == null
         ? _defaultScheme(brightness)
         : _resolveDynamicScheme(dynamicScheme, brightness);
+    final scheme = dark ? baseScheme : _lightSurfaceScheme(baseScheme);
     final semantics = dynamicScheme == null
         ? (dark ? _semanticsDark : _semanticsLight)
         : _resolveDynamicSemantics(scheme, brightness);
@@ -323,7 +348,12 @@ class AppTheme {
         surfaceTintColor: scheme.surfaceContainerLow,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: metrics.cardBorderRadius),
+        shape: RoundedRectangleBorder(
+          borderRadius: metrics.cardBorderRadius,
+          side: dark
+              ? BorderSide.none
+              : const BorderSide(color: cardBorder, width: 0.5),
+        ),
         clipBehavior: Clip.antiAlias,
       ),
       filledButtonTheme: FilledButtonThemeData(style: buttonStyle),
@@ -357,7 +387,9 @@ class AppTheme {
       )),
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
-        fillColor: scheme.surfaceContainerLow,
+        // Fields sit inside white cards in light mode; a white fill would
+        // disappear into them, so the sunken tone is the field's own.
+        fillColor: dark ? scheme.surfaceContainerLow : scheme.surfaceContainer,
         border: fieldBorder,
         enabledBorder: fieldBorder,
         focusedBorder:
@@ -383,39 +415,40 @@ class AppTheme {
         selectedTileColor: scheme.secondaryContainer,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: scheme.surfaceContainer,
-        surfaceTintColor: scheme.surfaceContainer,
+        backgroundColor: dark ? scheme.surfaceContainer : _lightCard,
+        surfaceTintColor: dark ? scheme.surfaceContainer : _lightCard,
         elevation: 0,
-        indicatorColor: scheme.secondaryContainer,
+        indicatorColor: dark ? scheme.secondaryContainer : _lightNavIndicator,
         iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
             size: metrics.iconSize,
             color: states.contains(WidgetState.selected)
-                ? scheme.onSecondaryContainer
+                ? (dark ? scheme.onSecondaryContainer : _lightNavSelected)
                 : scheme.onSurfaceVariant)),
         labelTextStyle: WidgetStateProperty.resolveWith((states) =>
             typography.labelMedium!.copyWith(
                 color: states.contains(WidgetState.selected)
-                    ? scheme.onSurface
+                    ? (dark ? scheme.onSurface : _lightNavSelected)
                     : scheme.onSurfaceVariant)),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: scheme.primaryContainer,
-        foregroundColor: scheme.onPrimaryContainer,
-        elevation: 0,
+        backgroundColor: dark ? scheme.primaryContainer : _lightFab,
+        foregroundColor: dark ? scheme.onPrimaryContainer : Colors.white,
+        elevation: dark ? 0 : 3,
         highlightElevation: metrics.subtleElevation,
         shape: RoundedRectangleBorder(borderRadius: metrics.cardBorderRadius),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
-        surfaceTintColor: scheme.surface,
-        modalBackgroundColor: scheme.surface,
+        backgroundColor: dark ? scheme.surface : scheme.surfaceContainerLow,
+        surfaceTintColor: dark ? scheme.surface : scheme.surfaceContainerLow,
+        modalBackgroundColor:
+            dark ? scheme.surface : scheme.surfaceContainerLow,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: metrics.sheetBorderRadius),
         clipBehavior: Clip.antiAlias,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: scheme.surface,
-        surfaceTintColor: scheme.surface,
+        backgroundColor: dark ? scheme.surface : scheme.surfaceContainerLow,
+        surfaceTintColor: dark ? scheme.surface : scheme.surfaceContainerLow,
         insetPadding:
             EdgeInsets.symmetric(horizontal: spacing.md, vertical: spacing.lg),
         // Fill the available width on phones; keep a shared desktop ceiling.
@@ -425,7 +458,8 @@ class AppTheme {
       dividerTheme: DividerThemeData(
           color: scheme.outlineVariant, thickness: 1, space: 1),
       chipTheme: ChipThemeData(
-        backgroundColor: scheme.surfaceContainerLow,
+        backgroundColor:
+            dark ? scheme.surfaceContainerLow : scheme.surfaceContainer,
         selectedColor: scheme.secondaryContainer,
         side: BorderSide.none,
         shape:
@@ -460,6 +494,22 @@ class AppTheme {
     );
   }
 
+  /// Light mode's inverted surface ladder: a cool grey page, pure white
+  /// cards. Applied after dynamic colour resolution so a tinted palette still
+  /// gets the white-card hierarchy, while accents stay dynamic.
+  static ColorScheme _lightSurfaceScheme(ColorScheme base) => base.copyWith(
+        surface: _lightCanvas,
+        surfaceDim: const Color(0xFFE4E9EF),
+        surfaceBright: const Color(0xFFFAFBFC),
+        surfaceContainerLowest: _lightCard,
+        surfaceContainerLow: _lightCard,
+        surfaceContainer: _lightSunken,
+        surfaceContainerHigh: _lightContainerHigh,
+        surfaceContainerHighest: _lightContainerHighest,
+        outlineVariant: _lightOutlineVariant,
+        surfaceTint: _lightCanvas,
+      );
+
   static ColorScheme _defaultScheme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     return ColorScheme.fromSeed(
@@ -486,8 +536,7 @@ class AppTheme {
           dark ? const Color(0xFFC2E8FA) : const Color(0xFF001F2A),
       error: dark ? const Color(0xFFFFB4AB) : const Color(0xFFBA1A1A),
       onError: dark ? const Color(0xFF690005) : const Color(0xFFFFFFFF),
-      errorContainer:
-          dark ? const Color(0xFF93000A) : const Color(0xFFFFDAD6),
+      errorContainer: dark ? const Color(0xFF93000A) : const Color(0xFFFFDAD6),
       onErrorContainer:
           dark ? const Color(0xFFFFDAD6) : const Color(0xFF410002),
       surface: dark ? const Color(0xFF111413) : const Color(0xFFF7FAF7),
@@ -686,19 +735,18 @@ class AppTheme {
       return fg;
     }
     final hsl = HSLColor.fromColor(fg);
-    final avgBgLum = backgrounds
-            .map((b) => b.computeLuminance())
-            .reduce((a, b) => a + b) /
-        backgrounds.length;
+    final avgBgLum =
+        backgrounds.map((b) => b.computeLuminance()).reduce((a, b) => a + b) /
+            backgrounds.length;
     final goLighter = avgBgLum < 0.5;
     for (var step = 1; step <= 40; step++) {
       final t = step / 40.0;
       final targetL = goLighter
           ? hsl.lightness + (0.94 - hsl.lightness) * t
           : hsl.lightness * (1.0 - t * 0.9);
-      final candidate =
-          hsl.withLightness(targetL.clamp(0.05, 0.94)).toColor();
-      if (backgrounds.every((bg) => _contrastRatio(candidate, bg) >= minRatio)) {
+      final candidate = hsl.withLightness(targetL.clamp(0.05, 0.94)).toColor();
+      if (backgrounds
+          .every((bg) => _contrastRatio(candidate, bg) >= minRatio)) {
         return candidate;
       }
     }

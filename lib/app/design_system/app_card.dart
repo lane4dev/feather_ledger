@@ -93,7 +93,12 @@ class AppCard extends StatelessWidget {
           ),
         _AppCardVariant.overview ||
         _AppCardVariant.day =>
-          RoundedRectangleBorder(borderRadius: borderRadius),
+          RoundedRectangleBorder(
+            borderRadius: borderRadius,
+            side: Theme.of(context).brightness == Brightness.dark
+                ? BorderSide.none
+                : const BorderSide(color: AppTheme.cardBorder, width: 0.5),
+          ),
         _ => null,
       };
 

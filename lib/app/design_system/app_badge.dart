@@ -46,17 +46,19 @@ class AppBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final light = Theme.of(context).brightness == Brightness.light;
     final background = switch (_variant) {
       _AppBadgeVariant.standard => color == null
           ? scheme.surfaceContainerHigh
           : Color.lerp(scheme.surfaceContainerLow, color, 0.12)!,
-      _AppBadgeVariant.outlined =>
-        _backgroundColor ?? scheme.surfaceContainerLow,
+      _AppBadgeVariant.outlined => _backgroundColor ??
+          (light ? AppTheme.statusPillSurface : scheme.surfaceContainerLow),
       _AppBadgeVariant.error => scheme.errorContainer,
     };
     final foreground = switch (_variant) {
       _AppBadgeVariant.standard => scheme.onSurfaceVariant,
-      _AppBadgeVariant.outlined => scheme.onSurfaceVariant,
+      _AppBadgeVariant.outlined =>
+        light ? AppTheme.statusPillInk : scheme.onSurfaceVariant,
       _AppBadgeVariant.error => scheme.onErrorContainer,
     };
     final borderRadius = switch (_variant) {
@@ -66,7 +68,10 @@ class AppBadge extends StatelessWidget {
         BorderRadius.circular(999),
     };
     final BoxBorder? border = _variant == _AppBadgeVariant.outlined
-        ? Border.all(color: scheme.outline, width: 1)
+        ? Border.all(
+            color: light ? AppTheme.statusPillBorder : scheme.outline,
+            width: light ? 0.8 : 1,
+          )
         : null;
     final metrics = context.metrics;
     final padding = compact

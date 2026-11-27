@@ -281,7 +281,8 @@ class BudgetOverviewCard extends StatelessWidget {
   BoxDecoration _surfaceDecoration(BuildContext context, BudgetMode mode) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final base = scheme.surfaceContainerHigh;
+    final base =
+        dark ? scheme.surfaceContainerHigh : scheme.surfaceContainerLow;
 
     final tintAlpha = switch (mode) {
       BudgetMode.track => dark ? 0.42 : 0.5,

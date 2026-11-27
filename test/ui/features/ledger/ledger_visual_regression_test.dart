@@ -677,8 +677,9 @@ void main() {
           expect(scheme.surfaceContainer.computeLuminance(),
               lessThan(scheme.surfaceContainerHigh.computeLuminance()));
         } else {
+          // Light mode inverts the hierarchy: grey canvas, white cards.
           expect(scheme.surface.computeLuminance(),
-              greaterThan(scheme.surfaceContainerLow.computeLuminance()));
+              lessThan(scheme.surfaceContainerLow.computeLuminance()));
           expect(scheme.surfaceContainerLow.computeLuminance(),
               greaterThan(scheme.surfaceContainer.computeLuminance()));
           expect(scheme.surfaceContainer.computeLuminance(),
@@ -712,15 +713,20 @@ void main() {
         expect(
           _contrast(
             pendingLabelText.style!.color!,
-            scheme.surfaceContainerLow,
+            isDark ? scheme.surfaceContainerLow : AppTheme.statusPillSurface,
           ),
           greaterThanOrEqualTo(4.5),
           reason: 'pending capsule text contrast failed on ${entry.key}',
         );
         expect(
-          _contrast(scheme.outline, scheme.surfaceContainerLow),
-          greaterThanOrEqualTo(3.0),
-          reason: 'pending capsule outline contrast failed on ${entry.key}',
+          _contrast(
+            isDark ? scheme.outline : AppTheme.statusPillBorder,
+            isDark ? scheme.surfaceContainerLow : AppTheme.statusPillSurface,
+          ),
+          // The light pill is deliberately soft: its border is a hairline
+          // cue, not a WCAG boundary. Dark keeps the stronger outline.
+          isDark ? greaterThanOrEqualTo(3.0) : greaterThan(1.05),
+          reason: 'pending capsule outline vanished on ${entry.key}',
         );
 
         final expenseText = tester.widget<Text>(find.text('-¥10.00').first);

@@ -279,7 +279,6 @@ class _BalanceSummary extends ConsumerWidget {
         ref.watch(balanceVisibilityControllerProvider).value ?? true;
     final visibilityLabel =
         showBalance ? l10n.hideOverviewAmounts : l10n.showOverviewAmounts;
-    final scheme = Theme.of(context).colorScheme;
 
     Widget summaryContent(MonthlySummaryUiModel? summary) => Column(
           mainAxisSize: MainAxisSize.min,
@@ -311,7 +310,9 @@ class _BalanceSummary extends ConsumerWidget {
                             Flexible(
                               child: Text(
                                 l10n.totalBalance,
-                                style: AppTypography.meta(context),
+                                style: AppTypography.meta(context).copyWith(
+                                  color: LedgerTheme.overviewMutedInk(context),
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -322,6 +323,8 @@ class _BalanceSummary extends ConsumerWidget {
                                   : LucideIcons.eyeOff),
                               iconSize: 18,
                               tooltip: visibilityLabel,
+                              foregroundColor:
+                                  LedgerTheme.overviewMutedInk(context),
                               onPressed: () => ref
                                   .read(balanceVisibilityControllerProvider
                                       .notifier)
@@ -333,7 +336,7 @@ class _BalanceSummary extends ConsumerWidget {
                               Icon(
                                 LucideIcons.chevronRight,
                                 size: LedgerTheme.overviewChevronSize,
-                                color: scheme.onSurfaceVariant,
+                                color: LedgerTheme.overviewMutedInk(context),
                               ),
                           ],
                         ),
@@ -352,11 +355,8 @@ class _BalanceSummary extends ConsumerWidget {
                     padding: EdgeInsets.only(bottom: context.spacing.xs),
                     child: LedgerBalanceSparkline(
                       trend: expenseTrend,
-                      lineColor: context.colors.expense,
-                      axisHintColor: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.6),
+                      lineColor: LedgerTheme.overviewSparkline(context),
+                      axisHintColor: LedgerTheme.overviewSparklineAxis(context),
                     ),
                   ),
                 ],
@@ -408,40 +408,48 @@ class _OverviewCardSurface extends StatelessWidget {
     final radius = BorderRadius.circular(context.metrics.overviewCardRadius);
     final scheme = Theme.of(context).colorScheme;
 
-    return ClipRRect(
-      borderRadius: radius,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          gradient: LedgerTheme.overviewBackdrop(context),
-          border: Border.all(
-            color: LedgerTheme.overviewBorder(context),
-            width: LedgerTheme.overviewBorderWidth,
+    return DecoratedBox(
+      // The lift lives outside the clip: a shadow painted under a clipping
+      // rounded rectangle would be cut off at its own edge.
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: LedgerTheme.overviewShadow(context),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            gradient: LedgerTheme.overviewBackdrop(context),
+            border: Border.all(
+              color: LedgerTheme.overviewBorder(context),
+              width: LedgerTheme.overviewBorderWidth,
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: radius,
-                    gradient: LedgerTheme.overviewGlow(context),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      gradient: LedgerTheme.overviewGlow(context),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: radius,
-                splashColor: scheme.primary.withValues(alpha: 0.06),
-                highlightColor: scheme.primary.withValues(alpha: 0.03),
-                child: child,
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: radius,
+                  splashColor: scheme.primary.withValues(alpha: 0.06),
+                  highlightColor: scheme.primary.withValues(alpha: 0.03),
+                  child: child,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -461,14 +469,13 @@ class _OverviewBalance extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final parts = BalanceDisplayParts.parse(display);
-    final features = const [FontFeature.tabularFigures()];
+    const features = [FontFeature.tabularFigures()];
 
     final symbolStyle = TextStyle(
       fontSize: LedgerTheme.balanceSymbolSize,
       fontWeight: FontWeight.w500,
-      color: scheme.onSurfaceVariant,
+      color: LedgerTheme.overviewMutedInk(context),
       height: 1.25,
       fontFeatures: features,
     );
@@ -476,14 +483,14 @@ class _OverviewBalance extends StatelessWidget {
       fontSize: LedgerTheme.balanceWholeSize,
       fontWeight: FontWeight.w700,
       letterSpacing: LedgerTheme.balanceWholeTracking,
-      color: scheme.onSurface,
+      color: LedgerTheme.overviewInk(context),
       height: 1.1,
       fontFeatures: features,
     );
     final fractionStyle = TextStyle(
       fontSize: LedgerTheme.balanceFractionSize,
       fontWeight: FontWeight.w600,
-      color: scheme.onSurfaceVariant,
+      color: LedgerTheme.overviewMutedInk(context),
       height: 1.1,
       fontFeatures: features,
     );
@@ -561,19 +568,13 @@ class _IncomeExpenseBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(
-          alpha: dark
-              ? LedgerTheme.footerBarAlphaDark
-              : LedgerTheme.footerBarAlpha,
-        ),
+        color: LedgerTheme.overviewFooterSurface(context),
         border: Border(
           top: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
+            color: LedgerTheme.overviewFooterDivider(context),
             width: 0.5,
           ),
         ),
@@ -593,8 +594,7 @@ class _IncomeExpenseBar extends StatelessWidget {
             ),
             Container(
               width: 1,
-              color: scheme.outlineVariant
-                  .withValues(alpha: LedgerTheme.footerDividerAlpha),
+              color: LedgerTheme.overviewFooterDivider(context),
             ),
             Expanded(
               child: _IncomeExpenseColumn(
@@ -631,7 +631,6 @@ class _IncomeExpenseColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: context.spacing.md,
@@ -643,11 +642,15 @@ class _IncomeExpenseColumn extends StatelessWidget {
             width: LedgerTheme.footerIconSize,
             height: LedgerTheme.footerIconSize,
             decoration: BoxDecoration(
-              color: containerColor,
+              color: LedgerTheme.overviewChipFill(context, containerColor),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 16, color: onContainerColor),
+            child: Icon(
+              icon,
+              size: 16,
+              color: LedgerTheme.overviewChipInk(context, onContainerColor),
+            ),
           ),
           SizedBox(width: context.spacing.sm),
           Expanded(
@@ -659,8 +662,9 @@ class _IncomeExpenseColumn extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.compactLabel(context)
-                      .copyWith(color: scheme.onSurfaceVariant),
+                  style: AppTypography.compactLabel(context).copyWith(
+                    color: LedgerTheme.overviewMutedInk(context),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 FittedBox(
@@ -671,7 +675,7 @@ class _IncomeExpenseColumn extends StatelessWidget {
                     maxLines: 1,
                     style: AppTypography.amount(context).copyWith(
                       fontSize: 15.5,
-                      color: scheme.onSurface,
+                      color: LedgerTheme.overviewInk(context),
                     ),
                   ),
                 ),

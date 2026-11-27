@@ -38,7 +38,8 @@ double contrast(Color a, Color b) {
 
 void main() {
   for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
-    test('${theme.brightness.name} app bar hides its tint and only shadows '
+    test(
+        '${theme.brightness.name} app bar hides its tint and only shadows '
         'once content scrolls under', () {
       final appBar = theme.appBarTheme;
       expect(appBar.elevation, 0);
@@ -172,20 +173,24 @@ void main() {
       expect(contrast(semantics.expense, scheme.surfaceContainerLow),
           greaterThanOrEqualTo(4.5));
       expect(semantics.frequency, isNot(scheme.primary));
-      expect(theme.navigationBarTheme.backgroundColor, scheme.surfaceContainer);
+      final light = theme.brightness == Brightness.light;
+      expect(theme.navigationBarTheme.backgroundColor,
+          light ? const Color(0xFFFFFFFF) : scheme.surfaceContainer);
+      expect(theme.navigationBarTheme.indicatorColor,
+          light ? const Color(0xFFDFF0F7) : scheme.secondaryContainer);
       expect(theme.floatingActionButtonTheme.backgroundColor,
-          scheme.primaryContainer);
+          light ? const Color(0xFF14637A) : scheme.primaryContainer);
       expect(theme.floatingActionButtonTheme.foregroundColor,
-          scheme.onPrimaryContainer);
+          light ? const Color(0xFFFFFFFF) : scheme.onPrimaryContainer);
 
       if (theme.brightness == Brightness.light) {
-        expect(scheme.surface, const Color(0xFFF7FAF7));
-        expect(scheme.surfaceContainerLow, const Color(0xFFEFF4EF));
-        expect(scheme.surfaceContainer, const Color(0xFFE6EDE7));
-        expect(scheme.surfaceContainerHigh, const Color(0xFFDFE6E1));
+        expect(scheme.surface, const Color(0xFFF3F5F8));
+        expect(scheme.surfaceContainerLow, const Color(0xFFFFFFFF));
+        expect(scheme.surfaceContainer, const Color(0xFFEDF1F5));
+        expect(scheme.surfaceContainerHigh, const Color(0xFFE8EDF3));
         expect(scheme.onSurface, const Color(0xFF191D1B));
         expect(scheme.onSurfaceVariant, const Color(0xFF424B46));
-        expect(scheme.outlineVariant, const Color(0xFFC4CEC7));
+        expect(scheme.outlineVariant, const Color(0xFFE1E7EE));
         expect(scheme.primaryContainer, const Color(0xFFC5ECDC));
         expect(scheme.onPrimaryContainer, const Color(0xFF153E33));
         expect(scheme.secondaryContainer, const Color(0xFFD6E8DC));
@@ -341,9 +346,11 @@ void main() {
       final dynamicDark = AppTheme.buildDark(brokenDark);
 
       final lightScheme = dynamicLight.colorScheme;
+      // Light mode inverts the hierarchy: the canvas is grey and cards float
+      // above it in white.
       expect(
         lightScheme.surface.computeLuminance(),
-        greaterThan(lightScheme.surfaceContainerLow.computeLuminance()),
+        lessThan(lightScheme.surfaceContainerLow.computeLuminance()),
       );
       expect(
         lightScheme.surfaceContainerLow.computeLuminance(),
@@ -483,12 +490,20 @@ void main() {
       (overviewCard.shape as RoundedRectangleBorder).borderRadius,
       BorderRadius.circular(24),
     );
+    expect(
+      (overviewCard.shape as RoundedRectangleBorder).side,
+      const BorderSide(color: AppTheme.cardBorder, width: 0.5),
+    );
 
     final dayCard = tester.widget<Card>(find.descendant(
       of: find.byKey(const ValueKey('day-card')),
       matching: find.byType(Card),
     ));
     expect(dayCard.color, scheme.surfaceContainerLow);
+    expect(
+      (dayCard.shape as RoundedRectangleBorder).side,
+      const BorderSide(color: AppTheme.cardBorder, width: 0.5),
+    );
     final dayRadius =
         ((dayCard.shape as RoundedRectangleBorder).borderRadius as BorderRadius)
             .topLeft
@@ -500,8 +515,9 @@ void main() {
       matching: find.byType(DecoratedBox),
     ));
     final outlinedDec = outlinedBox.decoration as BoxDecoration;
-    expect(outlinedDec.color, scheme.surfaceContainerLow);
-    expect((outlinedDec.border! as Border).top.color, scheme.outline);
+    expect(outlinedDec.color, AppTheme.statusPillSurface);
+    expect(
+        (outlinedDec.border! as Border).top.color, AppTheme.statusPillBorder);
 
     final errorBox = tester.widget<DecoratedBox>(find.descendant(
       of: find.byKey(const ValueKey('error-pill')),
@@ -587,8 +603,10 @@ void main() {
       final container = await pumpAppWithOverrides(tester, harness,
           initialThemeMode: ThemeMode.light);
       expect(
-        Theme.of(tester.element(find.byType(NavigationBar))).colorScheme.surface,
-        const Color(0xFFF7FAF7),
+        Theme.of(tester.element(find.byType(NavigationBar)))
+            .colorScheme
+            .surface,
+        const Color(0xFFF3F5F8),
       );
 
       await container
@@ -596,7 +614,9 @@ void main() {
           .setTheme(ThemeMode.dark);
       await tester.pumpAndSettle();
       expect(
-        Theme.of(tester.element(find.byType(NavigationBar))).colorScheme.surface,
+        Theme.of(tester.element(find.byType(NavigationBar)))
+            .colorScheme
+            .surface,
         const Color(0xFF111413),
       );
 
@@ -607,8 +627,10 @@ void main() {
           .setTheme(ThemeMode.system);
       await tester.pumpAndSettle();
       expect(
-        Theme.of(tester.element(find.byType(NavigationBar))).colorScheme.surface,
-        const Color(0xFFF7FAF7),
+        Theme.of(tester.element(find.byType(NavigationBar)))
+            .colorScheme
+            .surface,
+        const Color(0xFFF3F5F8),
       );
     });
 
@@ -625,7 +647,9 @@ void main() {
           initialThemeMode: ThemeMode.dark);
       expect(tester.takeException(), isNull);
       expect(
-        Theme.of(tester.element(find.byType(NavigationBar))).colorScheme.surface,
+        Theme.of(tester.element(find.byType(NavigationBar)))
+            .colorScheme
+            .surface,
         const Color(0xFF111413),
       );
     });
@@ -648,9 +672,11 @@ void main() {
       final lightContext = tester.element(find.byType(NavigationBar));
       final lightScheme = Theme.of(lightContext).colorScheme;
       expect(lightScheme.surface, isNot(const Color(0xFFF7FAF7)));
+      // Light mode inverts the hierarchy: the canvas is grey and cards float
+      // above it in white.
       expect(
         lightScheme.surface.computeLuminance(),
-        greaterThan(lightScheme.surfaceContainerLow.computeLuminance()),
+        lessThan(lightScheme.surfaceContainerLow.computeLuminance()),
       );
 
       await container
@@ -725,23 +751,22 @@ void main() {
       await tester.pumpAndSettle();
 
       void verifySurfaceRoles(ThemeMode expectedMode) {
-        final brightness = expectedMode == ThemeMode.dark
-            ? Brightness.dark
-            : Brightness.light;
-        final navBar =
-            tester.widget<NavigationBar>(find.byType(NavigationBar));
+        final brightness =
+            expectedMode == ThemeMode.dark ? Brightness.dark : Brightness.light;
+        final navBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
         final context = tester.element(find.byType(NavigationBar));
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
         expect(theme.brightness, brightness);
         expect(theme.scaffoldBackgroundColor, scheme.surface);
+        final light = brightness == Brightness.light;
         expect(
           navBar.backgroundColor ?? theme.navigationBarTheme.backgroundColor,
-          scheme.surfaceContainer,
+          light ? const Color(0xFFFFFFFF) : scheme.surfaceContainer,
         );
         expect(
           theme.navigationBarTheme.indicatorColor,
-          scheme.secondaryContainer,
+          light ? const Color(0xFFDFF0F7) : scheme.secondaryContainer,
         );
       }
 
