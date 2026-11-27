@@ -375,6 +375,16 @@ class FakeAppLocalizations implements AppLocalizations {
 
   @override
   String get noCategoriesFound => 'No categories found. Please add some first.';
+  @override
+  String get categoriesEmptyTitle => 'No categories yet';
+  @override
+  String get categoriesEmptyHint =>
+      'Add a category to organize your transactions.';
+  @override
+  String get addCategory => 'Add category';
+  @override
+  String get categoriesLoadFailed =>
+      "Couldn't load categories. Please try again.";
 
   @override
   String get noAccountsFound => 'No accounts found.';

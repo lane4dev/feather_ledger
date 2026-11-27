@@ -267,6 +267,22 @@
   "@categoriesHint": {
     "description": "Subtitle under the Categories entry in More"
   },
+  "categoriesEmptyTitle": "No categories yet",
+  "@categoriesEmptyTitle": {
+    "description": "Empty category list title"
+  },
+  "categoriesEmptyHint": "Add a category to organize your transactions.",
+  "@categoriesEmptyHint": {
+    "description": "Guide below the empty category list title"
+  },
+  "addCategory": "Add category",
+  "@addCategory": {
+    "description": "Button that creates a category of the selected type"
+  },
+  "categoriesLoadFailed": "Couldn't load categories. Please try again.",
+  "@categoriesLoadFailed": {
+    "description": "Friendly error shown when the category list cannot load"
+  },
   "dollarCurrency": "$ (Dollar)",
   "@dollarCurrency": {
     "description": "Dollar currency option"

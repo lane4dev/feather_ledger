@@ -225,6 +225,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoriesHint => '收入与支出的分类';
 
   @override
+  String get categoriesEmptyTitle => '还没有分类';
+
+  @override
+  String get categoriesEmptyHint => '添加分类，开始整理你的交易。';
+
+  @override
+  String get addCategory => '新增分类';
+
+  @override
+  String get categoriesLoadFailed => '无法加载分类，请重试。';
+
+  @override
   String get dollarCurrency => '\$ (美元)';
 
   @override
@@ -1741,6 +1753,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get categoriesHint => '收入与支出的分类';
 
   @override
+  String get categoriesEmptyTitle => '还没有分类';
+
+  @override
+  String get categoriesEmptyHint => '添加分类，开始整理你的交易。';
+
+  @override
+  String get addCategory => '新增分类';
+
+  @override
+  String get categoriesLoadFailed => '无法加载分类，请重试。';
+
+  @override
   String get dollarCurrency => '\$ (美元)';
 
   @override
@@ -3255,6 +3279,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get categoriesHint => '收入與支出的分類';
+
+  @override
+  String get categoriesEmptyTitle => '還沒有分類';
+
+  @override
+  String get categoriesEmptyHint => '新增分類，開始整理你的交易。';
+
+  @override
+  String get addCategory => '新增分類';
+
+  @override
+  String get categoriesLoadFailed => '無法載入分類，請重試。';
 
   @override
   String get dollarCurrency => '\$ (美元)';

@@ -267,6 +267,22 @@
   "@categoriesHint": {
     "description": "「更多」頁分類項下方的說明"
   },
+  "categoriesEmptyTitle": "還沒有分類",
+  "@categoriesEmptyTitle": {
+    "description": "分類列表空態標題"
+  },
+  "categoriesEmptyHint": "新增分類，開始整理你的交易。",
+  "@categoriesEmptyHint": {
+    "description": "分類空態標題下方的引導"
+  },
+  "addCategory": "新增分類",
+  "@addCategory": {
+    "description": "建立目前選取類型分類的按鈕"
+  },
+  "categoriesLoadFailed": "無法載入分類，請重試。",
+  "@categoriesLoadFailed": {
+    "description": "分類列表載入失敗時的友善提示"
+  },
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
     "description": "美元貨幣選項"

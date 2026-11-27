@@ -520,6 +520,30 @@ abstract class AppLocalizations {
   /// **'Income and expense categories'**
   String get categoriesHint;
 
+  /// Empty category list title
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet'**
+  String get categoriesEmptyTitle;
+
+  /// Guide below the empty category list title
+  ///
+  /// In en, this message translates to:
+  /// **'Add a category to organize your transactions.'**
+  String get categoriesEmptyHint;
+
+  /// Button that creates a category of the selected type
+  ///
+  /// In en, this message translates to:
+  /// **'Add category'**
+  String get addCategory;
+
+  /// Friendly error shown when the category list cannot load
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load categories. Please try again.'**
+  String get categoriesLoadFailed;
+
   /// Dollar currency option
   ///
   /// In en, this message translates to:

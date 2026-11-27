@@ -267,6 +267,22 @@
   "@categoriesHint": {
     "description": "「更多」页分类项下方的说明"
   },
+  "categoriesEmptyTitle": "还没有分类",
+  "@categoriesEmptyTitle": {
+    "description": "分类列表空态标题"
+  },
+  "categoriesEmptyHint": "添加分类，开始整理你的交易。",
+  "@categoriesEmptyHint": {
+    "description": "分类空态标题下方的引导"
+  },
+  "addCategory": "新增分类",
+  "@addCategory": {
+    "description": "创建当前选中类型分类的按钮"
+  },
+  "categoriesLoadFailed": "无法加载分类，请重试。",
+  "@categoriesLoadFailed": {
+    "description": "分类列表加载失败时的友好提示"
+  },
   "dollarCurrency": "$ (美元)",
   "@dollarCurrency": {
     "description": "美元货币选项"
