@@ -36,11 +36,10 @@ void main() {
       type: CategoryType.expense,
     );
 
-    // A monthly series starting next month produces upcoming bills across
-    // multiple future months within the calendar-month lookahead, none of which
-    // the picker may hide.
+    // A monthly series starting this month produces bills in the current month
+    // and the next, the full calendar-month lookahead the picker must mark.
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month + 1, 1);
+    final start = DateTime(now.year, now.month, 1);
     final result = await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 100,
@@ -93,8 +92,8 @@ void main() {
     );
 
     final now = DateTime.now();
-    final month1 = DateTime(now.year, now.month + 1, 5);
-    final month2 = DateTime(now.year, now.month + 2, 5);
+    final month1 = DateTime(now.year, now.month, 5);
+    final month2 = DateTime(now.year, now.month + 1, 5);
     await harness.recurringService.createSeries(
       type: RecurringSeriesKind.expense,
       amountMinor: 1000,
