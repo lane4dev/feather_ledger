@@ -331,9 +331,14 @@ class RecurrenceExpander {
       }
     }
 
+    final anchor = _fastForwardAnchor(spec, civilStart, civilAfter);
+    if (anchor.isAfter(civilBefore)) {
+      return const [];
+    }
+
     final rule = _buildRule(spec, remainingCount);
     final candidates = rule.getInstances(
-      start: civilStart,
+      start: anchor,
       after: civilAfter,
       includeAfter: true,
       before: civilBefore,
@@ -446,9 +451,11 @@ class RecurrenceExpander {
     final lowerTuple = _toCivilTuple(_asLocalWallTime(lowerInstant));
     final civilAfter = lowerTuple.isAfter(civilStart) ? lowerTuple : null;
 
+    final anchor = _fastForwardAnchor(spec, civilStart, civilAfter);
+
     final rule = _buildRule(spec, remainingCount);
     final candidates = rule.getInstances(
-      start: civilStart,
+      start: anchor,
       after: civilAfter,
       includeAfter: true,
       before: _maxCivilBound,
@@ -480,6 +487,52 @@ class RecurrenceExpander {
       );
     }
     return null;
+  }
+
+  /// Jumps the civil-date iteration anchor by whole periods so unbounded
+  /// high-frequency rules (`DAILY` / `WEEKLY`, any interval and `BYDAY`) do not
+  /// step through every intervening occurrence when the requested window starts
+  /// years after [civilStart].
+  ///
+  /// Phase always stays anchored to `spec.startDate`:
+  /// * `DAILY`: occurrences are `startDate + k * interval` civil days, so the
+  ///   anchor is the whole-period multiple at or before [civilLower].
+  /// * `WEEKLY`: RRULE weeks are anchored to the Monday of `startDate`'s week
+  ///   (`WKST=MO`), and `BYDAY` only selects days inside included weeks, so the
+  ///   anchor is the Monday of the whole-period week at or before [civilLower].
+  ///
+  /// Returns [civilStart] unchanged when [civilLower] is absent, when the rule
+  /// is count-limited (every occurrence must be counted from `startDate`), when
+  /// the frequency is neither `DAILY` nor `WEEKLY`, or when no whole period can
+  /// be skipped.
+  static DateTime _fastForwardAnchor(
+    RecurrenceRuleSpec spec,
+    DateTime civilStart,
+    DateTime? civilLower,
+  ) {
+    if (civilLower == null || spec.remainingCountLimit != null) {
+      return civilStart;
+    }
+
+    final interval = spec.interval < 1 ? 1 : spec.interval;
+    switch (spec.frequency.toUpperCase()) {
+      case 'DAILY':
+        final dayOffset = civilLower.difference(civilStart).inDays;
+        final wholePeriods = dayOffset ~/ interval;
+        if (wholePeriods < 1) return civilStart;
+        return civilStart.add(Duration(days: wholePeriods * interval));
+      case 'WEEKLY':
+        final startWeekMonday = civilStart.subtract(
+          Duration(days: civilStart.weekday - DateTime.monday),
+        );
+        final offsetDays = civilLower.difference(startWeekMonday).inDays;
+        final stepDays = DateTime.daysPerWeek * interval;
+        final wholePeriods = offsetDays ~/ stepDays;
+        if (wholePeriods < 1) return civilStart;
+        return startWeekMonday.add(Duration(days: wholePeriods * stepDays));
+      default:
+        return civilStart;
+    }
   }
 
   static bool _matchesBounds(
@@ -520,13 +573,7 @@ class RecurrenceExpander {
     }
 
     final byWeekDays = spec.frequency.toUpperCase() == 'WEEKLY'
-        ? (spec.weekdays
-                .where((d) => d >= 1 && d <= 7)
-                .toSet()
-                .toList()
-              ..sort())
-            .map(ByWeekDayEntry.new)
-            .toList()
+        ? _weeklyWeekdays(spec).map(ByWeekDayEntry.new).toList()
         : const <ByWeekDayEntry>[];
 
     return RecurrenceRule(
@@ -536,6 +583,21 @@ class RecurrenceExpander {
       count: remainingCount,
       byWeekDays: byWeekDays,
     );
+  }
+
+  /// Weekday numbers selected by a `WEEKLY` rule.
+  ///
+  /// An empty `BYDAY` list means "the weekday of `startDate`", which RRULE
+  /// would otherwise infer from the `start` argument. It is spelled out here so
+  /// a fast-forwarded iteration anchor (a Monday) cannot shift an implicit
+  /// weekday away from `startDate`'s.
+  static List<int> _weeklyWeekdays(RecurrenceRuleSpec spec) {
+    final explicit = spec.weekdays.where((d) => d >= 1 && d <= 7).toSet();
+    if (explicit.isNotEmpty) {
+      return explicit.toList()..sort();
+    }
+    final localStart = _asLocalWallTime(spec.startDate);
+    return [_toCivilTuple(localStart).weekday];
   }
 
   static Frequency _mapFrequency(String freq) {
