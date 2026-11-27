@@ -34,20 +34,26 @@ const _monthSummaryTriggerSql = 'SELECT 1 -- month summary';
 const _monthPendingTriggerSql = 'SELECT 1 -- month pending';
 const _categoryHintTriggerSql = 'SELECT 1 -- category hint';
 
+/// Whether [category] is active for budget calculations in [targetYm].
+///
+/// Mirrors `BudgetCalculator`: system categories (`systemCode != null`) never
+/// participate; an archived category keeps its archive month
+/// (`targetYm <= archiveYm`, ADR-0006 local-month cutoff) and is excluded
+/// afterward — including legacy/malformed archived rows without `archivedAt`.
+bool _isCategoryActiveForBudgetMonth(CategoryViewRow category, int targetYm) {
+  if (category.systemCode != null) return false;
+  if (!category.archived) return true;
+  final archivedAt = category.archivedAt;
+  if (archivedAt == null) return false;
+  return targetYm <= dateTimeToYm(archivedAt);
+}
+
 /// Whether [category]'s pending bills count toward the budget for [targetYm].
 ///
-/// System categories (`systemCode != null`) never participate in budget pending
-/// exposure (ADR-0008). An archived category keeps its archive month
-/// (`targetYm <= archiveYm`, ADR-0006 local-month cutoff) and drops out of
-/// pending totals, category rows and the single-category form hint from the
-/// next month onward. A missing category row carries no metadata to filter on,
-/// so its bill stays.
+/// A missing category row carries no metadata to filter on, so its bill stays.
 bool _countsTowardBudgetPending(CategoryViewRow? category, int targetYm) {
   if (category == null) return true;
-  if (category.systemCode != null) return false;
-  final archivedAt = category.archivedAt;
-  if (!category.archived || archivedAt == null) return true;
-  return targetYm <= dateTimeToYm(archivedAt);
+  return _isCategoryActiveForBudgetMonth(category, targetYm);
 }
 
 /// Raw expense posting inside the 6-month budget window `[M-5 .. M]`.
@@ -608,15 +614,11 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
 
     final category = await db.categoriesDao.getCategoryById(categoryId);
     final isArchived = category?.archived ?? false;
-    final archiveYm = category?.archivedAt == null
-        ? null
-        : dateTimeToYm(category!.archivedAt!);
 
     int? effectiveBudgetMinor;
     if (category != null &&
         category.type == CategoryType.expense &&
-        category.systemCode == null &&
-        !(isArchived && archiveYm != null && targetYm > archiveYm)) {
+        _isCategoryActiveForBudgetMonth(category, targetYm)) {
       final latestRule = await (select(budgetRules)
             ..where((r) =>
                 r.currencyCode.equals(currencyCode) &

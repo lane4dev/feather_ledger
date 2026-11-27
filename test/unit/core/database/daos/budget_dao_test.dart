@@ -926,6 +926,43 @@ void main() {
       await pumpEventQueue();
       expect(emissions.last, julyBill);
     });
+
+    test(
+        'archived category without archivedAt is excluded from pending bills '
+        'and category hint (matches BudgetCalculator cutoff)', () async {
+      await seedAccount(id: 'acc-ok', currencyCode: currency);
+      await seedCategory(id: 'legacy-arch', archived: true, archivedAt: null);
+      await db.into(db.budgetRules).insert(
+            BudgetRulesCompanion.insert(
+              currencyCode: currency,
+              categoryId: 'legacy-arch',
+              effectiveYm: 202605,
+              amountMinor: const Value(50000),
+              updatedAt: DateTime(2026, 5, 1),
+            ),
+          );
+      await seedSeries(
+        id: 's-legacy',
+        categoryId: 'legacy-arch',
+        amountMinor: 10000,
+        startDate: DateTime(2026, 5, 5, 9),
+      );
+      await seedScheduledBill(
+        id: 'bill-legacy',
+        seriesId: 's-legacy',
+        occurrenceKey: '2026-05-05',
+        scheduledDate: DateTime(2026, 5, 5, 9),
+      );
+
+      expect(await pendingIds(202605), isEmpty);
+      expect(await pendingIds(202606), isEmpty);
+
+      final hint = await dao
+          .watchCategoryBudgetHint(currency, 202605, 'legacy-arch')
+          .first;
+      expect(hint.effectiveBudgetMinor, isNull);
+      expect(hint.pendingMinor, 0);
+    });
   });
 }
 

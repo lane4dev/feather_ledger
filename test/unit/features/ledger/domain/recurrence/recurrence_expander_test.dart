@@ -679,6 +679,21 @@ void main() {
       expect(expanded.first.occurrenceKey, '2026-01-02');
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
+
+    test('firstOccurrenceAfter returns null when fast-forwarded anchor passes max civil bound', () {
+      final spec = RecurrenceRuleSpec(
+        mode: RecurringSeriesMode.repeating,
+        frequency: 'DAILY',
+        interval: 10,
+        startDate: DateTime(2026, 1, 1, 9, 0),
+      );
+
+      final next = expander.firstOccurrenceAfter(
+        spec,
+        DateTime(9999, 12, 31, 23, 59, 59),
+      );
+      expect(next, isNull);
+    });
   });
 }
 

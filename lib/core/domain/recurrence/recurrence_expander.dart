@@ -452,6 +452,7 @@ class RecurrenceExpander {
     final civilAfter = lowerTuple.isAfter(civilStart) ? lowerTuple : null;
 
     final anchor = _fastForwardAnchor(spec, civilStart, civilAfter);
+    if (anchor.isAfter(_maxCivilBound)) return null;
 
     final rule = _buildRule(spec, remainingCount);
     final candidates = rule.getInstances(
