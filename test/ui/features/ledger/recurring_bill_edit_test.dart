@@ -24,6 +24,7 @@ import 'package:feather_ledger/features/ledger/presentation/screens/recurring_bi
 import 'package:feather_ledger/features/ledger/presentation/view_model/recurring_view_model.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/distant_past_start_dialog.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_form_sections.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
@@ -290,7 +291,8 @@ void main() {
       await tester.pumpAndSettle();
       await save(tester);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(viewModel.updated, [('sched_1', RecurringScope.updateRule, 500000)]);
+      expect(
+          viewModel.updated, [('sched_1', RecurringScope.updateRule, 500000)]);
       expect(viewModel.lastAutoPost, isTrue);
     });
 
@@ -317,13 +319,21 @@ void main() {
         (tester) async {
       await pumpForm(tester, currencyCode: 'CNY');
       expect(find.text('Edit Transaction'), findsOneWidget);
+      expect(find.text('Expense'), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
       expect(
           find.descendant(
               of: find.byType(AppBar), matching: find.byType(AppBadge)),
-          findsOneWidget);
-      expect(tester.getTopLeft(find.byType(AppBadge)).dx,
-          greaterThan(tester.getTopRight(find.text('Edit Transaction')).dx));
+          findsNothing,
+          reason: 'the add form has a plain title; the bill state belongs '
+              'to the form, not to the app bar');
+      expect(find.byType(LedgerAmountCard), findsOneWidget);
+      expect(find.byType(LedgerFormCard), findsNWidgets(2),
+          reason: 'core fields and note are grouped like the add form; this '
+              'pending bill has no series, so there is no schedule card');
+      expect(tester.getCenter(find.text('Pending')).dy,
+          closeTo(tester.getCenter(find.text('Expense')).dy, 0.01),
+          reason: 'the state badge sits on the type row');
       expect(find.byTooltip('Cancel'), findsOneWidget);
       expect(
           tester
@@ -350,12 +360,24 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       await pumpForm(tester, textScale: 1.8);
-      expect(
-          find.descendant(
-              of: find.byType(AppBar), matching: find.text('Pending')),
-          findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
       expect(tester.getCenter(find.text('Pending')).dy,
-          closeTo(tester.getCenter(find.text('Edit Transaction')).dy, 0.01));
+          closeTo(tester.getCenter(find.text('Expense')).dy, 0.01));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps a full series layout intact at large text',
+        (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 740);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await pumpForm(tester, mode: RecurringSeriesMode.planned, textScale: 1.8);
+
+      expect(find.byType(LedgerAmountCard), findsOneWidget);
+      expect(find.byType(LedgerFormCard), findsNWidgets(3),
+          reason: 'core fields, schedule and note keep their groups');
       expect(tester.takeException(), isNull);
     });
 
@@ -554,7 +576,10 @@ void main() {
       final distantPastDate = DateTime(2024, 11, 26, 9, 0);
 
       Future<void> changeFrequencyToWeekly(WidgetTester tester) async {
-        await tester.tap(find.widgetWithText(LedgerSelectorField, 'Repeat'));
+        final repeat = find.widgetWithText(LedgerSelectorField, 'Repeat');
+        await tester.ensureVisible(repeat);
+        await tester.pumpAndSettle();
+        await tester.tap(repeat);
         await tester.pumpAndSettle();
         await tester.tap(find.descendant(
           of: find.byType(SimpleDialog),

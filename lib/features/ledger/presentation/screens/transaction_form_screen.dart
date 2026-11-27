@@ -4,7 +4,6 @@ import 'package:feather_ledger/features/ledger/data/notifications/recurring_remi
 import '../widgets/custom_reminder_dialog.dart';
 import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/app/design_system/app_bottom_action_bar.dart';
-import 'package:feather_ledger/app/design_system/app_card.dart';
 import '../widgets/ledger_note_field.dart';
 import 'package:feather_ledger/app/design_system/app_choice_chips.dart';
 import 'package:feather_ledger/app/design_system/app_icon_button.dart';
@@ -24,7 +23,6 @@ import 'package:feather_ledger/features/ledger/presentation/theme/ledger_theme.d
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart';
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
 import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
@@ -41,6 +39,8 @@ import '../view_model/transaction_form_view_model.dart';
 import '../view_model/transaction_form_view_state.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
+import '../widgets/ledger_form_sections.dart';
+import '../widgets/ledger_value_icons.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
 import '../widgets/ledger_type_selector.dart';
@@ -199,7 +199,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                 SizedBox(height: context.spacing.md),
                 _inset(
-                  _AmountModeCard(
+                  LedgerAmountCard(
                     amount: LedgerAmountInput(
                       controller: _amountController,
                       onChanged: vm.setAmountText,
@@ -207,7 +207,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       currencySymbol: currencySymbol,
                       autofocus: !state.isEditing,
                     ),
-                    modeSelector: state.canRepeat
+                    footer: state.canRepeat
                         ? _TransactionFormModeSelector(
                             selected: state.mode,
                             onSelected: vm.setMode,
@@ -222,7 +222,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 // happened. Category leads because it is the field that names
                 // the entry and unlocks the budget hint underneath.
                 _inset(
-                  _FormCard(
+                  LedgerFormCard(
                     children: [
                       if (!state.isTransfer && !state.isBalancePurpose)
                         _categoryRow(
@@ -341,7 +341,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       ? Padding(
                           padding: EdgeInsets.only(top: context.spacing.md),
                           child: _inset(
-                            _FormCard(
+                            LedgerFormCard(
                               children: [
                                 if (state.showsRepeatRow)
                                   _repeatRow(l10n, labelWidth, state),
@@ -395,7 +395,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
                 // Everything that is context rather than the movement itself.
                 _inset(
-                  _FormCard(
+                  LedgerFormCard(
                     children: [
                       LedgerNoteField(
                         card: true,
@@ -477,7 +477,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               alignEnd: true,
               leading: selected == null
                   ? null
-                  : _CategoryValueIcon(
+                  : LedgerCategoryValueIcon(
                       iconKey: selected.iconKey,
                       color: Color(selected.colorInt),
                     ),
@@ -839,7 +839,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             alignEnd: true,
             leading: selected == null
                 ? null
-                : _AccountValueIcon(type: selected.account.type),
+                : LedgerAccountValueIcon(type: selected.account.type),
             label: label,
             labelWidth: labelWidth,
             text: selected?.account.name ??
@@ -983,105 +983,4 @@ class _TransactionFormModeSelector extends StatelessWidget {
         TransactionFormMode.planned => l10n.transactionModePlanned,
         TransactionFormMode.repeating => l10n.transactionModeRepeating,
       };
-}
-
-/// One grouped surface inside the transaction form.
-class _FormCard extends StatelessWidget {
-  const _FormCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return AppCard.day(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0)
-              FeatherDivider(
-                indent: context.spacing.md,
-                endIndent: context.spacing.md,
-                color: scheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-            children[i],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// The amount and the repeat mode live on one surface: they are two parts of
-/// the same decision, and the card gives the number a quiet stage.
-class _AmountModeCard extends StatelessWidget {
-  const _AmountModeCard({required this.amount, this.modeSelector});
-
-  final Widget amount;
-  final Widget? modeSelector;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(context.spacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Center(child: amount),
-          if (modeSelector != null) ...[
-            SizedBox(height: context.spacing.md),
-            Center(child: modeSelector),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryValueIcon extends StatelessWidget {
-  const _CategoryValueIcon({required this.iconKey, required this.color});
-
-  final String iconKey;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color.alphaBlend(
-          color.withValues(alpha: 0.16),
-          Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-      ),
-      child: CategoryIcon(iconKey: iconKey, size: 14, color: color),
-    );
-  }
-}
-
-class _AccountValueIcon extends StatelessWidget {
-  const _AccountValueIcon({required this.type});
-
-  final AccountType type;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: scheme.secondaryContainer,
-      ),
-      child: Icon(type.icon, size: 14, color: scheme.onSecondaryContainer),
-    );
-  }
 }

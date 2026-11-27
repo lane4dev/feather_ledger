@@ -17,7 +17,8 @@ import 'package:feather_ledger/shared/presentation/models/account_ui_model.dart'
 import 'package:feather_ledger/core/presentation/providers/category_providers.dart';
 import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 import 'package:feather_ledger/shared/presentation/money_format.dart';
-import 'package:feather_ledger/shared/presentation/widgets/feather_divider.dart';
+import 'package:feather_ledger/shared/presentation/extensions/account_type_extension.dart';
+import 'package:feather_ledger/shared/presentation/widgets/category_icon.dart';
 import 'package:feather_ledger/shared/presentation/widgets/feather_dialog_option.dart';
 import 'package:feather_ledger/features/ledger/data/notifications/recurring_reminders.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -36,6 +37,8 @@ import '../view_model/recurring_view_model.dart';
 import '../view_model/transaction_form_view_state.dart';
 import '../widgets/ledger_amount_input.dart';
 import '../widgets/ledger_form_row.dart';
+import '../widgets/ledger_form_sections.dart';
+import '../widgets/ledger_value_icons.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
 import '../widgets/recurring_scope_dialog.dart';
@@ -146,17 +149,7 @@ class _RecurringBillFormScreenState
             icon: const Icon(LucideIcons.x),
             onPressed: () => context.pop(),
             tooltip: l10n.cancel),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(l10n.editTransaction,
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-            SizedBox(width: context.spacing.sm),
-            AppBadge(label: l10n.pendingBill),
-          ],
-        ),
+        title: Text(l10n.editTransaction),
       ),
       body: SafeArea(
         top: false,
@@ -166,47 +159,47 @@ class _RecurringBillFormScreenState
             padding: EdgeInsets.symmetric(vertical: context.spacing.lg),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _inset(LedgerAmountInput(
-                  controller: _amount,
-                  type: widget.transaction.type,
-                  currencySymbol: currency)),
+              _inset(_typeRow(l10n)),
+              SizedBox(height: context.spacing.md),
+              _inset(LedgerAmountCard(
+                amount: LedgerAmountInput(
+                    controller: _amount,
+                    type: widget.transaction.type,
+                    currencySymbol: currency),
+                footer: widget.transaction.series == null
+                    ? null
+                    : RecurringModeLabel(mode: widget.transaction.series!.mode),
+              )),
+              SizedBox(height: context.spacing.md),
+              _inset(LedgerFormCard(children: [
+                _categoryRow(l10n, labelWidth),
+                _accountRow(l10n, labelWidth),
+                _dateRow(l10n, labelWidth),
+              ])),
               if (widget.transaction.series case final series?) ...[
-                SizedBox(height: context.spacing.sm),
-                _inset(RecurringModeLabel(mode: series.mode)),
-              ],
-              SizedBox(height: context.spacing.lg),
-              _inset(const FeatherDivider()),
-              SizedBox(height: context.spacing.sm),
-              _dateRow(l10n, labelWidth),
-              if (widget.transaction.series?.mode ==
-                  RecurringSeriesMode.repeating) ...[
-                SizedBox(height: context.spacing.sm),
-                _repeatRow(l10n, labelWidth),
-              ],
-              if (widget.transaction.series != null) ...[
-                SizedBox(height: context.spacing.sm),
-                _autoPostRow(l10n, labelWidth),
-                SizedBox(height: context.spacing.sm),
-                LedgerFormRow(
-                  icon: LucideIcons.bell,
-                  onTap: _pickReminder,
-                  child: LedgerSelectorField(
-                    label: l10n.reminder,
-                    labelWidth: labelWidth,
-                    text: _reminderLabel(l10n, _reminderMinutes),
+                SizedBox(height: context.spacing.md),
+                _inset(LedgerFormCard(children: [
+                  if (series.mode == RecurringSeriesMode.repeating)
+                    _repeatRow(l10n, labelWidth),
+                  _autoPostRow(l10n),
+                  LedgerFormRow(
+                    card: true,
+                    icon: LucideIcons.bell,
+                    onTap: _pickReminder,
+                    child: LedgerSelectorField(
+                      alignEnd: true,
+                      label: l10n.reminder,
+                      labelWidth: labelWidth,
+                      text: _reminderLabel(l10n, _reminderMinutes),
+                    ),
                   ),
-                ),
+                ])),
               ],
-              SizedBox(height: context.spacing.sm),
-              _inset(const FeatherDivider()),
-              SizedBox(height: context.spacing.sm),
-              _accountRow(l10n, labelWidth),
-              SizedBox(height: context.spacing.sm),
-              _categoryRow(l10n, labelWidth),
-              SizedBox(height: context.spacing.sm),
-              _inset(const FeatherDivider()),
-              SizedBox(height: context.spacing.sm),
-              LedgerNoteField(controller: _note, labelWidth: labelWidth),
+              SizedBox(height: context.spacing.md),
+              _inset(LedgerFormCard(children: [
+                LedgerNoteField(
+                    controller: _note, labelWidth: labelWidth, card: true),
+              ])),
               SizedBox(height: context.spacing.xl),
             ]),
           ),
@@ -219,18 +212,43 @@ class _RecurringBillFormScreenState
     );
   }
 
+  Widget _typeRow(AppLocalizations l10n) {
+    final label = switch (widget.transaction.type) {
+      TransactionKind.income => l10n.income,
+      TransactionKind.expense => l10n.expense,
+      TransactionKind.transfer => l10n.transfer,
+      _ => '',
+    };
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        SizedBox(width: context.spacing.sm),
+        AppBadge(label: l10n.pendingBill),
+      ],
+    );
+  }
+
   /// The page's horizontal margin, for the column's children that are not
   /// [LedgerFormRow]s. A row insets itself so that its ripple can reach the
   /// edge; anything else has to be inset from out here.
   Widget _inset(Widget child) => Padding(
-        padding: LedgerTheme.pageInset(context),
+        padding: EdgeInsets.symmetric(horizontal: context.spacing.md),
         child: child,
       );
 
   Widget _dateRow(AppLocalizations l10n, double labelWidth) => LedgerFormRow(
-        icon: LucideIcons.calendar,
+        card: true,
+        icon: LucideIcons.clock,
         onTap: _pickDate,
         child: LedgerSelectorField(
+          alignEnd: true,
           label: l10n.date,
           labelWidth: labelWidth,
           text: transactionDateLabel(
@@ -251,6 +269,7 @@ class _RecurringBillFormScreenState
     final categories = ref.watch(categoryListProvider(categoryType));
 
     return LedgerFormRow(
+      card: true,
       icon: LucideIcons.layoutGrid,
       onTap: categories.value == null
           ? null
@@ -263,6 +282,13 @@ class _RecurringBillFormScreenState
                   title: l10n.category,
                   options: categories.value!,
                   getLabel: (c) => c.name,
+                  getLeading: (context, c) => AppIconBadge(
+                      color: Color(c.colorInt),
+                      child: CategoryIcon(
+                          iconKey: c.iconKey,
+                          size: context.metrics.iconSize,
+                          color: Color(c.colorInt))),
+                  getColor: (c) => Color(c.colorInt),
                   isSelected: (c) => c.id == _categoryId,
                   onSelected: (c) => Navigator.pop(context, c.id),
                   onManageTap: () => context.push('/categories_management'),
@@ -276,6 +302,13 @@ class _RecurringBillFormScreenState
           final selected =
               categories.where((c) => c.id == _categoryId).firstOrNull;
           return LedgerSelectorField(
+            alignEnd: true,
+            leading: selected == null
+                ? null
+                : LedgerCategoryValueIcon(
+                    iconKey: selected.iconKey,
+                    color: Color(selected.colorInt),
+                  ),
             label: l10n.category,
             labelWidth: labelWidth,
             text: selected?.name ?? l10n.select,
@@ -296,6 +329,7 @@ class _RecurringBillFormScreenState
     final accounts = ref.watch(accountUiListProvider);
 
     return LedgerFormRow(
+      card: true,
       icon: LucideIcons.wallet,
       onTap: accounts.value == null
           ? null
@@ -308,6 +342,17 @@ class _RecurringBillFormScreenState
                   title: l10n.account,
                   options: accounts.value!,
                   getLabel: (a) => a.account.name,
+                  getTrailing: (context, a) => Text(
+                    a.displayBalance,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  getLeading: (context, a) => CircleAvatar(
+                    backgroundColor:
+                        Theme.of(context).colorScheme.secondaryContainer,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSecondaryContainer,
+                    child: Icon(a.account.type.icon),
+                  ),
                   isSelected: (a) => a.account.id == _accountId,
                   onSelected: (a) => Navigator.pop(context, a.account.id),
                   onManageTap: () => context.push('/accounts_management'),
@@ -321,6 +366,10 @@ class _RecurringBillFormScreenState
           final selected =
               accounts.where((a) => a.account.id == _accountId).firstOrNull;
           return LedgerSelectorField(
+            alignEnd: true,
+            leading: selected == null
+                ? null
+                : LedgerAccountValueIcon(type: selected.account.type),
             label: l10n.account,
             labelWidth: labelWidth,
             text: selected?.account.name ?? l10n.select,
@@ -430,9 +479,11 @@ class _RecurringBillFormScreenState
       _countLimit != null;
 
   Widget _repeatRow(AppLocalizations l10n, double labelWidth) => LedgerFormRow(
+        card: true,
         icon: LucideIcons.repeat,
         onTap: _pickRepeat,
         child: LedgerSelectorField(
+          alignEnd: true,
           label: l10n.repeat,
           labelWidth: labelWidth,
           text: _isCustomRecurrence
@@ -441,30 +492,22 @@ class _RecurringBillFormScreenState
         ),
       );
 
-  Widget _autoPostRow(AppLocalizations l10n, double labelWidth) =>
-      LedgerFormRow(
-        icon: LucideIcons.refreshCw,
+  Widget _autoPostRow(AppLocalizations l10n) => LedgerFormRow(
+        card: true,
+        icon: LucideIcons.zap,
         onTap: () => setState(() => _autoPost = !_autoPost),
         showChevron: false,
         child: Row(
           children: [
-            SizedBox(
-              width: labelWidth,
+            Expanded(
               child: Text(
                 l10n.autoPostWhenDue,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Switch.adaptive(
-                  value: _autoPost,
-                  onChanged: (value) => setState(() => _autoPost = value),
-                ),
-              ),
+            Switch.adaptive(
+              value: _autoPost,
+              onChanged: (value) => setState(() => _autoPost = value),
             ),
           ],
         ),
