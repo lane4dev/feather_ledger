@@ -22,6 +22,22 @@ int dateTimeToYm(DateTime dt) {
   return local.year * 100 + local.month;
 }
 
+/// Whether [category]'s pending bills count toward the budget for [targetYm].
+///
+/// System categories (`systemCode != null`) never participate in budget pending
+/// exposure (ADR-0008). An archived category keeps its archive month
+/// (`targetYm <= archiveYm`, ADR-0006 local-month cutoff) and drops out of
+/// pending totals, category rows and the single-category form hint from the
+/// next month onward. A missing category row carries no metadata to filter on,
+/// so its bill stays.
+bool _countsTowardBudgetPending(CategoryViewRow? category, int targetYm) {
+  if (category == null) return true;
+  if (category.systemCode != null) return false;
+  final archivedAt = category.archivedAt;
+  if (!category.archived || archivedAt == null) return true;
+  return targetYm <= dateTimeToYm(archivedAt);
+}
+
 /// Raw expense posting inside the 6-month budget window `[M-5 .. M]`.
 class BudgetExpensePostingRaw {
   final String transactionId;
@@ -302,6 +318,11 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
   /// overlaid against physical rows keyed by `(seriesId, occurrenceKey)`.
   /// When false (Review mode: `targetYm < nowYm`), only physical `scheduled` /
   /// `failed` rows are returned.
+  ///
+  /// Bills of system categories and of categories archived before `targetYm`
+  /// are excluded on both paths (see [_countsTowardBudgetPending]);
+  /// `categoriesView` is watched so archiving or restoring a category
+  /// refreshes the stream in place.
   Stream<BudgetMonthPendingRaw> watchMonthPendingExpenses(
     String currencyCode,
     int targetYm, {
@@ -313,6 +334,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         scheduledTransactionsView,
         recurringSeries,
         accountsView,
+        categoriesView,
       },
     ).watch();
 
@@ -340,6 +362,10 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
 
   /// Shared overlay loader used by both [watchMonthPendingExpenses] and
   /// [watchCategoryBudgetHint] so monthly totals and live form hints never drift.
+  ///
+  /// Both paths join the category row of each bill so the archive cut-off and
+  /// the system-category exclusion apply identically to physical and virtual
+  /// occurrences (ADR-0008 invariant 4).
   Future<List<BudgetPendingBillRaw>> _loadPendingExpenseBills({
     required String currencyCode,
     required int targetYm,
@@ -378,6 +404,10 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         accountsView,
         accountsView.id.equalsExp(recurringSeries.accountId),
       ),
+      leftOuterJoin(
+        categoriesView,
+        categoriesView.id.equalsExp(recurringSeries.categoryId),
+      ),
     ])
       ..where(physicalPredicate)
       ..orderBy([OrderingTerm.asc(effectiveDateExpr)]);
@@ -385,6 +415,12 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     final physicalRows = await physicalQuery.get();
     final bills = <BudgetPendingBillRaw>[];
     for (final row in physicalRows) {
+      if (!_countsTowardBudgetPending(
+        row.readTableOrNull(categoriesView),
+        targetYm,
+      )) {
+        continue;
+      }
       final scheduled = row.readTable(scheduledTransactionsView);
       final series = row.readTable(recurringSeries);
       final effectiveDate =
@@ -426,16 +462,29 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
         accountsView,
         accountsView.id.equalsExp(recurringSeries.accountId),
       ),
+      leftOuterJoin(
+        categoriesView,
+        categoriesView.id.equalsExp(recurringSeries.categoryId),
+      ),
     ])
           ..where(activeSeriesPredicate))
         .get();
 
-    if (activeSeriesRows.isEmpty) {
+    final visibleSeriesRows = [
+      for (final row in activeSeriesRows)
+        if (_countsTowardBudgetPending(
+          row.readTableOrNull(categoriesView),
+          targetYm,
+        ))
+          row,
+    ];
+
+    if (visibleSeriesRows.isEmpty) {
       return bills;
     }
 
     final activeSeriesIds = [
-      for (final row in activeSeriesRows) row.readTable(recurringSeries).id,
+      for (final row in visibleSeriesRows) row.readTable(recurringSeries).id,
     ];
     final ymPrefix = '${targetYear.toString().padLeft(4, '0')}-'
         '${targetMonth.toString().padLeft(2, '0')}-';
@@ -455,7 +504,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     };
 
     const expander = RecurrenceExpander();
-    for (final row in activeSeriesRows) {
+    for (final row in visibleSeriesRows) {
       final series = row.readTable(recurringSeries);
       final account = row.readTable(accountsView);
       final spec = series.toRecurrenceRuleSpec();
@@ -501,6 +550,10 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
 
   /// Stream 3: ultra-lightweight single-category hint stream for
   /// `TransactionFormScreen`.
+  ///
+  /// Pending exposure follows the same archive cut-off and system-category
+  /// exclusion as [watchMonthPendingExpenses] — the hint and the monthly totals
+  /// come from the same loader.
   Stream<BudgetCategoryHintRaw> watchCategoryBudgetHint(
     String currencyCode,
     int targetYm,

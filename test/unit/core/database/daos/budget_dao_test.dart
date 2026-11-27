@@ -723,6 +723,210 @@ void main() {
       expect(physicalHint.pendingMinor, 0);
     });
   });
+
+  group('BudgetDao archived & system category pending cut-off', () {
+    const currency = 'CNY';
+
+    Future<void> seedSeries({
+      required String id,
+      required String categoryId,
+      required int amountMinor,
+      required DateTime startDate,
+    }) async {
+      await db.into(db.recurringSeries).insert(
+            RecurringSeriesCompanion.insert(
+              id: id,
+              rrule: 'FREQ=MONTHLY;INTERVAL=1',
+              startDate: startDate,
+              materializeFrom: Value(startDate),
+              frequency: 'MONTHLY',
+              amountMinor: amountMinor,
+              description: 'Series $id',
+              categoryId: categoryId,
+              accountId: 'acc-ok',
+              type: RecurringSeriesKind.expense,
+              mode: const Value(RecurringSeriesMode.repeating),
+            ),
+          );
+    }
+
+    Future<void> seedScheduledBill({
+      required String id,
+      required String seriesId,
+      required String occurrenceKey,
+      required DateTime scheduledDate,
+    }) async {
+      await db.into(db.scheduledTransactionsView).insert(
+            ScheduledTransactionsViewCompanion.insert(
+              id: id,
+              seriesId: seriesId,
+              occurrenceKey: occurrenceKey,
+              scheduledDate: scheduledDate,
+              status: 'scheduled',
+            ),
+          );
+    }
+
+    Future<void> setArchived({
+      required String categoryId,
+      required bool archived,
+      required DateTime? archivedAt,
+    }) async {
+      await (db.update(db.categoriesView)
+            ..where((c) => c.id.equals(categoryId)))
+          .write(CategoriesViewCompanion(
+        archived: Value(archived),
+        archivedAt: Value(archivedAt),
+      ));
+    }
+
+    Future<List<String>> pendingIds(
+      int targetYm, {
+      bool includeVirtual = true,
+    }) async {
+      final raw = await dao
+          .watchMonthPendingExpenses(currency, targetYm,
+              includeVirtual: includeVirtual)
+          .first;
+      return [for (final bill in raw.bills) bill.scheduledBillId];
+    }
+
+    test(
+        'archived category keeps its archive month and drops physical and '
+        'virtual pending bills from the next month onward', () async {
+      await seedAccount(id: 'acc-ok', currencyCode: currency);
+      // Archived on the last day of May: the local-month cut-off starts in June.
+      await seedCategory(
+        id: 'rent',
+        archived: true,
+        archivedAt: DateTime(2026, 5, 31, 23, 59),
+      );
+
+      await seedSeries(
+        id: 's-materialized',
+        categoryId: 'rent',
+        amountMinor: 300000,
+        startDate: DateTime(2026, 5, 1, 9),
+      );
+      await seedScheduledBill(
+        id: 'b-may',
+        seriesId: 's-materialized',
+        occurrenceKey: '2026-05-01',
+        scheduledDate: DateTime(2026, 5, 1, 9),
+      );
+      await seedScheduledBill(
+        id: 'b-jun',
+        seriesId: 's-materialized',
+        occurrenceKey: '2026-06-01',
+        scheduledDate: DateTime(2026, 6, 1, 9),
+      );
+
+      // Never materialized: reachable through the virtual overlay only.
+      await seedSeries(
+        id: 's-virtual',
+        categoryId: 'rent',
+        amountMinor: 50000,
+        startDate: DateTime(2026, 5, 15, 9),
+      );
+
+      // Archive month still exposes both paths, which is what the overview
+      // totals (`allExpensePendingMinor`) sum up.
+      expect(await pendingIds(202605), [
+        'b-may',
+        'virtual:s-virtual:2026-05-15',
+      ]);
+      final mayHint =
+          await dao.watchCategoryBudgetHint(currency, 202605, 'rent').first;
+      expect(mayHint.pendingMinor, 350000);
+
+      // From the month after the archive, physical and virtual are both gone —
+      // for the monthly totals and for the single-category form hint.
+      expect(await pendingIds(202606), isEmpty);
+      expect(await pendingIds(202606, includeVirtual: false), isEmpty);
+      final juneHint =
+          await dao.watchCategoryBudgetHint(currency, 202606, 'rent').first;
+      expect(juneHint.pendingMinor, 0);
+    });
+
+    test('system categories never enter monthly or per-category pending',
+        () async {
+      await seedAccount(id: 'acc-ok', currencyCode: currency);
+      await seedCategory(id: 'sys-rev', systemCode: 'reversal_expense');
+      await seedCategory(id: 'rent');
+
+      await seedSeries(
+        id: 's-sys',
+        categoryId: 'sys-rev',
+        amountMinor: 11100,
+        startDate: DateTime(2026, 5, 1, 9),
+      );
+      await seedScheduledBill(
+        id: 'b-sys',
+        seriesId: 's-sys',
+        occurrenceKey: '2026-05-01',
+        scheduledDate: DateTime(2026, 5, 1, 9),
+      );
+      await seedSeries(
+        id: 's-rent',
+        categoryId: 'rent',
+        amountMinor: 300000,
+        startDate: DateTime(2026, 5, 5, 9),
+      );
+
+      // Only the ordinary category counts, for the materialized month and for
+      // the month where the system series would otherwise be virtually
+      // completed.
+      expect(await pendingIds(202605), ['virtual:s-rent:2026-05-05']);
+      expect(await pendingIds(202606), ['virtual:s-rent:2026-06-05']);
+
+      final hint = await dao
+          .watchCategoryBudgetHint(currency, 202605, 'sys-rev')
+          .first;
+      expect(hint.pendingMinor, 0);
+    });
+
+    test('archiving and restoring a category re-emits the pending stream',
+        () async {
+      await seedAccount(id: 'acc-ok', currencyCode: currency);
+      await seedCategory(id: 'rent');
+      await seedSeries(
+        id: 's-rent',
+        categoryId: 'rent',
+        amountMinor: 300000,
+        startDate: DateTime(2026, 5, 1, 9),
+      );
+
+      final emissions = <List<String>>[];
+      final subscription = dao.watchMonthPendingExpenses(currency, 202607).listen(
+            (raw) => emissions
+                .add([for (final bill in raw.bills) bill.scheduledBillId]),
+          );
+      addTearDown(subscription.cancel);
+
+      const julyBill = ['virtual:s-rent:2026-07-01'];
+      await pumpEventQueue();
+      expect(emissions, isNotEmpty);
+      expect(emissions.first, julyBill);
+
+      // `categoriesView` is part of the stream's triggers, so each write below
+      // must produce a new emission without resubscribing.
+      await setArchived(
+        categoryId: 'rent',
+        archived: true,
+        archivedAt: DateTime(2026, 6, 10),
+      );
+      await pumpEventQueue();
+      expect(emissions.last, isEmpty);
+
+      await setArchived(
+        categoryId: 'rent',
+        archived: false,
+        archivedAt: null,
+      );
+      await pumpEventQueue();
+      expect(emissions.last, julyBill);
+    });
+  });
 }
 
 /// Simulates a failing note delete so the rollback test can prove the rule
