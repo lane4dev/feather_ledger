@@ -65,7 +65,7 @@ void main() {
           '${theme.brightness.name} settings menus fill the same width at $width',
           (tester) async {
         await pump(tester, theme, width, const SettingsScreen());
-        for (final label in ['Theme', 'Language', 'Currency Symbol']) {
+        for (final label in ['Theme', 'Language', 'Current Currency']) {
           await tester.tap(find.widgetWithText(ListTile, label));
           await tester.pumpAndSettle();
           expectWidth(tester, width);

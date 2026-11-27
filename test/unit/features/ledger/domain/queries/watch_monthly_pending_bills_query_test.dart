@@ -199,4 +199,104 @@ void main() {
     );
     expect(await pendingFor(DateTime(2026, 7), currencyCode: 'USD'), isEmpty);
   });
+
+  test(
+      'posted physical rows are excluded from monthly pending bills and never '
+      'resurrected virtually', () async {
+    final created = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 30000,
+      accountId: 'acc-cash',
+      categoryId: 'dining',
+      description: 'Monthly rent',
+      frequency: 'MONTHLY',
+      startDate: DateTime(2026, 5, 10, 9),
+    );
+    final seriesId = (created as Success<String>).value;
+
+    final materialized = await harness.recurringService.ensureMaterialized(
+      seriesId: seriesId,
+      occurrenceKey: '2026-07-10',
+    );
+    final bill = (materialized as Success<ScheduledTransactionEntity>).value;
+    final posted = await harness.recurringService.postInstance(bill.id);
+    expect(posted, isA<Success<void>>());
+
+    final july = await pendingFor(DateTime(2026, 7));
+    expect(july, isEmpty);
+  });
+
+  test(
+      'cross-month dateOverride moves the bill to target month without '
+      'resurrecting the original occurrence', () async {
+    final created = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 30000,
+      accountId: 'acc-cash',
+      categoryId: 'dining',
+      description: 'Monthly rent',
+      frequency: 'MONTHLY',
+      startDate: DateTime(2026, 5, 28, 9),
+    );
+    final seriesId = (created as Success<String>).value;
+
+    final materialized = await harness.recurringService.ensureMaterialized(
+      seriesId: seriesId,
+      occurrenceKey: '2026-07-28',
+    );
+    final julyBill =
+        (materialized as Success<ScheduledTransactionEntity>).value;
+
+    final moved = await harness.recurringService.updateBill(
+      julyBill.id,
+      scope: RecurringScope.thisOnly,
+      amountMinor: 30000,
+      date: DateTime(2026, 8, 2, 9),
+      categoryId: 'dining',
+      accountId: 'acc-cash',
+      description: 'Monthly rent',
+    );
+    expect(moved, isA<Success<void>>());
+
+    final july = await pendingFor(DateTime(2026, 7));
+    expect(july, isEmpty);
+
+    final august = await pendingFor(DateTime(2026, 8));
+    expect(august, hasLength(2));
+    expect(
+      august.where((b) => !b.isVirtual && b.occurrenceKey == '2026-07-28'),
+      hasLength(1),
+    );
+    expect(
+      august.where((b) => b.isVirtual && b.occurrenceKey == '2026-08-28'),
+      hasLength(1),
+    );
+  });
+
+  test('respects materializeFrom lower bound and excludes stopped series',
+      () async {
+    final created = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 1500,
+      accountId: 'acc-cash',
+      categoryId: 'dining',
+      description: 'Delayed monthly',
+      frequency: 'MONTHLY',
+      startDate: DateTime(2026, 1, 10, 9),
+      materializeFrom: DateTime(2026, 8, 1, 0),
+    );
+    final seriesId = (created as Success<String>).value;
+
+    expect(await pendingFor(DateTime(2026, 7)), isEmpty);
+    final septemberBefore = await pendingFor(DateTime(2026, 9));
+    expect(septemberBefore, hasLength(1));
+    expect(septemberBefore.single.isVirtual, isTrue);
+    expect(septemberBefore.single.occurrenceKey, '2026-09-10');
+
+    // Stop the series directly and verify virtual rows disappear.
+    await (harness.db.update(harness.db.recurringSeries)
+          ..where((s) => s.id.equals(seriesId)))
+        .write(const RecurringSeriesCompanion(isActive: Value(false)));
+    expect(await pendingFor(DateTime(2026, 9)), isEmpty);
+  });
 }

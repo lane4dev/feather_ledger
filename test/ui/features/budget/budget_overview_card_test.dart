@@ -48,7 +48,7 @@ void main() {
       expect(find.text('¥40.00'), findsOneWidget);
       expect(find.text('Pending'), findsOneWidget);
       expect(find.text('¥30.00'), findsOneWidget);
-      expect(find.text('Total budget'), findsOneWidget);
+      expect(find.text('Budget'), findsOneWidget);
       expect(find.text('¥200.00'), findsOneWidget);
 
       // The all-expense side-note and the fixed/discretionary chips belong to
@@ -141,13 +141,13 @@ void main() {
       await _pump(tester, summary: _review());
 
       expect(find.text('Review'), findsOneWidget);
-      expect(find.text('Monthly surplus'), findsOneWidget);
+      expect(find.text('Surplus'), findsOneWidget);
       expect(find.text('¥160.00'), findsOneWidget);
 
       expect(find.text('Spent'), findsOneWidget);
-      expect(find.text('Budget used'), findsOneWidget);
+      expect(find.text('Used'), findsOneWidget);
       expect(find.text('20%'), findsOneWidget);
-      expect(find.text('Total budget'), findsOneWidget);
+      expect(find.text('Budget'), findsOneWidget);
       expect(find.text('Pending'), findsNothing);
 
       expect(find.byKey(_actualKey), findsOneWidget);
@@ -160,7 +160,7 @@ void main() {
     testWidgets('an overspent month says so', (tester) async {
       await _pump(tester, summary: _review(budgetedActualMinor: 25000));
 
-      expect(find.text('Monthly overspend'), findsOneWidget);
+      expect(find.text('Overspent'), findsOneWidget);
       expect(find.text('-¥50.00'), findsOneWidget);
       expect(find.text('125%'), findsOneWidget);
     });
@@ -171,12 +171,12 @@ void main() {
       await _pump(tester, summary: _plan());
 
       expect(find.text('Plan'), findsOneWidget);
-      expect(find.text('Available to spend'), findsOneWidget);
+      expect(find.text('Available'), findsOneWidget);
       expect(find.text('¥140.00'), findsOneWidget);
 
-      expect(find.text('Committed baseline'), findsOneWidget);
+      expect(find.text('Fixed bills'), findsOneWidget);
       expect(find.text('¥60.00'), findsOneWidget);
-      expect(find.text('Baseline share'), findsOneWidget);
+      expect(find.text('Fixed share'), findsOneWidget);
       expect(find.text('30%'), findsOneWidget);
       expect(find.text('¥200.00'), findsOneWidget);
 
@@ -194,9 +194,9 @@ void main() {
       expect(find.text('On budget 1/1'), findsNothing);
       expect(find.text('Plan'), findsOneWidget);
 
-      final label = tester.getRect(find.text('Available to spend'));
+      final label = tester.getRect(find.text('Available'));
       final amount = tester.getRect(find.text('¥140.00'));
-      final footer = tester.getRect(find.text('Committed baseline'));
+      final footer = tester.getRect(find.text('Fixed bills'));
       expect(label.left, closeTo(amount.left, _tolerance));
       expect(label.left, closeTo(footer.left, _tolerance));
     });
@@ -295,7 +295,7 @@ void main() {
       final labelTops = [
         'Spent',
         'Pending',
-        'Total budget',
+        'Budget',
       ].map((label) => tester.getTopLeft(find.text(label)).dy).toSet();
       expect(labelTops, hasLength(1));
 

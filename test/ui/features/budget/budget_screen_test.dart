@@ -30,8 +30,8 @@ void main() {
     );
 
     expect(find.byType(BudgetOverviewCard), findsOneWidget);
-    expect(find.text('Budgeted categories'), findsOneWidget);
-    expect(find.text('Unbudgeted spending'), findsOneWidget);
+    expect(find.text('Budgeted'), findsOneWidget);
+    expect(find.text('Unbudgeted'), findsOneWidget);
     expect(find.byKey(budgetPlanHintKey), findsNothing);
     // The hero is the only way into the review, so it is tappable and says so.
     expect(find.byKey(budgetOverviewTapKey), findsOneWidget);
@@ -45,14 +45,14 @@ void main() {
 
     expect(
       topOf(tester, find.byType(BudgetOverviewCard)),
-      lessThan(topOf(tester, find.text('Budgeted categories'))),
+      lessThan(topOf(tester, find.text('Budgeted'))),
     );
     expect(
-      topOf(tester, find.text('Budgeted categories')),
-      lessThan(topOf(tester, find.text('Unbudgeted spending'))),
+      topOf(tester, find.text('Budgeted')),
+      lessThan(topOf(tester, find.text('Unbudgeted'))),
     );
     expect(
-      topOf(tester, find.text('Unbudgeted spending')),
+      topOf(tester, find.text('Unbudgeted')),
       lessThan(topOf(tester, find.text('Travel'))),
     );
 
@@ -117,7 +117,7 @@ void main() {
 
     expect(
       topOf(tester, find.byType(BudgetOverviewCard)),
-      lessThan(topOf(tester, find.text('Budgeted categories'))),
+      lessThan(topOf(tester, find.text('Budgeted'))),
     );
 
     await tester.tap(find.byKey(budgetOverviewTapKey));
@@ -209,10 +209,10 @@ void main() {
     expect(find.text('Monthly Review & Trends'), findsNothing);
     // The rules the rows show *are* last month's, so the page may say so.
     expect(
-      find.textContaining("Last month's rules carry forward"),
+      find.textContaining('Carried from last month'),
       findsOneWidget,
     );
-    expect(find.textContaining('Fixed bills \$2100.00'), findsOneWidget);
+    expect(find.textContaining('\$2100.00 in fixed bills'), findsOneWidget);
     expect(
       find.text('Only generated recurring bills are included.'),
       findsNothing,
@@ -270,8 +270,8 @@ void main() {
 
     // The bill sits in a category nobody has budgeted yet; the hint counts it
     // anyway, because it is money the month has already committed.
-    expect(find.textContaining('Fixed bills \$150.00'), findsOneWidget);
-    expect(find.textContaining('Nothing scheduled'), findsNothing);
+    expect(find.textContaining('\$150.00 in fixed bills'), findsOneWidget);
+    expect(find.textContaining('No fixed bills'), findsNothing);
   });
 
   testWidgets('future month drops the carry-forward claim once a limit differs',
@@ -310,7 +310,7 @@ void main() {
     expect(find.byKey(budgetPlanHintKey), findsOneWidget);
     expect(find.textContaining('carry forward'), findsNothing);
     expect(
-      find.textContaining('Nothing scheduled for this month yet'),
+      find.textContaining('No fixed bills'),
       findsOneWidget,
     );
   });
@@ -353,7 +353,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final sheet = find.byType(BottomSheet);
-    expect(find.text('Choose category'), findsOneWidget);
+    expect(find.text('Choose a category'), findsOneWidget);
     // Travel spent ¥250 this month without a budget; Utilities spent nothing.
     // The drawer opens on Travel, because that is the limit worth setting.
     expect(
@@ -557,9 +557,9 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Budgeted categories'), findsOneWidget);
+    expect(find.text('Budgeted'), findsOneWidget);
     expect(find.text('Transport'), findsOneWidget);
-    expect(find.text('Unbudgeted spending'), findsOneWidget);
+    expect(find.text('Unbudgeted'), findsOneWidget);
 
     await tester.tap(find.text('Groceries'));
     await tester.pumpAndSettle();
@@ -575,9 +575,9 @@ void main() {
       }),
     );
 
-    expect(find.text('Create an account to start budgeting'), findsOneWidget);
+    expect(find.text('Add an account first'), findsOneWidget);
     expect(
-      find.text('No active accounts exist for USD yet.'),
+      find.text('No active accounts in USD.'),
       findsOneWidget,
     );
     expect(find.text('Manage Accounts'), findsOneWidget);
@@ -608,10 +608,10 @@ void main() {
       size: const Size(400, 1600),
     );
 
-    expect(find.text('Plan your monthly spending'), findsOneWidget);
+    expect(find.text('Set your first budget'), findsOneWidget);
     expect(
       topOf(tester, find.byType(BudgetOverviewCard)),
-      lessThan(topOf(tester, find.text('Plan your monthly spending'))),
+      lessThan(topOf(tester, find.text('Set your first budget'))),
     );
     // Activity still has a home, and untouched categories still have "+".
     expect(find.text('Travel'), findsOneWidget);

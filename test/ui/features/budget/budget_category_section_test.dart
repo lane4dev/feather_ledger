@@ -42,14 +42,14 @@ void main() {
 
     // ¥200 limit, ¥180 spent, ¥40 billed: over before it happens.
     expect(find.text('Projected over ¥20.00'), findsOneWidget);
-    expect(find.text('Includes ¥40.00 pending'), findsOneWidget);
+    expect(find.text('Incl. ¥40.00 pending'), findsOneWidget);
     // ¥220 spent, nothing billed: the overrun is already a fact.
     expect(find.text('Over by ¥20.00'), findsOneWidget);
     expect(find.text('Used 110%'), findsOneWidget);
     expect(find.text('Left ¥160.00'), findsOneWidget);
     expect(find.text('¥180.00 / ¥200.00'), findsOneWidget);
     expect(find.text('¥40.00 / ¥200.00'), findsOneWidget);
-    expect(find.text('Budgeted categories'), findsOneWidget);
+    expect(find.text('Budgeted'), findsOneWidget);
 
     await tester.tap(find.text('Dining'));
     await tester.pumpAndSettle();
@@ -127,11 +127,10 @@ void main() {
     final taps = await _pump(tester, screen);
 
     expect(find.text('Budget ¥200.00'), findsNWidgets(2));
-    expect(
-        find.text('Fixed baseline ¥60.00 · 3-mo avg ¥90.00'), findsOneWidget);
+    expect(find.text('Fixed ¥60.00 · 3-mo avg ¥90.00'), findsOneWidget);
     // A zero baseline is omitted rather than printed as ¥0.00; the average
     // stands on its own.
-    expect(find.text('Fixed baseline ¥0.00'), findsNothing);
+    expect(find.text('Fixed ¥0.00'), findsNothing);
     expect(find.text('3-mo avg ¥30.00'), findsOneWidget);
     // Plan rows carry no progress bar at all.
     expect(
@@ -203,12 +202,12 @@ void main() {
     );
     final taps = await _pump(tester, screen);
 
-    expect(find.text('Unbudgeted spending'), findsOneWidget);
+    expect(find.text('Unbudgeted'), findsOneWidget);
     expect(find.text('Spent ¥150.00'), findsOneWidget);
-    expect(find.text("6% of month's spend"), findsOneWidget);
+    expect(find.text('6% of spend'), findsOneWidget);
     // Exactly 5% still qualifies; 4% is not worth a sentence.
-    expect(find.text("5% of month's spend"), findsOneWidget);
-    expect(find.text("4% of month's spend"), findsNothing);
+    expect(find.text('5% of spend'), findsOneWidget);
+    expect(find.text('4% of spend'), findsNothing);
     expect(find.text('Set budget'), findsNWidgets(3));
 
     final button = find.widgetWithText(FilledButton, 'Set budget').first;
@@ -290,7 +289,7 @@ void main() {
     );
     await _pump(tester, screen);
 
-    expect(find.text('Unbudgeted spending'), findsNothing);
+    expect(find.text('Unbudgeted'), findsNothing);
     expect(find.text('Set budget'), findsNothing);
   });
 
@@ -460,7 +459,7 @@ void main() {
 
     // Bills still due rename the figure: it is what will be left, not what is
     // left today, matching the hero's "projected remaining".
-    expect(find.text('Includes ¥40.00 pending'), findsOneWidget);
+    expect(find.text('Incl. ¥40.00 pending'), findsOneWidget);
     expect(find.text('Projected over ¥20.00'), findsOneWidget);
 
     final colors = AppTheme.lightTheme.extension<AppSemanticColors>()!;
@@ -556,7 +555,7 @@ void main() {
 
     expect(find.text(name), findsOneWidget);
     expect(find.text('Projected over ¥200.00'), findsOneWidget);
-    expect(find.text('Includes ¥400.00 pending'), findsOneWidget);
+    expect(find.text('Incl. ¥400.00 pending'), findsOneWidget);
     expect(find.text('¥11800.00 / ¥12000.00'), findsOneWidget);
 
     final nameRect = tester.getRect(find.text(name));

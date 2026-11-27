@@ -191,6 +191,13 @@ class RecordingLedgerService implements LedgerService {
   @override
   Future<AccountBalance> accountBalance(String accountId) =>
       throw UnimplementedError();
+
+  @override
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPendingBills(
+    DateTime month, {
+    required String currencyCode,
+  }) =>
+      throw UnimplementedError();
 }
 
 /// [RecurringService], recorded the same way.
@@ -327,6 +334,13 @@ class RecordingRecurringService implements RecurringService {
   @override
   Stream<List<ScheduledTransactionEntity>> watchScheduled(
           {String? currencyCode}) =>
+      throw UnimplementedError();
+
+  @override
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPending({
+    required DateTime month,
+    required String currencyCode,
+  }) =>
       throw UnimplementedError();
 }
 

@@ -8,7 +8,6 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
-import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_pending_bills_query.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 
@@ -57,10 +56,6 @@ void main() {
       overrides: [
         currencyControllerProvider.overrideWith(_FixedCurrency.new),
         ledgerServiceProvider.overrideWithValue(harness.ledgerService),
-        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
-          WatchMonthlyPendingBillsQuery(
-              harness.recurringRepository, harness.clock),
-        ),
       ],
     );
     addTearDown(container.dispose);
@@ -128,10 +123,6 @@ void main() {
       overrides: [
         currencyControllerProvider.overrideWith(_FixedCurrency.new),
         ledgerServiceProvider.overrideWithValue(harness.ledgerService),
-        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
-          WatchMonthlyPendingBillsQuery(
-              harness.recurringRepository, harness.clock),
-        ),
       ],
     );
     addTearDown(container.dispose);
@@ -191,10 +182,6 @@ void main() {
       overrides: [
         currencyControllerProvider.overrideWith(_FixedCurrency.new),
         ledgerServiceProvider.overrideWithValue(harness.ledgerService),
-        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
-          WatchMonthlyPendingBillsQuery(
-              harness.recurringRepository, harness.clock),
-        ),
       ],
     );
     addTearDown(container.dispose);

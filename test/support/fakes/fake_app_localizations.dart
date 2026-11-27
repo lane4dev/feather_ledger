@@ -422,7 +422,7 @@ class FakeAppLocalizations implements AppLocalizations {
   String get language => 'Language';
 
   @override
-  String get currencySymbol => 'Currency Symbol';
+  String get currencySymbol => 'Current Currency';
 
   @override
   String get accountCurrency => 'Currency';
