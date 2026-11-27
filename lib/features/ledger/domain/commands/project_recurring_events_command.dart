@@ -66,8 +66,8 @@ class MaterializationSummary {
 ///      [maxBackfillPerSeries] (100) most recent occurrences per series.
 ///      Returns newly inserted overdue rows for non-auto-post series and
 ///      whether any older unmaterialized occurrences were truncated.
-///   2. Phase 1: every missing occurrence in `(now, endOfMonth(nowYm + 2)]`
-///      (current month + next 2 full calendar months), with no `maxKeep = 3`
+///   2. Phase 1: every missing occurrence in `(now, endOfMonth(nowYm + 1)]`
+///      (current month + next full calendar month), with no `maxKeep = 3`
 ///      cap and a safety valve of [maxUpcomingSafetyValve] (120) upcoming rows.
 ///   3. Phase 2: sparse floor of [minKeep] (1) upcoming occurrence beyond the
 ///      horizon for rules such as yearly or far-future series that have zero
@@ -93,15 +93,15 @@ class ProjectRecurringEventsCommand {
         _monthsAhead = monthsAhead;
 
   /// Number of additional full calendar months beyond the current month to
-  /// physically materialize (`nowYm + 2` = 3 full calendar months total).
-  static const int defaultMonthsAhead = 2;
+  /// physically materialize (`nowYm + 1` = 2 full calendar months total).
+  static const int defaultMonthsAhead = 1;
 
   /// Never leave an active repeating series with fewer upcoming bills than
   /// this (when the rule still has future occurrences).
   static const int minKeep = 1;
 
   /// Per-series safety valve for upcoming rows materialized within the
-  /// near-term horizon (3 full calendar months has at most 92 days).
+  /// near-term horizon (2 full calendar months has at most 62 days).
   static const int maxUpcomingSafetyValve = 120;
 
   /// Maximum calendar months (inclusive of `now`'s month) that Phase 0
@@ -245,7 +245,7 @@ class ProjectRecurringEventsCommand {
       }
     }
 
-    // Phase 1 — all upcoming occurrences in (now, endOfMonth(nowYm + 2)],
+    // Phase 1 — all upcoming occurrences in (now, endOfMonth(nowYm + 1)],
     // bounded only by the per-series safety valve (120).
     final horizonEnd =
         RecurrenceExpander.horizonEndForMonth(now, monthsAhead: _monthsAhead);

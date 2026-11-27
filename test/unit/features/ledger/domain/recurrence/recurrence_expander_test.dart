@@ -320,30 +320,30 @@ void main() {
       expect(nextWeek?.occurrenceKey, '2026-11-09');
     });
 
-    test('horizonEndForMonth aligns strictly to end of (nowYm + 2)', () {
-      // Nov 26, 2026 -> Jan 31, 2027 (Nov, Dec, Jan = 3 full months)
+    test('horizonEndForMonth aligns strictly to end of (nowYm + 1)', () {
+      // Nov 26, 2026 -> Dec 31, 2026 (Nov, Dec = 2 full months)
       final nov = RecurrenceExpander.horizonEndForMonth(
         DateTime(2026, 11, 26, 10, 0),
       );
-      expect(nov.year, 2027);
-      expect(nov.month, 1);
+      expect(nov.year, 2026);
+      expect(nov.month, 12);
       expect(nov.day, 31);
 
-      // Dec 26, 2026 -> Feb 28, 2027 (non-leap)
-      final dec = RecurrenceExpander.horizonEndForMonth(
-        DateTime(2026, 12, 26, 10, 0),
+      // Jan 26, 2027 -> Feb 28, 2027 (non-leap)
+      final jan = RecurrenceExpander.horizonEndForMonth(
+        DateTime(2027, 1, 26, 10, 0),
       );
-      expect(dec.year, 2027);
-      expect(dec.month, 2);
-      expect(dec.day, 28);
+      expect(jan.year, 2027);
+      expect(jan.month, 2);
+      expect(jan.day, 28);
 
-      // Dec 26, 2027 -> Feb 29, 2028 (leap year)
-      final leapDec = RecurrenceExpander.horizonEndForMonth(
-        DateTime(2027, 12, 26, 10, 0),
+      // Jan 26, 2028 -> Feb 29, 2028 (leap year)
+      final leapJan = RecurrenceExpander.horizonEndForMonth(
+        DateTime(2028, 1, 26, 10, 0),
       );
-      expect(leapDec.year, 2028);
-      expect(leapDec.month, 2);
-      expect(leapDec.day, 29);
+      expect(leapJan.year, 2028);
+      expect(leapJan.month, 2);
+      expect(leapJan.day, 29);
     });
 
     test('formatRrule uses local civil UNTIL and round-trips BYDAY cleanly', () {

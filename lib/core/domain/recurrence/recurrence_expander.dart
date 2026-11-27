@@ -189,9 +189,9 @@ class RecurrenceExpander {
       DateTime(year, month + 1, 0, 23, 59, 59, 999);
 
   /// Calendar-month-aligned physical materialization horizon end:
-  /// `endOfMonth(nowYm + monthsAhead)`. With [monthsAhead] = 2, this covers
-  /// the full current month plus the next 2 full calendar months (3 months).
-  static DateTime horizonEndForMonth(DateTime now, {int monthsAhead = 2}) {
+  /// `endOfMonth(nowYm + monthsAhead)`. With [monthsAhead] = 1, this covers
+  /// the full current month plus the next full calendar month (2 months).
+  static DateTime horizonEndForMonth(DateTime now, {int monthsAhead = 1}) {
     final local = _asLocalWallTime(now);
     return endOfCalendarMonth(local.year, local.month + monthsAhead);
   }

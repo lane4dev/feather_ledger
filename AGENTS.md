@@ -133,7 +133,7 @@ lib/shared/     跨特性的组件与扩展
   - `endDate` 闭区间截断；`countLimit` 始终代表全生命周期总次数，展开时以 `countLimit - completedCountOffset` 推进剩余期次；`materializeFrom` 是允许物理物化与预算虚拟投影的下界日期，而 `startDate` 始终保留为排期与 `countLimit` 锚点。
 - **层一：自然月对齐的物理物化（`ProjectRecurringEventsCommand`）**：仅面向 `isActive == true` 且关联账户 `!archived && !deleted` 的系列，每个系列在单次数据库事务内批量 `INSERT OR IGNORE`：
   - **Phase 0（休眠重启历史回填上限）**：回填 `[max(materializeFrom, startOfMonth(nowYm - 11)), now]`（最多 12 个自然月）内缺失的历史期次，单系列硬上限 **100 条（最近优先）**；返回 `MaterializationSummary`（`newlyMaterializedOverdueCount`、`hasTruncatedHistory`），供会话级 `OverdueMaterializationBanner` 提示。
-  - **Phase 1（自然月对齐前瞻窗口）**：完整物化 `(now, endOfMonth(nowYm + 2)]`（当月 + 未来 2 个完整自然月），**无 `maxKeep = 3` 截断**，单系列设 `120` 条前瞻安全阀（足以覆盖 3 个自然月的每日规则）。
+  - **Phase 1（自然月对齐前瞻窗口）**：完整物化 `(now, endOfMonth(nowYm + 1)]`（当月 + 未来 1 个完整自然月），**无 `maxKeep = 3` 截断**，单系列设 `120` 条前瞻安全阀（足以覆盖 2 个自然月的每日规则）。
   - **Phase 2（低频保底）**：若 `(now, horizonEnd]` 内无任何待入账 `scheduled` 实例，继续向后探测并保底物化最近 **`minKeep = 1`** 期（如年付规则）。`planned` 系列幂等插入 `'single'`。
 - **层二：预算按需虚拟投影（Overlay）与按需落库（Materialize-on-Write）**：
   - 预算读路径（`BudgetDao` / `BudgetRepositoryImpl` / `BudgetCalculator`）在 **Track / Plan**（`targetYm >= nowYm`）下用同一个 `RecurrenceExpander` 展开活跃支出系列，按 `(seriesId, occurrenceKey)` 与物理行叠加：命中 `posted` / `skipped` 则忽略（防重复计算），命中 `scheduled` / `failed` 则按稀疏覆盖列（含跨月 `dateOverride`）计算，未命中则合成虚拟待入账项计入 `pendingMinor` 与贡献列表；**Review**（`targetYm < nowYm`）绝不展开虚拟期次。记账表单实时预算提示（`watchTransactionBudgetHint`）复用同一 Overlay，已彻底移除 `hasHighFrequencyPending` / `isFarFutureMaterializedOnly` 降级标记与提示。

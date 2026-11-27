@@ -15,7 +15,7 @@ import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart'
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
 
 /// Calendar-month-aligned physical materialization policy
-/// (`endOfMonth(nowYm + 2)`, no `maxKeep = 3` cap, 120-item safety valve,
+/// (`endOfMonth(nowYm + 1)`, no `maxKeep = 3` cap, 120-item safety valve,
 /// `minKeep = 1` sparse floor, local civil dates, and shared `BudgetService`
 /// integration).
 void main() {
@@ -25,8 +25,8 @@ void main() {
   late DateTime fixedNow;
 
   setUp(() async {
-    // Anchor at Nov 26, 2026 10:00 so `endOfMonth(nowYm + 2)` is Jan 31, 2027
-    // (full Nov 2026 + full Dec 2026 + full Jan 2027).
+    // Anchor at Nov 26, 2026 10:00 so `endOfMonth(nowYm + 1)` is Dec 31, 2026
+    // (full Nov 2026 + full Dec 2026).
     fixedNow = DateTime(2026, 11, 26, 10, 0);
     harness = LedgerServiceHarness(clock: FixedClock(fixedNow));
     await harness.seedSystemCategories();
@@ -126,13 +126,13 @@ void main() {
 
   group('Calendar-month-aligned horizon & high-frequency materialization', () {
     test(
-        'fixed clock Nov 26: DAILY, WEEKLY, MONTHLY cover full endOfMonth(nowYm + 2) = Jan 31 with no maxKeep=3 cap; YEARLY keeps floor 1; idempotent',
+        'fixed clock Nov 26: DAILY, WEEKLY, MONTHLY cover full endOfMonth(nowYm + 1) = Dec 31 with no maxKeep=3 cap; YEARLY keeps floor 1; idempotent',
         () async {
       await seedAccountAndCategory(CategoryType.expense);
       final account = (await harness.db.accountDao.getAllAccounts()).single;
       final categoryId = await harness.userCategoryId();
 
-      // DAILY starting Nov 27 -> Nov 27..30 (4) + Dec (31) + Jan (31) = 66 bills.
+      // DAILY starting Nov 27 -> Nov 27..30 (4) + Dec (31) = 35 bills.
       final dailyRes = await harness.recurringService.createSeries(
         type: RecurringSeriesKind.expense,
         amountMinor: 500,
@@ -145,7 +145,7 @@ void main() {
       );
       final dailySeriesId = (dailyRes as Success<String>).value;
 
-      // WEEKLY starting Nov 27 (Fri): 10 Fridays through Jan 29, 2027.
+      // WEEKLY starting Nov 27 (Fri): 5 Fridays through Dec 25, 2026.
       final weeklyRes = await harness.recurringService.createSeries(
         type: RecurringSeriesKind.expense,
         amountMinor: 2000,
@@ -158,7 +158,7 @@ void main() {
       );
       final weeklySeriesId = (weeklyRes as Success<String>).value;
 
-      // MONTHLY starting Nov 28 -> Nov 28, Dec 28, Jan 28 (3 bills).
+      // MONTHLY starting Nov 28 -> Nov 28, Dec 28 (2 bills).
       final monthlyRes = await harness.recurringService.createSeries(
         type: RecurringSeriesKind.expense,
         amountMinor: 30000,
@@ -190,18 +190,17 @@ void main() {
       final monthly = all.where((b) => b.seriesId == monthlySeriesId).toList();
       final yearly = all.where((b) => b.seriesId == yearlySeriesId).toList();
 
-      expect(daily, hasLength(66));
+      expect(daily, hasLength(35));
       expect(daily.first.occurrenceKey, '2026-11-27');
-      expect(daily.last.occurrenceKey, '2027-01-31');
+      expect(daily.last.occurrenceKey, '2026-12-31');
 
-      expect(weekly, hasLength(10));
+      expect(weekly, hasLength(5));
       expect(weekly.first.occurrenceKey, '2026-11-27');
-      expect(weekly.last.occurrenceKey, '2027-01-29');
+      expect(weekly.last.occurrenceKey, '2026-12-25');
 
       expect(monthly.map((b) => b.occurrenceKey).toList(), [
         '2026-11-28',
         '2026-12-28',
-        '2027-01-28',
       ]);
 
       expect(yearly.map((b) => b.occurrenceKey).toList(), ['2027-06-01']);
@@ -217,14 +216,14 @@ void main() {
     });
 
     test(
-        'fixed clock Dec 26 covers through Feb 28 (and Feb 29 in leap year 2028)',
+        'fixed clock Jan 26 covers through Feb 28 (and Feb 29 in leap year 2028)',
         () async {
       for (final entry in [
-        (year: 2026, expectedLast: '2027-02-28', expectedDailyCount: 64),
-        (year: 2027, expectedLast: '2028-02-29', expectedDailyCount: 65),
+        (year: 2027, expectedLast: '2027-02-28', expectedDailyCount: 33),
+        (year: 2028, expectedLast: '2028-02-29', expectedDailyCount: 34),
       ]) {
         final h = LedgerServiceHarness(
-          clock: FixedClock(DateTime(entry.year, 12, 26, 10, 0)),
+          clock: FixedClock(DateTime(entry.year, 1, 26, 10, 0)),
         );
         addTearDown(h.close);
         await h.accountService.createAccount(
@@ -252,7 +251,7 @@ void main() {
           description: 'Coffee',
           frequency: 'DAILY',
           interval: 1,
-          startDate: DateTime(entry.year, 12, 27, 8, 0),
+          startDate: DateTime(entry.year, 1, 27, 8, 0),
         );
 
         final bills = (await h.recurringService.watchScheduled().first)
@@ -264,7 +263,7 @@ void main() {
 
     test('a series starting beyond the window still gets its minKeep=1 floor',
         () async {
-      // Two years out: past endOfMonth(nowYm + 2); gets the 1-occurrence floor.
+      // Two years out: past endOfMonth(nowYm + 1); gets the 1-occurrence floor.
       expect(
         await createSeries(
           frequency: 'MONTHLY',
@@ -331,9 +330,9 @@ void main() {
       );
       expect(result, isA<Success<void>>());
       final bills = await pending();
-      // Every 2 weeks on Fri/Sat from Nov 27 through Jan 31:
-      // Nov 27,28; Dec 11,12; Dec 25,26; Jan 8,9; Jan 22,23 = 10 bills.
-      expect(bills, hasLength(10));
+      // Every 2 weeks on Fri/Sat from Nov 27 through Dec 31:
+      // Nov 27,28; Dec 11,12; Dec 25,26 = 6 bills.
+      expect(bills, hasLength(6));
       expect(
         bills.every((b) =>
             b.date.weekday == DateTime.friday ||
@@ -342,7 +341,7 @@ void main() {
       );
       expect(await harness.recurringService.materialize(),
           MaterializationSummary.empty);
-      expect(await pending(), hasLength(10));
+      expect(await pending(), hasLength(6));
     });
 
     test('a count-limited series does not replenish a skipped occurrence',
@@ -599,7 +598,7 @@ void main() {
       expect(deleted.single.status, 'skipped');
     });
 
-    test('an income series materializes across the full 3-month window',
+    test('an income series materializes across the full 2-month window',
         () async {
       final count = await createSeries(
         frequency: 'MONTHLY',
@@ -607,7 +606,7 @@ void main() {
         categoryType: CategoryType.income,
         kind: RecurringSeriesKind.income,
       );
-      expect(count, 3);
+      expect(count, 2);
     });
 
     test('materializing stays bounded in time', () async {
@@ -662,7 +661,7 @@ void main() {
       );
 
       final all = await harness.recurringRepository.watchAllScheduled().first;
-      expect(all, hasLength(3));
+      expect(all, hasLength(2));
       final first = all.first;
       expect(first.kind, TransactionKind.expense);
       expect(first.category?.name, 'Rent');
@@ -692,7 +691,7 @@ void main() {
       final pendingOnly = await harness.recurringRepository
           .watchPendingScheduled(currencyCode: 'USD')
           .first;
-      expect(pendingOnly, hasLength(2));
+      expect(pendingOnly, hasLength(1));
       expect(pendingOnly.map((b) => b.id), isNot(contains(first.id)));
     });
   });
@@ -971,7 +970,7 @@ void main() {
 
       expect(
         initial.map((r) => r.occurrenceKey).toList(),
-        ['2026-11-01', '2026-12-01', '2027-01-01'],
+        ['2026-11-01', '2026-12-01'],
         reason: 'local civil 1st must never shift to UTC Oct 31 / Nov 30',
       );
       final idsBefore = initial.map((r) => r.id).toSet();
