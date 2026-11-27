@@ -22,6 +22,7 @@ import 'package:feather_ledger/features/ledger/domain/commands/restore_skipped_b
 import 'package:feather_ledger/features/ledger/domain/commands/update_recurring_bill_command.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/get_scheduled_transaction_query.dart';
+import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_pending_bills_query.dart';
 import 'package:feather_ledger/features/ledger/domain/queries/watch_scheduled_transactions_query.dart';
 
 export 'package:feather_ledger/features/ledger/domain/commands/project_recurring_events_command.dart'
@@ -93,6 +94,7 @@ class RecurringService {
   final ConvertScheduledToPostedCommand _postInstance;
   final ProjectRecurringEventsCommand _materialize;
   final WatchScheduledTransactionsQuery _watchScheduled;
+  final WatchMonthlyPendingBillsQuery _watchMonthlyPending;
   final GetScheduledTransactionQuery _getScheduled;
   final RecurringRepository _recurringRepository;
   final RestoreSkippedBillCommand _restoreSkipped;
@@ -110,16 +112,22 @@ class RecurringService {
     this._watchScheduled,
     this._getScheduled,
     this._recurringRepository, {
+    WatchMonthlyPendingBillsQuery? watchMonthlyPending,
     RestoreSkippedBillCommand? restoreSkipped,
     EnsureOccurrenceMaterializedCommand? ensureMaterialized,
     prefs_api.PreferencesRepository? preferences,
     DomainClock? clock,
-  })  : _restoreSkipped =
+  })  : _clock = clock ?? const SystemClock(),
+        _watchMonthlyPending = watchMonthlyPending ??
+            WatchMonthlyPendingBillsQuery(
+              _recurringRepository,
+              clock ?? const SystemClock(),
+            ),
+        _restoreSkipped =
             restoreSkipped ?? RestoreSkippedBillCommand(_recurringRepository),
         _ensureMaterialized = ensureMaterialized ??
             EnsureOccurrenceMaterializedCommand(_recurringRepository),
-        _preferences = preferences,
-        _clock = clock ?? const SystemClock();
+        _preferences = preferences;
 
   int takeLastAutoPostedCount() {
     final count = _lastSaveAutoPostedCount;
@@ -459,6 +467,12 @@ class RecurringService {
     String? currencyCode,
   }) =>
       _watchScheduled.execute(currencyCode: currencyCode);
+
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPending({
+    required DateTime month,
+    required String currencyCode,
+  }) =>
+      _watchMonthlyPending.execute(month: month, currencyCode: currencyCode);
 }
 
 @riverpod
@@ -475,6 +489,7 @@ RecurringService recurringService(Ref ref) {
     ref.watch(watchScheduledTransactionsQueryProvider),
     ref.watch(getScheduledTransactionQueryProvider),
     ref.watch(recurringRepositoryProvider),
+    watchMonthlyPending: ref.watch(watchMonthlyPendingBillsQueryProvider),
     restoreSkipped: ref.watch(restoreSkippedBillCommandProvider),
     ensureMaterialized: ref.watch(ensureOccurrenceMaterializedCommandProvider),
     preferences: ref.watch(preferencesRepositoryProvider).value,

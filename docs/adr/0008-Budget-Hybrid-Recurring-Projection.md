@@ -1,4 +1,4 @@
-# ADR-0008: 周期性记账的混合投影架构（自然月近期物化 + 预算读时虚拟补齐）
+# ADR-0008: 周期性记账的混合投影架构（自然月近期物化 + 预算/账本读时虚拟补齐）
 
 > **状态**：Accepted（已对齐现状并完成边界评审）  
 > **日期**：2026-11-26（2026-11-27 对齐现状并定稿）  
@@ -25,7 +25,7 @@
 1. **层一：写入与账本侧维持自然月对齐物化**：
    - `ProjectRecurringEventsCommand` 维持 `defaultMonthsAhead = 1`（当月 + 未来 1 个完整自然月）、`maxUpcomingSafetyValve = 120`、`minKeep = 1` 及 Phase 0 历史回填上限（12 个月 / 100 条）；SQLite 保持有界，`/ledger` 待入账与本地通知窗口（60 条上限）保持可控。
 2. **共享 `RecurrenceExpander` 作为唯一真相源（Single Source of Truth）**：
-   - 重复规则的本地日历日推演逻辑统一收口于纯 Dart 领域引擎 `RecurrenceExpander`（`lib/core/domain/recurrence/recurrence_expander.dart`，配合 `RecurrenceRuleSpec`），同时被 `ProjectRecurringEventsCommand`（写入物化）、`EnsureOccurrenceMaterializedCommand`（按需落库）和预算读路径调用，杜绝多套实现导致的口径漂移与时区/DST 漂移。
+   - 重复规则的本地日历日推演逻辑统一收口于纯 Dart 领域引擎 `RecurrenceExpander`（`lib/core/domain/recurrence/recurrence_expander.dart`，配合 `RecurrenceRuleSpec`），同时被 `ProjectRecurringEventsCommand`（写入物化）、`EnsureOccurrenceMaterializedCommand`（按需落库）以及预算/账本读路径调用，杜绝多套实现导致的口径漂移与时区/DST 漂移。
 3. **层二：预算与账本读侧执行虚拟补齐（Overlay）**：
    - **预算读路径**：对目标自然月 `M`（仅限 `Track` 当月与 `Plan` 未来月，即 `M >= nowYm`），预算待入账读取合并两路数据：
      - **已物化未入账部分**：读取 `scheduled_transactions_view` 中 `status IN ('scheduled', 'failed')` 且生效日期 `coalesce(dateOverride, scheduledDate)` 落入 `M` 的物理实例（含 `amountOverrideMinor` 与 `memoOverride`）。
@@ -33,7 +33,7 @@
    - **账本月度读路径**：`RecurringDao.watchMonthPendingBills` 对 `nowYm <= M <= nowYm + 24` 的账本待入账列表合并同月物理行与虚拟期次。账本口径与预算口径刻意不同：包含 `income` 与 `expense` 系列、包含 `includeInTotals == false` 的账户（因为账本列表本来就展示这些账户的交易），仅排除已归档/已删除账户。
    - 两条读路径共用同一个 `(seriesId, occurrenceKey)` 去重集合（覆盖该系列在目标月与 `'single'` 下的全部状态），虚拟项均携带 `isVirtual = true`；账本列表不会把虚拟项计入每日收支小计、账户余额或月度快照。
 4. **按需落库（Materialize-on-Write）衔接交互**：
-   - 区别于「只读摘要行」方案，远期虚拟待入账项在预算分类详情页中允许用户直接点击操作；点击时通过 `RecurringService.ensureMaterialized`（`EnsureOccurrenceMaterializedCommand`）在单事务内按 `(seriesId, occurrenceKey)` 幂等落库为标准 `scheduled` UUID 行（`INSERT OR IGNORE`），随后无缝复用既有 `PendingBillSheet` 执行记入、单期编辑或跳过（ADR-0005）。
+   - 区别于「只读摘要行」方案，远期虚拟待入账项在预算分类详情页与账本月度列表中均允许用户直接点击操作；点击时通过 `RecurringService.ensureMaterialized`（`EnsureOccurrenceMaterializedCommand`）在单事务内按 `(seriesId, occurrenceKey)` 幂等落库为标准 `scheduled` UUID 行（`INSERT OR IGNORE`），随后无缝复用既有 `PendingBillSheet` 执行记入、单期编辑或跳过（ADR-0005）。
 
 ## 3. 核心去重与边界不变量（Invariants）
 

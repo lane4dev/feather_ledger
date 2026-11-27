@@ -131,7 +131,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get language => '语言';
 
   @override
-  String get currencySymbol => '货币符号';
+  String get currencySymbol => '当前币种';
 
   @override
   String get accountCurrency => '币种';
@@ -1027,7 +1027,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetModeReview => '复盘';
 
   @override
-  String get budgetTotal => '本月总预算';
+  String get budgetTotal => '总预算';
 
   @override
   String get budgetActualSpent => '已消费';
@@ -1042,7 +1042,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetProjectedOver => '预计超支';
 
   @override
-  String get budgetCompliance => '达标率';
+  String get budgetCompliance => '达标';
 
   @override
   String get budgetCommitted => '固定';
@@ -1051,22 +1051,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetDiscretionary => '弹性';
 
   @override
-  String get budgetCommittedBaseline => '固定基线';
+  String get budgetCommittedBaseline => '固定账单';
 
   @override
-  String get budgetOverviewMonthlySurplus => '本月结余';
+  String get budgetOverviewMonthlySurplus => '结余';
 
   @override
-  String get budgetOverviewMonthlyOverspend => '本月超支';
+  String get budgetOverviewMonthlyOverspend => '超支';
 
   @override
-  String get budgetOverviewAvailable => '可自由支配';
+  String get budgetOverviewAvailable => '可用预算';
 
   @override
-  String get budgetOverviewBudgetUsage => '预算使用率';
+  String get budgetOverviewBudgetUsage => '使用率';
 
   @override
-  String get budgetOverviewBaselineShare => '基线占比';
+  String get budgetOverviewBaselineShare => '固定占比';
 
   @override
   String get budgetTrendTitle => '近 6 个月预算 vs 实际';
@@ -1185,10 +1185,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get budgetSectionBudgeted => '已设预算分类';
+  String get budgetSectionBudgeted => '已设预算';
 
   @override
-  String get budgetSectionUnbudgetedActive => '计划外支出';
+  String get budgetSectionUnbudgetedActive => '未设预算';
 
   @override
   String get budgetSetButton => '设预算';
@@ -1233,7 +1233,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String budgetRowPendingIncluded(String amount) {
-    return '含待入账 $amount';
+    return '含待付 $amount';
   }
 
   @override
@@ -1248,12 +1248,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String budgetRowBaseline(String amount) {
-    return '固定基线 $amount';
+    return '固定 $amount';
   }
 
   @override
   String budgetRowShare(String percent) {
-    return '占本月总支出 $percent';
+    return '占总支出 $percent';
   }
 
   @override
@@ -1388,21 +1388,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetNoTransactionsInMonth => '本月暂无支出记录。';
 
   @override
-  String get budgetEmptyNoAccountsTitle => '新建账户后即可规划预算';
+  String get budgetEmptyNoAccountsTitle => '先添加一个账户';
 
   @override
   String budgetEmptyNoAccountsBody(String currency) {
-    return '当前币种（$currency）下暂无活跃账户。';
+    return '当前币种（$currency）暂无可用账户';
   }
 
   @override
-  String get budgetEmptyNoBudgetsTitle => '规划你的月度支出';
+  String get budgetEmptyNoBudgetsTitle => '设置第一个预算';
 
   @override
-  String get budgetEmptyNoBudgetsBody => '点击下方任意分类或右上角 + 即可设置首个分类预算。';
+  String get budgetEmptyNoBudgetsBody => '点下方分类或右上角 + 添加预算';
 
   @override
-  String get budgetPickCategoryTitle => '选择支出分类';
+  String get budgetPickCategoryTitle => '选择分类';
 
   @override
   String budgetHintRemaining(String remaining, String after) {
@@ -1457,15 +1457,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get budgetPlanHintCarryForward => '沿用上月规则';
+  String get budgetPlanHintCarryForward => '沿用上月预算';
 
   @override
   String budgetPlanHintFixedBills(String amount) {
-    return '已排定固定账单 $amount';
+    return '固定账单 $amount';
   }
 
   @override
-  String get budgetPlanHintNoBills => '本月还没有已排定账单';
+  String get budgetPlanHintNoBills => '暂无固定账单';
 
   @override
   String get hideOverviewAmounts => '隐藏概览金额';
@@ -3163,7 +3163,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get language => '語言';
 
   @override
-  String get currencySymbol => '貨幣符號';
+  String get currencySymbol => '目前幣別';
 
   @override
   String get accountCurrency => '幣種';
@@ -4059,7 +4059,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetModeReview => '複盤';
 
   @override
-  String get budgetTotal => '本月總預算';
+  String get budgetTotal => '總預算';
 
   @override
   String get budgetActualSpent => '已消費';
@@ -4074,7 +4074,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetProjectedOver => '預計超支';
 
   @override
-  String get budgetCompliance => '達標率';
+  String get budgetCompliance => '達標';
 
   @override
   String get budgetCommitted => '固定';
@@ -4083,22 +4083,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetDiscretionary => '彈性';
 
   @override
-  String get budgetCommittedBaseline => '固定基準線';
+  String get budgetCommittedBaseline => '固定帳單';
 
   @override
-  String get budgetOverviewMonthlySurplus => '本月結餘';
+  String get budgetOverviewMonthlySurplus => '結餘';
 
   @override
-  String get budgetOverviewMonthlyOverspend => '本月超支';
+  String get budgetOverviewMonthlyOverspend => '超支';
 
   @override
-  String get budgetOverviewAvailable => '可自由支配';
+  String get budgetOverviewAvailable => '可用預算';
 
   @override
-  String get budgetOverviewBudgetUsage => '預算使用率';
+  String get budgetOverviewBudgetUsage => '使用率';
 
   @override
-  String get budgetOverviewBaselineShare => '基線佔比';
+  String get budgetOverviewBaselineShare => '固定佔比';
 
   @override
   String get budgetTrendTitle => '近 6 個月預算 vs 實際';
@@ -4217,10 +4217,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get budgetSectionBudgeted => '已設預算分類';
+  String get budgetSectionBudgeted => '已設預算';
 
   @override
-  String get budgetSectionUnbudgetedActive => '計劃外支出';
+  String get budgetSectionUnbudgetedActive => '未設預算';
 
   @override
   String get budgetSetButton => '設預算';
@@ -4265,7 +4265,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String budgetRowPendingIncluded(String amount) {
-    return '含待入賬 $amount';
+    return '含待付 $amount';
   }
 
   @override
@@ -4280,12 +4280,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String budgetRowBaseline(String amount) {
-    return '固定基準 $amount';
+    return '固定 $amount';
   }
 
   @override
   String budgetRowShare(String percent) {
-    return '占本月總支出 $percent';
+    return '佔總支出 $percent';
   }
 
   @override
@@ -4420,21 +4420,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get budgetNoTransactionsInMonth => '本月尚無支出記錄。';
 
   @override
-  String get budgetEmptyNoAccountsTitle => '新增帳戶後即可規劃預算';
+  String get budgetEmptyNoAccountsTitle => '先新增一個帳戶';
 
   @override
   String budgetEmptyNoAccountsBody(String currency) {
-    return '目前幣別（$currency）下尚無活躍帳戶。';
+    return '目前幣別（$currency）暫無可用帳戶';
   }
 
   @override
-  String get budgetEmptyNoBudgetsTitle => '規劃你的月度支出';
+  String get budgetEmptyNoBudgetsTitle => '設定第一個預算';
 
   @override
-  String get budgetEmptyNoBudgetsBody => '點擊下方任意分類或右上角 + 即可設定首個分類預算。';
+  String get budgetEmptyNoBudgetsBody => '點下方分類或右上角 + 新增預算';
 
   @override
-  String get budgetPickCategoryTitle => '選擇支出分類';
+  String get budgetPickCategoryTitle => '選擇分類';
 
   @override
   String budgetHintRemaining(String remaining, String after) {
@@ -4489,15 +4489,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get budgetPlanHintCarryForward => '沿用上月規則';
+  String get budgetPlanHintCarryForward => '沿用上月預算';
 
   @override
   String budgetPlanHintFixedBills(String amount) {
-    return '已排定固定帳單 $amount';
+    return '固定帳單 $amount';
   }
 
   @override
-  String get budgetPlanHintNoBills => '本月還沒有已排定帳單';
+  String get budgetPlanHintNoBills => '暫無固定帳單';
 
   @override
   String get hideOverviewAmounts => '隱藏概覽金額';

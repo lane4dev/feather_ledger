@@ -188,6 +188,24 @@ class RecurrenceExpander {
   static DateTime endOfCalendarMonth(int year, int month) =>
       DateTime(year, month + 1, 0, 23, 59, 59, 999);
 
+  /// Inclusive forward horizon, in calendar months, for read-time virtual
+  /// pending bill overlays across both budget and ledger views (ADR-0008).
+  static const int virtualPendingHorizonMonths = 24;
+
+  /// Whether `(year, month)` falls within the read-time virtual pending
+  /// horizon `[nowYm, nowYm + virtualPendingHorizonMonths]` at [now].
+  static bool isWithinVirtualPendingHorizon({
+    required int year,
+    required int month,
+    required DateTime now,
+  }) {
+    final localNow = _asLocalWallTime(now);
+    final nowIndex = localNow.year * 12 + (localNow.month - 1);
+    final targetIndex = year * 12 + (month - 1);
+    return targetIndex >= nowIndex &&
+        targetIndex <= nowIndex + virtualPendingHorizonMonths;
+  }
+
   /// Calendar-month-aligned physical materialization horizon end:
   /// `endOfMonth(nowYm + monthsAhead)`. With [monthsAhead] = 1, this covers
   /// the full current month plus the next full calendar month (2 months).

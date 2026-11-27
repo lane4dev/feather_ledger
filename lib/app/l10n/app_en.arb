@@ -156,7 +156,7 @@
   "@language": {
     "description": "Language setting label"
   },
-  "currencySymbol": "Currency Symbol",
+  "currencySymbol": "Current Currency",
   "@currencySymbol": {
     "description": "Currency symbol setting label"
   },
@@ -888,7 +888,7 @@
   "errorBudgetNoteTooLong": "Review note cannot exceed 500 characters",
   "budgetModePlan": "Plan",
   "budgetModeReview": "Review",
-  "budgetTotal": "Total budget",
+  "budgetTotal": "Budget",
   "budgetActualSpent": "Spent",
   "budgetPendingShort": "Pending",
   "budgetProjectedRemaining": "Projected left",
@@ -896,12 +896,12 @@
   "budgetCompliance": "On budget",
   "budgetCommitted": "Committed",
   "budgetDiscretionary": "Discretionary",
-  "budgetCommittedBaseline": "Committed baseline",
-  "budgetOverviewMonthlySurplus": "Monthly surplus",
-  "budgetOverviewMonthlyOverspend": "Monthly overspend",
-  "budgetOverviewAvailable": "Available to spend",
-  "budgetOverviewBudgetUsage": "Budget used",
-  "budgetOverviewBaselineShare": "Baseline share",
+  "budgetCommittedBaseline": "Fixed bills",
+  "budgetOverviewMonthlySurplus": "Surplus",
+  "budgetOverviewMonthlyOverspend": "Overspent",
+  "budgetOverviewAvailable": "Available",
+  "budgetOverviewBudgetUsage": "Used",
+  "budgetOverviewBaselineShare": "Fixed share",
   "budgetTrendTitle": "6-Month Budget vs Actual",
   "budgetReviewTitle": "Monthly Review & Trends",
   "budgetReviewCompositionSubtitle": "Whole-month composition · incl. unbudgeted",
@@ -964,8 +964,8 @@
       "count": { "type": "int" }
     }
   },
-  "budgetSectionBudgeted": "Budgeted categories",
-  "budgetSectionUnbudgetedActive": "Unbudgeted spending",
+  "budgetSectionBudgeted": "Budgeted",
+  "budgetSectionUnbudgetedActive": "Unbudgeted",
   "budgetSetButton": "Set budget",
   "budgetAdjustButton": "Adjust budget",
   "budgetRowProjectedOver": "Projected over {amount}",
@@ -996,7 +996,7 @@
   "@budgetRowPlanBudget": {
     "placeholders": { "amount": { "type": "String" } }
   },
-  "budgetRowPendingIncluded": "Includes {amount} pending",
+  "budgetRowPendingIncluded": "Incl. {amount} pending",
   "@budgetRowPendingIncluded": {
     "placeholders": { "amount": { "type": "String" } }
   },
@@ -1008,11 +1008,11 @@
   "@budgetRowUsage": {
     "placeholders": { "percent": { "type": "String" } }
   },
-  "budgetRowBaseline": "Fixed baseline {amount}",
+  "budgetRowBaseline": "Fixed {amount}",
   "@budgetRowBaseline": {
     "placeholders": { "amount": { "type": "String" } }
   },
-  "budgetRowShare": "{percent} of month's spend",
+  "budgetRowShare": "{percent} of spend",
   "@budgetRowShare": {
     "placeholders": { "percent": { "type": "String" } }
   },
@@ -1092,14 +1092,14 @@
   "budgetContributionGroupPosted": "Posted",
   "budgetViewAll": "View all",
   "budgetNoTransactionsInMonth": "No expenses recorded in this month.",
-  "budgetEmptyNoAccountsTitle": "Create an account to start budgeting",
-  "budgetEmptyNoAccountsBody": "No active accounts exist for {currency} yet.",
+  "budgetEmptyNoAccountsTitle": "Add an account first",
+  "budgetEmptyNoAccountsBody": "No active accounts in {currency}.",
   "@budgetEmptyNoAccountsBody": {
     "placeholders": { "currency": { "type": "String" } }
   },
-  "budgetEmptyNoBudgetsTitle": "Plan your monthly spending",
-  "budgetEmptyNoBudgetsBody": "Tap any category below or + above to set your first category limit.",
-  "budgetPickCategoryTitle": "Choose category",
+  "budgetEmptyNoBudgetsTitle": "Set your first budget",
+  "budgetEmptyNoBudgetsBody": "Tap a category below or + to start.",
+  "budgetPickCategoryTitle": "Choose a category",
   "budgetHintRemaining": "Remaining {remaining} · After this: {after}",
   "@budgetHintRemaining": {
     "placeholders": {
@@ -1139,12 +1139,12 @@
   "@budgetReviewNotePreview": {
     "placeholders": { "note": { "type": "String" } }
   },
-  "budgetPlanHintCarryForward": "Last month's rules carry forward",
-  "budgetPlanHintFixedBills": "Fixed bills {amount} already scheduled",
+  "budgetPlanHintCarryForward": "Carried from last month",
+  "budgetPlanHintFixedBills": "{amount} in fixed bills",
   "@budgetPlanHintFixedBills": {
     "placeholders": { "amount": { "type": "String" } }
   },
-  "budgetPlanHintNoBills": "Nothing scheduled for this month yet",
+  "budgetPlanHintNoBills": "No fixed bills",
   "hideOverviewAmounts": "Hide overview amounts",
   "showOverviewAmounts": "Show overview amounts",
   "monthIncome": "{month} income",

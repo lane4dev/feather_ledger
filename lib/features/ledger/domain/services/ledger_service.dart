@@ -58,6 +58,16 @@ class LedgerService {
     return _recurringService.watchScheduled(currencyCode: currencyCode);
   }
 
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPendingBills(
+    DateTime month, {
+    required String currencyCode,
+  }) {
+    return _recurringService.watchMonthlyPending(
+      month: month,
+      currencyCode: currencyCode,
+    );
+  }
+
   Future<AccountBalance> accountBalance(String accountId) {
     return _getAccountBalanceQuery.execute(accountId);
   }

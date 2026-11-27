@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/data/database/daos/budget_dao.dart';
 import 'package:feather_ledger/core/domain/clock/clock.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 
 import '../../data/repositories/budget_repository_impl.dart';
 import '../entities/budget_entities.dart';
@@ -16,17 +17,19 @@ part 'watch_month_budget_query.g.dart';
 /// Inclusive forward horizon, in calendar months, of the read-side virtual
 /// pending overlay (ADR-0008 invariant 6): the Track month plus the following
 /// [kBudgetVirtualPendingHorizonMonths] Plan months.
-const kBudgetVirtualPendingHorizonMonths = 24;
+const kBudgetVirtualPendingHorizonMonths =
+    RecurrenceExpander.virtualPendingHorizonMonths;
 
 /// Whether the virtual pending overlay applies to [targetYm] at [now].
 ///
 /// Past the horizon the overlay is skipped silently — physical pending rows
 /// already materialized for that month are still counted.
-bool budgetIncludesVirtualPending(YearMonth targetYm, DateTime now) {
-  final nowYm = YearMonth.fromDate(now);
-  return targetYm >= nowYm &&
-      targetYm <= nowYm.addMonths(kBudgetVirtualPendingHorizonMonths);
-}
+bool budgetIncludesVirtualPending(YearMonth targetYm, DateTime now) =>
+    RecurrenceExpander.isWithinVirtualPendingHorizon(
+      year: targetYm.year,
+      month: targetYm.month,
+      now: now,
+    );
 
 class WatchMonthBudgetQuery {
   final BudgetRepository _repository;

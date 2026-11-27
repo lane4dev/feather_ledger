@@ -17,7 +17,6 @@ import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import 'pending_bill_sheet.dart';
 import 'show_transaction_detail_sheet.dart';
-import '../mappers/transaction_ui_mapper.dart';
 import '../models/ledger_expense_trend.dart';
 import '../models/transaction_tile_ui_model.dart';
 import '../view_model/ledger_view_model.dart';
@@ -77,7 +76,7 @@ class _LedgerTransactionListState extends ConsumerState<LedgerTransactionList> {
     try {
       final result = await ref
           .read(recurringViewModelProvider.notifier)
-          .ensureMaterialized(
+          .materializeVirtualPendingTile(
             seriesId: seriesId,
             occurrenceKey: occurrenceKey,
           );
@@ -89,19 +88,10 @@ class _LedgerTransactionListState extends ConsumerState<LedgerTransactionList> {
             SnackBar(content: Text(code.message(widget.l10n))),
           );
         case Success(:final value):
-          final category = value.category;
-          final account = value.account;
-          if (category == null || account == null) return;
-          const mapper = TransactionUiMapper();
-          final materialized = mapper.toPendingTile(
-            value,
-            category: category,
-            account: account,
-          );
           await showAppReceiptSheet<void>(
             context: context,
             builder: (_) => PendingBillSheet(
-              transaction: materialized,
+              transaction: value,
               currencySymbol: widget.currency,
             ),
           );

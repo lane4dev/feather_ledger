@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:feather_ledger/core/domain/clock/clock.dart';
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/features/ledger/data/repositories/recurring_repository.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/services/recurring_service.dart';
@@ -24,11 +25,11 @@ class WatchMonthlyPendingBillsQuery {
     required DateTime month,
     required String currencyCode,
   }) {
-    final now = _clock.now();
-    final nowIndex = now.year * 12 + (now.month - 1);
-    final targetIndex = month.year * 12 + (month.month - 1);
-    final includeVirtual =
-        targetIndex >= nowIndex && targetIndex <= nowIndex + 24;
+    final includeVirtual = RecurrenceExpander.isWithinVirtualPendingHorizon(
+      year: month.year,
+      month: month.month,
+      now: _clock.now(),
+    );
 
     return _repository.watchMonthlyPendingBills(
       currencyCode: currencyCode,

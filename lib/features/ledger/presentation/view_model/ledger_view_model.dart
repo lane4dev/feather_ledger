@@ -7,7 +7,6 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../../domain/commands/project_recurring_events_command.dart';
 import '../../domain/entities/ledger_entities.dart';
-import '../../domain/queries/watch_monthly_pending_bills_query.dart';
 import '../../domain/services/ledger_service.dart';
 
 import '../mappers/transaction_ui_mapper.dart';
@@ -26,16 +25,16 @@ part 'ledger_view_model.g.dart';
 /// posted half). `skipped` rows remain visible inline with strikethrough
 /// styling so users can inspect and restore them back to pending.
 ///
-/// Filtered to the month here rather than in the DAO because the ledger's
-/// month view is what needs the slice; the instance table itself stays whole.
-/// The query adds read-time virtual occurrences for the next 24 months; the
-/// physical table and [pendingBillMonths] stay deliberately physical-only.
+/// Routed through [LedgerService.watchMonthlyPendingBills], which filters
+/// physical rows to the month in the DAO and overlays read-time virtual
+/// occurrences for the next 24 months; the physical table and
+/// [pendingBillMonths] stay deliberately physical-only.
 @riverpod
 Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
   Ref ref,
   DateTime month,
 ) {
-  final query = ref.watch(watchMonthlyPendingBillsQueryProvider);
+  final service = ref.watch(ledgerServiceProvider);
   const mapper = TransactionUiMapper();
   // The setting, not the accounts, decides which currency the ledger list
   // shows (spec 006): switching to a currency with no accounts must show an
@@ -43,8 +42,8 @@ Stream<List<TransactionTileUiModel>> monthlyPendingTransactions(
   final currencyCode = ref.watch(currencyControllerProvider).value ??
       AppCurrencies.defaultCurrency.code;
 
-  return query
-      .execute(month: month, currencyCode: currencyCode)
+  return service
+      .watchMonthlyPendingBills(month, currencyCode: currencyCode)
       .map((instances) {
     final tiles = <TransactionTileUiModel>[];
     for (final instance in instances) {

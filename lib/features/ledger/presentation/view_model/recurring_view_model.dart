@@ -6,6 +6,8 @@ import 'package:feather_ledger/core/domain/result/result.dart';
 import '../../domain/entities/ledger_entities.dart';
 import '../../domain/recurrence/distant_past_guard.dart';
 import '../../domain/services/recurring_service.dart';
+import '../mappers/transaction_ui_mapper.dart';
+import '../models/transaction_tile_ui_model.dart';
 
 part 'recurring_view_model.g.dart';
 
@@ -46,6 +48,42 @@ class RecurringViewModel extends _$RecurringViewModel {
             seriesId: seriesId,
             occurrenceKey: occurrenceKey,
           );
+
+  /// Materializes a virtual occurrence and maps it to a UI tile ready for
+  /// `PendingBillSheet`, keeping domain-to-UI mapping out of widgets.
+  Future<Result<TransactionTileUiModel>> materializeVirtualPendingTile({
+    required String seriesId,
+    required String occurrenceKey,
+  }) async {
+    final result = await ensureMaterialized(
+      seriesId: seriesId,
+      occurrenceKey: occurrenceKey,
+    );
+    return switch (result) {
+      Failure(:final code, :final message) => Failure(code, message),
+      Success(:final value) => _mapPendingTile(value),
+    };
+  }
+
+  static Result<TransactionTileUiModel> _mapPendingTile(
+    ScheduledTransactionEntity entity,
+  ) {
+    final category = entity.category;
+    final account = entity.account;
+    if (category == null || account == null) {
+      return const Failure(
+        LedgerErrorCode.transactionNotFound,
+        'Scheduled bill metadata could not be resolved',
+      );
+    }
+    return Success(
+      const TransactionUiMapper().toPendingTile(
+        entity,
+        category: category,
+        account: account,
+      ),
+    );
+  }
 
   int takeLastAutoPostedCount() =>
       ref.read(recurringServiceProvider).takeLastAutoPostedCount();

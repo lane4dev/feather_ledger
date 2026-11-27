@@ -464,6 +464,8 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       ),
     ])
           ..where(db.accountsView.currencyCode.equals(currencyCode) &
+              scheduledTransactionsView.status
+                  .isIn(['scheduled', 'failed', 'skipped']) &
               effectiveDateExpr.isBiggerOrEqualValue(monthStart) &
               effectiveDateExpr.isSmallerThanValue(monthEndExclusive))
           ..orderBy([OrderingTerm.asc(effectiveDateExpr)]))

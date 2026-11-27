@@ -132,7 +132,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
-  String get currencySymbol => 'Currency Symbol';
+  String get currencySymbol => 'Current Currency';
 
   @override
   String get accountCurrency => 'Currency';
@@ -1095,7 +1095,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetModeReview => 'Review';
 
   @override
-  String get budgetTotal => 'Total budget';
+  String get budgetTotal => 'Budget';
 
   @override
   String get budgetActualSpent => 'Spent';
@@ -1119,22 +1119,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetDiscretionary => 'Discretionary';
 
   @override
-  String get budgetCommittedBaseline => 'Committed baseline';
+  String get budgetCommittedBaseline => 'Fixed bills';
 
   @override
-  String get budgetOverviewMonthlySurplus => 'Monthly surplus';
+  String get budgetOverviewMonthlySurplus => 'Surplus';
 
   @override
-  String get budgetOverviewMonthlyOverspend => 'Monthly overspend';
+  String get budgetOverviewMonthlyOverspend => 'Overspent';
 
   @override
-  String get budgetOverviewAvailable => 'Available to spend';
+  String get budgetOverviewAvailable => 'Available';
 
   @override
-  String get budgetOverviewBudgetUsage => 'Budget used';
+  String get budgetOverviewBudgetUsage => 'Used';
 
   @override
-  String get budgetOverviewBaselineShare => 'Baseline share';
+  String get budgetOverviewBaselineShare => 'Fixed share';
 
   @override
   String get budgetTrendTitle => '6-Month Budget vs Actual';
@@ -1256,10 +1256,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get budgetSectionBudgeted => 'Budgeted categories';
+  String get budgetSectionBudgeted => 'Budgeted';
 
   @override
-  String get budgetSectionUnbudgetedActive => 'Unbudgeted spending';
+  String get budgetSectionUnbudgetedActive => 'Unbudgeted';
 
   @override
   String get budgetSetButton => 'Set budget';
@@ -1304,7 +1304,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String budgetRowPendingIncluded(String amount) {
-    return 'Includes $amount pending';
+    return 'Incl. $amount pending';
   }
 
   @override
@@ -1319,12 +1319,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String budgetRowBaseline(String amount) {
-    return 'Fixed baseline $amount';
+    return 'Fixed $amount';
   }
 
   @override
   String budgetRowShare(String percent) {
-    return '$percent of month\'s spend';
+    return '$percent of spend';
   }
 
   @override
@@ -1477,23 +1477,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'No expenses recorded in this month.';
 
   @override
-  String get budgetEmptyNoAccountsTitle =>
-      'Create an account to start budgeting';
+  String get budgetEmptyNoAccountsTitle => 'Add an account first';
 
   @override
   String budgetEmptyNoAccountsBody(String currency) {
-    return 'No active accounts exist for $currency yet.';
+    return 'No active accounts in $currency.';
   }
 
   @override
-  String get budgetEmptyNoBudgetsTitle => 'Plan your monthly spending';
+  String get budgetEmptyNoBudgetsTitle => 'Set your first budget';
 
   @override
-  String get budgetEmptyNoBudgetsBody =>
-      'Tap any category below or + above to set your first category limit.';
+  String get budgetEmptyNoBudgetsBody => 'Tap a category below or + to start.';
 
   @override
-  String get budgetPickCategoryTitle => 'Choose category';
+  String get budgetPickCategoryTitle => 'Choose a category';
 
   @override
   String budgetHintRemaining(String remaining, String after) {
@@ -1551,15 +1549,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get budgetPlanHintCarryForward => 'Last month\'s rules carry forward';
+  String get budgetPlanHintCarryForward => 'Carried from last month';
 
   @override
   String budgetPlanHintFixedBills(String amount) {
-    return 'Fixed bills $amount already scheduled';
+    return '$amount in fixed bills';
   }
 
   @override
-  String get budgetPlanHintNoBills => 'Nothing scheduled for this month yet';
+  String get budgetPlanHintNoBills => 'No fixed bills';
 
   @override
   String get hideOverviewAmounts => 'Hide overview amounts';

@@ -343,7 +343,7 @@ abstract class AppLocalizations {
   /// Currency symbol setting label
   ///
   /// In en, this message translates to:
-  /// **'Currency Symbol'**
+  /// **'Current Currency'**
   String get currencySymbol;
 
   /// Account currency picker label
@@ -2066,7 +2066,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetTotal.
   ///
   /// In en, this message translates to:
-  /// **'Total budget'**
+  /// **'Budget'**
   String get budgetTotal;
 
   /// No description provided for @budgetActualSpent.
@@ -2114,37 +2114,37 @@ abstract class AppLocalizations {
   /// No description provided for @budgetCommittedBaseline.
   ///
   /// In en, this message translates to:
-  /// **'Committed baseline'**
+  /// **'Fixed bills'**
   String get budgetCommittedBaseline;
 
   /// No description provided for @budgetOverviewMonthlySurplus.
   ///
   /// In en, this message translates to:
-  /// **'Monthly surplus'**
+  /// **'Surplus'**
   String get budgetOverviewMonthlySurplus;
 
   /// No description provided for @budgetOverviewMonthlyOverspend.
   ///
   /// In en, this message translates to:
-  /// **'Monthly overspend'**
+  /// **'Overspent'**
   String get budgetOverviewMonthlyOverspend;
 
   /// No description provided for @budgetOverviewAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Available to spend'**
+  /// **'Available'**
   String get budgetOverviewAvailable;
 
   /// No description provided for @budgetOverviewBudgetUsage.
   ///
   /// In en, this message translates to:
-  /// **'Budget used'**
+  /// **'Used'**
   String get budgetOverviewBudgetUsage;
 
   /// No description provided for @budgetOverviewBaselineShare.
   ///
   /// In en, this message translates to:
-  /// **'Baseline share'**
+  /// **'Fixed share'**
   String get budgetOverviewBaselineShare;
 
   /// No description provided for @budgetTrendTitle.
@@ -2366,13 +2366,13 @@ abstract class AppLocalizations {
   /// No description provided for @budgetSectionBudgeted.
   ///
   /// In en, this message translates to:
-  /// **'Budgeted categories'**
+  /// **'Budgeted'**
   String get budgetSectionBudgeted;
 
   /// No description provided for @budgetSectionUnbudgetedActive.
   ///
   /// In en, this message translates to:
-  /// **'Unbudgeted spending'**
+  /// **'Unbudgeted'**
   String get budgetSectionUnbudgetedActive;
 
   /// No description provided for @budgetSetButton.
@@ -2432,7 +2432,7 @@ abstract class AppLocalizations {
   /// No description provided for @budgetRowPendingIncluded.
   ///
   /// In en, this message translates to:
-  /// **'Includes {amount} pending'**
+  /// **'Incl. {amount} pending'**
   String budgetRowPendingIncluded(String amount);
 
   /// No description provided for @budgetRowPending.
@@ -2450,13 +2450,13 @@ abstract class AppLocalizations {
   /// No description provided for @budgetRowBaseline.
   ///
   /// In en, this message translates to:
-  /// **'Fixed baseline {amount}'**
+  /// **'Fixed {amount}'**
   String budgetRowBaseline(String amount);
 
   /// No description provided for @budgetRowShare.
   ///
   /// In en, this message translates to:
-  /// **'{percent} of month\'s spend'**
+  /// **'{percent} of spend'**
   String budgetRowShare(String percent);
 
   /// No description provided for @budgetRowGroupSpent.
@@ -2668,31 +2668,31 @@ abstract class AppLocalizations {
   /// No description provided for @budgetEmptyNoAccountsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Create an account to start budgeting'**
+  /// **'Add an account first'**
   String get budgetEmptyNoAccountsTitle;
 
   /// No description provided for @budgetEmptyNoAccountsBody.
   ///
   /// In en, this message translates to:
-  /// **'No active accounts exist for {currency} yet.'**
+  /// **'No active accounts in {currency}.'**
   String budgetEmptyNoAccountsBody(String currency);
 
   /// No description provided for @budgetEmptyNoBudgetsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Plan your monthly spending'**
+  /// **'Set your first budget'**
   String get budgetEmptyNoBudgetsTitle;
 
   /// No description provided for @budgetEmptyNoBudgetsBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap any category below or + above to set your first category limit.'**
+  /// **'Tap a category below or + to start.'**
   String get budgetEmptyNoBudgetsBody;
 
   /// No description provided for @budgetPickCategoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose category'**
+  /// **'Choose a category'**
   String get budgetPickCategoryTitle;
 
   /// No description provided for @budgetHintRemaining.
@@ -2770,19 +2770,19 @@ abstract class AppLocalizations {
   /// No description provided for @budgetPlanHintCarryForward.
   ///
   /// In en, this message translates to:
-  /// **'Last month\'s rules carry forward'**
+  /// **'Carried from last month'**
   String get budgetPlanHintCarryForward;
 
   /// No description provided for @budgetPlanHintFixedBills.
   ///
   /// In en, this message translates to:
-  /// **'Fixed bills {amount} already scheduled'**
+  /// **'{amount} in fixed bills'**
   String budgetPlanHintFixedBills(String amount);
 
   /// No description provided for @budgetPlanHintNoBills.
   ///
   /// In en, this message translates to:
-  /// **'Nothing scheduled for this month yet'**
+  /// **'No fixed bills'**
   String get budgetPlanHintNoBills;
 
   /// No description provided for @hideOverviewAmounts.
