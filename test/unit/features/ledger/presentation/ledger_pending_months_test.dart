@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/data/database/app_database.dart';
+import 'package:feather_ledger/core/domain/clock/clock.dart';
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
@@ -154,6 +155,62 @@ void main() {
         container.read(monthlyPendingTransactionsProvider(month2)).value;
     expect(m2Pending, hasLength(1));
     expect(m2Pending!.single.isFailed, isTrue);
+  });
+
+  test('pendingBillMonths stays physical while a far month is virtual',
+      () async {
+    final now = DateTime(2026, 5, 15, 10);
+    final harness = LedgerServiceHarness(clock: FixedClock(now));
+    addTearDown(harness.close);
+    await harness.seedAccount(
+      id: 'acc-cash',
+      name: 'Cash',
+      currencyCode: 'USD',
+    );
+    await harness.categoryService.createCategory(
+      commandId: 'cmd_cat_far',
+      categoryId: 'far-cat',
+      name: 'Rent',
+      iconKey: '1',
+      colorInt: 0xFF000000,
+      type: CategoryType.expense,
+    );
+
+    final farMonth = DateTime(2026, 11);
+    await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 100,
+      accountId: 'acc-cash',
+      categoryId: 'far-cat',
+      description: 'Daily lunch',
+      frequency: 'DAILY',
+      startDate: DateTime(2026, 5, 1, 12),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currencyControllerProvider.overrideWith(_FixedCurrency.new),
+        ledgerServiceProvider.overrideWithValue(harness.ledgerService),
+        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
+          WatchMonthlyPendingBillsQuery(
+              harness.recurringRepository, harness.clock),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(currencyControllerProvider.future);
+    container.listen(pendingBillMonthsProvider, (_, __) {});
+    container.listen(monthlyPendingTransactionsProvider(farMonth), (_, __) {});
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    final months = container.read(pendingBillMonthsProvider).value;
+    expect(months, isNotNull);
+    expect(months, isNot(contains(farMonth)));
+
+    final farPending =
+        container.read(monthlyPendingTransactionsProvider(farMonth)).value;
+    expect(farPending, hasLength(30));
+    expect(farPending!.every((bill) => bill.isVirtual), isTrue);
   });
 }
 
