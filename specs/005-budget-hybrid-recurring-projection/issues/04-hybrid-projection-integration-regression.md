@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02, 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## 修改范围与涉及页面
 - **修改范围**：预算与周期高层集成测试套件（基于现有 `LedgerServiceHarness` 接缝）；无新增功能代码、无架构搬迁重构（不抽离 `BudgetPendingProjector`）。
@@ -28,3 +28,7 @@
   - 远期虚拟账单（如 `nowYm + 6`）按需落库后进入编辑/跳过流程保持幂等且预算实时刷新。
 - [ ] 全量 `ledger` 与 `budget` 单元测试（`flutter test`）全部通过。
 - [ ] `dart analyze` 无新增 warning 或 error。
+
+## Answer
+
+Resolved by `5e374a1 test(budget): cover the hybrid recurring projection end to end` plus the production fix `12e0f03 fix(budget): give each live budget trigger its own statement text` found by this ticket. Five service-level integration cases use `LedgerServiceHarness` + `FixedClock`; `2c04060` repaired the stale two-month materialization fixtures in `ledger_pending_months_test.dart`. Full suite: 1191 passed, only the pre-existing `floating_choice_test.dart` failure. Manual review checklist: `specs/005-budget-hybrid-recurring-projection/manual-review.md`.

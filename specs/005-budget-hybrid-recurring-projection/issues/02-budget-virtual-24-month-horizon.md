@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## 修改范围与涉及页面
 - **修改范围**：预算月度查询（`WatchMonthBudgetQuery`）、记账表单预算提示查询（`WatchTransactionBudgetHintQuery`）及对应的查询/服务层测试。
@@ -24,3 +24,7 @@
 - [ ] 查询 `targetYm == nowYm + 24` 时，预算总览、分类详情贡献列表与记账表单实时提示条均完整包含活跃周期规则的虚拟待入账。
 - [ ] 查询 `targetYm == nowYm + 25` 时，预算总览、分类详情贡献列表与记账表单实时提示条均静默跳过虚拟补齐（但保留已存在的物理待入账行），且三端 `projectedRemaining` 数值 100% 一致。
 - [ ] 查询 `targetYm < nowYm`（`Review` 模式）继续跳过虚拟补齐，无任何回归。
+
+## Answer
+
+Resolved by `5360f12 feat(budget): cap virtual pending overlay at a 24-month horizon`. One shared predicate `budgetIncludesVirtualPending` now gates both `WatchMonthBudgetQuery` and `WatchTransactionBudgetHintQuery` to `nowYm <= M <= nowYm + 24`; queries read the clock once. 10 deterministic FixedClock tests cover now/-1/+1/+24/+25 and physical retention past the horizon.

@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## 修改范围与涉及页面
 - **修改范围**：预算待入账数据加载与流监听（`BudgetDao` 物理查询、虚拟补齐查询及 `watchMonthPendingExpenses` 变更监听表集合）以及对应预算集成测试。
@@ -24,3 +24,7 @@
 - [ ] 当支出分类在 `M` 月归档且名下仍有未停用的活跃周期规则时：查 `M` 月预算，其物理与虚拟待入账正常计入；查 `M + 1` 月及更远月份时，其**物理待入账与虚拟待入账均从总览 `allExpensePendingMinor`、分类行、贡献列表与单分类记账提示条中排除**。
 - [ ] 系统分类（`systemCode != null`）不进入预算物理或虚拟待入账统计。
 - [ ] 在监听 `watchMonthBudget` 期间归档或恢复该分类时，预算待入账流实时发出更新后的正确结果，无需重新订阅。
+
+## Answer
+
+Resolved by `ad0be8b fix(budget): cut archived and system categories out of pending exposure`. `_countsTowardBudgetPending` filters both physical and virtual pending rows by category metadata (system categories excluded; archived category keeps month M and drops from M+1). `watchMonthPendingExpenses` now watches `categoriesView`. DAO tests cover the boundary, system categories, and archive/restore stream re-emission.

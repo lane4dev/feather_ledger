@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## 修改范围与涉及页面
 - **修改范围**：共享周期推演内核（`RecurrenceExpander`）及其纯领域单元测试。
@@ -25,3 +25,7 @@
 - [ ] 当历史起点规则设置了 `materializeFrom = today`（如新建远过去周期账单选择“仅从今天起生成”）且 `interval > 1` 时，快进后的周期相位严格对齐 `startDate`，绝不以 `materializeFrom` 作为新相位起点。
 - [ ] 带 `countLimit` 的历史分期规则在 `startDate < materializeFrom` 场景下，`startDate .. materializeFrom` 之间消耗的期次仍准确计入总次数上限。
 - [ ] 既有 `RecurrenceExpander` 全部纯领域单测与物理物化单测保持 100% 通过。
+
+## Answer
+
+Resolved by `161ef7a perf(recurrence): fast-forward unbounded DAILY/WEEKLY expansion`. `_fastForwardAnchor` skips whole DAILY/WEEKLY periods (anchored to `startDate`, Monday week phase for WEEKLY) when `countLimit == null`; count-limited rules stay linear. 20 expander tests including an independent day-stepping oracle and a 1000-year perf guard pass.
