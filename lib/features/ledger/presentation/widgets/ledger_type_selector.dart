@@ -24,6 +24,11 @@ class LedgerTypeSelector extends StatelessWidget {
   /// Uses a flat tonal selection rather than the raised iOS-style pill.
   final bool flat;
 
+  /// Draws the control in its disabled state. Used where the kind is fixed
+  /// (a pending bill) but should still read as the same field as the form
+  /// that created it.
+  final bool enabled;
+
   const LedgerTypeSelector({
     super.key,
     required this.selectedType,
@@ -35,6 +40,7 @@ class LedgerTypeSelector extends StatelessWidget {
     ],
     this.widthFactor,
     this.flat = false,
+    this.enabled = true,
   }) : assert(widthFactor == null || (widthFactor > 0 && widthFactor <= 1));
 
   @override
@@ -56,6 +62,7 @@ class LedgerTypeSelector extends StatelessWidget {
         for (final kind in kinds)
           ButtonSegment(
               value: kind,
+              enabled: enabled,
               label: Text(switch (kind) {
                 TransactionKind.expense => l10n.expense,
                 TransactionKind.income => l10n.income,

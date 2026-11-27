@@ -41,6 +41,7 @@ import '../widgets/ledger_form_sections.dart';
 import '../widgets/ledger_value_icons.dart';
 import '../widgets/ledger_selection_sheet.dart';
 import '../widgets/ledger_selector_field.dart';
+import '../widgets/ledger_type_selector.dart';
 import '../widgets/recurring_scope_dialog.dart';
 import '../widgets/recurring_mode_label.dart';
 import '../widgets/custom_reminder_dialog.dart';
@@ -149,7 +150,17 @@ class _RecurringBillFormScreenState
             icon: const Icon(LucideIcons.x),
             onPressed: () => context.pop(),
             tooltip: l10n.cancel),
-        title: Text(l10n.editTransaction),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(l10n.editTransaction,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            SizedBox(width: context.spacing.sm),
+            AppBadge(label: l10n.pendingBill),
+          ],
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -159,7 +170,17 @@ class _RecurringBillFormScreenState
             padding: EdgeInsets.symmetric(vertical: context.spacing.lg),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _inset(_typeRow(l10n)),
+              _inset(LedgerTypeSelector(
+                selectedType: widget.transaction.type,
+                kinds: const [
+                  TransactionKind.income,
+                  TransactionKind.expense,
+                ],
+                onSelectionChanged: (_) {},
+                enabled: false,
+                widthFactor: 1,
+                flat: true,
+              )),
               SizedBox(height: context.spacing.md),
               _inset(LedgerAmountCard(
                 amount: LedgerAmountInput(
@@ -209,29 +230,6 @@ class _RecurringBillFormScreenState
           ? null
           : AppBottomActionBar(
               child: AppButton(onPressed: _submit, child: Text(l10n.save))),
-    );
-  }
-
-  Widget _typeRow(AppLocalizations l10n) {
-    final label = switch (widget.transaction.type) {
-      TransactionKind.income => l10n.income,
-      TransactionKind.expense => l10n.expense,
-      TransactionKind.transfer => l10n.transfer,
-      _ => '',
-    };
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
-        SizedBox(width: context.spacing.sm),
-        AppBadge(label: l10n.pendingBill),
-      ],
     );
   }
 

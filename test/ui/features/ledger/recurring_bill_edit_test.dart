@@ -25,6 +25,7 @@ import 'package:feather_ledger/features/ledger/presentation/view_model/recurring
 import 'package:feather_ledger/features/ledger/presentation/widgets/distant_past_start_dialog.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_amount_input.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_form_sections.dart';
+import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_type_selector.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selection_sheet.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/ledger_selector_field.dart';
 import 'package:feather_ledger/features/ledger/presentation/widgets/pending_bill_sheet.dart';
@@ -324,16 +325,26 @@ void main() {
       expect(
           find.descendant(
               of: find.byType(AppBar), matching: find.byType(AppBadge)),
-          findsNothing,
-          reason: 'the add form has a plain title; the bill state belongs '
-              'to the form, not to the app bar');
+          findsOneWidget,
+          reason: 'the bill state sits beside the title');
+      expect(tester.getTopLeft(find.byType(AppBadge)).dx,
+          greaterThan(tester.getTopRight(find.text('Edit Transaction')).dx));
+      final typeSelector =
+          tester.widget<LedgerTypeSelector>(find.byType(LedgerTypeSelector));
+      expect(typeSelector.selectedType, TransactionKind.expense);
+      expect(typeSelector.enabled, isFalse,
+          reason: 'the add form component is shown, but the kind is fixed');
+      expect(
+          tester
+              .widget<TextButton>(find.descendant(
+                  of: find.byType(LedgerTypeSelector),
+                  matching: find.widgetWithText(TextButton, 'Expense')))
+              .onPressed,
+          isNull);
       expect(find.byType(LedgerAmountCard), findsOneWidget);
       expect(find.byType(LedgerFormCard), findsNWidgets(2),
           reason: 'core fields and note are grouped like the add form; this '
               'pending bill has no series, so there is no schedule card');
-      expect(tester.getCenter(find.text('Pending')).dy,
-          closeTo(tester.getCenter(find.text('Expense')).dy, 0.01),
-          reason: 'the state badge sits on the type row');
       expect(find.byTooltip('Cancel'), findsOneWidget);
       expect(
           tester
@@ -362,7 +373,7 @@ void main() {
       await pumpForm(tester, textScale: 1.8);
       expect(find.text('Pending'), findsOneWidget);
       expect(tester.getCenter(find.text('Pending')).dy,
-          closeTo(tester.getCenter(find.text('Expense')).dy, 0.01));
+          closeTo(tester.getCenter(find.text('Edit Transaction')).dy, 0.01));
       expect(tester.takeException(), isNull);
     });
 
