@@ -22,6 +22,18 @@ int dateTimeToYm(DateTime dt) {
   return local.year * 100 + local.month;
 }
 
+/// Statement text of the auto-updating trigger behind each budget stream.
+///
+/// drift caches live queries by `StreamKey(sql, variables)`, so three triggers
+/// spelled `'SELECT 1'` collapse into one query stream whose `readsFrom` is the
+/// first one created — the other tables then never invalidate it. Each trigger
+/// therefore carries its own trailing comment, which keeps the statements
+/// distinct (and still identical in result) while preserving the invalidation
+/// set of every stream.
+const _monthSummaryTriggerSql = 'SELECT 1 -- month summary';
+const _monthPendingTriggerSql = 'SELECT 1 -- month pending';
+const _categoryHintTriggerSql = 'SELECT 1 -- category hint';
+
 /// Whether [category]'s pending bills count toward the budget for [targetYm].
 ///
 /// System categories (`systemCode != null`) never participate in budget pending
@@ -171,7 +183,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     int targetYm,
   ) {
     final trigger = db.customSelect(
-      'SELECT 1',
+      _monthSummaryTriggerSql,
       readsFrom: {
         budgetRules,
         budgetReviewNotes,
@@ -329,7 +341,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     bool includeVirtual = true,
   }) {
     final trigger = db.customSelect(
-      'SELECT 1',
+      _monthPendingTriggerSql,
       readsFrom: {
         scheduledTransactionsView,
         recurringSeries,
@@ -561,7 +573,7 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
     bool includeVirtual = true,
   }) {
     final trigger = db.customSelect(
-      'SELECT 1',
+      _categoryHintTriggerSql,
       readsFrom: {
         budgetRules,
         categoriesView,
