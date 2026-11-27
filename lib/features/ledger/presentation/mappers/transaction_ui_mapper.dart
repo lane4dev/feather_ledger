@@ -43,6 +43,7 @@ class TransactionUiMapper {
       toAccount: e.toAccount,
       displayAmount: displayAmount,
       displaySign: displaySign,
+      sourceScheduledBillId: e.sourceScheduledBillId,
     );
   }
 

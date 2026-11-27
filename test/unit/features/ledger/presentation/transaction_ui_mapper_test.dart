@@ -31,7 +31,8 @@ void main() {
     type: CategoryType.expense,
   );
 
-  ScheduledTransactionEntity pending(int amountMinor, {TransactionKind? kind}) =>
+  ScheduledTransactionEntity pending(int amountMinor,
+          {TransactionKind? kind}) =>
       ScheduledTransactionEntity(
         id: 'sched_1',
         seriesId: 'series_1',
@@ -88,6 +89,7 @@ void main() {
     TransactionEntity posted({
       required TransactionKind type,
       required int amount,
+      String? sourceScheduledBillId,
     }) =>
         TransactionEntity(
           id: 'tx_1',
@@ -98,6 +100,7 @@ void main() {
           category: type == TransactionKind.transfer ? null : rent,
           toAccount: type == TransactionKind.transfer ? cash : null,
           eventId: 1,
+          sourceScheduledBillId: sourceScheduledBillId,
         );
 
     test('formats compact signed and unsigned amounts without extra spaces',
@@ -118,6 +121,24 @@ void main() {
           mapper.toTile(posted(type: TransactionKind.transfer, amount: 2000));
       expect(transfer.formattedAmount('¥'), '¥20.00');
       expect(transfer.formattedAmount('¥').startsWith(' '), isFalse);
+    });
+
+    test('carries the scheduled bill it was posted from', () {
+      final tile = mapper.toTile(
+        posted(
+          type: TransactionKind.expense,
+          amount: -1000,
+          sourceScheduledBillId: 'sched_42',
+        ),
+      );
+
+      expect(tile.sourceScheduledBillId, 'sched_42');
+      expect(
+        mapper
+            .toTile(posted(type: TransactionKind.expense, amount: -1000))
+            .sourceScheduledBillId,
+        isNull,
+      );
     });
   });
 }

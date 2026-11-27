@@ -179,24 +179,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!state.isBalancePurpose)
-                  _inset(
-                    state.isEditing
-                        ? Text(
-                            switch (state.type) {
-                              TransactionKind.income => l10n.income,
-                              TransactionKind.expense => l10n.expense,
-                              TransactionKind.transfer => l10n.transfer,
-                              _ => '',
-                            },
-                            style: Theme.of(context).textTheme.titleMedium,
-                          )
-                        : LedgerTypeSelector(
-                            selectedType: state.type,
-                            onSelectionChanged: vm.setType,
-                            widthFactor: 1,
-                            flat: true,
-                          ),
-                  ),
+                  _inset(_typeControl(state, vm, l10n)),
                 SizedBox(height: context.spacing.md),
                 _inset(
                   LedgerAmountCard(
@@ -426,6 +409,42 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               ),
               child: AppButton(
                   onPressed: canSave ? _submit : null, child: Text(l10n.save))),
+    );
+  }
+
+  /// The kind control at the top of the form.
+  ///
+  /// A new entry chooses among all three kinds. An ordinary recorded
+  /// income/expense may switch sides, but only between those two: a transfer
+  /// has two accounts and a balance purpose has no category, so neither is a
+  /// legal replacement through this form. A posted scheduled bill shows the
+  /// same component disabled — its kind is fixed by the series it came from.
+  Widget _typeControl(
+    TransactionFormViewState state,
+    TransactionFormViewModel vm,
+    AppLocalizations l10n,
+  ) {
+    if (!state.isEditing) {
+      return LedgerTypeSelector(
+        selectedType: state.type,
+        onSelectionChanged: vm.setType,
+        widthFactor: 1,
+        flat: true,
+      );
+    }
+    if (state.isTransfer) {
+      return Text(
+        l10n.transfer,
+        style: Theme.of(context).textTheme.titleMedium,
+      );
+    }
+    return LedgerTypeSelector(
+      selectedType: state.type,
+      kinds: const [TransactionKind.income, TransactionKind.expense],
+      onSelectionChanged: vm.setType,
+      enabled: state.canChangeType,
+      widthFactor: 1,
+      flat: true,
     );
   }
 

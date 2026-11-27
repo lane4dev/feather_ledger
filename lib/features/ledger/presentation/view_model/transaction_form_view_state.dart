@@ -196,6 +196,20 @@ class TransactionFormViewState {
   bool get isTransfer => type == TransactionKind.transfer;
   bool get isBalancePurpose => type.isBalancePurpose;
 
+  /// Whether the form may switch between income and expense.
+  ///
+  /// Only an ordinary recorded income/expense may change sides. A transfer
+  /// has two accounts and a balance purpose has no category, so neither has
+  /// an income/expense replacement; a posted scheduled bill keeps its series
+  /// kind, or its `sourceScheduledBillId` would point at a series that no
+  /// longer describes the row.
+  bool get canChangeType =>
+      isEditing &&
+      original != null &&
+      !isTransfer &&
+      !isBalancePurpose &&
+      original!.sourceScheduledBillId == null;
+
   /// Whether this form can start a series at all: a series has one account, so
   /// a transfer cannot be one (ADR-0002), and a corrected entry does not touch
   /// its series.

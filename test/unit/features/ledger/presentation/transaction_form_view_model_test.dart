@@ -146,6 +146,7 @@ void main() {
     AccountEntity from = cash,
     AccountEntity? to,
     String sign = '-',
+    String? sourceScheduledBillId,
   }) =>
       TransactionTileUiModel(
         id: id,
@@ -158,6 +159,7 @@ void main() {
         toAccount: to,
         displayAmount: '1.00',
         displaySign: sign,
+        sourceScheduledBillId: sourceScheduledBillId,
       );
 
   group('seeding', () {
@@ -210,6 +212,44 @@ void main() {
       expect(vm.state.accountId, isNull);
       expect(vm.state.repeat, TransactionFormViewState.repeatNever);
       expect(vm.state.canRepeat, isTrue);
+    });
+
+    test('only an ordinary posted row may switch between income and expense',
+        () {
+      bool canChange(TransactionTileUiModel original) =>
+          form(container(), original: original).state.canChangeType;
+
+      expect(
+          canChange(tile(
+            id: 'tx_expense',
+            amount: 100,
+            category: rent,
+          )),
+          isTrue);
+      expect(
+          canChange(tile(
+            id: 'tx_transfer',
+            amount: 100,
+            type: TransactionKind.transfer,
+            to: card,
+          )),
+          isFalse);
+      expect(
+          canChange(tile(
+            id: 'tx_scheduled',
+            amount: 100,
+            category: rent,
+            sourceScheduledBillId: 'sched_1',
+          )),
+          isFalse,
+          reason: 'the series kind would no longer describe the row');
+      expect(
+          canChange(tile(
+            id: 'tx_opening',
+            amount: 100,
+            type: TransactionKind.openingBalance,
+          )),
+          isFalse);
     });
 
     test('a new form locks its currency at open time', () async {
@@ -394,6 +434,64 @@ void main() {
       vm.selectAccount('acc_cash');
 
       expect(vm.wouldOverdraft(), isFalse);
+    });
+
+    test('a same-account expense correction only asks for the difference', () {
+      final vm = form(
+        container(),
+        original: tile(
+          id: 'tx_expense',
+          amount: 90000,
+          type: TransactionKind.expense,
+          category: rent,
+        ),
+      );
+
+      // Cash holds 1000.00 and already reflects the original 900.00 debit.
+      vm.setAmountText('1950.00');
+      expect(vm.wouldOverdraft(), isTrue,
+          reason: 'reversing 900.00 and charging 1950.00 is a 1050.00 debit');
+
+      vm.setAmountText('9.50');
+      expect(vm.wouldOverdraft(), isFalse,
+          reason: 'reversing 900.00 and charging 9.50 leaves 890.50');
+    });
+
+    test('an income corrected into an expense takes both legs back', () {
+      final vm = form(
+        container(),
+        original: tile(
+          id: 'tx_income',
+          amount: 60000,
+          type: TransactionKind.income,
+          category: salary,
+          sign: '+',
+        ),
+      );
+
+      vm.setType(TransactionKind.expense);
+      vm.setAmountText('500.00');
+      expect(vm.wouldOverdraft(), isTrue,
+          reason: 'reversing the 600.00 income and charging 500.00 needs 1100');
+
+      vm.setAmountText('300.00');
+      expect(vm.wouldOverdraft(), isFalse);
+    });
+
+    test('a different account is charged the full replacement', () {
+      final vm = form(
+        container(),
+        original: tile(
+          id: 'tx_other',
+          amount: 90000,
+          type: TransactionKind.expense,
+          category: rent,
+        ),
+      );
+      vm.selectAccount('acc_yen'); // holds 0.00
+
+      vm.setAmountText('1.00');
+      expect(vm.wouldOverdraft(), isTrue);
     });
   });
 

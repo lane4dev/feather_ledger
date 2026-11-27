@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
+import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
 import 'package:feather_ledger/features/ledger/domain/events/ledger_events.dart';
 
 import '../../../../../support/event_sourcing/ledger_service_harness.dart';
@@ -25,6 +26,7 @@ void main() {
 
   late String cashId;
   late String foodId;
+  late String salaryId;
 
   Future<void> seedCashAndFood() async {
     await harness.accountService.createAccount(
@@ -45,6 +47,18 @@ void main() {
         .firstWhere((a) => a.name == 'Cash')
         .id;
     foodId = await harness.userCategoryId();
+    await harness.categoryService.createCategory(
+      commandId: 'cmd_seed_salary',
+      name: 'Salary',
+      iconKey: '2',
+      colorInt: 0xFF000000,
+      type: CategoryType.income,
+    );
+    salaryId = (await harness.categoryService
+            .watchCategories(CategoryType.income)
+            .first)
+        .firstWhere((c) => c.name == 'Salary')
+        .id;
   }
 
   Future<String> recordExpense(
@@ -64,6 +78,122 @@ void main() {
     final events = (await harness.eventStore.readAll()).events;
     return TransactionRecorded.fromJson(events.last.payloadJson).transactionId;
   }
+
+  Future<String> recordIncome(
+    int amountMinor, {
+    required String commandId,
+    DateTime? date,
+  }) async {
+    final result = await harness.ledgerService.addTransaction(
+      commandId: commandId,
+      amountMinor: amountMinor,
+      type: TransactionKind.income,
+      date: date ?? DateTime(2026, 1, 10),
+      categoryId: salaryId,
+      accountId: cashId,
+    );
+    expect(result, isA<Success<void>>());
+    final events = (await harness.eventStore.readAll()).events;
+    return TransactionRecorded.fromJson(events.last.payloadJson).transactionId;
+  }
+
+  test('correcting income into expense checks the new category and snapshots',
+      () async {
+    await seedCashAndFood();
+    final txId = await recordIncome(5000, commandId: 'cmd_income');
+
+    // The old income category is not a legal expense category.
+    final wrongCategory = await harness.ledgerService.updateTransaction(
+      commandId: 'cmd_correct_wrong_category',
+      id: txId,
+      amountMinor: 3000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 10),
+      categoryId: salaryId,
+      accountId: cashId,
+    );
+    expect(
+      wrongCategory,
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.categoryTypeMismatch),
+    );
+
+    final result = await harness.ledgerService.updateTransaction(
+      commandId: 'cmd_correct_income_to_expense',
+      id: txId,
+      amountMinor: 3000,
+      type: TransactionKind.expense,
+      date: DateTime(2026, 1, 10),
+      categoryId: foodId,
+      accountId: cashId,
+    );
+    expect(result, isA<Success<void>>());
+
+    final live = await harness.ledgerService
+        .watchTransactions(DateTime(2026, 1))
+        .first;
+    expect(live, hasLength(1));
+    expect(live.single.type, TransactionKind.expense);
+    expect(live.single.category?.id, foodId);
+    expect(live.single.amount, -3000);
+
+    final cash = await harness.db.accountDao.getAccountById(cashId);
+    expect(cash!.balanceMinor, -3000);
+
+    final month = await harness.ledgerService.watchMonthlySnapshot(
+      DateTime(2026, 1),
+      currencyCode: 'USD',
+    ).first;
+    expect(month.incomeMinor, 0);
+    expect(month.expenseMinor, -3000,
+        reason: 'snapshot expense is signed negative');
+    expect(month.balanceMinor, -3000);
+  });
+
+  test('a posted scheduled bill cannot change between income and expense',
+      () async {
+    await seedCashAndFood();
+    final created = await harness.recurringService.createSeries(
+      type: RecurringSeriesKind.expense,
+      amountMinor: 5000,
+      accountId: cashId,
+      categoryId: foodId,
+      description: 'Rent',
+      frequency: 'MONTHLY',
+      startDate: DateTime.now().add(const Duration(days: 3)),
+      mode: RecurringSeriesMode.planned,
+    );
+    final seriesId = created.value;
+    final bills = await harness.recurringService.watchScheduled().first;
+    final bill = bills.firstWhere(
+      (b) =>
+          b.seriesId == seriesId &&
+          b.status == ScheduledTransactionStatus.scheduled,
+    );
+    final posted = await harness.recurringService.postInstance(bill.id);
+    expect(posted, isA<Success<void>>());
+
+    final instance = await harness.db.recurringDao.getScheduled(bill.id);
+    final transactionId = instance!.transactionId!;
+
+    final result = await harness.ledgerService.updateTransaction(
+      commandId: 'cmd_change_series_kind',
+      id: transactionId,
+      amountMinor: 5000,
+      type: TransactionKind.income,
+      date: instance.dateOverride ?? instance.scheduledDate,
+      categoryId: salaryId,
+      accountId: cashId,
+    );
+
+    expect(
+      result,
+      isA<Failure<void>>().having(
+          (f) => f.code, 'code', LedgerErrorCode.invalidTransactionShape),
+    );
+    final cash = await harness.db.accountDao.getAccountById(cashId);
+    expect(cash!.balanceMinor, -5000);
+  });
 
   test('delete hides the row, undoes the balance and keeps the audit chain',
       () async {

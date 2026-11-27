@@ -66,6 +66,10 @@ class CorrectTransactionCommand {
       throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
           'a balance-purpose original must be corrected through executeBalancePurpose');
     }
+    if (original.sourceScheduledBillId != null && type != original.type) {
+      throw const CommandRejected(LedgerErrorCode.invalidTransactionShape,
+          'a posted scheduled bill cannot change between income and expense');
+    }
 
     final context = await _context.resolveForKind(
       accountId: accountId,

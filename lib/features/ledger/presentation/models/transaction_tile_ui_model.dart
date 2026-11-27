@@ -41,6 +41,12 @@ class TransactionTileUiModel {
   final String? seriesId;
   final RecurringTransactionSeriesEntity? series;
 
+  /// The scheduled bill this recorded transaction was posted from, if any.
+  ///
+  /// An edit must not change the kind of a posted bill: the row would keep
+  /// pointing at a series whose `type` no longer matches the movement.
+  final String? sourceScheduledBillId;
+
   bool get isSkipped => scheduledStatus == ScheduledTransactionStatus.skipped;
   bool get isFailed => scheduledStatus == ScheduledTransactionStatus.failed;
   bool get isScheduledPending =>
@@ -62,5 +68,6 @@ class TransactionTileUiModel {
     this.scheduledStatus,
     this.seriesId,
     this.series,
+    this.sourceScheduledBillId,
   });
 }

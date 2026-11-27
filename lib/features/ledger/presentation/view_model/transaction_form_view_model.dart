@@ -299,7 +299,24 @@ class TransactionFormViewModel extends _$TransactionFormViewModel {
         .value
         ?.where((a) => a.id == state.accountId)
         .firstOrNull;
-    return account != null && account.wouldOverdraft(amount);
+    if (account == null) return false;
+
+    // A correction reverses the original before recording the replacement.
+    // On the same account, an old expense gives its amount back, while an old
+    // income is clawed back too — so the *net* debit is what can overdraw the
+    // account, not the replacement's face value. A different account has no
+    // original impact to net against.
+    var debit = amount;
+    final original = state.original;
+    if (original != null && original.account.id == state.accountId) {
+      debit = switch (original.type) {
+        TransactionKind.expense => amount - original.amount,
+        TransactionKind.income => amount + original.amount,
+        _ => amount,
+      };
+    }
+    if (debit <= 0) return false;
+    return account.wouldOverdraft(debit);
   }
 
   /// Effective start date when creating a repeating series.
