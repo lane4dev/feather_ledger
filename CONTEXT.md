@@ -197,8 +197,10 @@ _Avoid_: variable spend, unscheduled spend
 **Pending bill exposure**:
 Scheduled or failed expense bills falling due in a current or future month — combining physically
 materialized bills with on-demand virtual occurrences expanded from active recurring series in
-tracking and planning mode. Included in projected remaining budget and overrun risk alerts during
-tracking and planning, and excluded from actuals in historical review.
+tracking and planning mode (up to 24 months ahead). Included in projected remaining budget and
+overrun risk alerts during tracking and planning, and excluded from actuals in historical review.
+Archiving a category keeps its pending bill exposure for the archive month and excludes both
+physical and virtual pending bills from the next month onward.
 _Avoid_: projected actual, unpaid expense
 
 **Budget compliance** (实耗达标):

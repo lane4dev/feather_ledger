@@ -35,7 +35,7 @@
 14. 作为记账用户，当我停用（Stop）一条周期规则后，我希望它不再出现在任何未来月份的预算虚拟补齐中，而历史已入账交易的固定支出归类保持不变。
 15. 作为记账用户，当我将某个账户设置为“不计入账本合计（`includeInTotals = false`）”时，我希望挂在该账户下的周期支出不计入任何月份的预算实际支出与待入账敞口（含虚拟期次）。
 16. 作为记账用户，当我归档一个账户后，我希望其已停用的周期规则不再产生未来虚拟待入账，而归档时保留为一次性计划账单的逾期未处理项在归档前/当月仍能按既有物理待办口径呈现。
-17. 作为记账用户，当我归档一个支出分类后，我希望该分类在归档当月仍保留其有效预算与待入账统计，但从归档月的下一个月起，不再对该分类执行预算结转，也不再将其虚拟待入账计入全月待入账汇总或单分类提示。
+17. 作为记账用户，当我归档一个支出分类后，我希望该分类在归档当月仍保留其有效预算与待入账统计，但从归档月的下一个月起，不再对该分类执行预算结转，且该分类的物理待入账与虚拟待入账一并从全月待入账汇总与单分类提示中排除。
 18. 作为记账用户，我希望收入类型的周期规则和转账永远不会被混入预算的支出待入账敞口中。
 19. 作为记账用户，我希望切换当前币种（Current currency）后，预算页与记账提示条仅聚合当前币种下账户的周期支出，绝不跨币种混算。
 20. 作为记账用户，我希望在记账表单中录入一笔新支出并选择分类与日期时，实时预算提示条显示的“预计剩余”与预算首页、分类详情页在同一月份下的数字 100% 一致（包含远期虚拟待入账）。
@@ -59,10 +59,11 @@
 - **按需落库（Materialize-on-Write）契约**：
   - 预算读模型为虚拟待入账项携带 `isVirtual = true`、所属 `seriesId` 与 `occurrenceKey`。
   - 当用户在预算分类详情页点击虚拟项时，表现层通过 `BudgetViewModel` 委托 `RecurringService.ensureMaterialized`（内部执行 `EnsureOccurrenceMaterializedCommand`）：在单次数据库事务内校验系列仍活跃、账户未归档且未删除、且 `(seriesId, occurrenceKey)` 合法匹配规则并满足 `materializeFrom` 下界，随后幂等 `INSERT OR IGNORE` 生成标准 UUID 的 `scheduled` 行并返回该实体，紧接着复用标准 `PendingBillSheet` 流程。
-- **三项收口加固决策（针对当前实现的差距）**：
-  1. **远期展开性能护栏**：在预算虚拟补齐入口明确引入最大前瞻上限（`targetYm <= nowYm + 24` 个自然月；超出上限的月份不再展开虚拟期次，仅返回物理待入账），并对无 `countLimit` 约束的高频规则（`DAILY` / `WEEKLY`）在 `RecurrenceExpander` 内支持按周期步进快进至目标窗口附近，避免从很久以前的 `startDate` 线性空转。
-  2. **归档分类截断统一**：在虚拟补齐数据加载时关联分类元数据，过滤掉系统分类（`systemCode != null`）以及已归档且 `targetYm > archiveYm` 的支出分类；确保预算总览的 `allExpensePendingMinor`、分类行待入账与单分类记账提示条（`watchCategoryBudgetHint`）在归档月之后保持 100% 一致的截断口径。
-  3. **可选领域纯化（`BudgetPendingProjector`）**：当前物理行与虚拟期的合并去重驻留在 `BudgetDao` 内部。为保持分层清晰且不破坏既有调用方接口，可在不改变 `BudgetRepository` 对外契约的前提下，将纯内存去重与虚拟项合成抽离为独立的预算领域服务 `BudgetPendingProjector`，使 DAO 退化为纯数据读取器（读取物理未入账行、活跃支出系列及去重键集合）。
+- **本次收口加固决策（已评审确认）**：
+  1. **远期展开性能护栏**：在预算虚拟补齐入口明确引入最大前瞻上限（`nowYm <= targetYm <= nowYm + 24` 个自然月；超出上限的月份静默跳过虚拟补齐，仅返回物理待入账，不限制月份选择器本身、不新增 UI 提示文案），并对无 `countLimit` 约束的高频规则（`DAILY` / `WEEKLY`）在 `RecurrenceExpander` 内支持按周期步进快进至目标窗口附近，避免从很久以前的 `startDate` 线性空转。
+  2. **归档分类截断统一（物理 + 虚拟一并排除）**：在待入账加载入口（`BudgetDao`）同时为物理待入账查询与虚拟补齐查询关联分类元数据，过滤掉系统分类（`systemCode != null`）以及已归档且 `targetYm > archiveYm` 的支出分类；确保预算总览的 `allExpensePendingMinor`、分类行待入账、贡献列表与单分类记账提示条（`watchCategoryBudgetHint`）在归档月之后保持 100% 一致的截断口径。
+  3. **6 个月趋势图边界**：`BudgetCalculator` 仅在目标月 `m == targetYm` 填入 `pendingMinor`，趋势窗口内其余 5 个月保持 `pendingMinor = 0`，不做多月批量虚拟展开。
+  4. **分层保持稳定**：本次聚焦行为与性能收口，不顺带将 `BudgetDao` 内的内存 Overlay 逻辑搬迁抽离为独立 `BudgetPendingProjector` 服务。
 
 ## Testing Decisions
 
@@ -82,9 +83,12 @@
 - 不在账本列表（`/ledger`）、月度报表（Reports）或交易搜索（Search）中引入虚拟待入账期次。
 - 不在历史月（Review 模式）中把未入账或虚拟期次计入实际支出或达标判定。
 - 不引入任何跨币种汇率换算或预算余额跨月结转。
-- 不涉及任何数据库表结构变更或版本迁移。
+- 不将 `BudgetDao` 内的内存 Overlay 逻辑在本次任务中搬迁抽离为独立的 `BudgetPendingProjector`（留作后续可选重构）。
+- 不为 6 个月趋势图中的非目标月份展开虚拟待入账。
+- 归档分类不联动停用其关联的周期规则（仅在 `M > archiveYm` 的预算待入账统计中排除）。
 
 ## Further Notes
 
-- **当前落地进度**：本规格所描述的混合投影主体能力（`RecurrenceExpander`、自然月三阶段物化、`BudgetDao` 读时虚拟 Overlay、`WatchMonthBudgetQuery` / `WatchTransactionBudgetHintQuery` 历史月隔离与三端同口径、以及 `EnsureOccurrenceMaterializedCommand` 按需落库）已在 `feat/budget-aligned-recurring` 分支落地；本次规格将其与 ADR-0005 / 0006 / 0007 / 0008 完整对齐，并明确了剩余收口项（24 个月前瞻上限与高频快进护栏、归档分类 `M > archiveYm` 虚拟待入账截断统一，以及可选的 `BudgetPendingProjector` 领域层抽离）。
+- 不涉及任何数据库表结构变更或版本迁移。
+- **当前落地进度**：本规格所描述的混合投影主体能力（`RecurrenceExpander`、自然月三阶段物化、`BudgetDao` 读时虚拟 Overlay、`WatchMonthBudgetQuery` / `WatchTransactionBudgetHintQuery` 历史月隔离与三端同口径、以及 `EnsureOccurrenceMaterializedCommand` 按需落库）已在 `feat/budget-aligned-recurring` 分支落地；本次收口仅补齐 24 个月前瞻上限 + 高频快进护栏、归档分类 `M > archiveYm` 物理与虚拟待入账统一截断，以及对应验收测试。
 - **术语对齐**：全文严格遵循项目统一语言（`CONTEXT.md`），区分 *Pending bill exposure*（待入账敞口）、*Committed spend*（固定/已承诺支出）、*Discretionary spend*（自由支出）、*Budget timeline*（预算时间轴）、*Recurring series*（周期系列）与 *Source bill*（来源账单）。

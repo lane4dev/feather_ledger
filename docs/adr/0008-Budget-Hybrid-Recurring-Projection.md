@@ -1,7 +1,7 @@
 # ADR-0008: 周期性记账的混合投影架构（自然月近期物化 + 预算读时虚拟补齐）
 
-> **状态**：Proposed（已对齐当前实现现状，待评审固化）  
-> **日期**：2026-11-26（2026-11-27 对齐现状修订）  
+> **状态**：Accepted（已对齐现状并完成边界评审）  
+> **日期**：2026-11-26（2026-11-27 对齐现状并定稿）  
 > **关联文档**：`CONTEXT.md`、`docs/adr/0005-scheduled-bill-identity-and-two-scope-editing.md`、`docs/adr/0006-budget-stepped-timeline-and-crud-exemption.md`、`docs/adr/0007-clear-category-budget-and-notes-atomically.md`
 
 ## 1. 背景与问题（Context）
@@ -50,11 +50,13 @@
 4. **严格遵守系列终止、下界与过滤条件**
    - 虚拟展开仅面向 `type == expense`、`isActive == true`、`currencyCode == targetCurrency`、关联账户满足 `includeInTotals == true && deleted == false && archived == false` 的系列；且须尊重 `materializeFrom` 下界（低于 `effectiveMaterializeFrom` 的期次不虚拟补齐）。
    - 遵守 `endDate` 与全生命周期 `countLimit`：展开时以 `remainingCountLimit = countLimit - completedCountOffset` 从 `startDate` 锚点推进，确保总期数绝不超过 `countLimit`。
-   - **归档分类截断（需持续核查）**：系统分类（`systemCode != null`）及已归档且 `M > archiveYm` 的分类不参与预算统计与单分类提示中的有效预算计算；需确保虚拟待入账在总览 `allExpensePendingMinor` 与单分类提示中同样遵循归档截断口径。
+   - **归档分类截断**：系统分类（`systemCode != null`）不参与预算统计；已归档分类在归档当月（`M <= archiveYm`）保留预算与待入账，从归档月的下一个月起（`M > archiveYm`），该分类的**物理待入账与虚拟待入账一并从预算待入账敞口（总览、分类行与单分类提示条）中排除**，与预算时间轴截断规则严格对齐。
 5. **历史月（`Review` 模式）隔离**
    - 当 `M < nowYm` 时，`WatchMonthBudgetQuery` 与 `WatchTransactionBudgetHintQuery` 显式传入 `includeVirtual = false`，**跳过虚拟补齐**；`BudgetCalculator` 在 `Review` 模式下以 `Actual` 计算，将 `pendingMinor` 置为 0（仅保留物理遗留待入账提示标志 `hasLeftoverPendingInReview`）。
-6. **远期展开性能护栏（待补强）**
-   - 为防止高频规则（如 `DAILY`）在用户切换到极远未来月时因 `rrule.getInstances` 从 `startDate` 线性步进而拖慢查询，需评估并补齐预算虚拟补齐的最大前瞻范围护栏（如 `M <= nowYm + 24` 个月）或步进快进优化。
+   - 6 个月趋势图（`BudgetTrendPoint`）仅在 `m == targetYm` 填入 `pendingMinor`，其余 5 个月不触发虚拟补齐。
+6. **远期展开性能护栏**
+   - 预算虚拟补齐仅在 `nowYm <= M <= nowYm + 24`（未来 24 个自然月）内启用；超出 `nowYm + 24` 时读侧静默跳过虚拟补齐（仍保留已存在的物理待入账），不限制月份选择器本身、不增加 UI 免责文案。
+   - 对无 `countLimit` 约束的高频规则（`DAILY` / `WEEKLY`），`RecurrenceExpander` 支持按周期步进快进至目标窗口附近再展开，避免从早期 `startDate` 线性空转。
 
 ## 4. 模块与分层现状（Touchpoints）
 
