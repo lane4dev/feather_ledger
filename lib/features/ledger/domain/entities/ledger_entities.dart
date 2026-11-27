@@ -124,6 +124,11 @@ class ScheduledTransactionEntity {
   final String? transactionId;
   final RecurringTransactionSeriesEntity? recurringTransactionSeries;
 
+  /// True when this occurrence exists only in the read-time projection and
+  /// has not been materialized into `scheduled_transactions_view` yet.
+  /// Acting on it must first call `ensureMaterialized`.
+  final bool isVirtual;
+
   /// Resolved from the series so a pending bill can be rendered as a row in
   /// the ledger list — the same shape a posted transaction arrives in.
   /// Null when the series' category or account has since been removed, which
@@ -154,6 +159,7 @@ class ScheduledTransactionEntity {
     this.manualOnly = false,
     this.transactionId,
     this.recurringTransactionSeries,
+    this.isVirtual = false,
     this.kind,
     this.category,
     this.account,
@@ -171,6 +177,7 @@ class ScheduledTransactionEntity {
     bool? manualOnly,
     String? transactionId,
     RecurringTransactionSeriesEntity? recurringTransactionSeries,
+    bool? isVirtual,
     TransactionKind? kind,
     CategoryEntity? category,
     AccountEntity? account,
@@ -188,6 +195,7 @@ class ScheduledTransactionEntity {
       transactionId: transactionId ?? this.transactionId,
       recurringTransactionSeries:
           recurringTransactionSeries ?? this.recurringTransactionSeries,
+      isVirtual: isVirtual ?? this.isVirtual,
       kind: kind ?? this.kind,
       category: category ?? this.category,
       account: account ?? this.account,

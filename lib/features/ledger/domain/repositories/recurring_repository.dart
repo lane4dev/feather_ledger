@@ -19,6 +19,17 @@ abstract class RecurringRepository {
     bool pendingOnly = false,
   });
 
+  /// A calendar month of pending bills for the ledger list. When
+  /// [includeVirtual] is true, active series are expanded read-time and any
+  /// occurrence without a physical `(seriesId, occurrenceKey)` row is
+  /// returned with `isVirtual = true`.
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPendingBills({
+    required String currencyCode,
+    required int year,
+    required int month,
+    required bool includeVirtual,
+  });
+
   Future<ScheduledTransactionEntity?> getScheduledEntity(String id);
 
   Future<ScheduledTransactionEntity?> getScheduledEntityByOccurrence(

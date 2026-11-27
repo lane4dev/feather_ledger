@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import 'package:feather_ledger/core/domain/recurrence/recurrence_expander.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 
 import '../app_database.dart';
@@ -22,6 +23,33 @@ class ScheduledBillJoinedRow {
     this.category,
   });
 }
+
+/// One row of the ledger's monthly pending list.
+///
+/// [isVirtual] marks an occurrence the recurring rule would produce but that
+/// has not been written to `scheduled_transactions_view` yet. Its [scheduled]
+/// row is synthesized in memory, so it never reaches the database until the
+/// user acts on it (`Materialize-on-Write`).
+class LedgerMonthPendingEntry {
+  final ScheduledTransactionViewRow scheduled;
+  final RecurringSeriesRow series;
+  final AccountViewRow account;
+  final CategoryViewRow? category;
+  final bool isVirtual;
+
+  const LedgerMonthPendingEntry({
+    required this.scheduled,
+    required this.series,
+    required this.account,
+    this.category,
+    this.isVirtual = false,
+  });
+}
+
+/// Local-month trigger text for the ledger pending stream. Drift keys live
+/// queries by `StreamKey(sql, variables)`, so this must stay distinct from the
+/// budget triggers in `budget_dao.dart` and from other calls in this DAO.
+const _ledgerMonthPendingTriggerSql = 'SELECT 1 -- ledger month pending';
 
 @DriftAccessor(tables: [
   RecurringSeries,
@@ -131,9 +159,9 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       .write(
           const ScheduledTransactionsViewCompanion(status: Value('skipped')));
 
-  Future<int> markManualOnly(String id) =>
-      (update(scheduledTransactionsView)..where((t) => t.id.equals(id))).write(
-          const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
+  Future<int> markManualOnly(String id) => (update(scheduledTransactionsView)
+        ..where((t) => t.id.equals(id)))
+      .write(const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
 
   Future<int> markManualOnlyBatch(List<String> ids) {
     if (ids.isEmpty) return Future.value(0);
@@ -157,22 +185,20 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
           .write(const ScheduledTransactionsViewCompanion(
               manualOnly: Value(true)));
 
-  Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff) =>
-      (update(scheduledTransactionsView)
-            ..where((t) =>
-                t.status.equals('scheduled') &
-                t.manualOnly.equals(false) &
-                coalesce([t.dateOverride, t.scheduledDate])
-                    .isSmallerOrEqualValue(cutoff)))
-          .write(const ScheduledTransactionsViewCompanion(
-              manualOnly: Value(true)));
+  Future<int> markAllScheduledManualOnlyBefore(DateTime cutoff) => (update(
+          scheduledTransactionsView)
+        ..where((t) =>
+            t.status.equals('scheduled') &
+            t.manualOnly.equals(false) &
+            coalesce([t.dateOverride, t.scheduledDate])
+                .isSmallerOrEqualValue(cutoff)))
+      .write(const ScheduledTransactionsViewCompanion(manualOnly: Value(true)));
 
-  Future<int> resetFailedToScheduledForSeries(String seriesId) =>
-      (update(scheduledTransactionsView)
-            ..where((t) =>
-                t.seriesId.equals(seriesId) & t.status.equals('failed')))
-          .write(const ScheduledTransactionsViewCompanion(
-              status: Value('scheduled')));
+  Future<int> resetFailedToScheduledForSeries(String seriesId) => (update(
+          scheduledTransactionsView)
+        ..where((t) => t.seriesId.equals(seriesId) & t.status.equals('failed')))
+      .write(
+          const ScheduledTransactionsViewCompanion(status: Value('scheduled')));
 
   Future<void> saveSeries(RecurringSeriesCompanion entry) async {
     await db.transaction(() async {
@@ -204,9 +230,8 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
     final query = delete(scheduledTransactionsView)
       ..where((t) => t.seriesId.equals(seriesId));
     if (from != null) {
-      query.where((t) =>
-          coalesce([t.dateOverride, t.scheduledDate])
-              .isBiggerOrEqualValue(from));
+      query.where((t) => coalesce([t.dateOverride, t.scheduledDate])
+          .isBiggerOrEqualValue(from));
     }
     if (status != null) query.where((t) => t.status.equals(status));
     return query.go();
@@ -238,19 +263,16 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
             LedgerErrorCode.transactionNotFound, 'Scheduled bill not found');
       }
       if (row.status == 'posted') {
-        throw const CommandRejected(
-            LedgerErrorCode.scheduledAlreadyPosted,
+        throw const CommandRejected(LedgerErrorCode.scheduledAlreadyPosted,
             'Posted bills cannot be restored');
       }
       if (row.status != 'skipped') {
-        throw const CommandRejected(
-            LedgerErrorCode.scheduledNotSkipped,
+        throw const CommandRejected(LedgerErrorCode.scheduledNotSkipped,
             'Only skipped bills can be restored');
       }
       final series = await getSeries(row.seriesId);
       if (series == null || !series.isActive) {
-        throw const CommandRejected(
-            LedgerErrorCode.recurringSeriesStopped,
+        throw const CommandRejected(LedgerErrorCode.recurringSeriesStopped,
             'Recurring series has been stopped');
       }
       final account = await db.accountDao.getAccountById(series.accountId);
@@ -268,9 +290,8 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
           .write(
         ScheduledTransactionsViewCompanion(
           status: const Value('scheduled'),
-          manualOnly: lockManualOnly
-              ? const Value(true)
-              : Value(row.manualOnly),
+          manualOnly:
+              lockManualOnly ? const Value(true) : Value(row.manualOnly),
         ),
       );
     });
@@ -381,5 +402,165 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
           scheduledTransactionsView.occurrenceKey.equals(occurrenceKey));
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapJoinedRow(row);
+  }
+
+  /// Ledger monthly pending list: physical occurrences in [year]/[month] and,
+  /// when [includeVirtual] is true, read-time virtual occurrences for every
+  /// active series on a visible account of [currencyCode].
+  ///
+  /// Virtual expansion covers both income and expense series and ignores
+  /// `includeInTotals` — the ledger list follows what the ledger can show, not
+  /// what the totals include. Accounts that are archived or deleted do not
+  /// produce virtual rows.
+  Stream<List<LedgerMonthPendingEntry>> watchMonthPendingBills({
+    required String currencyCode,
+    required int year,
+    required int month,
+    required bool includeVirtual,
+  }) {
+    final trigger = db.customSelect(
+      _ledgerMonthPendingTriggerSql,
+      readsFrom: {
+        scheduledTransactionsView,
+        recurringSeries,
+        db.accountsView,
+        db.categoriesView,
+      },
+    ).watch();
+
+    return trigger.asyncMap((_) => _loadMonthPendingBills(
+          currencyCode: currencyCode,
+          year: year,
+          month: month,
+          includeVirtual: includeVirtual,
+        ));
+  }
+
+  Future<List<LedgerMonthPendingEntry>> _loadMonthPendingBills({
+    required String currencyCode,
+    required int year,
+    required int month,
+    required bool includeVirtual,
+  }) async {
+    final monthStart = DateTime(year, month, 1);
+    final monthEndExclusive = DateTime(year, month + 1, 1);
+    final effectiveDateExpr = coalesce<DateTime>([
+      scheduledTransactionsView.dateOverride,
+      scheduledTransactionsView.scheduledDate,
+    ]);
+
+    final physicalRows = await (select(scheduledTransactionsView).join([
+      innerJoin(
+        recurringSeries,
+        recurringSeries.id.equalsExp(scheduledTransactionsView.seriesId),
+      ),
+      innerJoin(
+        db.accountsView,
+        db.accountsView.id.equalsExp(recurringSeries.accountId),
+      ),
+      leftOuterJoin(
+        db.categoriesView,
+        db.categoriesView.id.equalsExp(recurringSeries.categoryId),
+      ),
+    ])
+          ..where(db.accountsView.currencyCode.equals(currencyCode) &
+              effectiveDateExpr.isBiggerOrEqualValue(monthStart) &
+              effectiveDateExpr.isSmallerThanValue(monthEndExclusive))
+          ..orderBy([OrderingTerm.asc(effectiveDateExpr)]))
+        .get();
+
+    final entries = <LedgerMonthPendingEntry>[
+      for (final row in physicalRows)
+        LedgerMonthPendingEntry(
+          scheduled: row.readTable(scheduledTransactionsView),
+          series: row.readTable(recurringSeries),
+          account: row.readTable(db.accountsView),
+          category: row.readTableOrNull(db.categoriesView),
+        ),
+    ];
+
+    if (!includeVirtual) {
+      return entries;
+    }
+
+    final activeSeriesRows = await (select(recurringSeries).join([
+      innerJoin(
+        db.accountsView,
+        db.accountsView.id.equalsExp(recurringSeries.accountId),
+      ),
+      leftOuterJoin(
+        db.categoriesView,
+        db.categoriesView.id.equalsExp(recurringSeries.categoryId),
+      ),
+    ])
+          ..where(recurringSeries.isActive.equals(true) &
+              db.accountsView.currencyCode.equals(currencyCode) &
+              db.accountsView.deleted.equals(false) &
+              db.accountsView.archived.equals(false)))
+        .get();
+
+    if (activeSeriesRows.isEmpty) {
+      return entries;
+    }
+
+    final activeSeriesIds = [
+      for (final row in activeSeriesRows) row.readTable(recurringSeries).id,
+    ];
+    final monthPrefix = '${year.toString().padLeft(4, '0')}-'
+        '${month.toString().padLeft(2, '0')}-';
+    final overlayRows = await (select(scheduledTransactionsView)
+          ..where((s) =>
+              s.seriesId.isIn(activeSeriesIds) &
+              (s.occurrenceKey.like('$monthPrefix%') |
+                  s.occurrenceKey.equals(kPlannedOccurrenceKey))))
+        .get();
+    final existingKeys = <(String, String)>{
+      for (final row in overlayRows) (row.seriesId, row.occurrenceKey),
+    };
+
+    const expander = RecurrenceExpander();
+    for (final row in activeSeriesRows) {
+      final series = row.readTable(recurringSeries);
+      final account = row.readTable(db.accountsView);
+      final occurrences = expander.expandForMonth(
+        series.toRecurrenceRuleSpec(),
+        year,
+        month,
+        respectMaterializeFrom: true,
+      );
+
+      for (final occurrence in occurrences) {
+        if (existingKeys.contains((series.id, occurrence.occurrenceKey))) {
+          continue;
+        }
+        entries.add(LedgerMonthPendingEntry(
+          scheduled: ScheduledTransactionViewRow(
+            id: 'virtual:${series.id}:${occurrence.occurrenceKey}',
+            seriesId: series.id,
+            occurrenceKey: occurrence.occurrenceKey,
+            scheduledDate: occurrence.scheduledDate,
+            // Raw storage value; `ScheduledTransactionStatus` lives in the
+            // ledger feature and core must not depend on it.
+            status: 'scheduled',
+            manualOnly: false,
+          ),
+          series: series,
+          account: account,
+          category: row.readTableOrNull(db.categoriesView),
+          isVirtual: true,
+        ));
+      }
+    }
+
+    entries.sort((a, b) {
+      final aDate = a.scheduled.dateOverride ?? a.scheduled.scheduledDate;
+      final bDate = b.scheduled.dateOverride ?? b.scheduled.scheduledDate;
+      final dateCmp = aDate.compareTo(bDate);
+      if (dateCmp != 0) return dateCmp;
+      final seriesCmp = a.series.id.compareTo(b.series.id);
+      if (seriesCmp != 0) return seriesCmp;
+      return a.scheduled.occurrenceKey.compareTo(b.scheduled.occurrenceKey);
+    });
+    return entries;
   }
 }

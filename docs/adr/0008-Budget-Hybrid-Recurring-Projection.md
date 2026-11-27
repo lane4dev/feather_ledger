@@ -20,16 +20,18 @@
 
 ## 2. 架构决策（Decision）
 
-采用 **混合投影方案（Hybrid Projection：自然月近期物理物化 + 预算读时虚拟补齐 + 按需落库）**：
+采用 **混合投影方案（Hybrid Projection：自然月近期物理物化 + 预算/账本读时虚拟补齐 + 按需落库）**：
 
 1. **层一：写入与账本侧维持自然月对齐物化**：
    - `ProjectRecurringEventsCommand` 维持 `defaultMonthsAhead = 1`（当月 + 未来 1 个完整自然月）、`maxUpcomingSafetyValve = 120`、`minKeep = 1` 及 Phase 0 历史回填上限（12 个月 / 100 条）；SQLite 保持有界，`/ledger` 待入账与本地通知窗口（60 条上限）保持可控。
 2. **共享 `RecurrenceExpander` 作为唯一真相源（Single Source of Truth）**：
    - 重复规则的本地日历日推演逻辑统一收口于纯 Dart 领域引擎 `RecurrenceExpander`（`lib/core/domain/recurrence/recurrence_expander.dart`，配合 `RecurrenceRuleSpec`），同时被 `ProjectRecurringEventsCommand`（写入物化）、`EnsureOccurrenceMaterializedCommand`（按需落库）和预算读路径调用，杜绝多套实现导致的口径漂移与时区/DST 漂移。
-3. **层二：预算读侧执行虚拟补齐（Overlay）**：
-   - 对目标自然月 `M`（仅限 `Track` 当月与 `Plan` 未来月，即 `M >= nowYm`），预算待入账读取合并两路数据：
+3. **层二：预算与账本读侧执行虚拟补齐（Overlay）**：
+   - **预算读路径**：对目标自然月 `M`（仅限 `Track` 当月与 `Plan` 未来月，即 `M >= nowYm`），预算待入账读取合并两路数据：
      - **已物化未入账部分**：读取 `scheduled_transactions_view` 中 `status IN ('scheduled', 'failed')` 且生效日期 `coalesce(dateOverride, scheduledDate)` 落入 `M` 的物理实例（含 `amountOverrideMinor` 与 `memoOverride`）。
      - **虚拟补齐部分**：对活跃支出系列（`isActive == true`、`type == expense`、同币种、关联账户 `includeInTotals && !deleted && !archived`），通过 `RecurrenceExpander.expandForMonth` 展开落入 `M` 的理论期次，剔除已有物理行覆盖的 `(seriesId, occurrenceKey)` 后，按 `recurringSeries.amountMinor` 合成虚拟待入账项计入 `Pending` 与贡献列表。
+   - **账本月度读路径**：`RecurringDao.watchMonthPendingBills` 对 `nowYm <= M <= nowYm + 24` 的账本待入账列表合并同月物理行与虚拟期次。账本口径与预算口径刻意不同：包含 `income` 与 `expense` 系列、包含 `includeInTotals == false` 的账户（因为账本列表本来就展示这些账户的交易），仅排除已归档/已删除账户。
+   - 两条读路径共用同一个 `(seriesId, occurrenceKey)` 去重集合（覆盖该系列在目标月与 `'single'` 下的全部状态），虚拟项均携带 `isVirtual = true`；账本列表不会把虚拟项计入每日收支小计、账户余额或月度快照。
 4. **按需落库（Materialize-on-Write）衔接交互**：
    - 区别于「只读摘要行」方案，远期虚拟待入账项在预算分类详情页中允许用户直接点击操作；点击时通过 `RecurringService.ensureMaterialized`（`EnsureOccurrenceMaterializedCommand`）在单事务内按 `(seriesId, occurrenceKey)` 幂等落库为标准 `scheduled` UUID 行（`INSERT OR IGNORE`），随后无缝复用既有 `PendingBillSheet` 执行记入、单期编辑或跳过（ADR-0005）。
 
@@ -48,14 +50,16 @@
 3. **跳过（`skipped`）与提前入账（`posted`）绝不复活**
    - 因为 `skipped` 与 `posted` 均在 `(seriesId, occurrenceKey)` 去重集合中，用户跳过的期次或提前入账的期次不会被虚拟补齐重新算回 `Pending`。
 4. **严格遵守系列终止、下界与过滤条件**
-   - 虚拟展开仅面向 `type == expense`、`isActive == true`、`currencyCode == targetCurrency`、关联账户满足 `includeInTotals == true && deleted == false && archived == false` 的系列；且须尊重 `materializeFrom` 下界（低于 `effectiveMaterializeFrom` 的期次不虚拟补齐）。
+   - **预算**虚拟展开仅面向 `type == expense`、`isActive == true`、`currencyCode == targetCurrency`、关联账户满足 `includeInTotals == true && deleted == false && archived == false` 的系列；且须尊重 `materializeFrom` 下界（低于 `effectiveMaterializeFrom` 的期次不虚拟补齐）。
+   - **账本**虚拟展开面向 `income` 与 `expense`、`isActive == true`、`currencyCode == targetCurrency`、关联账户满足 `deleted == false && archived == false`（不要求 `includeInTotals`），同样尊重 `materializeFrom` 下界。
    - 遵守 `endDate` 与全生命周期 `countLimit`：展开时以 `remainingCountLimit = countLimit - completedCountOffset` 从 `startDate` 锚点推进，确保总期数绝不超过 `countLimit`。
    - **归档分类截断**：系统分类（`systemCode != null`）不参与预算统计；已归档分类在归档当月（`M <= archiveYm`）保留预算与待入账，从归档月的下一个月起（`M > archiveYm`），该分类的**物理待入账与虚拟待入账一并从预算待入账敞口（总览、分类行与单分类提示条）中排除**，与预算时间轴截断规则严格对齐。
 5. **历史月（`Review` 模式）隔离**
    - 当 `M < nowYm` 时，`WatchMonthBudgetQuery` 与 `WatchTransactionBudgetHintQuery` 显式传入 `includeVirtual = false`，**跳过虚拟补齐**；`BudgetCalculator` 在 `Review` 模式下以 `Actual` 计算，将 `pendingMinor` 置为 0（仅保留物理遗留待入账提示标志 `hasLeftoverPendingInReview`）。
    - 6 个月趋势图（`BudgetTrendPoint`）仅在 `m == targetYm` 填入 `pendingMinor`，其余 5 个月不触发虚拟补齐。
 6. **远期展开性能护栏**
-   - 预算虚拟补齐仅在 `nowYm <= M <= nowYm + 24`（未来 24 个自然月）内启用；超出 `nowYm + 24` 时读侧静默跳过虚拟补齐（仍保留已存在的物理待入账），不限制月份选择器本身、不增加 UI 免责文案。
+   - 预算与账本的虚拟补齐均仅在 `nowYm <= M <= nowYm + 24`（未来 24 个自然月）内启用；历史月与超出 `nowYm + 24` 时读侧静默跳过虚拟补齐（仍保留已存在的物理待入账），不限制月份选择器本身、不增加 UI 免责文案。
+   - `pendingBillMonths` 红点、本地提醒（60 条上限）、账户余额、月度快照、每日小计、支出趋势、搜索与报表保持仅读取物理 `scheduled_transactions_view`，永远不消费虚拟期次。
    - 对无 `countLimit` 约束的高频规则（`DAILY` / `WEEKLY`），`RecurrenceExpander` 支持按周期步进快进至目标窗口附近再展开，避免从早期 `startDate` 线性空转。
 
 ## 4. 模块与分层现状（Touchpoints）
@@ -65,6 +69,7 @@
 | **Domain（共享）** | `lib/core/domain/recurrence/recurrence_expander.dart` | **已落地**：`RecurrenceExpander` + `RecurrenceRuleSpec`，提供本地日历日 `expandInRange` / `expandForMonth` / `firstOccurrenceAfter`，供物理物化、预算虚拟补齐与按需落库共用。 |
 | **Domain（Ledger）** | `lib/features/ledger/domain/commands/ensure_occurrence_materialized_command.dart` | **已落地**：按需落库命令（Materialize-on-Write），校验系列/账户有效性与规则合法性后，单事务 `INSERT OR IGNORE` 落库标准 `scheduled` UUID 行。 |
 | **Data（DAO）** | `lib/core/data/database/daos/budget_dao.dart` | **已落地**：`_loadPendingExpenseBills` 承担物理行 + 虚拟 Overlay 合并逻辑，被 `watchMonthPendingExpenses` 与 `watchCategoryBudgetHint` 共同复用。*(后续可选重构：将内存 Overlay 逻辑抽离为纯 Domain 服务 `BudgetPendingProjector`，降低 DAO 层业务耦合。)* |
+| **Data（Ledger DAO）** | `lib/core/data/database/daos/recurring_dao.dart`<br>`lib/features/ledger/domain/queries/watch_monthly_pending_bills_query.dart` | **已落地**：`watchMonthPendingBills` 为账本月度列表合并物理行与 24 个月内虚拟期次；查询层用 `DomainClock` 决定 `includeVirtual`。`pendingBillMonths` 等其余账本读路径不经过该方法。 |
 | **Domain（Budget）** | `lib/features/budget/domain/queries/watch_month_budget_query.dart`<br>`lib/features/budget/domain/queries/watch_transaction_budget_hint_query.dart`<br>`lib/features/budget/domain/services/budget_calculator.dart` | **已落地**：由查询层按 `month >= nowYm` 决定 `includeVirtual`；`BudgetCalculator.compute` 统一聚合实账与待入账（含虚拟项）。 |
 | **Presentation** | `lib/features/budget/presentation/screens/budget_category_detail_screen.dart` 等 | **已落地**：已移除旧版降级免责提示；分类详情页展示虚拟待入账项，点击时经 `BudgetViewModel.materializeVirtualPendingBill` 按需落库并打开 `PendingBillSheet`。 |
 

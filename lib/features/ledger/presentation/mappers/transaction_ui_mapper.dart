@@ -85,6 +85,8 @@ class TransactionUiMapper {
       scheduledStatus: e.status,
       seriesId: e.seriesId,
       series: e.recurringTransactionSeries,
+      isVirtual: e.isVirtual,
+      occurrenceKey: e.occurrenceKey,
     );
   }
 }

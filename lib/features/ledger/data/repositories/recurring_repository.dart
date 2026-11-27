@@ -35,6 +35,31 @@ class RecurringRepositoryImpl implements RecurringRepository {
   }
 
   @override
+  Stream<List<ScheduledTransactionEntity>> watchMonthlyPendingBills({
+    required String currencyCode,
+    required int year,
+    required int month,
+    required bool includeVirtual,
+  }) {
+    return _recurringDao
+        .watchMonthPendingBills(
+          currencyCode: currencyCode,
+          year: year,
+          month: month,
+          includeVirtual: includeVirtual,
+        )
+        .map((entries) => [
+              for (final entry in entries)
+                _toEntity(ScheduledBillJoinedRow(
+                  scheduled: entry.scheduled,
+                  series: entry.series,
+                  account: entry.account,
+                  category: entry.category,
+                )).copyWith(isVirtual: entry.isVirtual),
+            ]);
+  }
+
+  @override
   Future<ScheduledTransactionEntity?> getScheduledEntity(String id) async {
     final row = await _recurringDao.getScheduledJoined(id);
     return row == null ? null : _toEntity(row);

@@ -7,6 +7,7 @@ import 'package:feather_ledger/core/domain/enums.dart';
 import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
 import 'package:feather_ledger/features/ledger/domain/entities/ledger_entities.dart';
+import 'package:feather_ledger/features/ledger/domain/queries/watch_monthly_pending_bills_query.dart';
 import 'package:feather_ledger/features/ledger/domain/services/ledger_service.dart';
 import 'package:feather_ledger/features/ledger/presentation/view_model/ledger_view_model.dart';
 
@@ -15,8 +16,7 @@ import '../../../../support/event_sourcing/ledger_service_harness.dart';
 /// The month picker's marker derives from every pending bill's own month
 /// (spec 006, US33), scoped to the setting's currency.
 void main() {
-  test('pendingBillMonths marks every month that still owes a bill',
-      () async {
+  test('pendingBillMonths marks every month that still owes a bill', () async {
     final harness = LedgerServiceHarness();
     addTearDown(harness.close);
     await harness.seedSystemCategories();
@@ -56,6 +56,10 @@ void main() {
       overrides: [
         currencyControllerProvider.overrideWith(_FixedCurrency.new),
         ledgerServiceProvider.overrideWithValue(harness.ledgerService),
+        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
+          WatchMonthlyPendingBillsQuery(
+              harness.recurringRepository, harness.clock),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -116,12 +120,17 @@ void main() {
         .deleteBill(m1Bill.id, scope: RecurringScope.thisOnly);
     await (harness.db.update(harness.db.scheduledTransactionsView)
           ..where((t) => t.id.equals(m2Bill.id)))
-        .write(const ScheduledTransactionsViewCompanion(status: Value('failed')));
+        .write(
+            const ScheduledTransactionsViewCompanion(status: Value('failed')));
 
     final container = ProviderContainer(
       overrides: [
         currencyControllerProvider.overrideWith(_FixedCurrency.new),
         ledgerServiceProvider.overrideWithValue(harness.ledgerService),
+        watchMonthlyPendingBillsQueryProvider.overrideWithValue(
+          WatchMonthlyPendingBillsQuery(
+              harness.recurringRepository, harness.clock),
+        ),
       ],
     );
     addTearDown(container.dispose);

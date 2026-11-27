@@ -42,13 +42,14 @@
 21. 作为记账用户，我希望在远期规划月的预算分类详情页中，可以直接点击某一条尚未物理落库的虚拟待入账，并在打开账单操作面板后完成单期改期、改额或跳过，操作体验与近期物理待入账完全一致。
 22. 作为记账用户，当我快速连续点击同一条远期虚拟待入账时，我希望系统幂等处理，不会生成重复的物理待入账行。
 23. 作为记账用户，当我把预算月份切换到非常遥远的未来（例如超过 24 个月以后），即使账本中存在每日重复的周期规则，我也希望页面依然流畅响应，不会出现卡顿或无响应。
-24. 作为记账用户，我希望日常账本页（`/ledger`）的待入账列表仍然只展示近期已物化的账单，不会被远期预算虚拟期次刷屏。
+24. 作为记账用户，我希望日常账本页（`/ledger`）翻到物理物化窗口之外的未来月份时，也能看到周期收入与支出的虚拟待入账期次，并且点击后可幂等落库再进入既有账单操作面板；同时这些虚拟项不得进入每日收支小计、余额、提醒红点或搜索/报表。
 
 ## Implementation Decisions
 
 - **保持两层混合投影职责边界**：
   - **层一（物理物化）**：`ProjectRecurringEventsCommand` 维持三阶段自然月对齐物化（Phase 0 历史回填最多 12 个自然月且单系列上限 100 条；Phase 1 完整物化当月 + 未来 1 个完整自然月，安全阀 120 条；Phase 2 低频保底 1 期；一次性 `planned` 系列幂等生成 `'single'`）。不做无界远期物理写入，不改动 CRUD 豁免边界，也不新增数据库表或 schema 迁移。
-  - **层二（预算读时虚拟补齐）**：仅在 `targetYm >= nowYm`（Track 与 Plan 模式）时启用，由查询层（`WatchMonthBudgetQuery` 与 `WatchTransactionBudgetHintQuery`）根据注入的 `DomainClock` 判定 `includeVirtual`；`targetYm < nowYm`（Review 模式）显式关闭虚拟补齐。
+  - **层二（预算与账本读时虚拟补齐）**：仅在 `nowYm <= targetYm <= nowYm + 24` 时启用。预算由 `WatchMonthBudgetQuery` / `WatchTransactionBudgetHintQuery` 判定 `includeVirtual`，历史月（Review）关闭；账本由 `WatchMonthlyPendingBillsQuery` 判定，历史月与超出 24 个月的未来月关闭。两条读路径共用 `RecurrenceExpander` 与 `(seriesId, occurrenceKey)` 去重集合。
+  - **预算与账本口径差异**：预算虚拟项只含支出且要求账户 `includeInTotals`；账本虚拟项包含收入与支出、忽略 `includeInTotals`，但同样排除已归档/已删除账户。`pendingBillMonths`、本地提醒、余额、快照、每日小计、趋势、搜索与报表继续只读物理表。
 - **单一周期推演引擎**：
   - 所有周期日期展开（物理物化、预算虚拟补齐、按需落库校验）统一通过共享领域引擎 `RecurrenceExpander` 及其值对象 `RecurrenceRuleSpec` 执行。
   - 推演全程基于无时区偏移的本地日历日（local civil date），再拼回规则本地时刻，杜绝 UTC 午夜偏移、夏令时小时漂移与 `BYDAY` 星期偏移。
@@ -80,7 +81,7 @@
 
 - 不改变 `ProjectRecurringEventsCommand` 的物理物化窗口长度（维持当月 + 未来 1 个自然月），不为远期规划扩大 SQLite 物理写入范围。
 - 不将周期账本整体重构为“纯虚拟 RRULE + Exception 表”模型，继续保留 `scheduled_transactions_view` 的 UUID 身份与二元作用域编辑机制（ADR-0005）。
-- 不在账本列表（`/ledger`）、月度报表（Reports）或交易搜索（Search）中引入虚拟待入账期次。
+- 不在月度报表（Reports）或交易搜索（Search）中引入虚拟待入账期次；账本列表的 24 个月内虚拟期次是本次明确纳入的范围，但仅用于展示与按需落库，不参与任何合计。
 - 不在历史月（Review 模式）中把未入账或虚拟期次计入实际支出或达标判定。
 - 不引入任何跨币种汇率换算或预算余额跨月结转。
 - 不将 `BudgetDao` 内的内存 Overlay 逻辑在本次任务中搬迁抽离为独立的 `BudgetPendingProjector`（留作后续可选重构）。
@@ -90,5 +91,5 @@
 ## Further Notes
 
 - 不涉及任何数据库表结构变更或版本迁移。
-- **当前落地进度**：本规格所描述的混合投影主体能力（`RecurrenceExpander`、自然月三阶段物化、`BudgetDao` 读时虚拟 Overlay、`WatchMonthBudgetQuery` / `WatchTransactionBudgetHintQuery` 历史月隔离与三端同口径、以及 `EnsureOccurrenceMaterializedCommand` 按需落库）已在 `feat/budget-aligned-recurring` 分支落地；本次收口仅补齐 24 个月前瞻上限 + 高频快进护栏、归档分类 `M > archiveYm` 物理与虚拟待入账统一截断，以及对应验收测试。
+- **当前落地进度**：本规格所描述的混合投影主体能力（`RecurrenceExpander`、自然月三阶段物化、`BudgetDao` 读时虚拟 Overlay、`WatchMonthBudgetQuery` / `WatchTransactionBudgetHintQuery` 历史月隔离与三端同口径、以及 `EnsureOccurrenceMaterializedCommand` 按需落库）已在 `feat/budget-aligned-recurring` 分支落地；24 个月前瞻上限、高频快进护栏、归档分类 `M > archiveYm` 物理与虚拟待入账统一截断也已完成。账本页月度待入账现已通过 `RecurringDao.watchMonthPendingBills` + `WatchMonthlyPendingBillsQuery` 接入同一套读时虚拟补齐与按需落库，`pendingBillMonths` 保持仅物理。
 - **术语对齐**：全文严格遵循项目统一语言（`CONTEXT.md`），区分 *Pending bill exposure*（待入账敞口）、*Committed spend*（固定/已承诺支出）、*Discretionary spend*（自由支出）、*Budget timeline*（预算时间轴）、*Recurring series*（周期系列）与 *Source bill*（来源账单）。

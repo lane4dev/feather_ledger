@@ -41,6 +41,14 @@ class TransactionTileUiModel {
   final String? seriesId;
   final RecurringTransactionSeriesEntity? series;
 
+  /// True for a read-time occurrence that has no physical scheduled row yet.
+  /// Tapping it must materialize `(seriesId, occurrenceKey)` before opening
+  /// the normal pending-bill sheet.
+  final bool isVirtual;
+
+  /// Calendar-day key (`YYYY-MM-DD`) or `'single'` for a virtual occurrence.
+  final String? occurrenceKey;
+
   /// The scheduled bill this recorded transaction was posted from, if any.
   ///
   /// An edit must not change the kind of a posted bill: the row would keep
@@ -68,6 +76,8 @@ class TransactionTileUiModel {
     this.scheduledStatus,
     this.seriesId,
     this.series,
+    this.isVirtual = false,
+    this.occurrenceKey,
     this.sourceScheduledBillId,
   });
 }

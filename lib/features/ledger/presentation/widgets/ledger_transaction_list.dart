@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,20 +10,25 @@ import 'package:feather_ledger/app/config/app_currencies.dart';
 import 'package:feather_ledger/app/l10n/app_localizations.dart';
 import 'package:feather_ledger/app/router/card_page_transition.dart';
 import 'package:feather_ledger/app/theme/app_theme.dart';
+import 'package:feather_ledger/core/domain/result/result.dart';
 import 'package:feather_ledger/core/presentation/providers/account_providers.dart';
 import 'package:feather_ledger/core/presentation/providers/currency_provider.dart';
+import 'package:feather_ledger/shared/presentation/ledger_error_localizer.dart';
 
 import 'pending_bill_sheet.dart';
 import 'show_transaction_detail_sheet.dart';
+import '../mappers/transaction_ui_mapper.dart';
 import '../models/ledger_expense_trend.dart';
+import '../models/transaction_tile_ui_model.dart';
 import '../view_model/ledger_view_model.dart';
+import '../view_model/recurring_view_model.dart';
 
 import 'ledger_empty.dart';
 import 'ledger_skeleton.dart';
 import 'ledger_timeline.dart';
 import 'ledger_header.dart';
 
-class LedgerTransactionList extends ConsumerWidget {
+class LedgerTransactionList extends ConsumerStatefulWidget {
   final DateTime month;
   final String currency;
   final AppLocalizations l10n;
@@ -41,15 +47,82 @@ class LedgerTransactionList extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LedgerTransactionList> createState() =>
+      _LedgerTransactionListState();
+}
+
+class _LedgerTransactionListState extends ConsumerState<LedgerTransactionList> {
+  bool _openingVirtual = false;
+
+  Future<void> _openPending(
+    BuildContext context,
+    TransactionTileUiModel transaction,
+  ) async {
+    if (!transaction.isVirtual) {
+      await showAppReceiptSheet(
+        context: context,
+        builder: (context) => PendingBillSheet(
+          transaction: transaction,
+          currencySymbol: widget.currency,
+        ),
+      );
+      return;
+    }
+
+    final seriesId = transaction.seriesId;
+    final occurrenceKey = transaction.occurrenceKey;
+    if (seriesId == null || occurrenceKey == null || _openingVirtual) return;
+
+    _openingVirtual = true;
+    try {
+      final result = await ref
+          .read(recurringViewModelProvider.notifier)
+          .ensureMaterialized(
+            seriesId: seriesId,
+            occurrenceKey: occurrenceKey,
+          );
+      if (!context.mounted) return;
+
+      switch (result) {
+        case Failure(:final code):
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(code.message(widget.l10n))),
+          );
+        case Success(:final value):
+          final category = value.category;
+          final account = value.account;
+          if (category == null || account == null) return;
+          const mapper = TransactionUiMapper();
+          final materialized = mapper.toPendingTile(
+            value,
+            category: category,
+            account: account,
+          );
+          await showAppReceiptSheet<void>(
+            context: context,
+            builder: (_) => PendingBillSheet(
+              transaction: materialized,
+              currencySymbol: widget.currency,
+            ),
+          );
+      }
+    } finally {
+      _openingVirtual = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final transactionsAsync =
-        ref.watch(ledgerMonthlyTransactionsProvider(month));
+        ref.watch(ledgerMonthlyTransactionsProvider(widget.month));
     final days = transactionsAsync.asData?.value;
     final isEmpty = days?.isEmpty ?? false;
     final hasTransactions = days != null && days.isNotEmpty;
-    final fabHeight =
-        Theme.of(context).floatingActionButtonTheme.sizeConstraints?.minHeight ??
-            56.0;
+    final fabHeight = Theme.of(context)
+            .floatingActionButtonTheme
+            .sizeConstraints
+            ?.minHeight ??
+        56.0;
     final fabMargin = context.spacing.md;
     final tailClearance = math.max(88.0, fabHeight + fabMargin + fabMargin);
 
@@ -65,22 +138,24 @@ class LedgerTransactionList extends ConsumerWidget {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: CustomScrollView(
-        controller: controller,
-        key: PageStorageKey(month),
+        controller: widget.controller,
+        key: PageStorageKey(widget.month),
         physics: isEmpty ? const NeverScrollableScrollPhysics() : null,
         slivers: [
           SliverToBoxAdapter(
             child: SizedBox(
-              height: headerHeight,
+              height: widget.headerHeight,
               child: LedgerHeader(
-                  cardKey: summaryCardKey,
-                  month: month,
+                  cardKey: widget.summaryCardKey,
+                  month: widget.month,
                   expenseTrend: LedgerExpenseTrend.fromDays(
                     days ?? const [],
                   ),
                   onTap: () => context.push('/ledger/reports',
-                      extra: CardPageOrigin(month, summaryCardKey)),
-                  summaryAsync: ref.watch(ledgerMonthlySummaryProvider(month))),
+                      extra:
+                          CardPageOrigin(widget.month, widget.summaryCardKey)),
+                  summaryAsync:
+                      ref.watch(ledgerMonthlySummaryProvider(widget.month))),
             ),
           ),
           transactionsAsync.when(
@@ -97,17 +172,11 @@ class LedgerTransactionList extends ConsumerWidget {
               }
               return LedgerTimeline(
                 days: days,
-                currencySymbol: currency,
+                currencySymbol: widget.currency,
                 onTransactionTap: (tx) {
                   // Pending bills retain their own post/edit/delete flow.
                   if (tx.isPending) {
-                    showAppReceiptSheet(
-                      context: context,
-                      builder: (context) => PendingBillSheet(
-                        transaction: tx,
-                        currencySymbol: currency,
-                      ),
-                    );
+                    unawaited(_openPending(context, tx));
                     return;
                   }
 
@@ -115,7 +184,7 @@ class LedgerTransactionList extends ConsumerWidget {
                     context: context,
                     ref: ref,
                     transaction: tx,
-                    currencySymbol: currency,
+                    currencySymbol: widget.currency,
                   );
                 },
               );
@@ -124,7 +193,7 @@ class LedgerTransactionList extends ConsumerWidget {
               child: LedgerSkeleton(),
             ),
             error: (e, _) => SliverFillRemaining(
-              child: Center(child: Text(l10n.errorPrefix('$e'))),
+              child: Center(child: Text(widget.l10n.errorPrefix('$e'))),
             ),
           ),
           if (hasTransactions)
