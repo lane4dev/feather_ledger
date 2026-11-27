@@ -150,6 +150,40 @@ void main() {
     expect(month.balanceMinor, -3000);
   });
 
+  test('correcting expense into income moves the snapshot to income',
+      () async {
+    await seedCashAndFood();
+    final txId = await recordExpense(5000, commandId: 'cmd_expense_to_income');
+    final result = await harness.ledgerService.updateTransaction(
+      commandId: 'cmd_correct_expense_to_income',
+      id: txId,
+      amountMinor: 7000,
+      type: TransactionKind.income,
+      date: DateTime(2026, 1, 10),
+      categoryId: salaryId,
+      accountId: cashId,
+    );
+    expect(result, isA<Success<void>>());
+
+    final live = await harness.ledgerService
+        .watchTransactions(DateTime(2026, 1))
+        .first;
+    expect(live.single.type, TransactionKind.income);
+    expect(live.single.category?.id, salaryId);
+    expect(live.single.amount, 7000);
+
+    final cash = await harness.db.accountDao.getAccountById(cashId);
+    expect(cash!.balanceMinor, 7000);
+
+    final month = await harness.ledgerService.watchMonthlySnapshot(
+      DateTime(2026, 1),
+      currencyCode: 'USD',
+    ).first;
+    expect(month.incomeMinor, 7000);
+    expect(month.expenseMinor, 0);
+    expect(month.balanceMinor, 7000);
+  });
+
   test('a posted scheduled bill cannot change between income and expense',
       () async {
     await seedCashAndFood();
