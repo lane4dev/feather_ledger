@@ -115,8 +115,20 @@ void main() {
       expect(find.text('Pending'), findsOneWidget);
       expect(find.byType(AppBadge), findsOneWidget);
 
+      final expectedMuted = AppTheme.lightTheme.colorScheme.onSurfaceVariant
+          .withValues(alpha: LedgerTheme.skippedTextAlpha);
+
       final titleText = tester.widget<Text>(find.text('Rent'));
-      expect(titleText.style?.color, AppTheme.lightTheme.colorScheme.onSurface);
+      expect(titleText.style?.color, expectedMuted);
+      expect(titleText.style?.decoration, isNot(TextDecoration.lineThrough),
+          reason: 'pending is muted, not cancelled like a skipped bill');
+
+      final subtitleText = tester.widget<Text>(find.text('Cash'));
+      expect(subtitleText.style?.color, expectedMuted);
+
+      final amountText = tester.widget<Text>(find.text(r'-$5000.00'));
+      expect(amountText.style?.color, expectedMuted);
+      expect(amountText.style?.decoration, isNot(TextDecoration.lineThrough));
 
       await tester.pumpWidget(
           wrap(TransactionTile(transaction: tile(isPending: false))));

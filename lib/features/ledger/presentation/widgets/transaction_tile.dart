@@ -30,11 +30,15 @@ class TransactionTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isSkipped = transaction.isSkipped;
+    // Upcoming bills read as "not yet" the same way skipped ones do, without
+    // the strikethrough that marks a cancelled instance. Failed auto-posts stay
+    // at full strength because they need attention.
+    final isMuted = isSkipped || transaction.isScheduledPending;
 
     final amountText = transaction.formattedAmount(effectiveCurrencySymbol);
     final amountStyle = LedgerTheme.transactionAmount(context).copyWith(
       decoration: isSkipped ? TextDecoration.lineThrough : null,
-      color: isSkipped
+      color: isMuted
           ? LedgerTheme.skippedColor(context)
           : switch (transaction.type) {
               TransactionKind.expense => context.colors.expense,
@@ -79,14 +83,16 @@ class TransactionTile extends StatelessWidget {
                   ? (constraints.maxWidth -
                           LedgerTheme.categoryAvatarSize -
                           iconGap -
-                          (stackedAmount ? 0 : context.spacing.md + amountWidth))
+                          (stackedAmount
+                              ? 0
+                              : context.spacing.md + amountWidth))
                       .clamp(48.0, constraints.maxWidth)
                   : double.infinity;
               final maxBadgeWidth = availableTextWidth.isFinite
                   ? (availableTextWidth * 0.65).clamp(48.0, availableTextWidth)
                   : double.infinity;
 
-              final subtitleStyle = isSkipped
+              final subtitleStyle = isMuted
                   ? LedgerTheme.transactionMeta(context).copyWith(
                       color: LedgerTheme.skippedColor(context),
                     )
@@ -99,11 +105,10 @@ class TransactionTile extends StatelessWidget {
                   Text(
                     _title(l10n),
                     style: LedgerTheme.transactionTitle(context).copyWith(
-                      color: isSkipped
+                      color: isMuted
                           ? LedgerTheme.skippedColor(context)
                           : theme.colorScheme.onSurface,
-                      decoration:
-                          isSkipped ? TextDecoration.lineThrough : null,
+                      decoration: isSkipped ? TextDecoration.lineThrough : null,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -284,7 +289,8 @@ class TransactionTile extends StatelessWidget {
     return switch (transaction.type) {
       TransactionKind.transfer => l10n.transfer,
       TransactionKind.openingBalance => l10n.initialBalance,
-      TransactionKind.balanceAdjustment => l10n.accountBalanceAdjustmentDescription,
+      TransactionKind.balanceAdjustment =>
+        l10n.accountBalanceAdjustmentDescription,
       TransactionKind.income => transaction.category?.name ?? l10n.income,
       TransactionKind.expense => transaction.category?.name ?? l10n.expense,
     };
